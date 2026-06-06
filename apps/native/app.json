@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "scheme": "rallycaststv",
+    "userInterfaceStyle": "automatic",
+    "orientation": "default",
+    "web": {
+      "bundler": "metro"
+    },
+    "name": "rallycaststv",
+    "slug": "rallycaststv",
+    "plugins": ["expo-font"],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}

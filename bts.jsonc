@@ -1,0 +1,31 @@
+// Better-T-Stack
+//
+// Website: https://www.better-t-stack.dev/
+// Stack Builder: https://www.better-t-stack.dev/new
+// Analytics: https://www.better-t-stack.dev/analytics
+// Showcase: https://www.better-t-stack.dev/showcase
+// Sponsor: https://github.com/sponsors/AmanVarshney01
+//
+// Add new addons with: bun create better-t-stack add
+// This file is safe to delete
+
+{
+  "$schema": "https://r2.better-t-stack.dev/schema.json",
+  "version": "3.31.1",
+  "createdAt": "2026-06-06T16:58:12.598Z",
+  "reproducibleCommand": "bun create better-t-stack@latest rallycaststv --frontend tanstack-start native-uniwind --backend hono --runtime workers --database sqlite --orm drizzle --api none --auth better-auth --payments none --addons lefthook oxlint skills turborepo ultracite --examples ai --db-setup d1 --web-deploy cloudflare --server-deploy cloudflare --git --package-manager bun --install",
+  "database": "sqlite",
+  "orm": "drizzle",
+  "backend": "hono",
+  "runtime": "workers",
+  "frontend": ["tanstack-start", "native-uniwind"],
+  "addons": ["lefthook", "oxlint", "skills", "turborepo", "ultracite"],
+  "examples": ["ai"],
+  "auth": "better-auth",
+  "payments": "none",
+  "packageManager": "bun",
+  "dbSetup": "d1",
+  "api": "none",
+  "webDeploy": "cloudflare",
+  "serverDeploy": "cloudflare",
+}

@@ -1,0 +1,25 @@
+{
+  "name": "@rallycaststv/auth",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@better-auth/expo": "catalog:",
+    "@rallycaststv/db": "workspace:*",
+    "@rallycaststv/env": "workspace:*",
+    "better-auth": "catalog:",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@rallycaststv/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}
