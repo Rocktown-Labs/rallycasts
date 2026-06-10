@@ -13,14 +13,22 @@ import {
   useThemeColor,
 } from "heroui-native";
 import { useRef, useEffect, useState } from "react";
-import { View, Text, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
+import {
+  View,
+  Text,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
 
 import { Container } from "@/components/container";
 
 const generateAPIUrl = (relativePath: string) => {
   const serverUrl = env.EXPO_PUBLIC_SERVER_URL;
   if (!serverUrl) {
-    throw new Error("EXPO_PUBLIC_SERVER_URL environment variable is not defined");
+    throw new Error(
+      "EXPO_PUBLIC_SERVER_URL environment variable is not defined"
+    );
   }
   const path = relativePath.startsWith("/") ? relativePath : `/${relativePath}`;
   return serverUrl.concat(path);
@@ -29,10 +37,10 @@ const generateAPIUrl = (relativePath: string) => {
 export default function AIScreen() {
   const [input, setInput] = useState("");
   const { messages, error, sendMessage, status } = useChat({
+    onError: (error) => console.error(error, "AI Chat Error"),
     transport: new DefaultChatTransport({
       api: generateAPIUrl("/ai"),
     }),
-    onError: (error) => console.error(error, "AI Chat Error"),
   });
   const scrollViewRef = useRef<ScrollView>(null);
   const foregroundColor = useThemeColor("foreground");
@@ -57,7 +65,9 @@ export default function AIScreen() {
         <View className="flex-1 justify-center items-center px-4">
           <Surface variant="secondary" className="p-4 rounded-lg">
             <FieldError isInvalid>
-              <Text className="text-danger text-center font-medium mb-1">{error.message}</Text>
+              <Text className="text-danger text-center font-medium mb-1">
+                {error.message}
+              </Text>
               <Text className="text-muted text-center text-xs">
                 Please check your connection and try again.
               </Text>
@@ -76,8 +86,12 @@ export default function AIScreen() {
       >
         <View className="flex-1 px-4 py-4">
           <View className="py-4 mb-4">
-            <Text className="text-2xl font-semibold text-foreground tracking-tight">AI Chat</Text>
-            <Text className="text-muted text-sm mt-1">Chat with our AI assistant</Text>
+            <Text className="text-2xl font-semibold text-foreground tracking-tight">
+              AI Chat
+            </Text>
+            <Text className="text-muted text-sm mt-1">
+              Chat with our AI assistant
+            </Text>
           </View>
 
           <ScrollView
@@ -92,8 +106,14 @@ export default function AIScreen() {
                 variant="secondary"
                 className="flex-1 justify-center items-center py-8 rounded-xl"
               >
-                <Ionicons name="chatbubble-ellipses-outline" size={32} color={mutedColor} />
-                <Text className="text-muted text-sm mt-3">Ask me anything to get started</Text>
+                <Ionicons
+                  name="chatbubble-ellipses-outline"
+                  size={32}
+                  color={mutedColor}
+                />
+                <Text className="text-muted text-sm mt-3">
+                  Ask me anything to get started
+                </Text>
               </Surface>
             ) : (
               <View className="gap-3">
@@ -122,14 +142,16 @@ export default function AIScreen() {
                           >
                             {JSON.stringify(part)}
                           </Text>
-                        ),
+                        )
                       )}
                     </View>
                   </Surface>
                 ))}
                 {isBusy && (
                   <Surface variant="secondary" className="p-3 mr-8 rounded-xl">
-                    <Text className="text-xs font-medium mb-1 text-muted">AI</Text>
+                    <Text className="text-xs font-medium mb-1 text-muted">
+                      AI
+                    </Text>
                     <View className="flex-row items-center gap-2">
                       <Spinner size="sm" />
                       <Text className="text-muted text-sm">Thinking...</Text>

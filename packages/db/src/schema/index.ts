@@ -1,2 +1,30 @@
-export * from "./auth";
-export {};
+export {
+  account,
+  accountRelations,
+  session,
+  sessionRelations,
+  user,
+  userRelations,
+  verification,
+} from "./auth";
+export {
+  casterAvailability,
+  casterProfile,
+  casterProfileRelations,
+  castingJob,
+  castingJobOffer,
+  challenge,
+  conversation,
+  conversationParticipant,
+  event,
+  message,
+  userProfile,
+  userProfileRelations,
+  venue,
+  venueRelations,
+  video,
+  videoComment,
+  videoCommentRelations,
+  videoRelations,
+  webhookEvent,
+} from "./domain";

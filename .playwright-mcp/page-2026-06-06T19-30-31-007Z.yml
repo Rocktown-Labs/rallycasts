@@ -1,0 +1,5 @@
+- generic [ref=e280]:
+    - generic [ref=e281]:
+        - strong [ref=e282]: Something went wrong!
+        - button "Hide Error" [ref=e283]
+    - code [ref=e287]: Failed to fetch

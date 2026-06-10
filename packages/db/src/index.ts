@@ -1,8 +1,11 @@
-import { env } from "@rallycaststv/env/server";
 import { drizzle } from "drizzle-orm/d1";
 
-import * as schema from "./schema";
+import * as authSchema from "./schema/auth";
+import * as domainSchema from "./schema/domain";
 
-export function createDb() {
-  return drizzle(env.DB, { schema });
-}
+const schema = {
+  ...authSchema,
+  ...domainSchema,
+};
+
+export const createDb = (database: D1Database) => drizzle(database, { schema });

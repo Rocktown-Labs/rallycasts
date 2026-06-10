@@ -3,4 +3,12 @@ import ultracite from "ultracite/oxfmt";
 
 export default defineConfig({
   ...ultracite,
+  ignorePatterns: [
+    ...ultracite.ignorePatterns,
+    ".agents/**",
+    ".playwright-mcp/**",
+    "apps/caster/**",
+    "apps/native/**",
+    "rallycasts-*.png",
+  ],
 });

@@ -1,0 +1,692 @@
+Checking formatting...
+
+apps/web/src/routes/players.$username.tsx (8ms)
+
+Format issues found in above 1 files. Run without `--check` to fix.
+Finished in 87ms on 1 files using 8 threads.
+
+  x eslint(complexity): function `PlayerProfilePage` has a complexity of 21. Maximum allowed is 20.
+      ,-[apps/web/src/routes/players.$username.tsx:733:1]
+  732 |     
+  733 | ,-> function PlayerProfilePage() {
+  734 | |     const { username } = useParams({ from: "/players/$username" });
+  735 | |     const [activeTab, setActiveTab] = useState<
+  736 | |       "videos" | "photos" | "feed" | "about"
+  737 | |     >("videos");
+  738 | |   
+  739 | |     // Photos State
+  740 | |     const [photosList, setPhotosList] = useState<PhotoPost[]>([
+  741 | |       {
+  742 | |         caption:
+  743 | |           "Weekend morning grind at Crestwood! Love the weather today. 🏓🔥",
+  744 | |         comments: [
+  745 | |           { author: "Mike Rodriguez", text: "Nice shots!", time: "2h ago" },
+  746 | |           {
+  747 | |             author: "Sarah Johnson",
+  748 | |             text: "Let's play next Saturday!",
+  749 | |             time: "1h ago",
+  750 | |           },
+  751 | |         ],
+  752 | |         id: "p1",
+  753 | |         likes: 45,
+  754 | |         url: "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=600&q=80",
+  755 | |       },
+  756 | |       {
+  757 | |         caption: "Sunset sessions hitting some deep dinks. Paddles up! 🙌",
+  758 | |         comments: [
+  759 | |           { author: "Alice Smith", text: "Beautiful courts!", time: "5h ago" },
+  760 | |         ],
+  761 | |         id: "p2",
+  762 | |         likes: 82,
+  763 | |         url: "https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?auto=format&fit=crop&w=600&q=80",
+  764 | |       },
+  765 | |       {
+  766 | |         caption: "New paddle feels like butter. DUPR rating going up next week!",
+  767 | |         comments: [],
+  768 | |         id: "p3",
+  769 | |         likes: 31,
+  770 | |         url: "https://images.unsplash.com/photo-1599447421416-3414500d18a5?auto=format&fit=crop&w=600&q=80",
+  771 | |       },
+  772 | |       {
+  773 | |         caption: "Team dinner after a successful ladder league tournament! 🏆",
+  774 | |         comments: [{ author: "Bob", text: "Congrats!", time: "1d ago" }],
+  775 | |         id: "p4",
+  776 | |         likes: 64,
+  777 | |         url: "https://images.unsplash.com/photo-1617083934383-e009403ec417?auto=format&fit=crop&w=600&q=80",
+  778 | |       },
+  779 | |     ]);
+  780 | |     const [selectedPhoto, setSelectedPhoto] = useState<PhotoPost | null>(null);
+  781 | |   
+  782 | |     // Profile state actions
+  783 | |     const [isFollowing, setIsFollowing] = useState(false);
+  784 | |     const [friendStatus, setFriendStatus] = useState<
+  785 | |       "none" | "pending" | "friends"
+  786 | |     >("none");
+  787 | |     const [isLiked, setIsLiked] = useState(false);
+  788 | |     const [likesCount, setLikesCount] = useState(18);
+  789 | |   
+  790 | |     // Modals state
+  791 | |     const [showChallengeModal, setShowChallengeModal] = useState(false);
+  792 | |     const [showDMModal, setShowDMModal] = useState(false);
+  793 | |   
+  794 | |     // DM State
+  795 | |     const [dmMessage, setDmMessage] = useState("");
+  796 | |     const [chatLog, setChatLog] = useState<
+  797 | |       { sender: string; text: string; time: string }[]
+  798 | |     >([
+  799 | |       {
+  800 | |         sender: "player",
+  801 | |         text: "Hey! Down to play some pickleball this weekend?",
+  802 | |         time: "Yesterday",
+  803 | |       },
+  804 | |     ]);
+  805 | |   
+  806 | |     // Social feed state
+  807 | |     const [posts, setPosts] = useState<SocialPost[]>([
+  808 | |       {
+  809 | |         author: "Sarah Johnson",
+  810 | |         avatar: "S",
+  811 | |         comments: [
+  812 | |           {
+  813 | |             author: "Mike Rodriguez",
+  814 | |             text: "Nice resets! Those drops were crazy.",
+  815 | |             time: "1 hour ago",
+  816 | |           },
+  817 | |         ],
+  818 | |         content:
+  819 | |           "Great match today on Court 1! Finished the ladder match in second place. reset game was on point.",
+  820 | |         id: "post-1",
+  821 | |         liked: false,
+  822 | |         likes: 12,
+  823 | |         time: "2 hours ago",
+  824 | |       },
+  825 | |       {
+  826 | |         author: "Sarah Johnson",
+  827 | |         avatar: "S",
+  828 | |         comments: [],
+  829 | |         content:
+  830 | |           "Does anyone want to play doubles tomorrow morning around 8 AM at Crestwood Park?",
+  831 | |         id: "post-2",
+  832 | |         liked: false,
+  833 | |         likes: 5,
+  834 | |         time: "3 days ago",
+  835 | |       },
+  836 | |     ]);
+  837 | |     const [newCommentTexts, setNewCommentTexts] = useState<
+  838 | |       Record<string, string>
+  839 | |     >({});
+  840 | |   
+  841 | |     // Challenge states
+  842 | |     const [challenges, setChallenges] = useState<Challenge[]>([
+  843 | |       {
+  844 | |         casted: true,
+  845 | |         challenged: "Sarah Johnson",
+  846 | |         challenger: "CG Stewart",
+  847 | |         date: "2026-06-12",
+  848 | |         id: "ch-1",
+  849 | |         message: "Ready for a rematch after last week's game!",
+  850 | |         mode: "singles",
+  851 | |         splitMode: "split_2",
+  852 | |         status: "issued",
+  853 | |         time: "18:00",
+  854 | |         venue: "Crestwood Pickleball Park",
+  855 | |       },
+  856 | |     ]);
+  857 | |   
+  858 | |     const { data: sessionData } = authClient.useSession();
+  859 | |     const currentUser = sessionData?.user;
+  860 | |   
+  861 | |     const { data, isLoading, error } = useQuery({
+  862 | |       queryFn: async () => {
+  863 | |         const res = await apiClient.api.players[":username"].$get({
+  864 | |           param: { username },
+  865 | |         });
+  866 | |         if (!res.ok) {
+  867 | |           throw new Error("Failed to fetch player");
+  868 | |         }
+  869 | |         return res.json();
+  870 | |       },
+  871 | |       queryKey: ["player", username],
+  872 | |     });
+  873 | |   
+  874 | |     if (isLoading) {
+  875 | |       return (
+  876 | |         <div className="mx-auto max-w-4xl px-4 py-8 space-y-6 animate-pulse">
+  877 | |           <div className="flex items-center gap-6 pb-6 border-b border-border/50">
+  878 | |             <div className="size-20 sm:size-24 rounded-full bg-muted" />
+  879 | |             <div className="space-y-3 flex-1">
+  880 | |               <div className="h-6 w-48 bg-muted rounded" />
+  881 | |               <div className="h-4 w-32 bg-muted rounded" />
+  882 | |             </div>
+  883 | |           </div>
+  884 | |           <div className="grid gap-6 md:grid-cols-3">
+  885 | |             <div className="h-28 bg-muted rounded-xl" />
+  886 | |             <div className="h-28 bg-muted rounded-xl" />
+  887 | |             <div className="h-28 bg-muted rounded-xl" />
+  888 | |           </div>
+  889 | |         </div>
+  890 | |       );
+  891 | |     }
+  892 | |   
+  893 | |     if (error || !data?.player) {
+  894 | |       return (
+  895 | |         <div className="mx-auto max-w-4xl px-4 py-12 text-center space-y-4">
+  896 | |           <h2 className="text-2xl font-bold text-destructive">
+  897 | |             Profile not found
+  898 | |           </h2>
+  899 | |           <p className="text-muted-foreground text-sm">
+  900 | |             The player username "@{username}" does not exist or has not completed
+  901 | |             onboarding.
+  902 | |           </p>
+  903 | |           <Link to="/players">
+  904 | |             <Button variant="outline" className="rounded-md text-xs mt-4">
+  905 | |               Back to Players
+  906 | |             </Button>
+  907 | |           </Link>
+  908 | |         </div>
+  909 | |       );
+  910 | |     }
+  911 | |   
+  912 | |     const { player, videos = [] } = data;
+  913 | |     const location = [player.homeCity, player.homeState]
+  914 | |       .filter(Boolean)
+  915 | |       .join(", ");
+  916 | |   
+  917 | |     const handlePostLike = (postId: string) => {
+  918 | |       setPosts(
+  919 | |         posts.map((post) => {
+  920 | |           if (post.id === postId) {
+  921 | |             return {
+  922 | |               ...post,
+  923 | |               liked: !post.liked,
+  924 | |               likes: post.liked ? post.likes - 1 : post.likes + 1,
+  925 | |             };
+  926 | |           }
+  927 | |           return post;
+  928 | |         })
+  929 | |       );
+  930 | |     };
+  931 | |   
+  932 | |     const handleAddComment = (postId: string) => {
+  933 | |       const commentText = newCommentTexts[postId]?.trim();
+  934 | |       if (!commentText) {
+  935 | |         return;
+  936 | |       }
+  937 | |   
+  938 | |       setPosts(
+  939 | |         posts.map((post) => {
+  940 | |           if (post.id === postId) {
+  941 | |             return {
+  942 | |               ...post,
+  943 | |               comments: [
+  944 | |                 ...post.comments,
+  945 | |                 {
+  946 | |                   author: currentUser?.name || "CG Stewart",
+  947 | |                   text: commentText,
+  948 | |                   time: "Just now",
+  949 | |                 },
+  950 | |               ],
+  951 | |             };
+  952 | |           }
+  953 | |           return post;
+  954 | |         })
+  955 | |       );
+  956 | |   
+  957 | |       setNewCommentTexts({ ...newCommentTexts, [postId]: "" });
+  958 | |       toast.success("Comment posted!");
+  959 | |     };
+  960 | |   
+  961 | |     const handleSendChallenge = (challengeData: {
+  962 | |       mode: "singles" | "doubles";
+  963 | |       partner?: string;
+  964 | |       venue: string;
+  965 | |       date: string;
+  966 | |       time: string;
+  967 | |       message: string;
+  968 | |       casted: boolean;
+  969 | |       splitMode: string;
+  970 | |     }) => {
+  971 | |       const newChallenge: Challenge = {
+  972 | |         ...challengeData,
+  973 | |         challenged: player.name,
+  974 | |         challenger: currentUser?.name || "CG Stewart",
+  975 | |         id: `ch-${Date.now()}`,
+  976 | |         status: "issued",
+  977 | |       };
+  978 | |   
+  979 | |       setChallenges((prev) => [newChallenge, ...prev]);
+  980 | |       setShowChallengeModal(false);
+  981 | |       toast.success(`Challenge successfully issued to ${player.name}!`);
+  982 | |     };
+  983 | |   
+  984 | |     const handleChallengeAction = (
+  985 | |       chId: string,
+  986 | |       action: "accept" | "decline"
+  987 | |     ) => {
+  988 | |       setChallenges(
+  989 | |         challenges.map((ch) => {
+  990 | |           if (ch.id === chId) {
+  991 | |             return {
+  992 | |               ...ch,
+  993 | |               status: action === "accept" ? "accepted" : "declined",
+  994 | |             };
+  995 | |           }
+  996 | |           return ch;
+  997 | |         })
+  998 | |       );
+  999 | |   
+ 1000 | |       if (action === "accept") {
+ 1001 | |         toast.success("Match challenge accepted!");
+ 1002 | |       } else {
+ 1003 | |         toast.info("Match challenge declined.");
+ 1004 | |       }
+ 1005 | |     };
+ 1006 | |   
+ 1007 | |     const handleSendDM = (e: React.FormEvent) => {
+ 1008 | |       e.preventDefault();
+ 1009 | |       if (!dmMessage.trim()) {
+ 1010 | |         return;
+ 1011 | |       }
+ 1012 | |   
+ 1013 | |       setChatLog((prev) => [
+ 1014 | |         ...prev,
+ 1015 | |         { sender: "me", text: dmMessage, time: "Just now" },
+ 1016 | |       ]);
+ 1017 | |       setDmMessage("");
+ 1018 | |   
+ 1019 | |       // Mock auto replies
+ 1020 | |       setTimeout(() => {
+ 1021 | |         setChatLog((prev) => [
+ 1022 | |           ...prev,
+ 1023 | |           {
+ 1024 | |             sender: "player",
+ 1025 | |             text: "Sounds awesome, let's look at the matches or send a challenge request!",
+ 1026 | |             time: "Just now",
+ 1027 | |           },
+ 1028 | |         ]);
+ 1029 | |       }, 1000);
+ 1030 | |     };
+ 1031 | |   
+ 1032 | |     return (
+ 1033 | |       <div className="mx-auto max-w-4xl px-4 py-6 space-y-8 animate-in fade-in duration-300">
+ 1034 | |         <PlayerHeader
+ 1035 | |           player={player}
+ 1036 | |           location={location}
+ 1037 | |           isFollowing={isFollowing}
+ 1038 | |           setIsFollowing={setIsFollowing}
+ 1039 | |           friendStatus={friendStatus}
+ 1040 | |           setFriendStatus={setFriendStatus}
+ 1041 | |           likesCount={likesCount}
+ 1042 | |           setLikesCount={setLikesCount}
+ 1043 | |           isLiked={isLiked}
+ 1044 | |           setIsLiked={setIsLiked}
+ 1045 | |           onOpenChallenge={() => {
+ 1046 | |             if (!currentUser) {
+ 1047 | |               toast.error("Please log in to challenge this player.");
+ 1048 | |               return;
+ 1049 | |             }
+ 1050 | |             setShowChallengeModal(true);
+ 1051 | |           }}
+ 1052 | |           onOpenDM={() => {
+ 1053 | |             if (!currentUser) {
+ 1054 | |               toast.error("Please log in to message this player.");
+ 1055 | |               return;
+ 1056 | |             }
+ 1057 | |             setShowDMModal(true);
+ 1058 | |           }}
+ 1059 | |         />
+ 1060 | |   
+ 1061 | |         <div className="grid grid-cols-3 gap-4 text-center">
+ 1062 | |           <div className="p-3 bg-muted/20 border border-border/50 rounded-xl">
+ 1063 | |             <span className="block text-xl font-bold">{videos.length}</span>
+ 1064 | |             <span className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+ 1065 | |               Videos
+ 1066 | |             </span>
+ 1067 | |           </div>
+ 1068 | |           <div className="p-3 bg-muted/20 border border-border/50 rounded-xl">
+ 1069 | |             <span className="block text-xl font-bold">124</span>
+ 1070 | |             <span className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+ 1071 | |               Followers
+ 1072 | |             </span>
+ 1073 | |           </div>
+ 1074 | |           <div className="p-3 bg-muted/20 border border-border/50 rounded-xl">
+ 1075 | |             <span className="block text-xl font-bold">34</span>
+ 1076 | |             <span className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+ 1077 | |               Matches
+ 1078 | |             </span>
+ 1079 | |           </div>
+ 1080 | |         </div>
+ 1081 | |   
+ 1082 | |         <div className="border-b border-border flex justify-center gap-6">
+ 1083 | |           <button
+ 1084 | |             onClick={() => setActiveTab("videos")}
+ 1085 | |             className={`pb-3 text-xs sm:text-sm font-bold tracking-wider uppercase flex items-center gap-1.5 border-b-2 transition-all cursor-pointer ${
+ 1086 | |               activeTab === "videos"
+ 1087 | |                 ? "border-primary text-primary"
+ 1088 | |                 : "border-transparent text-muted-foreground hover:text-foreground"
+ 1089 | |             }`}
+ 1090 | |           >
+ 1091 | |             <Video className="size-4" /> Videos
+ 1092 | |           </button>
+ 1093 | |           <button
+ 1094 | |             onClick={() => setActiveTab("photos")}
+ 1095 | |             className={`pb-3 text-xs sm:text-sm font-bold tracking-wider uppercase flex items-center gap-1.5 border-b-2 transition-all cursor-pointer ${
+ 1096 | |               activeTab === "photos"
+ 1097 | |                 ? "border-primary text-primary"
+ 1098 | |                 : "border-transparent text-muted-foreground hover:text-foreground"
+ 1099 | |             }`}
+ 1100 | |           >
+ 1101 | |             <Camera className="size-4" /> Photos
+ 1102 | |           </button>
+ 1103 | |           <button
+ 1104 | |             onClick={() => setActiveTab("feed")}
+ 1105 | |             className={`pb-3 text-xs sm:text-sm font-bold tracking-wider uppercase flex items-center gap-1.5 border-b-2 transition-all cursor-pointer ${
+ 1106 | |               activeTab === "feed"
+ 1107 | |                 ? "border-primary text-primary"
+ 1108 | |                 : "border-transparent text-muted-foreground hover:text-foreground"
+ 1109 | |             }`}
+ 1110 | |           >
+ 1111 | |             <Swords className="size-4" /> Challenges & Feed
+ 1112 | |           </button>
+ 1113 | |           <button
+ 1114 | |             onClick={() => setActiveTab("about")}
+ 1115 | |             className={`pb-3 text-xs sm:text-sm font-bold tracking-wider uppercase flex items-center gap-1.5 border-b-2 transition-all cursor-pointer ${
+ 1116 | |               activeTab === "about"
+ 1117 | |                 ? "border-primary text-primary"
+ 1118 | |                 : "border-transparent text-muted-foreground hover:text-foreground"
+ 1119 | |             }`}
+ 1120 | |           >
+ 1121 | |             <Users className="size-4" /> About
+ 1122 | |           </button>
+ 1123 | |         </div>
+ 1124 | |   
+ 1125 | |         <div className="pt-2">
+ 1126 | |           {activeTab === "videos" && (
+ 1127 | |             <div>
+ 1128 | |               {videos.length > 0 ? (
+ 1129 | |                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+ 1130 | |                   {videos.map((vid: VideoCardData) => (
+ 1131 | |                     <VideoCard key={vid.id} video={vid} />
+ 1132 | |                   ))}
+ 1133 | |                 </div>
+ 1134 | |               ) : (
+ 1135 | |                 <EmptyState
+ 1136 | |                   message={`@${player.username || "player"} hasn't published any match recordings yet.`}
+ 1137 | |                   title="No videos posted"
+ 1138 | |                 />
+ 1139 | |               )}
+ 1140 | |             </div>
+ 1141 | |           )}
+ 1142 | |   
+ 1143 | |           {activeTab === "photos" && (
+ 1144 | |             <div>
+ 1145 | |               <div className="grid grid-cols-3 gap-1 md:gap-3 animate-in fade-in duration-300">
+ 1146 | |                 {photosList.map((photo) => (
+ 1147 | |                   <button
+ 1148 | |                     key={photo.id}
+ 1149 | |                     type="button"
+ 1150 | |                     onClick={() => setSelectedPhoto(photo)}
+ 1151 | |                     className="relative aspect-square rounded-lg overflow-hidden border border-border/40 group/photo cursor-pointer shadow-sm bg-muted w-full h-full p-0 text-left border-none"
+ 1152 | |                   >
+ 1153 | |                     <img
+ 1154 | |                       src={photo.url}
+ 1155 | |                       alt={photo.caption}
+ 1156 | |                       className="size-full object-cover transition-transform duration-300 group-hover/photo:scale-105"
+ 1157 | |                     />
+ 1158 | |                     <div className="absolute inset-0 bg-black/0 group-hover/photo:bg-black/50 flex items-center justify-center gap-2 sm:gap-6 opacity-0 group-hover/photo:opacity-100 transition-all text-white font-bold text-xs sm:text-sm">
+ 1159 | |                       <span className="flex items-center gap-1.5">
+ 1160 | |                         <Heart className="size-4 fill-current text-red-500" />{" "}
+ 1161 | |                         {photo.likes}
+ 1162 | |                       </span>
+ 1163 | |                       <span className="flex items-center gap-1.5">
+ 1164 | |                         <MessageSquare className="size-4 fill-current text-sky-400" />{" "}
+ 1165 | |                         {photo.comments.length}
+ 1166 | |                       </span>
+ 1167 | |                     </div>
+ 1168 | |                   </button>
+ 1169 | |                 ))}
+ 1170 | |               </div>
+ 1171 | |             </div>
+ 1172 | |           )}
+ 1173 | |   
+ 1174 | |           {activeTab === "feed" && (
+ 1175 | |             <div className="space-y-8 max-w-2xl mx-auto">
+ 1176 | |               {/* Challenges Section */}
+ 1177 | |               <div className="space-y-4">
+ 1178 | |                 <h3 className="font-bold text-sm text-foreground flex items-center gap-1.5 uppercase tracking-wider">
+ 1179 | |                   <Swords className="size-4 text-primary" /> Active Challenges
+ 1180 | |                 </h3>
+ 1181 | |   
+ 1182 | |                 {challenges.length > 0 ? (
+ 1183 | |                   <div className="space-y-3">
+ 1184 | |                     {challenges.map((ch) => (
+ 1185 | |                       <Card
+ 1186 | |                         key={ch.id}
+ 1187 | |                         className="border border-border/60 bg-card/50 rounded-xl overflow-hidden shadow-sm"
+ 1188 | |                       >
+ 1189 | |                         <CardContent className="p-4 space-y-3 text-xs">
+ 1190 | |                           <div className="flex justify-between items-start border-b border-border/40 pb-2.5">
+ 1191 | |                             <div>
+ 1192 | |                               <span className="text-[10px] bg-primary/10 text-primary font-bold px-2 py-0.5 rounded uppercase tracking-wider">
+ 1193 | |                                 {ch.mode}
+ 1194 | |                               </span>
+ 1195 | |                               <h4 className="font-extrabold text-sm text-foreground mt-1">
+ 1196 | |                                 {ch.challenger} challenged {ch.challenged}
+ 1197 | |                               </h4>
+ 1198 | |                               {ch.partner && (
+ 1199 | |                                 <p className="text-[10px] text-muted-foreground mt-0.5">
+ 1200 | |                                   Partner: {ch.partner}
+ 1201 | |                                 </p>
+ 1202 | |                               )}
+ 1203 | |                             </div>
+ 1204 | |   
+ 1205 | |                             <span
+ 1206 | |                               className={`font-bold px-2 py-0.5 rounded capitalize ${getChallengeBadgeClass(ch.status)}`}
+ 1207 | |                             >
+ 1208 | |                               {ch.status}
+ 1209 | |                             </span>
+ 1210 | |                           </div>
+ 1211 | |   
+ 1212 | |                           <div className="grid grid-cols-2 gap-3 text-muted-foreground">
+ 1213 | |                             <div className="flex items-center gap-1.5">
+ 1214 | |                               <Calendar className="size-3.5 text-primary" />{" "}
+ 1215 | |                               {ch.date}
+ 1216 | |                             </div>
+ 1217 | |                             <div className="flex items-center gap-1.5">
+ 1218 | |                               <Clock className="size-3.5 text-primary" />{" "}
+ 1219 | |                               {ch.time}
+ 1220 | |                             </div>
+ 1221 | |                             <div className="flex items-center gap-1.5 col-span-2">
+ 1222 | |                               <MapPin className="size-3.5 text-primary" />{" "}
+ 1223 | |                               {ch.venue}
+ 1224 | |                             </div>
+ 1225 | |                           </div>
+ 1226 | |   
+ 1227 | |                           {ch.message && (
+ 1228 | |                             <div className="bg-muted/40 p-2.5 rounded-lg text-[11px] text-foreground leading-normal border border-border/30">
+ 1229 | |                               "{ch.message}"
+ 1230 | |                             </div>
+ 1231 | |                           )}
+ 1232 | |   
+ 1233 | |                           {ch.casted && (
+ 1234 | |                             <div className="p-2.5 rounded-lg border border-red-500/20 bg-red-500/5 text-red-400 text-[11px] flex justify-between items-center font-medium">
+ 1235 | |                               <span className="flex items-center gap-1">
+ 1236 | |                                 <Video className="size-3.5" /> Recording Requested
+ 1237 | |                               </span>
+ 1238 | |                               <span>{getSplitModeText(ch.splitMode)}</span>
+ 1239 | |                             </div>
+ 1240 | |                           )}
+ 1241 | |   
+ 1242 | |                           {ch.status === "issued" &&
+ 1243 | |                             ch.challenged === player.name && (
+ 1244 | |                               <div className="pt-2 flex gap-2">
+ 1245 | |                                 <Button
+ 1246 | |                                   onClick={() =>
+ 1247 | |                                     handleChallengeAction(ch.id, "decline")
+ 1248 | |                                   }
+ 1249 | |                                   variant="outline"
+ 1250 | |                                   className="flex-1 text-red-400 border-red-500/20 hover:bg-red-500/10 rounded-lg text-xs py-3.5 cursor-pointer font-bold"
+ 1251 | |                                 >
+ 1252 | |                                   Decline
+ 1253 | |                                 </Button>
+ 1254 | |                                 <Button
+ 1255 | |                                   onClick={() =>
+ 1256 | |                                     handleChallengeAction(ch.id, "accept")
+ 1257 | |                                   }
+ 1258 | |                                   className="flex-1 rounded-lg text-xs py-3.5 cursor-pointer font-bold"
+ 1259 | |                                 >
+ 1260 | |                                   Accept
+ 1261 | |                                 </Button>
+ 1262 | |                               </div>
+ 1263 | |                             )}
+ 1264 | |                         </CardContent>
+ 1265 | |                       </Card>
+ 1266 | |                     ))}
+ 1267 | |                   </div>
+ 1268 | |                 ) : (
+ 1269 | |                   <p className="text-xs text-muted-foreground py-4 text-center border border-dashed border-border rounded-xl bg-muted/10">
+ 1270 | |                     No active challenges.
+ 1271 | |                   </p>
+ 1272 | |                 )}
+ 1273 | |               </div>
+ 1274 | |   
+ 1275 | |               {/* Social Posts Section */}
+ 1276 | |               <div className="space-y-4 pt-4 border-t border-border/30">
+ 1277 | |                 <h3 className="font-bold text-sm text-foreground flex items-center gap-1.5 uppercase tracking-wider">
+ 1278 | |                   <MessageSquare className="size-4 text-primary" /> Player Feed
+ 1279 | |                 </h3>
+ 1280 | |   
+ 1281 | |                 <div className="space-y-4">
+ 1282 | |                   {posts.map((post) => (
+ 1283 | |                     <Card
+ 1284 | |                       key={post.id}
+ 1285 | |                       className="border border-border/50 bg-card rounded-xl overflow-hidden shadow-sm"
+ 1286 | |                     >
+ 1287 | |                       <CardContent className="p-4 space-y-3">
+ 1288 | |                         <div className="flex items-center justify-between">
+ 1289 | |                           <div className="flex items-center gap-2">
+ 1290 | |                             <div className="size-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-xs">
+ 1291 | |                               {post.avatar}
+ 1292 | |                             </div>
+ 1293 | |                             <div>
+ 1294 | |                               <h4 className="font-bold text-xs text-foreground">
+ 1295 | |                                 {post.author}
+ 1296 | |                               </h4>
+ 1297 | |                               <p className="text-[10px] text-muted-foreground">
+ 1298 | |                                 {post.time}
+ 1299 | |                               </p>
+ 1300 | |                             </div>
+ 1301 | |                           </div>
+ 1302 | |                         </div>
+ 1303 | |   
+ 1304 | |                         <p className="text-xs text-foreground leading-relaxed">
+ 1305 | |                           {post.content}
+ 1306 | |                         </p>
+ 1307 | |   
+ 1308 | |                         <div className="flex items-center gap-4 text-xs pt-1">
+ 1309 | |                           <button
+ 1310 | |                             onClick={() => handlePostLike(post.id)}
+ 1311 | |                             className={`flex items-center gap-1.5 font-semibold cursor-pointer transition-colors ${
+ 1312 | |                               post.liked
+ 1313 | |                                 ? "text-primary"
+ 1314 | |                                 : "text-muted-foreground hover:text-foreground"
+ 1315 | |                             }`}
+ 1316 | |                           >
+ 1317 | |                             <ThumbsUp className="size-3.5" />
+ 1318 | |                             <span>{post.likes}</span>
+ 1319 | |                           </button>
+ 1320 | |                         </div>
+ 1321 | |   
+ 1322 | |                         {/* Comments list */}
+ 1323 | |                         {post.comments.length > 0 && (
+ 1324 | |                           <div className="mt-3 bg-muted/30 p-3 rounded-lg border border-border/30 space-y-2.5">
+ 1325 | |                             {post.comments.map((comment, index) => (
+ 1326 | |                               <div key={index} className="text-xs">
+ 1327 | |                                 <div className="flex justify-between items-center font-bold">
+ 1328 | |                                   <span>{comment.author}</span>
+ 1329 | |                                   <span className="text-[9px] text-muted-foreground font-normal">
+ 1330 | |                                     {comment.time}
+ 1331 | |                                   </span>
+ 1332 | |                                 </div>
+ 1333 | |                                 <p className="text-muted-foreground mt-0.5 leading-normal">
+ 1334 | |                                   {comment.text}
+ 1335 | |                                 </p>
+ 1336 | |                               </div>
+ 1337 | |                             ))}
+ 1338 | |                           </div>
+ 1339 | |                         )}
+ 1340 | |   
+ 1341 | |                         {/* Add comment input */}
+ 1342 | |                         <div className="flex gap-2 pt-2 border-t border-border/20">
+ 1343 | |                           <Input
+ 1344 | |                             placeholder="Write a comment..."
+ 1345 | |                             value={newCommentTexts[post.id] || ""}
+ 1346 | |                             onChange={(e) =>
+ 1347 | |                               setNewCommentTexts({
+ 1348 | |                                 ...newCommentTexts,
+ 1349 | |                                 [post.id]: e.target.value,
+ 1350 | |                               })
+ 1351 | |                             }
+ 1352 | |                             className="text-xs h-9"
+ 1353 | |                           />
+ 1354 | |                           <Button
+ 1355 | |                             onClick={() => handleAddComment(post.id)}
+ 1356 | |                             className="size-9 p-0 flex items-center justify-center rounded-lg shrink-0 cursor-pointer"
+ 1357 | |                             aria-label="Post comment"
+ 1358 | |                           >
+ 1359 | |                             <Send className="size-3.5" />
+ 1360 | |                           </Button>
+ 1361 | |                         </div>
+ 1362 | |                       </CardContent>
+ 1363 | |                     </Card>
+ 1364 | |                   ))}
+ 1365 | |                 </div>
+ 1366 | |               </div>
+ 1367 | |             </div>
+ 1368 | |           )}
+ 1369 | |   
+ 1370 | |           {activeTab === "about" && (
+ 1371 | |             <AboutTab player={player} location={location} />
+ 1372 | |           )}
+ 1373 | |         </div>
+ 1374 | |   
+ 1375 | |         <ChallengeModal
+ 1376 | |           isOpen={showChallengeModal}
+ 1377 | |           onClose={() => setShowChallengeModal(false)}
+ 1378 | |           onSubmit={handleSendChallenge}
+ 1379 | |           playerName={player.name}
+ 1380 | |           currentUser={currentUser || null}
+ 1381 | |         />
+ 1382 | |   
+ 1383 | |         <DMChatModal
+ 1384 | |           isOpen={showDMModal}
+ 1385 | |           onClose={() => setShowDMModal(false)}
+ 1386 | |           playerName={player.name}
+ 1387 | |           chatLog={chatLog}
+ 1388 | |           dmMessage={dmMessage}
+ 1389 | |           onChangeMessage={setDmMessage}
+ 1390 | |           onSendMessage={handleSendDM}
+ 1391 | |         />
+ 1392 | |   
+ 1393 | |         {/* Photo Lightbox Modal (Instagram-style) */}
+ 1394 | |         {selectedPhoto && (
+ 1395 | |           <PhotoLightboxModal
+ 1396 | |             selectedPhoto={selectedPhoto}
+ 1397 | |             onClose={() => setSelectedPhoto(null)}
+ 1398 | |             player={player}
+ 1399 | |             currentUser={currentUser || null}
+ 1400 | |             isFollowing={isFollowing}
+ 1401 | |             setIsFollowing={setIsFollowing}
+ 1402 | |             photosList={photosList}
+ 1403 | |             setPhotosList={setPhotosList}
+ 1404 | |             setSelectedPhoto={setSelectedPhoto}
+ 1405 | |           />
+ 1406 | |         )}
+ 1407 | |       </div>
+ 1408 | |     );
+ 1409 | `-> }
+ 1410 |     
+      `----
+
+Found 0 warnings and 1 error.
+Finished in 266ms on 1 file with 451 rules using 8 threads.

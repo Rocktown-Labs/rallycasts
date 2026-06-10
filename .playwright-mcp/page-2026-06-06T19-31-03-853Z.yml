@@ -1,0 +1,89 @@
+- generic [active] [ref=e1]:
+    - generic [ref=e2]:
+        - complementary [ref=e3]:
+            - generic [ref=e4]:
+                - button "Toggle sidebar" [ref=e5]:
+                    - img
+                - link "rallycasts" [ref=e6] [cursor=pointer]:
+                    - /url: /
+            - generic [ref=e7]:
+                - generic [ref=e8]:
+                    - paragraph [ref=e9]: Discover
+                    - generic [ref=e10]:
+                        - link "Home" [ref=e11] [cursor=pointer]:
+                            - /url: /
+                            - img [ref=e12]
+                            - generic [ref=e15]: Home
+                        - link "Trending" [ref=e16] [cursor=pointer]:
+                            - /url: /trending
+                            - img [ref=e17]
+                            - generic [ref=e19]: Trending
+                        - link "Players" [ref=e20] [cursor=pointer]:
+                            - /url: /players
+                            - img [ref=e21]
+                            - generic [ref=e26]: Players
+                        - link "Events" [ref=e27] [cursor=pointer]:
+                            - /url: /events
+                            - img [ref=e28]
+                            - generic [ref=e30]: Events
+                        - link "Casters" [ref=e31] [cursor=pointer]:
+                            - /url: /casters
+                            - img [ref=e32]
+                            - generic [ref=e35]: Casters
+                - generic [ref=e36]:
+                    - paragraph [ref=e37]: Your Account
+                    - generic [ref=e38]:
+                        - link "Your Videos" [ref=e39] [cursor=pointer]:
+                            - /url: /videos
+                            - img [ref=e40]
+                            - generic [ref=e43]: Your Videos
+                        - link "Profile" [ref=e44] [cursor=pointer]:
+                            - /url: /profile
+                            - img [ref=e45]
+                            - generic [ref=e48]: Profile
+                        - link "Recording Requests" [ref=e49] [cursor=pointer]:
+                            - /url: /requests
+                            - img [ref=e50]
+                            - generic [ref=e52]: Recording Requests
+                        - link "Messages" [ref=e53] [cursor=pointer]:
+                            - /url: /messages
+                            - img [ref=e54]
+                            - generic [ref=e56]: Messages
+                        - link "History" [ref=e57] [cursor=pointer]:
+                            - /url: /history
+                            - img [ref=e58]
+                            - generic [ref=e61]: History
+            - button "Sign Out" [ref=e64]:
+                - img
+                - generic [ref=e65]: Sign Out
+        - generic [ref=e66]:
+            - banner [ref=e67]:
+                - generic [ref=e68]:
+                    - navigation "Breadcrumb" [ref=e69]:
+                        - link "rallycasts" [ref=e71] [cursor=pointer]:
+                            - /url: /
+                            - generic [ref=e72]: rallycasts
+                        - generic [ref=e73]:
+                            - img [ref=e74]
+                            - link "profile" [ref=e76] [cursor=pointer]:
+                                - /url: /profile
+                                - generic [ref=e77]: profile
+                    - generic [ref=e78]:
+                        - generic [ref=e79]:
+                            - generic [ref=e80]: Search RallyCasts
+                            - combobox "Search filter" [ref=e81]:
+                                - option "All" [selected]
+                                - option "Videos"
+                                - option "Players"
+                                - option "Casters"
+                                - option "Events"
+                                - option "Parks"
+                            - img [ref=e82]
+                            - textbox "Search RallyCasts" [ref=e85]:
+                                - /placeholder: Search...
+                        - button "Search" [ref=e86]
+                    - button "Toggle color theme" [ref=e88]:
+                        - img
+            - main [ref=e89]:
+                - img [ref=e91]
+    - region "Notifications alt+T"

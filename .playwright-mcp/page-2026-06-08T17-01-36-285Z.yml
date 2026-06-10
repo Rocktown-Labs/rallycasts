@@ -1,0 +1,164 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - generic [ref=e4]:
+        - button "Toggle sidebar" [ref=e5]:
+          - img
+        - link "rallycasts" [ref=e6] [cursor=pointer]:
+          - /url: /
+      - generic [ref=e7]:
+        - generic [ref=e8]:
+          - paragraph [ref=e9]: Discover
+          - generic [ref=e10]:
+            - link "Home" [ref=e11] [cursor=pointer]:
+              - /url: /
+              - img [ref=e12]
+              - generic [ref=e15]: Home
+            - link "Trending" [ref=e16] [cursor=pointer]:
+              - /url: /trending
+              - img [ref=e17]
+              - generic [ref=e19]: Trending
+            - link "Players" [ref=e20] [cursor=pointer]:
+              - /url: /players
+              - img [ref=e21]
+              - generic [ref=e26]: Players
+            - link "Events" [ref=e27] [cursor=pointer]:
+              - /url: /events
+              - img [ref=e28]
+              - generic [ref=e30]: Events
+            - link "Casters" [ref=e31] [cursor=pointer]:
+              - /url: /casters
+              - img [ref=e32]
+              - generic [ref=e35]: Casters
+            - link "Organizers" [ref=e36] [cursor=pointer]:
+              - /url: /organizers
+              - img [ref=e37]
+              - generic [ref=e43]: Organizers
+        - generic [ref=e44]:
+          - paragraph [ref=e45]: Your Account
+          - generic [ref=e46]:
+            - link "Your Videos" [ref=e47] [cursor=pointer]:
+              - /url: /videos
+              - img [ref=e48]
+              - generic [ref=e51]: Your Videos
+            - link "Profile" [ref=e52] [cursor=pointer]:
+              - /url: /profile
+              - img [ref=e53]
+              - generic [ref=e56]: Profile
+            - link "Recording Requests" [ref=e57] [cursor=pointer]:
+              - /url: /requests
+              - img [ref=e58]
+              - generic [ref=e60]: Recording Requests
+            - link "Messages" [ref=e61] [cursor=pointer]:
+              - /url: /messages
+              - img [ref=e62]
+              - generic [ref=e64]: Messages
+            - link "History" [ref=e65] [cursor=pointer]:
+              - /url: /history
+              - img [ref=e66]
+              - generic [ref=e69]: History
+      - generic [ref=e71]:
+        - link "Sign Up" [ref=e72] [cursor=pointer]:
+          - /url: /login?mode=signup
+          - button "Sign Up" [ref=e73]:
+            - generic [ref=e74]: Sign Up
+        - link "Sign In" [ref=e75] [cursor=pointer]:
+          - /url: /login?mode=signin
+          - button "Sign In" [ref=e76]:
+            - generic [ref=e77]: Sign In
+    - generic [ref=e78]:
+      - banner [ref=e79]:
+        - generic [ref=e80]:
+          - navigation "Breadcrumb" [ref=e81]:
+            - link "rallycasts" [ref=e83] [cursor=pointer]:
+              - /url: /
+              - generic [ref=e84]: rallycasts
+            - generic [ref=e85]:
+              - img [ref=e86]
+              - link "casters" [ref=e88] [cursor=pointer]:
+                - /url: /casters
+                - generic [ref=e89]: casters
+          - generic [ref=e90]:
+            - generic [ref=e91]:
+              - generic [ref=e92]: Search RallyCasts
+              - combobox "Search filter" [ref=e93]:
+                - option "All" [selected]
+                - option "Videos"
+                - option "Players"
+                - option "Events"
+                - option "Parks"
+              - img [ref=e94]
+              - textbox "Search RallyCasts" [ref=e97]:
+                - /placeholder: Search...
+            - button "Search" [ref=e98]
+          - generic [ref=e99]:
+            - button "Notifications" [ref=e101]:
+              - img
+              - generic [ref=e102]: "3"
+            - button "Toggle color theme" [ref=e103]:
+              - img
+      - main [ref=e104]:
+        - generic [ref=e105]:
+          - generic [ref=e106]:
+            - generic [ref=e107]:
+              - paragraph [ref=e108]:
+                - img [ref=e109]
+                - text: Premium caster onboarding is open
+              - heading "Get paid to record pickleball matches." [level=1] [ref=e112]
+              - paragraph [ref=e113]: RallyCasts is building the on-demand camera crew for local pickleball. Casters do not get publicly browsed like profiles; they are assigned to requests based on location, reliability, and match needs.
+              - generic [ref=e114]:
+                - link "Start caster onboarding" [ref=e115] [cursor=pointer]:
+                  - /url: /onboarding
+                  - text: Start caster onboarding
+                  - img
+                - button "See requirements" [ref=e116]
+              - paragraph [ref=e117]: $50 guided onboarding • Background-check support • Weekly payouts
+            - generic [ref=e119]:
+              - generic [ref=e120]:
+                - img [ref=e121]
+                - heading "The premium path is for people who want to be operational fast." [level=2] [ref=e124]
+                - paragraph [ref=e125]: We help you prepare the basics, understand quality standards, and get ready for paid requests without turning the app into a public caster directory.
+              - generic [ref=e126]:
+                - generic [ref=e127]:
+                  - img [ref=e128]
+                  - generic [ref=e131]: "Player premium: better discovery, saved parks, deeper analytics."
+                - generic [ref=e132]:
+                  - img [ref=e133]
+                  - generic [ref=e136]: "Caster premium: onboarding, verification, priority tools, payout support."
+                - generic [ref=e137]:
+                  - img [ref=e138]
+                  - generic [ref=e141]: "Organizer premium: event pages, recording packages, sponsor-ready media."
+          - generic [ref=e142]:
+            - generic [ref=e143]:
+              - heading "How caster work happens" [level=2] [ref=e144]
+              - paragraph [ref=e145]: Players and organizers request coverage. RallyCasts handles assignment. Repeat requests unlock after trust and match history, similar to asking for a preferred pro once you have worked together.
+            - generic [ref=e146]:
+              - generic [ref=e148]:
+                - generic [ref=e149]:
+                  - generic [ref=e150]: "01"
+                  - img [ref=e152]
+                - heading "Fast onboarding" [level=3] [ref=e155]
+                - paragraph [ref=e156]: $50
+                - paragraph [ref=e157]: We help you apply, verify your setup, and start the background-check flow.
+              - generic [ref=e159]:
+                - generic [ref=e160]:
+                  - generic [ref=e161]: "02"
+                  - img [ref=e163]
+                - heading "Accept nearby jobs" [level=3] [ref=e167]
+                - paragraph [ref=e168]: Flexible
+                - paragraph [ref=e169]: Turn availability on when you can record. Requests are assigned by coverage, quality, and fit.
+              - generic [ref=e171]:
+                - generic [ref=e172]:
+                  - generic [ref=e173]: "03"
+                  - img [ref=e175]
+                - heading "Capture the match" [level=3] [ref=e178]
+                - paragraph [ref=e179]: Clean clips
+                - paragraph [ref=e180]: Record the games, upload the footage, and let RallyCasts handle delivery.
+              - generic [ref=e182]:
+                - generic [ref=e183]:
+                  - generic [ref=e184]: "04"
+                  - img [ref=e186]
+                - heading "Earn weekly" [level=3] [ref=e188]
+                - paragraph [ref=e189]: $40-60/hr
+                - paragraph [ref=e190]: Premium casters get paid for match coverage, events, and organizer work.
+  - region "Notifications alt+T"

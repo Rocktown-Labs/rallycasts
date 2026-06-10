@@ -16,23 +16,19 @@ function DrawerLayout() {
   return (
     <Drawer
       screenOptions={{
-        headerTintColor: themeColorForeground,
-        headerStyle: { backgroundColor: themeColorBackground },
-        headerTitleStyle: {
-          fontWeight: "600",
-          color: themeColorForeground,
-        },
-        headerRight: renderThemeToggle,
         drawerStyle: { backgroundColor: themeColorBackground },
+        headerRight: renderThemeToggle,
+        headerStyle: { backgroundColor: themeColorBackground },
+        headerTintColor: themeColorForeground,
+        headerTitleStyle: {
+          color: themeColorForeground,
+          fontWeight: "600",
+        },
       }}
     >
       <Drawer.Screen
         name="index"
         options={{
-          headerTitle: "Home",
-          drawerLabel: ({ color, focused }) => (
-            <Text style={{ color: focused ? color : themeColorForeground }}>Home</Text>
-          ),
           drawerIcon: ({ size, color, focused }) => (
             <Ionicons
               name="home-outline"
@@ -40,15 +36,17 @@ function DrawerLayout() {
               color={focused ? color : themeColorForeground}
             />
           ),
+          drawerLabel: ({ color, focused }) => (
+            <Text style={{ color: focused ? color : themeColorForeground }}>
+              Home
+            </Text>
+          ),
+          headerTitle: "Home",
         }}
       />
       <Drawer.Screen
         name="(tabs)"
         options={{
-          headerTitle: "Tabs",
-          drawerLabel: ({ color, focused }) => (
-            <Text style={{ color: focused ? color : themeColorForeground }}>Tabs</Text>
-          ),
           drawerIcon: ({ size, color, focused }) => (
             <MaterialIcons
               name="border-bottom"
@@ -56,22 +54,28 @@ function DrawerLayout() {
               color={focused ? color : themeColorForeground}
             />
           ),
+          drawerLabel: ({ color, focused }) => (
+            <Text style={{ color: focused ? color : themeColorForeground }}>
+              Tabs
+            </Text>
+          ),
           headerRight: () => (
             <Link href="/modal" asChild>
               <Pressable className="mr-4">
-                <Ionicons name="add-outline" size={24} color={themeColorForeground} />
+                <Ionicons
+                  name="add-outline"
+                  size={24}
+                  color={themeColorForeground}
+                />
               </Pressable>
             </Link>
           ),
+          headerTitle: "Tabs",
         }}
       />
       <Drawer.Screen
         name="ai"
         options={{
-          headerTitle: "AI",
-          drawerLabel: ({ color, focused }) => (
-            <Text style={{ color: focused ? color : themeColorForeground }}>AI</Text>
-          ),
           drawerIcon: ({ size, color, focused }) => (
             <Ionicons
               name="chatbubble-ellipses-outline"
@@ -79,6 +83,12 @@ function DrawerLayout() {
               color={focused ? color : themeColorForeground}
             />
           ),
+          drawerLabel: ({ color, focused }) => (
+            <Text style={{ color: focused ? color : themeColorForeground }}>
+              AI
+            </Text>
+          ),
+          headerTitle: "AI",
         }}
       />
     </Drawer>

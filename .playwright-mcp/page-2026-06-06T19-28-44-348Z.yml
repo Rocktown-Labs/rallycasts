@@ -1,0 +1,159 @@
+- generic [active] [ref=e1]:
+    - generic [ref=e2]:
+        - complementary [ref=e3]:
+            - generic [ref=e4]:
+                - button "Toggle sidebar" [ref=e5]:
+                    - img
+                - link "rallycasts" [ref=e6] [cursor=pointer]:
+                    - /url: /
+            - generic [ref=e7]:
+                - generic [ref=e8]:
+                    - paragraph [ref=e9]: Discover
+                    - generic [ref=e10]:
+                        - link "Home" [ref=e11] [cursor=pointer]:
+                            - /url: /
+                            - img [ref=e12]
+                            - generic [ref=e15]: Home
+                        - link "Trending" [ref=e16] [cursor=pointer]:
+                            - /url: /trending
+                            - img [ref=e17]
+                            - generic [ref=e19]: Trending
+                        - link "Players" [ref=e20] [cursor=pointer]:
+                            - /url: /players
+                            - img [ref=e21]
+                            - generic [ref=e26]: Players
+                        - link "Events" [ref=e27] [cursor=pointer]:
+                            - /url: /events
+                            - img [ref=e28]
+                            - generic [ref=e30]: Events
+                        - link "Casters" [ref=e31] [cursor=pointer]:
+                            - /url: /casters
+                            - img [ref=e32]
+                            - generic [ref=e35]: Casters
+                - generic [ref=e36]:
+                    - paragraph [ref=e37]: Your Account
+                    - generic [ref=e38]:
+                        - link "Your Videos" [ref=e39] [cursor=pointer]:
+                            - /url: /videos
+                            - img [ref=e40]
+                            - generic [ref=e43]: Your Videos
+                        - link "Profile" [ref=e44] [cursor=pointer]:
+                            - /url: /profile
+                            - img [ref=e45]
+                            - generic [ref=e48]: Profile
+                        - link "Recording Requests" [ref=e49] [cursor=pointer]:
+                            - /url: /requests
+                            - img [ref=e50]
+                            - generic [ref=e52]: Recording Requests
+                        - link "Messages" [ref=e53] [cursor=pointer]:
+                            - /url: /messages
+                            - img [ref=e54]
+                            - generic [ref=e56]: Messages
+                        - link "History" [ref=e57] [cursor=pointer]:
+                            - /url: /history
+                            - img [ref=e58]
+                            - generic [ref=e61]: History
+            - button "Sign Out" [ref=e64]:
+                - img
+                - generic [ref=e65]: Sign Out
+        - generic [ref=e66]:
+            - banner [ref=e67]:
+                - generic [ref=e68]:
+                    - navigation "Breadcrumb" [ref=e69]:
+                        - link "rallycasts" [ref=e71] [cursor=pointer]:
+                            - /url: /
+                            - generic [ref=e72]: rallycasts
+                        - generic [ref=e73]:
+                            - img [ref=e74]
+                            - link "trending" [ref=e76] [cursor=pointer]:
+                                - /url: /trending
+                                - generic [ref=e77]: trending
+                    - generic [ref=e78]:
+                        - generic [ref=e79]:
+                            - generic [ref=e80]: Search RallyCasts
+                            - combobox "Search filter" [ref=e81]:
+                                - option "All" [selected]
+                                - option "Videos"
+                                - option "Players"
+                                - option "Casters"
+                                - option "Events"
+                                - option "Parks"
+                            - img [ref=e82]
+                            - textbox "Search RallyCasts" [ref=e85]:
+                                - /placeholder: Search...
+                        - button "Search" [ref=e86]
+                    - button "Toggle color theme" [ref=e88]:
+                        - img
+            - main [ref=e89]:
+                - generic [ref=e90]:
+                    - generic [ref=e91]:
+                        - generic [ref=e92]:
+                            - paragraph [ref=e93]: Trending Near You
+                            - heading "Where the rallies are happening now." [level=1] [ref=e94]
+                            - paragraph [ref=e95]: RallyCasts blends local park heat, match videos, player activity, and caster availability into one court-aware feed.
+                            - generic [ref=e96]:
+                                - button "Request a caster" [ref=e97]:
+                                    - link "Request a caster" [ref=e98] [cursor=pointer]:
+                                        - /url: /requests
+                                        - img
+                                        - text: Request a caster
+                                - button "Find players" [ref=e99]:
+                                    - link "Find players" [ref=e100] [cursor=pointer]:
+                                        - /url: /players
+                                        - img
+                                        - text: Find players
+                        - generic [ref=e101]:
+                            - generic [ref=e103]:
+                                - generic [ref=e104]:
+                                    - paragraph [ref=e105]: Active parks
+                                    - paragraph [ref=e106]: "0"
+                                    - paragraph [ref=e107]: Near your home base
+                                - img [ref=e109]
+                            - generic [ref=e112]:
+                                - generic [ref=e113]:
+                                    - paragraph [ref=e114]: Available casters
+                                    - paragraph [ref=e115]: "0"
+                                    - paragraph [ref=e116]: Ready today
+                                - img [ref=e118]
+                    - generic [ref=e122]:
+                        - generic [ref=e123]:
+                            - heading "Top Videos" [level=2] [ref=e124]
+                            - button "View all" [ref=e125]:
+                                - link "View all" [ref=e126] [cursor=pointer]:
+                                    - /url: /
+                        - generic [ref=e128]:
+                            - img [ref=e130]
+                            - generic [ref=e133]:
+                                - heading "No trending videos yet" [level=3] [ref=e134]
+                                - paragraph [ref=e135]: Videos will rank here as players publish local rallies.
+                    - generic [ref=e136]:
+                        - generic [ref=e137]:
+                            - heading "Parks Heating Up" [level=2] [ref=e138]
+                            - generic [ref=e141]:
+                                - img [ref=e143]
+                                - generic [ref=e146]:
+                                    - heading "No parks yet" [level=3] [ref=e147]
+                                    - paragraph [ref=e148]: Add venues through the API to turn this into a live park heat map.
+                        - generic [ref=e149]:
+                            - heading "Available Casters" [level=2] [ref=e150]
+                            - generic [ref=e153]:
+                                - img [ref=e155]
+                                - generic [ref=e158]:
+                                    - heading "No casters nearby" [level=3] [ref=e159]
+                                    - paragraph [ref=e160]: Active casters will show up here when their profiles are approved.
+                    - generic [ref=e161]:
+                        - generic [ref=e162]:
+                            - heading "Top Players Nearby" [level=2] [ref=e163]
+                            - generic [ref=e166]:
+                                - img [ref=e168]
+                                - generic [ref=e171]:
+                                    - heading "No local players yet" [level=3] [ref=e172]
+                                    - paragraph [ref=e173]: Players appear once they complete onboarding.
+                        - generic [ref=e174]:
+                            - heading "Events Worth Recording" [level=2] [ref=e175]
+                            - generic [ref=e178]:
+                                - img [ref=e180]
+                                - generic [ref=e183]:
+                                    - heading "No events yet" [level=3] [ref=e184]
+                                    - paragraph [ref=e185]: Published events will appear here.
+    - region "Notifications alt+T"

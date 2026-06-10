@@ -1,0 +1,188 @@
+Checking formatting...
+
+apps/web/src/components/sign-in-form.tsx (11ms)
+apps/web/src/components/user-menu.tsx (11ms)
+apps/web/src/routes/_auth/onboarding.tsx (10ms)
+apps/web/src/routes/login.tsx (10ms)
+
+Format issues found in above 4 files. Run without `--check` to fix.
+Finished in 139ms on 6 files using 8 threads.
+
+  x eslint(arrow-body-style): Unexpected block statement surrounding arrow body.
+    ,-[apps/web/src/components/layout/app-sidebar.tsx:19:7]
+ 18 |       label: string;
+ 19 | ,-> }) => {
+ 20 | |     return (
+ 21 | |       <div className="space-y-2">
+ 22 | |         {collapsed ? (
+ 23 | |           <p className="sr-only">{label}</p>
+ 24 | |         ) : (
+ 25 | |           <p className="px-2 text-xs font-semibold text-primary">{label}</p>
+ 26 | |         )}
+ 27 | |         <div className="space-y-1">
+ 28 | |           {items.map(({ icon: Icon, label: itemLabel, to }) => (
+ 29 | |             <Link
+ 30 | |               key={to}
+ 31 | |               to={to}
+ 32 | |               title={collapsed ? itemLabel : undefined}
+ 33 | |               activeOptions={{ exact: to === "/" }}
+ 34 | |               className={cn(
+ 35 | |                 "flex h-9 items-center gap-2 rounded-md px-2 text-sm text-sidebar-foreground/86 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+ 36 | |                 collapsed && "justify-center px-0"
+ 37 | |               )}
+ 38 | |               activeProps={{
+ 39 | |                 className:
+ 40 | |                   "bg-sidebar-accent text-sidebar-accent-foreground [&_svg]:text-sidebar-accent-foreground",
+ 41 | |               }}
+ 42 | |             >
+ 43 | |               <Icon className="size-4 text-primary" />
+ 44 | |               {collapsed ? null : <span className="truncate">{itemLabel}</span>}
+ 45 | |             </Link>
+ 46 | |           ))}
+ 47 | |         </div>
+ 48 | |       </div>
+ 49 | |     );
+ 50 | `-> };
+ 51 |     
+    `----
+  help: Move the returned value to be immediately after the `=>`.
+
+  x eslint(arrow-body-style): Unexpected block statement surrounding arrow body.
+    ,-[apps/web/src/routes/_auth/onboarding.tsx:33:7]
+ 32 |       onContinue: () => void;
+ 33 | ,-> }) => {
+ 34 | |     return (
+ 35 | |       <div className="space-y-5">
+ 36 | |         <h2 className="text-2xl font-bold">Choose your username</h2>
+ 37 | |         <p className="text-muted-foreground text-sm">
+ 38 | |           This is how other players and casters will identify you on RallyCasts.
+ 39 | |         </p>
+ 40 | |         <div className="space-y-2 max-w-sm">
+ 41 | |           <Label htmlFor="username">Username</Label>
+ 42 | |           <div className="relative">
+ 43 | |             <Input
+ 44 | |               id="username"
+ 45 | |               placeholder="e.g. janesmith"
+ 46 | |               value={usernameVal}
+ 47 | |               onChange={(e) => setUsernameVal(e.target.value.trim().toLowerCase())}
+ 48 | |             />
+ 49 | |             {isCheckingUsername && (
+ 50 | |               <div className="absolute right-3 top-2.5 h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+ 51 | |             )}
+ 52 | |           </div>
+ 53 | |           {usernameError && (
+ 54 | |             <p className="text-xs text-destructive">{usernameError}</p>
+ 55 | |           )}
+ 56 | |           {usernameSuccess && usernameVal && (
+ 57 | |             <p className="text-xs text-emerald-500 font-medium">Username is available</p>
+ 58 | |           )}
+ 59 | |         </div>
+ 60 | |         <Button
+ 61 | |           className="rounded-md"
+ 62 | |           onClick={onContinue}
+ 63 | |           disabled={!usernameSuccess || isCheckingUsername}
+ 64 | |         >
+ 65 | |           Continue
+ 66 | |         </Button>
+ 67 | |       </div>
+ 68 | |     );
+ 69 | `-> };
+ 70 |     
+    `----
+  help: Move the returned value to be immediately after the `=>`.
+
+  x eslint(arrow-body-style): Unexpected block statement surrounding arrow body.
+     ,-[apps/web/src/routes/_auth/onboarding.tsx:79:7]
+  78 |       setStep: (step: number) => void;
+  79 | ,-> }) => {
+  80 | |     return (
+  81 | |       <div className="space-y-5">
+  82 | |         <h2 className="text-2xl font-bold">How will you use RallyCasts?</h2>
+  83 | |         <div className="grid gap-4 md:grid-cols-3">
+  84 | |           {roles.map((role) => (
+  85 | |             <button
+  86 | |               key={role.key}
+  87 | |               className="rounded-lg border border-border p-5 text-left transition-colors hover:bg-muted"
+  88 | |               type="button"
+  89 | |               onClick={() => {
+  90 | |                 setPayload((value) => ({
+  91 | |                   ...value,
+  92 | |                   isCaster: role.key === "caster",
+  93 | |                   isOrganizer: role.key === "organizer",
+  94 | |                   isPlayer: role.key === "player" || value.isPlayer,
+  95 | |                 }));
+  96 | |                 setStep(2);
+  97 | |               }}
+  98 | |             >
+  99 | |               <span className="grid size-10 place-items-center rounded-md bg-primary/15 text-primary">
+ 100 | |                 {role.icon}
+ 101 | |               </span>
+ 102 | |               <span className="mt-4 block font-semibold">{role.label}</span>
+ 103 | |             </button>
+ 104 | |           ))}
+ 105 | |         </div>
+ 106 | |       </div>
+ 107 | |     );
+ 108 | `-> };
+ 109 |     
+     `----
+  help: Move the returned value to be immediately after the `=>`.
+
+  x eslint(arrow-body-style): Unexpected block statement surrounding arrow body.
+     ,-[apps/web/src/routes/_auth/onboarding.tsx:118:7]
+ 117 |       onContinue: () => void;
+ 118 | ,-> }) => {
+ 119 | |     return (
+ 120 | |       <div className="space-y-5">
+ 121 | |         <h2 className="text-2xl font-bold">Where is your home court?</h2>
+ 122 | |         <div className="grid gap-4 md:grid-cols-2">
+ 123 | |           <div className="space-y-2">
+ 124 | |             <Label htmlFor="home-city">City</Label>
+ 125 | |             <Input
+ 126 | |               id="home-city"
+ 127 | |               value={payload.homeCity ?? ""}
+ 128 | |               onChange={(event) =>
+ 129 | |                 setPayload((value) => ({
+ 130 | |                   ...value,
+ 131 | |                   homeCity: event.target.value,
+ 132 | |                 }))
+ 133 | |               }
+ 134 | |             />
+ 135 | |           </div>
+ 136 | |           <div className="space-y-2">
+ 137 | |             <Label htmlFor="home-state">State</Label>
+ 138 | |             <Input
+ 139 | |               id="home-state"
+ 140 | |               value={payload.homeState ?? ""}
+ 141 | |               onChange={(event) =>
+ 142 | |                 setPayload((value) => ({
+ 143 | |                   ...value,
+ 144 | |                   homeState: event.target.value,
+ 145 | |                 }))
+ 146 | |               }
+ 147 | |             />
+ 148 | |           </div>
+ 149 | |         </div>
+ 150 | |         <Button className="rounded-md" onClick={onContinue}>
+ 151 | |           <MapPin className="size-4" />
+ 152 | |           Continue
+ 153 | |         </Button>
+ 154 | |       </div>
+ 155 | |     );
+ 156 | `-> };
+ 157 |     
+     `----
+  help: Move the returned value to be immediately after the `=>`.
+
+  x eslint(no-unused-vars): Parameter 'payload' is declared but never used. Unused parameters should start with a '_'.
+    ,-[apps/web/src/routes/_auth/onboarding.tsx:72:3]
+ 71 | const RoleStep = ({
+ 72 |   payload,
+    :   ^^^|^^^
+    :      `-- 'payload' is declared here
+ 73 |   setPayload,
+    `----
+  help: Consider removing this parameter.
+
+Found 0 warnings and 5 errors.
+Finished in 368ms on 6 files with 454 rules using 8 threads.

@@ -1,0 +1,34 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1780765219492,
+      "tag": "0000_soft_the_hunter",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1780767366808,
+      "tag": "0001_high_morlocks",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1780939606891,
+      "tag": "0002_parched_blink",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1781068679052,
+      "tag": "0003_majestic_james_howlett",
+      "breakpoints": true
+    }
+  ]
+}

@@ -28,11 +28,13 @@
     "build": "turbo build",
     "check-types": "turbo check-types",
     "dev:native": "turbo -F native dev",
+    "dev:caster": "turbo -F caster dev",
     "dev:web": "turbo -F web dev",
     "dev:server": "turbo -F server dev",
     "db:generate": "turbo -F @rallycaststv/db db:generate",
     "deploy": "turbo -F @rallycaststv/infra deploy",
     "destroy": "turbo -F @rallycaststv/infra destroy",
+    "test": "turbo test",
     "check": "ultracite check",
     "fix": "ultracite fix"
   },

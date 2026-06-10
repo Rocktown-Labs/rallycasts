@@ -1,0 +1,914 @@
+Checking formatting...
+
+apps/web/src/routes/events.$id.index.tsx (0ms)
+apps/web/src/routes/events.$id.matches.tsx (0ms)
+apps/web/src/routes/players.$username.tsx (2ms)
+
+Format issues found in above 3 files. Run without `--check` to fix.
+Finished in 230ms on 143 files using 8 threads.
+
+  x eslint(curly): Expected { after 'if' condition.
+    ,-[apps/web/src/routes/events.$id.index.tsx:69:16]
+ 68 | 
+ 69 |   if (!isOpen) return null;
+    :                ^^^^^^^^^^^^
+ 70 | 
+    `----
+  help: Replace `return null;` with `{return null;}`.
+
+  x eslint(no-unused-vars): Parameter 'eventName' is declared but never used. Unused parameters should start with a '_'.
+    ,-[apps/web/src/routes/events.$id.index.tsx:44:3]
+ 43 |   onRegister,
+ 44 |   eventName,
+    :   ^^^^|^^^^
+    :       `-- 'eventName' is declared here
+ 45 |   currentUser,
+    `----
+  help: Consider removing this parameter.
+
+  x eslint(complexity): function `PlayerProfilePage` has a complexity of 33. Maximum allowed is 20.
+      ,-[apps/web/src/routes/players.$username.tsx:273:1]
+  272 |     
+  273 | ,-> function PlayerProfilePage() {
+  274 | |     const { username } = useParams({ from: "/players/$username" });
+  275 | |     const [activeTab, setActiveTab] = useState<"videos" | "feed" | "about">("videos");
+  276 | |     
+  277 | |     // Profile state actions
+  278 | |     const [isFollowing, setIsFollowing] = useState(false);
+  279 | |     const [friendStatus, setFriendStatus] = useState<"none" | "pending" | "friends">("none");
+  280 | |     const [isLiked, setIsLiked] = useState(false);
+  281 | |     const [likesCount, setLikesCount] = useState(18);
+  282 | |   
+  283 | |     // Modals state
+  284 | |     const [showChallengeModal, setShowChallengeModal] = useState(false);
+  285 | |     const [showDMModal, setShowDMModal] = useState(false);
+  286 | |   
+  287 | |     // DM State
+  288 | |     const [dmMessage, setDmMessage] = useState("");
+  289 | |     const [chatLog, setChatLog] = useState<{ sender: string; text: string; time: string }[]>([
+  290 | |       { sender: "player", text: "Hey! Down to play some pickleball this weekend?", time: "Yesterday" },
+  291 | |     ]);
+  292 | |   
+  293 | |     // Social feed state
+  294 | |     const [posts, setPosts] = useState<SocialPost[]>([
+  295 | |       {
+  296 | |         author: "Sarah Johnson",
+  297 | |         avatar: "S",
+  298 | |         comments: [
+  299 | |           { author: "Mike Rodriguez", text: "Nice resets! Those drops were crazy.", time: "1 hour ago" },
+  300 | |         ],
+  301 | |         content: "Great match today on Court 1! Finished the ladder match in second place. reset game was on point.",
+  302 | |         id: "post-1",
+  303 | |         liked: false,
+  304 | |         likes: 12,
+  305 | |         time: "2 hours ago",
+  306 | |       },
+  307 | |       {
+  308 | |         author: "Sarah Johnson",
+  309 | |         avatar: "S",
+  310 | |         comments: [],
+  311 | |         content: "Does anyone want to play doubles tomorrow morning around 8 AM at Crestwood Park?",
+  312 | |         id: "post-2",
+  313 | |         liked: false,
+  314 | |         likes: 5,
+  315 | |         time: "3 days ago",
+  316 | |       },
+  317 | |     ]);
+  318 | |     const [newCommentTexts, setNewCommentTexts] = useState<Record<string, string>>({});
+  319 | |   
+  320 | |     // Challenge states
+  321 | |     const [challenges, setChallenges] = useState<Challenge[]>([
+  322 | |       {
+  323 | |         casted: true,
+  324 | |         challenged: "Sarah Johnson",
+  325 | |         challenger: "CG Stewart",
+  326 | |         date: "2026-06-12",
+  327 | |         id: "ch-1",
+  328 | |         message: "Ready for a rematch after last week's game!",
+  329 | |         mode: "singles",
+  330 | |         splitMode: "split_2",
+  331 | |         status: "issued",
+  332 | |         time: "18:00",
+  333 | |         venue: "Crestwood Pickleball Park",
+  334 | |       },
+  335 | |     ]);
+  336 | |     const [challengeMode, setChallengeMode] = useState<"singles" | "doubles">("singles");
+  337 | |     const [challengeVenue, setChallengeVenue] = useState("demo-venue-1");
+  338 | |     const [challengeDate, setChallengeDate] = useState("2026-06-11");
+  339 | |     const [challengeTime, setChallengeTime] = useState("18:00");
+  340 | |     const [challengeMsg, setChallengeMsg] = useState("");
+  341 | |     const [requestCasting, setRequestCasting] = useState(false);
+  342 | |     const [castingSplit, setCastingSplit] = useState("split_2");
+  343 | |     
+  344 | |     // Partner search for challenges
+  345 | |     const [partnerSearch, setPartnerSearch] = useState("");
+  346 | |     const [selectedPartner, setSelectedPartner] = useState<{ id: string; name: string; username: string } | null>(null);
+  347 | |   
+  348 | |     const { data: sessionData } = authClient.useSession();
+  349 | |     const currentUser = sessionData?.user;
+  350 | |   
+  351 | |     const { data: playersData } = usePlayers(partnerSearch);
+  352 | |     const searchResults = partnerSearch
+  353 | |       ? (playersData?.players ?? []).filter((p) => p.id !== currentUser?.id)
+  354 | |       : [];
+  355 | |   
+  356 | |     const { data, isLoading, error } = useQuery({
+  357 | |       queryFn: async () => {
+  358 | |         const res = await apiClient.api.players[":username"].$get({
+  359 | |           param: { username },
+  360 | |         });
+  361 | |         if (!res.ok) {
+  362 | |           throw new Error("Failed to fetch player");
+  363 | |         }
+  364 | |         return res.json();
+  365 | |       },
+  366 | |       queryKey: ["player", username],
+  367 | |     });
+  368 | |   
+  369 | |     if (isLoading) {
+  370 | |       return (
+  371 | |         <div className="mx-auto max-w-4xl px-4 py-8 space-y-6 animate-pulse">
+  372 | |           <div className="flex items-center gap-6 pb-6 border-b border-border/50">
+  373 | |             <div className="size-20 sm:size-24 rounded-full bg-muted" />
+  374 | |             <div className="space-y-3 flex-1">
+  375 | |               <div className="h-6 w-48 bg-muted rounded" />
+  376 | |               <div className="h-4 w-32 bg-muted rounded" />
+  377 | |             </div>
+  378 | |           </div>
+  379 | |           <div className="grid gap-6 md:grid-cols-3">
+  380 | |             <div className="h-28 bg-muted rounded-xl" />
+  381 | |             <div className="h-28 bg-muted rounded-xl" />
+  382 | |             <div className="h-28 bg-muted rounded-xl" />
+  383 | |           </div>
+  384 | |         </div>
+  385 | |       );
+  386 | |     }
+  387 | |   
+  388 | |     if (error || !data?.player) {
+  389 | |       return (
+  390 | |         <div className="mx-auto max-w-4xl px-4 py-12 text-center space-y-4">
+  391 | |           <h2 className="text-2xl font-bold text-destructive">Profile not found</h2>
+  392 | |           <p className="text-muted-foreground text-sm">
+  393 | |             The player username "@{username}" does not exist or has not completed onboarding.
+  394 | |           </p>
+  395 | |           <Link to="/players">
+  396 | |             <Button variant="outline" className="rounded-md text-xs mt-4">
+  397 | |               Back to Players
+  398 | |             </Button>
+  399 | |           </Link>
+  400 | |         </div>
+  401 | |       );
+  402 | |     }
+  403 | |   
+  404 | |     const { player, videos = [] } = data;
+  405 | |     const location = [player.homeCity, player.homeState].filter(Boolean).join(", ");
+  406 | |   
+  407 | |     const handlePostLike = (postId: string) => {
+  408 | |       setPosts(
+  409 | |         posts.map((post) => {
+  410 | |           if (post.id === postId) {
+  411 | |             return {
+  412 | |               ...post,
+  413 | |               liked: !post.liked,
+  414 | |               likes: post.liked ? post.likes - 1 : post.likes + 1,
+  415 | |             };
+  416 | |           }
+  417 | |           return post;
+  418 | |         })
+  419 | |       );
+  420 | |     };
+  421 | |   
+  422 | |     const handleAddComment = (postId: string) => {
+  423 | |       const commentText = newCommentTexts[postId]?.trim();
+  424 | |       if (!commentText) {
+  425 | |         return;
+  426 | |       }
+  427 | |   
+  428 | |       setPosts(
+  429 | |         posts.map((post) => {
+  430 | |           if (post.id === postId) {
+  431 | |             return {
+  432 | |               ...post,
+  433 | |               comments: [
+  434 | |                 ...post.comments,
+  435 | |                 {
+  436 | |                   author: currentUser?.name || "CG Stewart",
+  437 | |                   text: commentText,
+  438 | |                   time: "Just now",
+  439 | |                 },
+  440 | |               ],
+  441 | |             };
+  442 | |           }
+  443 | |           return post;
+  444 | |         })
+  445 | |       );
+  446 | |   
+  447 | |       setNewCommentTexts({ ...newCommentTexts, [postId]: "" });
+  448 | |       toast.success("Comment posted!");
+  449 | |     };
+  450 | |   
+  451 | |     const handleSendChallenge = (e: React.FormEvent) => {
+  452 | |       e.preventDefault();
+  453 | |       if (challengeMode === "doubles" && !selectedPartner) {
+  454 | |         toast.error("Please invite a partner to play doubles.");
+  455 | |         return;
+  456 | |       }
+  457 | |   
+  458 | |       const venues: Record<string, string> = {
+  459 | |         "demo-venue-1": "Crestwood Pickleball Park",
+  460 | |         "demo-venue-2": "Mueller Sports Courts",
+  461 | |         "demo-venue-3": "South Lamar Recreation Center",
+  462 | |       };
+  463 | |   
+  464 | |       const newChallenge: Challenge = {
+  465 | |         casted: requestCasting,
+  466 | |         challenged: player.name,
+  467 | |         challenger: currentUser?.name || "CG Stewart",
+  468 | |         date: challengeDate,
+  469 | |         id: `ch-${Date.now()}`,
+  470 | |         message: challengeMsg,
+  471 | |         mode: challengeMode,
+  472 | |         partner: selectedPartner?.name,
+  473 | |         splitMode: castingSplit,
+  474 | |         status: "issued",
+  475 | |         time: challengeTime,
+  476 | |         venue: venues[challengeVenue] || "Crestwood Pickleball Park",
+  477 | |       };
+  478 | |   
+  479 | |       setChallenges((prev) => [newChallenge, ...prev]);
+  480 | |       setShowChallengeModal(false);
+  481 | |       
+  482 | |       // reset form
+  483 | |       setChallengeMsg("");
+  484 | |       setRequestCasting(false);
+  485 | |       setSelectedPartner(null);
+  486 | |       
+  487 | |       toast.success(`Challenge successfully issued to ${player.name}!`);
+  488 | |     };
+  489 | |   
+  490 | |     const handleChallengeAction = (chId: string, action: "accept" | "decline") => {
+  491 | |       setChallenges(
+  492 | |         challenges.map((ch) => {
+  493 | |           if (ch.id === chId) {
+  494 | |             return { ...ch, status: action === "accept" ? "accepted" : "declined" };
+  495 | |           }
+  496 | |           return ch;
+  497 | |         })
+  498 | |       );
+  499 | |   
+  500 | |       if (action === "accept") {
+  501 | |         toast.success("Match challenge accepted!");
+  502 | |       } else {
+  503 | |         toast.info("Match challenge declined.");
+  504 | |       }
+  505 | |     };
+  506 | |   
+  507 | |     const handleSendDM = (e: React.FormEvent) => {
+  508 | |       e.preventDefault();
+  509 | |       if (!dmMessage.trim()) {
+  510 | |         return;
+  511 | |       }
+  512 | |   
+  513 | |       setChatLog((prev) => [...prev, { sender: "me", text: dmMessage, time: "Just now" }]);
+  514 | |       setDmMessage("");
+  515 | |   
+  516 | |       // Mock auto replies
+  517 | |       setTimeout(() => {
+  518 | |         setChatLog((prev) => [
+  519 | |           ...prev,
+  520 | |           {
+  521 | |             sender: "player",
+  522 | |             text: "Sounds awesome, let's look at the matches or send a challenge request!",
+  523 | |             time: "Just now",
+  524 | |           },
+  525 | |         ]);
+  526 | |       }, 1000);
+  527 | |     };
+  528 | |   
+  529 | |     return (
+  530 | |       <div className="mx-auto max-w-4xl px-4 py-6 space-y-8 animate-in fade-in duration-300">
+  531 | |         <PlayerHeader
+  532 | |           player={player}
+  533 | |           location={location}
+  534 | |           isFollowing={isFollowing}
+  535 | |           setIsFollowing={setIsFollowing}
+  536 | |           friendStatus={friendStatus}
+  537 | |           setFriendStatus={setFriendStatus}
+  538 | |           likesCount={likesCount}
+  539 | |           setLikesCount={setLikesCount}
+  540 | |           isLiked={isLiked}
+  541 | |           setIsLiked={setIsLiked}
+  542 | |           onOpenChallenge={() => {
+  543 | |             if (!currentUser) {
+  544 | |               toast.error("Please log in to challenge this player.");
+  545 | |               return;
+  546 | |             }
+  547 | |             setShowChallengeModal(true);
+  548 | |           }}
+  549 | |           onOpenDM={() => {
+  550 | |             if (!currentUser) {
+  551 | |               toast.error("Please log in to message this player.");
+  552 | |               return;
+  553 | |             }
+  554 | |             setShowDMModal(true);
+  555 | |           }}
+  556 | |         />
+  557 | |   
+  558 | |         <div className="grid grid-cols-3 gap-4 text-center">
+  559 | |           <div className="p-3 bg-muted/20 border border-border/50 rounded-xl">
+  560 | |             <span className="block text-xl font-bold">{videos.length}</span>
+  561 | |             <span className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+  562 | |               Videos
+  563 | |             </span>
+  564 | |           </div>
+  565 | |           <div className="p-3 bg-muted/20 border border-border/50 rounded-xl">
+  566 | |             <span className="block text-xl font-bold">124</span>
+  567 | |             <span className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+  568 | |               Followers
+  569 | |             </span>
+  570 | |           </div>
+  571 | |           <div className="p-3 bg-muted/20 border border-border/50 rounded-xl">
+  572 | |             <span className="block text-xl font-bold">34</span>
+  573 | |             <span className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+  574 | |               Matches
+  575 | |             </span>
+  576 | |           </div>
+  577 | |         </div>
+  578 | |   
+  579 | |         <div className="border-b border-border flex justify-center gap-6">
+  580 | |           <button
+  581 | |             onClick={() => setActiveTab("videos")}
+  582 | |             className={`pb-3 text-xs sm:text-sm font-bold tracking-wider uppercase flex items-center gap-1.5 border-b-2 transition-all cursor-pointer ${
+  583 | |               activeTab === "videos"
+  584 | |                 ? "border-primary text-primary"
+  585 | |                 : "border-transparent text-muted-foreground hover:text-foreground"
+  586 | |             }`}
+  587 | |           >
+  588 | |             <Video className="size-4" /> Videos
+  589 | |           </button>
+  590 | |           <button
+  591 | |             onClick={() => setActiveTab("feed")}
+  592 | |             className={`pb-3 text-xs sm:text-sm font-bold tracking-wider uppercase flex items-center gap-1.5 border-b-2 transition-all cursor-pointer ${
+  593 | |               activeTab === "feed"
+  594 | |                 ? "border-primary text-primary"
+  595 | |                 : "border-transparent text-muted-foreground hover:text-foreground"
+  596 | |             }`}
+  597 | |           >
+  598 | |             <Swords className="size-4" /> Challenges & Feed
+  599 | |           </button>
+  600 | |           <button
+  601 | |             onClick={() => setActiveTab("about")}
+  602 | |             className={`pb-3 text-xs sm:text-sm font-bold tracking-wider uppercase flex items-center gap-1.5 border-b-2 transition-all cursor-pointer ${
+  603 | |               activeTab === "about"
+  604 | |                 ? "border-primary text-primary"
+  605 | |                 : "border-transparent text-muted-foreground hover:text-foreground"
+  606 | |             }`}
+  607 | |           >
+  608 | |             <Users className="size-4" /> About
+  609 | |           </button>
+  610 | |         </div>
+  611 | |   
+  612 | |         <div className="pt-2">
+  613 | |           {activeTab === "videos" && (
+  614 | |             <div>
+  615 | |               {videos.length > 0 ? (
+  616 | |                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+  617 | |                   {videos.map((vid: VideoCardData) => (
+  618 | |                     <VideoCard key={vid.id} video={vid} />
+  619 | |                   ))}
+  620 | |                 </div>
+  621 | |               ) : (
+  622 | |                 <EmptyState
+  623 | |                   message={`@${player.username || "player"} hasn't published any match recordings yet.`}
+  624 | |                   title="No videos posted"
+  625 | |                 />
+  626 | |               )}
+  627 | |             </div>
+  628 | |           )}
+  629 | |   
+  630 | |           {activeTab === "feed" && (
+  631 | |             <div className="space-y-8 max-w-2xl mx-auto">
+  632 | |               {/* Challenges Section */}
+  633 | |               <div className="space-y-4">
+  634 | |                 <h3 className="font-bold text-sm text-foreground flex items-center gap-1.5 uppercase tracking-wider">
+  635 | |                   <Swords className="size-4 text-primary" /> Active Challenges
+  636 | |                 </h3>
+  637 | |                 
+  638 | |                 {challenges.length > 0 ? (
+  639 | |                   <div className="space-y-3">
+  640 | |                     {challenges.map((ch) => (
+  641 | |                       <Card key={ch.id} className="border border-border/60 bg-card/50 rounded-xl overflow-hidden shadow-sm">
+  642 | |                         <CardContent className="p-4 space-y-3 text-xs">
+  643 | |                           <div className="flex justify-between items-start border-b border-border/40 pb-2.5">
+  644 | |                             <div>
+  645 | |                               <span className="text-[10px] bg-primary/10 text-primary font-bold px-2 py-0.5 rounded uppercase tracking-wider">
+  646 | |                                 {ch.mode}
+  647 | |                               </span>
+  648 | |                               <h4 className="font-extrabold text-sm text-foreground mt-1">
+  649 | |                                 {ch.challenger} challenged {ch.challenged}
+  650 | |                               </h4>
+  651 | |                               {ch.partner && (
+  652 | |                                 <p className="text-[10px] text-muted-foreground mt-0.5">Partner: {ch.partner}</p>
+  653 | |                               )}
+  654 | |                             </div>
+  655 | |                             
+  656 | |                             <span className={`font-bold px-2 py-0.5 rounded capitalize ${getChallengeBadgeClass(ch.status)}`}>
+  657 | |                               {ch.status}
+  658 | |                             </span>
+  659 | |                           </div>
+  660 | |   
+  661 | |                           <div className="grid grid-cols-2 gap-3 text-muted-foreground">
+  662 | |                             <div className="flex items-center gap-1.5">
+  663 | |                               <Calendar className="size-3.5 text-primary" /> {ch.date}
+  664 | |                             </div>
+  665 | |                             <div className="flex items-center gap-1.5">
+  666 | |                               <Clock className="size-3.5 text-primary" /> {ch.time}
+  667 | |                             </div>
+  668 | |                             <div className="flex items-center gap-1.5 col-span-2">
+  669 | |                               <MapPin className="size-3.5 text-primary" /> {ch.venue}
+  670 | |                             </div>
+  671 | |                           </div>
+  672 | |   
+  673 | |                           {ch.message && (
+  674 | |                             <div className="bg-muted/40 p-2.5 rounded-lg text-[11px] text-foreground leading-normal border border-border/30">
+  675 | |                               "{ch.message}"
+  676 | |                             </div>
+  677 | |                           )}
+  678 | |   
+  679 | |                           {ch.casted && (
+  680 | |                             <div className="p-2.5 rounded-lg border border-red-500/20 bg-red-500/5 text-red-400 text-[11px] flex justify-between items-center font-medium">
+  681 | |                               <span className="flex items-center gap-1"><Video className="size-3.5" /> Recording Requested</span>
+  682 | |                               <span>{getSplitModeText(ch.splitMode)}</span>
+  683 | |                             </div>
+  684 | |                           )}
+  685 | |   
+  686 | |                           {ch.status === "issued" && ch.challenged === player.name && (
+  687 | |                             <div className="pt-2 flex gap-2">
+  688 | |                               <Button
+  689 | |                                 onClick={() => handleChallengeAction(ch.id, "decline")}
+  690 | |                                 variant="outline"
+  691 | |                                 className="flex-1 text-red-400 border-red-500/20 hover:bg-red-500/10 rounded-lg text-xs py-3.5 cursor-pointer font-bold"
+  692 | |                               >
+  693 | |                                 Decline
+  694 | |                               </Button>
+  695 | |                               <Button
+  696 | |                                 onClick={() => handleChallengeAction(ch.id, "accept")}
+  697 | |                                 className="flex-1 rounded-lg text-xs py-3.5 cursor-pointer font-bold"
+  698 | |                               >
+  699 | |                                 Accept
+  700 | |                               </Button>
+  701 | |                             </div>
+  702 | |                           )}
+  703 | |                         </CardContent>
+  704 | |                       </Card>
+  705 | |                     ))}
+  706 | |                   </div>
+  707 | |                 ) : (
+  708 | |                   <p className="text-xs text-muted-foreground py-4 text-center border border-dashed border-border rounded-xl bg-muted/10">
+  709 | |                     No active challenges.
+  710 | |                   </p>
+  711 | |                 )}
+  712 | |               </div>
+  713 | |   
+  714 | |               {/* Social Posts Section */}
+  715 | |               <div className="space-y-4 pt-4 border-t border-border/30">
+  716 | |                 <h3 className="font-bold text-sm text-foreground flex items-center gap-1.5 uppercase tracking-wider">
+  717 | |                   <MessageSquare className="size-4 text-primary" /> Player Feed
+  718 | |                 </h3>
+  719 | |   
+  720 | |                 <div className="space-y-4">
+  721 | |                   {posts.map((post) => (
+  722 | |                     <Card key={post.id} className="border border-border/50 bg-card rounded-xl overflow-hidden shadow-sm">
+  723 | |                       <CardContent className="p-4 space-y-3">
+  724 | |                         <div className="flex items-center justify-between">
+  725 | |                           <div className="flex items-center gap-2">
+  726 | |                             <div className="size-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-xs">
+  727 | |                               {post.avatar}
+  728 | |                             </div>
+  729 | |                             <div>
+  730 | |                               <h4 className="font-bold text-xs text-foreground">{post.author}</h4>
+  731 | |                               <p className="text-[10px] text-muted-foreground">{post.time}</p>
+  732 | |                             </div>
+  733 | |                           </div>
+  734 | |                         </div>
+  735 | |   
+  736 | |                         <p className="text-xs text-foreground leading-relaxed">
+  737 | |                           {post.content}
+  738 | |                         </p>
+  739 | |   
+  740 | |                         <div className="flex items-center gap-4 text-xs pt-1">
+  741 | |                           <button
+  742 | |                             onClick={() => handlePostLike(post.id)}
+  743 | |                             className={`flex items-center gap-1.5 font-semibold cursor-pointer transition-colors ${
+  744 | |                               post.liked ? "text-primary" : "text-muted-foreground hover:text-foreground"
+  745 | |                             }`}
+  746 | |                           >
+  747 | |                             <ThumbsUp className="size-3.5" />
+  748 | |                             <span>{post.likes}</span>
+  749 | |                           </button>
+  750 | |                         </div>
+  751 | |   
+  752 | |                         {/* Comments list */}
+  753 | |                         {post.comments.length > 0 && (
+  754 | |                           <div className="mt-3 bg-muted/30 p-3 rounded-lg border border-border/30 space-y-2.5">
+  755 | |                             {post.comments.map((comment, index) => (
+  756 | |                               <div key={index} className="text-xs">
+  757 | |                                 <div className="flex justify-between items-center font-bold">
+  758 | |                                   <span>{comment.author}</span>
+  759 | |                                   <span className="text-[9px] text-muted-foreground font-normal">{comment.time}</span>
+  760 | |                                 </div>
+  761 | |                                 <p className="text-muted-foreground mt-0.5 leading-normal">{comment.text}</p>
+  762 | |                               </div>
+  763 | |                             ))}
+  764 | |                           </div>
+  765 | |                         )}
+  766 | |   
+  767 | |                         {/* Add comment input */}
+  768 | |                         <div className="flex gap-2 pt-2 border-t border-border/20">
+  769 | |                           <Input
+  770 | |                             placeholder="Write a comment..."
+  771 | |                             value={newCommentTexts[post.id] || ""}
+  772 | |                             onChange={(e) =>
+  773 | |                               setNewCommentTexts({ ...newCommentTexts, [post.id]: e.target.value })
+  774 | |                             }
+  775 | |                             className="text-xs h-9"
+  776 | |                           />
+  777 | |                           <Button
+  778 | |                             onClick={() => handleAddComment(post.id)}
+  779 | |                             className="size-9 p-0 flex items-center justify-center rounded-lg shrink-0 cursor-pointer"
+  780 | |                             aria-label="Post comment"
+  781 | |                           >
+  782 | |                             <Send className="size-3.5" />
+  783 | |                           </Button>
+  784 | |                         </div>
+  785 | |                       </CardContent>
+  786 | |                     </Card>
+  787 | |                   ))}
+  788 | |                 </div>
+  789 | |               </div>
+  790 | |             </div>
+  791 | |           )}
+  792 | |   
+  793 | |           {activeTab === "about" && (
+  794 | |             <Card className="border border-border/50 bg-card rounded-xl overflow-hidden shadow-sm max-w-xl mx-auto">
+  795 | |               <CardContent className="p-6 space-y-4">
+  796 | |                 <h3 className="font-bold text-base border-b border-border/50 pb-2">
+  797 | |                   Player Details
+  798 | |                 </h3>
+  799 | |                 <div className="grid grid-cols-2 gap-4 text-xs">
+  800 | |                   <div>
+  801 | |                     <span className="text-muted-foreground block text-[10px]">Skill Class</span>
+  802 | |                     <span className="font-semibold text-foreground capitalize mt-0.5 block">
+  803 | |                       {player.skillLevel || "open play"}
+  804 | |                     </span>
+  805 | |                   </div>
+  806 | |                   <div>
+  807 | |                     <span className="text-muted-foreground block text-[10px]">Home Venue</span>
+  808 | |                     <span className="font-semibold text-foreground mt-0.5 block">
+  809 | |                       {player.homeCourtName || "None declared"}
+  810 | |                     </span>
+  811 | |                   </div>
+  812 | |                   <div>
+  813 | |                     <span className="text-muted-foreground block text-[10px]">Location</span>
+  814 | |                     <span className="font-semibold text-foreground mt-0.5 block">
+  815 | |                       {location || "Not specified"}
+  816 | |                     </span>
+  817 | |                   </div>
+  818 | |                   <div>
+  819 | |                     <span className="text-muted-foreground block text-[10px]">Member Since</span>
+  820 | |                     <span className="font-semibold text-foreground mt-0.5 block">
+  821 | |                       June 2026
+  822 | |                     </span>
+  823 | |                   </div>
+  824 | |                 </div>
+  825 | |               </CardContent>
+  826 | |             </Card>
+  827 | |           )}
+  828 | |         </div>
+  829 | |   
+  830 | |         {/* Challenge Request Modal */}
+  831 | |         {showChallengeModal && (
+  832 | |           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+  833 | |             <div className="w-full max-w-md bg-card border border-border rounded-xl shadow-xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
+  834 | |               <div className="p-5 border-b border-border flex justify-between items-center">
+  835 | |                 <h2 className="text-base font-bold flex items-center gap-1.5">
+  836 | |                   <Swords className="size-4 text-primary" /> Issue Challenge to {player.name}
+  837 | |                 </h2>
+  838 | |                 <button
+  839 | |                   type="button"
+  840 | |                   onClick={() => setShowChallengeModal(false)}
+  841 | |                   className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+  842 | |                 >
+  843 | |                   <XCircle className="size-5" />
+  844 | |                 </button>
+  845 | |               </div>
+  846 | |   
+  847 | |               <form onSubmit={handleSendChallenge}>
+  848 | |                 <div className="p-5 space-y-4 max-h-[65vh] overflow-y-auto">
+  849 | |                   <div>
+  850 | |                     <span className="text-xs font-semibold text-muted-foreground block mb-2">
+  851 | |                       Match Type
+  852 | |                     </span>
+  853 | |                     <div className="grid grid-cols-2 gap-2">
+  854 | |                       <button
+  855 | |                         type="button"
+  856 | |                         onClick={() => {
+  857 | |                           setChallengeMode("singles");
+  858 | |                           setSelectedPartner(null);
+  859 | |                         }}
+  860 | |                         className={`p-2.5 rounded-lg border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+  861 | |                           challengeMode === "singles"
+  862 | |                             ? "border-primary bg-primary/10 text-primary"
+  863 | |                             : "border-border hover:bg-muted/30 text-muted-foreground"
+  864 | |                         }`}
+  865 | |                       >
+  866 | |                         Singles
+  867 | |                       </button>
+  868 | |                       <button
+  869 | |                         type="button"
+  870 | |                         onClick={() => setChallengeMode("doubles")}
+  871 | |                         className={`p-2.5 rounded-lg border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+  872 | |                           challengeMode === "doubles"
+  873 | |                             ? "border-primary bg-primary/10 text-primary"
+  874 | |                             : "border-border hover:bg-muted/30 text-muted-foreground"
+  875 | |                         }`}
+  876 | |                       >
+  877 | |                         Doubles
+  878 | |                       </button>
+  879 | |                     </div>
+  880 | |                   </div>
+  881 | |   
+  882 | |                   {challengeMode === "doubles" && (
+  883 | |                     <div className="space-y-2">
+  884 | |                       <Label htmlFor="partnerInput">Choose Your Partner</Label>
+  885 | |                       <Input
+  886 | |                         id="partnerInput"
+  887 | |                         placeholder="Find players..."
+  888 | |                         value={partnerSearch}
+  889 | |                         onChange={(e) => setPartnerSearch(e.target.value)}
+  890 | |                         className="mt-1.5 text-xs"
+  891 | |                       />
+  892 | |                       {selectedPartner && (
+  893 | |                         <div className="flex items-center justify-between p-2.5 bg-primary/5 border border-primary/20 rounded-lg text-xs mt-2">
+  894 | |                           <div>
+  895 | |                             <p className="font-semibold">{selectedPartner.name}</p>
+  896 | |                             <p className="text-[9px] text-muted-foreground">@{selectedPartner.username}</p>
+  897 | |                           </div>
+  898 | |                           <button
+  899 | |                             type="button"
+  900 | |                             onClick={() => setSelectedPartner(null)}
+  901 | |                             className="text-red-400 hover:text-red-500 font-semibold cursor-pointer"
+  902 | |                           >
+  903 | |                             Remove
+  904 | |                           </button>
+  905 | |                         </div>
+  906 | |                       )}
+  907 | |                       {!selectedPartner && partnerSearch && searchResults.length > 0 && (
+  908 | |                         <div className="border border-border rounded-lg bg-card max-h-36 overflow-y-auto divide-y divide-border/50 mt-1">
+  909 | |                           {searchResults.map((p) => (
+  910 | |                             <button
+  911 | |                               key={p.id}
+  912 | |                               type="button"
+  913 | |                               onClick={() => {
+  914 | |                                 setSelectedPartner({
+  915 | |                                   id: p.id,
+  916 | |                                   name: p.name,
+  917 | |                                   username: p.username || p.displayUsername || "",
+  918 | |                                 });
+  919 | |                                 setPartnerSearch("");
+  920 | |                               }}
+  921 | |                               className="w-full text-left p-2 hover:bg-muted/40 flex items-center justify-between text-xs cursor-pointer"
+  922 | |                             >
+  923 | |                               <span>{p.name}</span>
+  924 | |                               <PlusCircle className="size-3.5 text-primary" />
+  925 | |                             </button>
+  926 | |                           ))}
+  927 | |                         </div>
+  928 | |                       )}
+  929 | |                     </div>
+  930 | |                   )}
+  931 | |   
+  932 | |                   <div className="space-y-1">
+  933 | |                     <Label htmlFor="challengeVenueSelect">Venue</Label>
+  934 | |                     <select
+  935 | |                       id="challengeVenueSelect"
+  936 | |                       value={challengeVenue}
+  937 | |                       onChange={(e) => setChallengeVenue(e.target.value)}
+  938 | |                       className="w-full mt-1.5 p-2.5 bg-card border border-border rounded-md text-xs focus:ring-1 focus:ring-primary focus:outline-none"
+  939 | |                     >
+  940 | |                       <option value="demo-venue-1">Crestwood Pickleball Park</option>
+  941 | |                       <option value="demo-venue-2">Mueller Sports Courts</option>
+  942 | |                       <option value="demo-venue-3">South Lamar Rec Center</option>
+  943 | |                     </select>
+  944 | |                   </div>
+  945 | |   
+  946 | |                   <div className="grid grid-cols-2 gap-4">
+  947 | |                     <div className="space-y-1">
+  948 | |                       <Label htmlFor="challengeDateInput">Date</Label>
+  949 | |                       <Input
+  950 | |                         id="challengeDateInput"
+  951 | |                         type="date"
+  952 | |                         value={challengeDate}
+  953 | |                         onChange={(e) => setChallengeDate(e.target.value)}
+  954 | |                         required
+  955 | |                         className="mt-1.5 text-xs"
+  956 | |                       />
+  957 | |                     </div>
+  958 | |   
+  959 | |                     <div className="space-y-1">
+  960 | |                       <Label htmlFor="challengeTimeInput">Time</Label>
+  961 | |                       <Input
+  962 | |                         id="challengeTimeInput"
+  963 | |                         type="time"
+  964 | |                         value={challengeTime}
+  965 | |                         onChange={(e) => setChallengeTime(e.target.value)}
+  966 | |                         required
+  967 | |                         className="mt-1.5 text-xs"
+  968 | |                       />
+  969 | |                     </div>
+  970 | |                   </div>
+  971 | |   
+  972 | |                   <div className="space-y-1">
+  973 | |                     <Label htmlFor="challengeMessageInput">Message</Label>
+  974 | |                     <textarea
+  975 | |                       id="challengeMessageInput"
+  976 | |                       rows={2}
+  977 | |                       aria-label="Challenge Message"
+  978 | |                       placeholder="E.g. Let's play singles, best of 3 games!"
+  979 | |                       value={challengeMsg}
+  980 | |                       onChange={(e) => setChallengeMsg(e.target.value)}
+  981 | |                       className="w-full mt-1.5 p-2.5 bg-card border border-border rounded-md text-xs focus:ring-1 focus:ring-primary focus:outline-none resize-none leading-normal text-foreground placeholder:text-muted-foreground"
+  982 | |                     />
+  983 | |                   </div>
+  984 | |   
+  985 | |                   {/* casting request split */}
+  986 | |                   <div className="border-t border-border/50 pt-4 space-y-3">
+  987 | |                     <div className="flex items-center justify-between">
+  988 | |                       <Label htmlFor="casterCheckbox" className="flex items-center gap-1 cursor-pointer">
+  989 | |                         <Video className="size-4 text-red-500" /> Request Caster Recording
+  990 | |                       </Label>
+  991 | |                       <input
+  992 | |                         id="casterCheckbox"
+  993 | |                         type="checkbox"
+  994 | |                         aria-label="Request Caster Recording"
+  995 | |                         checked={requestCasting}
+  996 | |                         onChange={(e) => setRequestCasting(e.target.checked)}
+  997 | |                         className="rounded border-border bg-card text-primary focus:ring-primary focus:outline-none cursor-pointer"
+  998 | |                       />
+  999 | |                     </div>
+ 1000 | |   
+ 1001 | |                     {requestCasting && (
+ 1002 | |                       <div className="space-y-2 animate-in fade-in duration-200">
+ 1003 | |                         <span className="text-[11px] font-semibold text-muted-foreground block">
+ 1004 | |                           Casting Cost Split Setup (Rate: $50)
+ 1005 | |                         </span>
+ 1006 | |                         <div className="space-y-1.5">
+ 1007 | |                           <div className="flex items-center gap-2">
+ 1008 | |                             <input
+ 1009 | |                               id="split1"
+ 1010 | |                               type="radio"
+ 1011 | |                               aria-label="Challenger pays 100%"
+ 1012 | |                               name="castingSplit"
+ 1013 | |                               value="split_1"
+ 1014 | |                               checked={castingSplit === "split_1"}
+ 1015 | |                               onChange={() => setCastingSplit("split_1")}
+ 1016 | |                               className="text-primary focus:ring-primary cursor-pointer"
+ 1017 | |                             />
+ 1018 | |                             <Label htmlFor="split1" className="text-[11px] text-foreground cursor-pointer">
+ 1019 | |                               Challenger pays 100% ($50)
+ 1020 | |                             </Label>
+ 1021 | |                           </div>
+ 1022 | |                           <div className="flex items-center gap-2">
+ 1023 | |                             <input
+ 1024 | |                               id="split2"
+ 1025 | |                               type="radio"
+ 1026 | |                               aria-label="Split 50/50 with opponent"
+ 1027 | |                               name="castingSplit"
+ 1028 | |                               value="split_2"
+ 1029 | |                               checked={castingSplit === "split_2"}
+ 1030 | |                               onChange={() => setCastingSplit("split_2")}
+ 1031 | |                               className="text-primary focus:ring-primary cursor-pointer"
+ 1032 | |                             />
+ 1033 | |                             <Label htmlFor="split2" className="text-[11px] text-foreground cursor-pointer">
+ 1034 | |                               Split 50/50 with opponent ($25 each)
+ 1035 | |                             </Label>
+ 1036 | |                           </div>
+ 1037 | |                           {challengeMode === "doubles" && (
+ 1038 | |                             <div className="flex items-center gap-2">
+ 1039 | |                               <input
+ 1040 | |                                 id="split4"
+ 1041 | |                                 type="radio"
+ 1042 | |                                 aria-label="Split 4 ways"
+ 1043 | |                                 name="castingSplit"
+ 1044 | |                                 value="split_4"
+ 1045 | |                                 checked={castingSplit === "split_4"}
+ 1046 | |                                 onChange={() => setCastingSplit("split_4")}
+ 1047 | |                                 className="text-primary focus:ring-primary cursor-pointer"
+ 1048 | |                               />
+ 1049 | |                               <Label htmlFor="split4" className="text-[11px] text-foreground cursor-pointer">
+ 1050 | |                                 Split 4 ways ($12.50 each)
+ 1051 | |                               </Label>
+ 1052 | |                             </div>
+ 1053 | |                           )}
+ 1054 | |                         </div>
+ 1055 | |                       </div>
+ 1056 | |                     )}
+ 1057 | |                   </div>
+ 1058 | |                 </div>
+ 1059 | |   
+ 1060 | |                 <div className="p-5 border-t border-border flex gap-2">
+ 1061 | |                   <Button
+ 1062 | |                     type="button"
+ 1063 | |                     variant="outline"
+ 1064 | |                     onClick={() => setShowChallengeModal(false)}
+ 1065 | |                     className="flex-1 rounded-lg text-xs"
+ 1066 | |                   >
+ 1067 | |                     Cancel
+ 1068 | |                   </Button>
+ 1069 | |                   <Button
+ 1070 | |                     type="submit"
+ 1071 | |                     className="flex-1 rounded-lg text-xs font-semibold cursor-pointer"
+ 1072 | |                   >
+ 1073 | |                     Send Challenge Request
+ 1074 | |                   </Button>
+ 1075 | |                 </div>
+ 1076 | |               </form>
+ 1077 | |             </div>
+ 1078 | |           </div>
+ 1079 | |         )}
+ 1080 | |   
+ 1081 | |         {/* DM Chat Modal */}
+ 1082 | |         {showDMModal && (
+ 1083 | |           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+ 1084 | |             <div className="w-full max-w-md bg-card border border-border rounded-xl shadow-xl overflow-hidden flex flex-col h-[500px] animate-in slide-in-from-bottom-4 duration-300">
+ 1085 | |               <div className="p-4 border-b border-border flex justify-between items-center shrink-0">
+ 1086 | |                 <div className="flex items-center gap-2">
+ 1087 | |                   <div className="size-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-xs">
+ 1088 | |                     {player.name[0]}
+ 1089 | |                   </div>
+ 1090 | |                   <div>
+ 1091 | |                     <h2 className="text-xs font-bold">{player.name}</h2>
+ 1092 | |                     <p className="text-[10px] text-green-400">Online</p>
+ 1093 | |                   </div>
+ 1094 | |                 </div>
+ 1095 | |                 <button
+ 1096 | |                   type="button"
+ 1097 | |                   onClick={() => setShowDMModal(false)}
+ 1098 | |                   className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+ 1099 | |                 >
+ 1100 | |                   <XCircle className="size-5" />
+ 1101 | |                 </button>
+ 1102 | |               </div>
+ 1103 | |   
+ 1104 | |               {/* Chat Body */}
+ 1105 | |               <div className="flex-1 p-4 overflow-y-auto space-y-3.5 bg-muted/10">
+ 1106 | |                 {chatLog.map((chat, idx) => (
+ 1107 | |                   <div
+ 1108 | |                     key={idx}
+ 1109 | |                     className={`flex flex-col max-w-[80%] ${chat.sender === "me" ? "ml-auto items-end" : "mr-auto items-start"}`}
+ 1110 | |                   >
+ 1111 | |                     <div
+ 1112 | |                       className={`p-3 rounded-2xl text-xs ${
+ 1113 | |                         chat.sender === "me"
+ 1114 | |                           ? "bg-primary text-primary-foreground rounded-tr-none"
+ 1115 | |                           : "bg-muted text-foreground rounded-tl-none"
+ 1116 | |                       }`}
+ 1117 | |                     >
+ 1118 | |                       {chat.text}
+ 1119 | |                     </div>
+ 1120 | |                     <span className="text-[9px] text-muted-foreground mt-1 px-1">
+ 1121 | |                       {chat.time}
+ 1122 | |                     </span>
+ 1123 | |                   </div>
+ 1124 | |                 ))}
+ 1125 | |               </div>
+ 1126 | |   
+ 1127 | |               {/* Chat Input */}
+ 1128 | |               <form
+ 1129 | |                 onSubmit={handleSendDM}
+ 1130 | |                 className="p-3 border-t border-border flex gap-2 shrink-0"
+ 1131 | |               >
+ 1132 | |                 <Input
+ 1133 | |                   aria-label="Message text"
+ 1134 | |                   placeholder="Type a message..."
+ 1135 | |                   value={dmMessage}
+ 1136 | |                   onChange={(e) => setDmMessage(e.target.value)}
+ 1137 | |                   className="text-xs"
+ 1138 | |                 />
+ 1139 | |                 <Button
+ 1140 | |                   type="submit"
+ 1141 | |                   className="px-4 rounded-lg text-xs font-semibold cursor-pointer"
+ 1142 | |                 >
+ 1143 | |                   Send
+ 1144 | |                 </Button>
+ 1145 | |               </form>
+ 1146 | |             </div>
+ 1147 | |           </div>
+ 1148 | |         )}
+ 1149 | |       </div>
+ 1150 | |     );
+ 1151 | `-> }
+      `----
+
+Found 0 warnings and 3 errors.
+Finished in 395ms on 110 files with 451 rules using 8 threads.

@@ -1,36 +1,44 @@
 import { Toaster } from "@rallycaststv/ui/components/sonner";
-import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
+import {
+  HeadContent,
+  Scripts,
+  createRootRouteWithContext,
+} from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import { z } from "zod";
 
-import Header from "../components/header";
+import AppShell from "@/components/layout/app-shell";
+import Providers from "@/components/providers";
 
 import appCss from "../index.css?url";
 
-export interface RouterAppContext {}
+export type RouterAppContext = Record<string, never>;
 
 export const Route = createRootRouteWithContext<RouterAppContext>()({
+  component: RootDocument,
   head: () => ({
+    links: [
+      {
+        href: appCss,
+        rel: "stylesheet",
+      },
+    ],
     meta: [
       {
         charSet: "utf-8",
       },
       {
-        name: "viewport",
         content: "width=device-width, initial-scale=1",
+        name: "viewport",
       },
       {
-        title: "My App",
-      },
-    ],
-    links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
+        title: "RallyCasts",
       },
     ],
   }),
-
-  component: RootDocument,
+  validateSearch: z.object({
+    q: z.string().optional(),
+  }),
 });
 
 function RootDocument() {
@@ -40,10 +48,9 @@ function RootDocument() {
         <HeadContent />
       </head>
       <body>
-        <div className="grid h-svh grid-rows-[auto_1fr]">
-          <Header />
-          <Outlet />
-        </div>
+        <Providers>
+          <AppShell />
+        </Providers>
         <Toaster richColors />
         <TanStackRouterDevtools position="bottom-left" />
         <Scripts />
