@@ -16,8 +16,39 @@ import {
 } from "lucide-react";
 
 import type { EventCardData } from "@/components/rally/cards";
+import { apiClient } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
 import { useRadarTracking } from "@/lib/hooks";
+
+function venueQueryOptions(id: string) {
+  return {
+    queryFn: async () => {
+      const res = await apiClient.api.venues[":id"].$get({
+        param: { id },
+      });
+      if (!res.ok) {
+        throw new Error("Failed to fetch venue");
+      }
+      return res.json();
+    },
+    queryKey: ["venue", id],
+  };
+}
+
+function venueAnalyticsQueryOptions(id: string) {
+  return {
+    queryFn: async () => {
+      const res = await apiClient.api.venues[":id"].analytics.$get({
+        param: { id },
+      });
+      if (!res.ok) {
+        throw new Error("Failed to fetch venue analytics");
+      }
+      return res.json();
+    },
+    queryKey: ["venue", id, "analytics"],
+  };
+}
 
 export const Route = createFileRoute("/venues/$id")({
   component: VenueDetailPage,
@@ -491,10 +522,7 @@ function EventsSection({ events }: { events: EventCardData[] }) {
 function VenueDetailPage() {
   const { id } = useParams({ from: "/venues/$id" });
   const { data, isLoading, error } = useQuery(venueQueryOptions(id));
-  const { data: analyticsData } = useQuery({
-    ...venueAnalyticsQueryOptions(id),
-    queryKey: ["venue", id, "analytics"],
-  });
+  const { data: analyticsData } = useQuery(venueAnalyticsQueryOptions(id));
 
   const { data: session } = authClient.useSession();
   const userId = session?.user?.id;
