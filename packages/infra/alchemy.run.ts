@@ -46,6 +46,17 @@ const googleAiApiKey = required(
 const googlePlacesApiKey = alchemy.secret.env.GOOGLE_PLACES_API_KEY ?? "";
 const radarSecretKey = alchemy.secret.env.RADAR_SECRET_KEY ?? "";
 const radarPublishableKey = alchemy.secret.env.VITE_RADAR_PUBLISHABLE_KEY ?? "";
+const muxTokenSecret = alchemy.secret.env.MUX_TOKEN_SECRET ?? "";
+const muxTokenId = alchemy.secret.env.MUX_TOKEN_ID ?? "";
+const r2AccessKeyId = alchemy.secret.env.R2_ACCESS_KEY_ID ?? "";
+const r2SecretAccessKey = alchemy.secret.env.R2_SECRET_ACCESS_KEY ?? "";
+const r2BucketName = alchemy.secret.env.R2_BUCKET_NAME ?? "rallycaststv-media";
+const r2AccountId = alchemy.secret.env.R2_ACCOUNT_ID ?? "";
+const r2PublicUrl = alchemy.secret.env.R2_PUBLIC_URL ?? "";
+
+const mediaBucket = await alchemy.cloudflare.R2Bucket("media", {
+  bucketName: r2BucketName,
+});
 
 const geofenceQueue = await Queue("geofence-events", {
   consumer: {
@@ -64,6 +75,13 @@ export const server = await Worker("rallycasts-server", {
     GEOFENCE_EVENTS: geofenceQueue,
     GOOGLE_GENERATIVE_AI_API_KEY: googleAiApiKey,
     GOOGLE_PLACES_API_KEY: googlePlacesApiKey,
+    MEDIA_BUCKET: mediaBucket,
+    MUX_TOKEN_ID: muxTokenId,
+    MUX_TOKEN_SECRET: muxTokenSecret,
+    R2_ACCESS_KEY_ID: r2AccessKeyId,
+    R2_ACCOUNT_ID: r2AccountId,
+    R2_PUBLIC_URL: r2PublicUrl,
+    R2_SECRET_ACCESS_KEY: r2SecretAccessKey,
     RADAR_SECRET_KEY: radarSecretKey,
   },
   compatibility: "node",

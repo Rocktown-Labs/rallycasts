@@ -22,6 +22,7 @@ import { profileRouter } from "./routes/profile";
 import { searchRouter } from "./routes/search";
 import { stripeRouter } from "./routes/stripe";
 import { trendingRouter } from "./routes/trending";
+import { uploadRouter } from "./routes/upload";
 import { venueAnalyticsRouter } from "./routes/venue-analytics";
 import { venuesRouter } from "./routes/venues";
 import { videosRouter } from "./routes/videos";
@@ -81,6 +82,7 @@ const routes = app
   .route("/api/trending", trendingRouter)
   .route("/api/stripe", stripeRouter)
   .route("/api/mux", muxRouter)
+  .route("/api/upload", uploadRouter)
   .route("/webhooks", webhooksRouter);
 
 routes.notFound(notFound);
