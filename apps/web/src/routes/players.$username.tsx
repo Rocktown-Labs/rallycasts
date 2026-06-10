@@ -948,56 +948,11 @@ function useFeedDetailModal() {
 }
 
 function useChallenges() {
-  const [challenges, setChallenges] = useState<Challenge[]>([
-    {
-      casted: true,
-      challenged: "Sarah Johnson",
-      challenger: "CG Stewart",
-      date: "2026-06-12",
-      id: "ch-1",
-      message: "Ready for a rematch after last week's game!",
-      mode: "singles",
-      result: "upcoming",
-      splitMode: "split_2",
-      status: "issued",
-      time: "18:00",
-      venue: "Crestwood Pickleball Park",
+  return {
+    addChallenge: (_challenge: Challenge) => {
+      // Challenges are now managed via API
     },
-    {
-      casted: false,
-      challenged: "Mike Rodriguez",
-      challenger: "CG Stewart",
-      date: "2026-06-10",
-      id: "ch-2",
-      message: "Great game!",
-      mode: "doubles",
-      result: "won",
-      status: "completed",
-      time: "14:00",
-      venue: "Mueller Sports Courts",
-      videoUrl: "https://example.com/video1.mp4",
-    },
-    {
-      casted: true,
-      challenged: "Alice Smith",
-      challenger: "CG Stewart",
-      date: "2026-06-08",
-      id: "ch-3",
-      message: "Tough match",
-      mode: "singles",
-      result: "lost",
-      splitMode: "split_2",
-      status: "completed",
-      time: "16:00",
-      venue: "South Lamar Rec Center",
-    },
-  ]);
-
-  const addChallenge = (challenge: Challenge) => {
-    setChallenges((prev) => [challenge, ...prev]);
   };
-
-  return { addChallenge, challenges };
 }
 
 export const Route = createFileRoute("/players/$username")({
@@ -1009,48 +964,6 @@ function PlayerProfilePage() {
   const [activeTab, setActiveTab] = useState<
     "all" | "videos" | "photos" | "challenges" | "about"
   >("all");
-
-  // Photos State
-  const [photosList] = useState<PhotoPost[]>([
-    {
-      caption:
-        "Weekend morning grind at Crestwood! Love the weather today. 🏓🔥",
-      comments: [
-        { author: "Mike Rodriguez", text: "Nice shots!", time: "2h ago" },
-        {
-          author: "Sarah Johnson",
-          text: "Let's play next Saturday!",
-          time: "1h ago",
-        },
-      ],
-      id: "p1",
-      likes: 45,
-      url: "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      caption: "Sunset sessions hitting some deep dinks. Paddles up! 🙌",
-      comments: [
-        { author: "Alice Smith", text: "Beautiful courts!", time: "5h ago" },
-      ],
-      id: "p2",
-      likes: 82,
-      url: "https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      caption: "New paddle feels like butter. DUPR rating going up next week!",
-      comments: [],
-      id: "p3",
-      likes: 31,
-      url: "https://images.unsplash.com/photo-1599447421416-3414500d18a5?auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      caption: "Team dinner after a successful ladder league tournament! 🏆",
-      comments: [{ author: "Bob", text: "Congrats!", time: "1d ago" }],
-      id: "p4",
-      likes: 64,
-      url: "https://images.unsplash.com/photo-1617083934383-e009403ec417?auto=format&fit=crop&w=600&q=80",
-    },
-  ]);
 
   const {
     friendStatus,
@@ -1072,39 +985,7 @@ function PlayerProfilePage() {
 
   const { chatLog, dmMessage, handleSendDM, setDmMessage } = useDMChat();
 
-  // Social feed state
-  const [posts] = useState<SocialPost[]>([
-    {
-      author: "Sarah Johnson",
-      avatar: "S",
-      comments: [
-        {
-          author: "Mike Rodriguez",
-          text: "Nice resets! Those drops were crazy.",
-          time: "1 hour ago",
-        },
-      ],
-      content:
-        "Great match today on Court 1! Finished the ladder match in second place. reset game was on point.",
-      id: "post-1",
-      liked: false,
-      likes: 12,
-      time: "2 hours ago",
-    },
-    {
-      author: "Sarah Johnson",
-      avatar: "S",
-      comments: [],
-      content:
-        "Does anyone want to play doubles tomorrow morning around 8 AM at Crestwood Park?",
-      id: "post-2",
-      liked: false,
-      likes: 5,
-      time: "3 days ago",
-    },
-  ]);
-
-  const { addChallenge, challenges } = useChallenges();
+  const { addChallenge } = useChallenges();
 
   const { feedItems, selectedFeedItem, setFeedItems, setSelectedFeedItem } =
     useFeedDetailModal();
@@ -1164,10 +1045,56 @@ function PlayerProfilePage() {
     );
   }
 
-  const { player, videos = [] } = data;
+  const {
+    player,
+    videos = [],
+    photos = [],
+    challenges: apiChallenges = [],
+    posts: apiPosts = [],
+  } = data;
   const location = [player.homeCity, player.homeState]
     .filter(Boolean)
     .join(", ");
+
+  const photosList = photos.map((photo) => ({
+    caption: photo.description || photo.title || "",
+    comments: [] as { author: string; text: string; time: string }[],
+    id: photo.id,
+    likes: 0,
+    url: photo.thumbnailUrl || photo.r2Key || "",
+  }));
+
+  const challenges = apiChallenges.map((ch) => ({
+    casted: ch.casted || false,
+    challenged: ch.challengedName || "Unknown",
+    challenger: ch.challengerName || "Unknown",
+    date: ch.scheduledAt
+      ? new Date(ch.scheduledAt).toISOString().split("T")[0]
+      : "",
+    id: ch.id,
+    message: ch.message || "",
+    mode: ch.matchMode || "singles",
+    partner: ch.partnerName || "",
+    result: ch.result || "upcoming",
+    splitMode: ch.castingSplitMode || "",
+    status: ch.status || "issued",
+    time: ch.scheduledAt
+      ? new Date(ch.scheduledAt).toISOString().split("T")[1].slice(0, 5)
+      : "",
+    venue: ch.venueName || "Unknown Venue",
+    videoUrl: ch.videoUrl || "",
+  }));
+
+  const posts = apiPosts.map((post) => ({
+    author: player.name || "",
+    avatar: player.name?.[0] || "",
+    comments: [] as { author: string; text: string; time: string }[],
+    content: post.content || "",
+    id: post.id,
+    liked: false,
+    likes: 0,
+    time: post.createdAt ? new Date(post.createdAt).toISOString() : "",
+  }));
 
   const allFeedItems = buildFeedItems(videos, photosList, challenges, posts);
 

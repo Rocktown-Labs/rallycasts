@@ -184,6 +184,7 @@ export const event = sqliteTable(
 export const challenge = sqliteTable(
   "challenge",
   {
+    castingSplitMode: text("casting_split_mode"),
     challengedUserId: text("challenged_user_id").references(() => user.id, {
       onDelete: "set null",
     }),
@@ -192,7 +193,13 @@ export const challenge = sqliteTable(
       .references(() => user.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at"),
     id: text("id").primaryKey(),
+    isCasted: integer("is_casted", { mode: "boolean" }).default(false),
+    matchMode: text("match_mode", { enum: ["singles", "doubles"] }),
     message: text("message"),
+    partnerUserId: text("partner_user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    result: text("result", { enum: ["won", "lost", "draw"] }),
     scheduledAt: integer("scheduled_at", { mode: "timestamp_ms" }),
     status: text("status", {
       enum: [
@@ -210,11 +217,67 @@ export const challenge = sqliteTable(
     venueId: text("venue_id").references(() => venue.id, {
       onDelete: "set null",
     }),
+    videoUrl: text("video_url"),
   },
   (table) => [
     index("challenge_challenger_idx").on(table.challengerUserId),
     index("challenge_challenged_idx").on(table.challengedUserId),
     index("challenge_status_idx").on(table.status),
+    index("challenge_partner_idx").on(table.partnerUserId),
+  ]
+);
+
+export const post = sqliteTable(
+  "post",
+  {
+    content: text("content").notNull(),
+    createdAt: timestamp("created_at"),
+    id: text("id").primaryKey(),
+    updatedAt: timestamp("updated_at").$onUpdate(() => new Date()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    index("post_user_idx").on(table.userId),
+    index("post_created_idx").on(table.createdAt),
+  ]
+);
+
+export const postLike = sqliteTable(
+  "post_like",
+  {
+    createdAt: timestamp("created_at"),
+    postId: text("post_id")
+      .notNull()
+      .references(() => post.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    uniqueIndex("post_like_user_post_idx").on(table.postId, table.userId),
+    index("post_like_post_idx").on(table.postId),
+  ]
+);
+
+export const postComment = sqliteTable(
+  "post_comment",
+  {
+    content: text("content").notNull(),
+    createdAt: timestamp("created_at"),
+    id: text("id").primaryKey(),
+    postId: text("post_id")
+      .notNull()
+      .references(() => post.id, { onDelete: "cascade" }),
+    updatedAt: timestamp("updated_at").$onUpdate(() => new Date()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    index("post_comment_post_idx").on(table.postId),
+    index("post_comment_user_idx").on(table.userId),
   ]
 );
 
@@ -528,6 +591,56 @@ export const videoRelations = relations(video, ({ one, many }) => ({
   venue: one(venue, {
     fields: [video.venueId],
     references: [venue.id],
+  }),
+}));
+
+export const challengeRelations = relations(challenge, ({ one }) => ({
+  challenged: one(user, {
+    fields: [challenge.challengedUserId],
+    references: [user.id],
+  }),
+  challenger: one(user, {
+    fields: [challenge.challengerUserId],
+    references: [user.id],
+  }),
+  partner: one(user, {
+    fields: [challenge.partnerUserId],
+    references: [user.id],
+  }),
+  venue: one(venue, {
+    fields: [challenge.venueId],
+    references: [venue.id],
+  }),
+}));
+
+export const postRelations = relations(post, ({ one, many }) => ({
+  author: one(user, {
+    fields: [post.userId],
+    references: [user.id],
+  }),
+  comments: many(postComment),
+  likes: many(postLike),
+}));
+
+export const postCommentRelations = relations(postComment, ({ one }) => ({
+  author: one(user, {
+    fields: [postComment.userId],
+    references: [user.id],
+  }),
+  post: one(post, {
+    fields: [postComment.postId],
+    references: [post.id],
+  }),
+}));
+
+export const postLikeRelations = relations(postLike, ({ one }) => ({
+  author: one(user, {
+    fields: [postLike.userId],
+    references: [user.id],
+  }),
+  post: one(post, {
+    fields: [postLike.postId],
+    references: [post.id],
   }),
 }));
 

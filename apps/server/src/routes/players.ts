@@ -1,7 +1,12 @@
 import { createDb } from "@rallycaststv/db";
 import { user } from "@rallycaststv/db/schema/auth";
-import { userProfile, video } from "@rallycaststv/db/schema/domain";
-import { desc, eq, like, or } from "drizzle-orm";
+import {
+  challenge,
+  post,
+  userProfile,
+  video,
+} from "@rallycaststv/db/schema/domain";
+import { and, desc, eq, like, or } from "drizzle-orm";
 import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 
@@ -73,5 +78,58 @@ export const playersRouter = new Hono<AppEnv>()
       .orderBy(desc(video.createdAt))
       .limit(20);
 
-    return c.json({ player, videos: playerVideos }, HttpStatusCodes.OK);
+    const playerPhotos = await db
+      .select()
+      .from(video)
+      .where(
+        and(eq(video.ownerUserId, player.id), eq(video.mediaType, "photo"))
+      )
+      .orderBy(desc(video.createdAt))
+      .limit(20);
+
+    const playerChallenges = await db
+      .select({
+        casted: challenge.isCasted,
+        castingSplitMode: challenge.castingSplitMode,
+        challengedUserId: challenge.challengedUserId,
+        challengerUserId: challenge.challengerUserId,
+        createdAt: challenge.createdAt,
+        id: challenge.id,
+        matchMode: challenge.matchMode,
+        message: challenge.message,
+        partnerUserId: challenge.partnerUserId,
+        result: challenge.result,
+        scheduledAt: challenge.scheduledAt,
+        status: challenge.status,
+        updatedAt: challenge.updatedAt,
+        venueId: challenge.venueId,
+        videoUrl: challenge.videoUrl,
+      })
+      .from(challenge)
+      .where(
+        or(
+          eq(challenge.challengerUserId, player.id),
+          eq(challenge.challengedUserId, player.id)
+        )
+      )
+      .orderBy(desc(challenge.createdAt))
+      .limit(20);
+
+    const playerPosts = await db
+      .select()
+      .from(post)
+      .where(eq(post.userId, player.id))
+      .orderBy(desc(post.createdAt))
+      .limit(20);
+
+    return c.json(
+      {
+        challenges: playerChallenges,
+        photos: playerPhotos,
+        player,
+        posts: playerPosts,
+        videos: playerVideos,
+      },
+      HttpStatusCodes.OK
+    );
   });
