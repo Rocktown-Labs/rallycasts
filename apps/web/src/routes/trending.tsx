@@ -1,7 +1,16 @@
-import { buttonVariants } from "@rallycaststv/ui/components/button";
+import { Button, buttonVariants } from "@rallycaststv/ui/components/button";
 import { cn } from "@rallycaststv/ui/lib/utils";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { Calendar, Flame, MapPin, Navigation, Users } from "lucide-react";
+import {
+  Calendar,
+  Flame,
+  MapPin,
+  Navigation,
+  TrendingUp,
+  Users,
+  Video,
+} from "lucide-react";
+import type { ReactNode } from "react";
 
 import {
   EmptyState,
@@ -11,14 +20,114 @@ import {
   StatCard,
   VideoCard,
 } from "@/components/rally/cards";
-import { useTrending } from "@/lib/hooks";
+import { authClient } from "@/lib/auth-client";
+import { useGeolocation, useRadarTracking, useTrending } from "@/lib/hooks";
 
 export const Route = createFileRoute("/trending")({
   component: TrendingPage,
 });
 
+function HorizontalScroll({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "-mx-4 flex gap-4 overflow-x-auto px-4 pb-2 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted hover:scrollbar-thumb-muted-foreground/30",
+        className
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+function SectionHeader({
+  icon,
+  title,
+  href,
+  count,
+  scope,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  href: string;
+  count?: number;
+  scope?: string;
+}) {
+  return (
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        {icon}
+        <h2 className="text-xl font-bold">{title}</h2>
+        {scope && (
+          <span className="text-[10px] bg-muted text-muted-foreground font-semibold px-2 py-0.5 rounded-full">
+            {scope}
+          </span>
+        )}
+        {count !== undefined && count > 0 && (
+          <span className="text-[10px] bg-primary/10 text-primary font-semibold px-2 py-0.5 rounded-full">
+            {count}
+          </span>
+        )}
+      </div>
+      <Link to={href} className={buttonVariants({ variant: "ghost" })}>
+        View all
+      </Link>
+    </div>
+  );
+}
+
+function LocationStatus({
+  error,
+  isLoading,
+  location,
+}: {
+  error: string | null;
+  isLoading: boolean;
+  location?: { lat: number; lng: number };
+}) {
+  if (isLoading && !location) {
+    return (
+      <span className="text-xs text-muted-foreground animate-pulse">
+        Locating you...
+      </span>
+    );
+  }
+
+  if (error && !location) {
+    return (
+      <Button
+        size="sm"
+        variant="ghost"
+        className="text-xs text-muted-foreground"
+        onClick={() => window.location.reload()}
+      >
+        Location unavailable
+      </Button>
+    );
+  }
+
+  if (location) {
+    return (
+      <span className="text-xs text-emerald-500 font-medium flex items-center gap-1">
+        <MapPin className="size-3" /> Location active
+      </span>
+    );
+  }
+
+  return null;
+}
+
 function TrendingPage() {
-  const { data, isLoading } = useTrending();
+  const { error: geoError, isLoading: geoLoading, location } = useGeolocation();
+  const { data, isLoading } = useTrending(location);
+  const { data: session } = authClient.useSession();
+  useRadarTracking(session?.user?.id);
   const videos = data?.videos ?? [];
   const venues = data?.venues ?? [];
   const players = data?.players ?? [];
@@ -29,12 +138,20 @@ function TrendingPage() {
   );
 
   return (
-    <div className="mx-auto max-w-7xl space-y-8">
+    <div className="mx-auto max-w-7xl space-y-10">
+      {/* Hero */}
       <section className="grid gap-4 md:grid-cols-[1.3fr_.7fr]">
         <div className="rounded-lg border border-border bg-[linear-gradient(135deg,hsl(142_100%_18%/.28),hsl(240_10%_4%/.4))] p-6">
-          <p className="text-sm font-semibold text-primary">
-            Happening near you
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-primary">
+              Happening near you
+            </p>
+            <LocationStatus
+              error={geoError}
+              isLoading={geoLoading}
+              location={location}
+            />
+          </div>
           <h1 className="mt-2 text-3xl font-bold md:text-5xl">
             Find the courts with energy right now.
           </h1>
@@ -64,13 +181,13 @@ function TrendingPage() {
             icon={<Flame className="size-5" />}
             label="Parks heating up"
             value={`${venues.length}`}
-            trend="Based on your current area"
+            trend="Within 50 miles"
           />
           <StatCard
             icon={<Navigation className="size-5" />}
-            label="Players out now"
+            label="Players nearby"
             value={`${playerCount || players.length}`}
-            trend="Estimated from local activity"
+            trend="Within 100 miles"
           />
         </div>
       </section>
@@ -79,19 +196,21 @@ function TrendingPage() {
         <div className="h-72 animate-pulse rounded-lg bg-muted" />
       ) : null}
 
+      {/* Parks Near You */}
       <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Parks Heating Up</h2>
-          <Link to="/trending" className={buttonVariants({ variant: "ghost" })}>
-            View all
-          </Link>
-        </div>
+        <SectionHeader
+          icon={<Flame className="size-5 text-primary" />}
+          title="Parks Near You"
+          href="/venues"
+          count={venues.length}
+          scope="Within 50 mi"
+        />
         {venues.length > 0 ? (
-          <div className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-2 md:mx-0 md:px-0">
+          <HorizontalScroll>
             {venues.map((venue) => (
               <ParkHeatCard key={venue.id} venue={venue} />
             ))}
-          </div>
+          </HorizontalScroll>
         ) : (
           <EmptyState
             icon={<MapPin className="size-5" />}
@@ -101,19 +220,23 @@ function TrendingPage() {
         )}
       </section>
 
+      {/* Trending Videos */}
       <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Trending Videos</h2>
-          <Link to="/" className={buttonVariants({ variant: "ghost" })}>
-            View all
-          </Link>
-        </div>
+        <SectionHeader
+          icon={<Video className="size-5 text-primary" />}
+          title="Trending Videos"
+          href="/"
+          count={videos.length}
+          scope="Within 500 mi"
+        />
         {videos.length > 0 ? (
-          <div className="grid gap-6 md:grid-cols-3">
-            {videos.slice(0, 6).map((video) => (
-              <VideoCard key={video.id} video={video} />
+          <HorizontalScroll>
+            {videos.slice(0, 8).map((video) => (
+              <div key={video.id} className="w-72 shrink-0">
+                <VideoCard video={video} />
+              </div>
             ))}
-          </div>
+          </HorizontalScroll>
         ) : (
           <EmptyState
             message="Videos will rank here as players publish local rallies."
@@ -122,37 +245,94 @@ function TrendingPage() {
         )}
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-2">
-        <div className="space-y-4">
-          <h2 className="text-2xl font-bold">Top Players Nearby</h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            {players.length > 0 ? (
-              players
-                .slice(0, 4)
-                .map((player) => <PlayerCard key={player.id} player={player} />)
-            ) : (
-              <EmptyState
-                message="Players appear once they complete onboarding."
-                title="No local players yet"
-              />
-            )}
-          </div>
-        </div>
-        <div className="space-y-4">
-          <h2 className="text-2xl font-bold">Events Worth Recording</h2>
-          <div className="grid gap-4">
-            {events.length > 0 ? (
-              events
-                .slice(0, 4)
-                .map((event) => <EventCard key={event.id} event={event} />)
-            ) : (
-              <EmptyState
-                message="Published events will appear here."
-                title="No events yet"
-              />
-            )}
-          </div>
-        </div>
+      {/* Top Players Nearby */}
+      <section className="space-y-4">
+        <SectionHeader
+          icon={<Users className="size-5 text-primary" />}
+          title="Top Players Nearby"
+          href="/players"
+          count={players.length}
+          scope="Within 100 mi"
+        />
+        {players.length > 0 ? (
+          <HorizontalScroll>
+            {players.slice(0, 6).map((player) => (
+              <div key={player.id} className="w-64 shrink-0">
+                <PlayerCard player={player} />
+              </div>
+            ))}
+          </HorizontalScroll>
+        ) : (
+          <EmptyState
+            message="Players appear once they complete onboarding."
+            title="No local players yet"
+          />
+        )}
+      </section>
+
+      {/* Events Worth Recording */}
+      <section className="space-y-4">
+        <SectionHeader
+          icon={<Calendar className="size-5 text-primary" />}
+          title="Events Worth Recording"
+          href="/events"
+          count={events.length}
+          scope="Within 200 mi"
+        />
+        {events.length > 0 ? (
+          <HorizontalScroll>
+            {events.slice(0, 6).map((event) => (
+              <div key={event.id} className="w-80 shrink-0">
+                <EventCard event={event} />
+              </div>
+            ))}
+          </HorizontalScroll>
+        ) : (
+          <EmptyState
+            message="Published events will appear here."
+            title="No events yet"
+          />
+        )}
+      </section>
+
+      {/* Quick links */}
+      <section className="grid gap-4 sm:grid-cols-3">
+        <Link
+          to="/venues"
+          className="group rounded-lg border border-border bg-card p-5 hover:border-primary/40 transition-all"
+        >
+          <MapPin className="size-5 text-primary mb-3" />
+          <h3 className="font-bold text-sm group-hover:text-primary transition-colors">
+            Browse all parks
+          </h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Explore courts across the region
+          </p>
+        </Link>
+        <Link
+          to="/events"
+          className="group rounded-lg border border-border bg-card p-5 hover:border-primary/40 transition-all"
+        >
+          <TrendingUp className="size-5 text-primary mb-3" />
+          <h3 className="font-bold text-sm group-hover:text-primary transition-colors">
+            Tournament calendar
+          </h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Find events worth traveling for
+          </p>
+        </Link>
+        <Link
+          to="/players"
+          className="group rounded-lg border border-border bg-card p-5 hover:border-primary/40 transition-all"
+        >
+          <Users className="size-5 text-primary mb-3" />
+          <h3 className="font-bold text-sm group-hover:text-primary transition-colors">
+            Player directory
+          </h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Connect with nearby players
+          </p>
+        </Link>
       </section>
     </div>
   );

@@ -21,6 +21,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as PlayersIndexRouteImport } from './routes/players.index'
 import { Route as EventsIndexRouteImport } from './routes/events.index'
 import { Route as CastersIndexRouteImport } from './routes/casters.index'
+import { Route as VideosIdRouteImport } from './routes/videos.$id'
 import { Route as VenuesIdRouteImport } from './routes/venues.$id'
 import { Route as PlayersUsernameRouteImport } from './routes/players.$username'
 import { Route as EventsIdRouteImport } from './routes/events.$id'
@@ -100,6 +101,11 @@ const CastersIndexRoute = CastersIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => CastersRoute,
+} as any)
+const VideosIdRoute = VideosIdRouteImport.update({
+  id: '/videos/$id',
+  path: '/videos/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const VenuesIdRoute = VenuesIdRouteImport.update({
   id: '/venues/$id',
@@ -219,6 +225,7 @@ export interface FileRoutesByFullPath {
   '/events/$id': typeof EventsIdRouteWithChildren
   '/players/$username': typeof PlayersUsernameRoute
   '/venues/$id': typeof VenuesIdRoute
+  '/videos/$id': typeof VideosIdRoute
   '/casters/': typeof CastersIndexRoute
   '/events/': typeof EventsIndexRoute
   '/players/': typeof PlayersIndexRoute
@@ -247,6 +254,7 @@ export interface FileRoutesByTo {
   '/casters/$id': typeof CastersIdRoute
   '/players/$username': typeof PlayersUsernameRoute
   '/venues/$id': typeof VenuesIdRoute
+  '/videos/$id': typeof VideosIdRoute
   '/casters': typeof CastersIndexRoute
   '/events': typeof EventsIndexRoute
   '/players': typeof PlayersIndexRoute
@@ -282,6 +290,7 @@ export interface FileRoutesById {
   '/events/$id': typeof EventsIdRouteWithChildren
   '/players/$username': typeof PlayersUsernameRoute
   '/venues/$id': typeof VenuesIdRoute
+  '/videos/$id': typeof VideosIdRoute
   '/casters/': typeof CastersIndexRoute
   '/events/': typeof EventsIndexRoute
   '/players/': typeof PlayersIndexRoute
@@ -317,6 +326,7 @@ export interface FileRouteTypes {
     | '/events/$id'
     | '/players/$username'
     | '/venues/$id'
+    | '/videos/$id'
     | '/casters/'
     | '/events/'
     | '/players/'
@@ -345,6 +355,7 @@ export interface FileRouteTypes {
     | '/casters/$id'
     | '/players/$username'
     | '/venues/$id'
+    | '/videos/$id'
     | '/casters'
     | '/events'
     | '/players'
@@ -379,6 +390,7 @@ export interface FileRouteTypes {
     | '/events/$id'
     | '/players/$username'
     | '/venues/$id'
+    | '/videos/$id'
     | '/casters/'
     | '/events/'
     | '/players/'
@@ -409,6 +421,7 @@ export interface RootRouteChildren {
   PlayersRoute: typeof PlayersRouteWithChildren
   TrendingRoute: typeof TrendingRoute
   VenuesIdRoute: typeof VenuesIdRoute
+  VideosIdRoute: typeof VideosIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -496,6 +509,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/casters/'
       preLoaderRoute: typeof CastersIndexRouteImport
       parentRoute: typeof CastersRoute
+    }
+    '/videos/$id': {
+      id: '/videos/$id'
+      path: '/videos/$id'
+      fullPath: '/videos/$id'
+      preLoaderRoute: typeof VideosIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/venues/$id': {
       id: '/venues/$id'
@@ -750,6 +770,7 @@ const rootRouteChildren: RootRouteChildren = {
   PlayersRoute: PlayersRouteWithChildren,
   TrendingRoute: TrendingRoute,
   VenuesIdRoute: VenuesIdRoute,
+  VideosIdRoute: VideosIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

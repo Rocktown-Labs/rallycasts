@@ -3,6 +3,7 @@ import { z } from "zod";
 
 export const env = createEnv({
   client: {
+    VITE_RADAR_PUBLISHABLE_KEY: z.string().optional(),
     VITE_SERVER_URL: z.url(),
   },
   clientPrefix: "VITE_",

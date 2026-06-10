@@ -18,14 +18,18 @@ import {
   Clock,
   Calendar,
   ThumbsUp,
-  Send,
   PlusCircle,
   Camera,
+  Grid3X3,
+  ChevronLeft,
+  ChevronRight,
+  Trophy,
+  ArrowLeft,
 } from "lucide-react";
-import { useState } from "react";
+import React, { useState } from "react";
 import { toast } from "sonner";
 
-import { EmptyState, VideoCard } from "@/components/rally/cards";
+import { EmptyState } from "@/components/rally/cards";
 import type { VideoCardData } from "@/components/rally/cards";
 import { apiClient } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
@@ -51,6 +55,34 @@ interface Challenge {
   splitMode?: string;
   status: string;
   partner?: string;
+  result?: "won" | "lost" | "upcoming";
+  videoUrl?: string;
+}
+
+interface FeedItem {
+  id: string;
+  type: "video" | "photo" | "challenge" | "post";
+  data: VideoCardData | PhotoPost | Challenge | SocialPost;
+}
+
+interface PhotoPost {
+  id: string;
+  url: string;
+  likes: number;
+  caption: string;
+  comments: { author: string; text: string; time: string }[];
+  hasLiked?: boolean;
+}
+
+interface SocialPost {
+  id: string;
+  author: string;
+  avatar: string;
+  time: string;
+  content: string;
+  likes: number;
+  liked: boolean;
+  comments: { author: string; text: string; time: string }[];
 }
 
 interface PlayerHeaderProps {
@@ -74,6 +106,7 @@ interface PlayerHeaderProps {
   setIsLiked: (liked: boolean) => void;
   onOpenChallenge: () => void;
   onOpenDM: () => void;
+  isOwnProfile: boolean;
 }
 
 function PlayerHeader({
@@ -89,6 +122,7 @@ function PlayerHeader({
   setIsLiked,
   onOpenChallenge,
   onOpenDM,
+  isOwnProfile,
 }: PlayerHeaderProps) {
   const handleLike = () => {
     if (isLiked) {
@@ -186,77 +220,79 @@ function PlayerHeader({
         )}
 
         <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-2">
-          {/* Friend CTA */}
-          <Button
-            onClick={handleFriendAction}
-            variant={friendStatus === "friends" ? "default" : "outline"}
-            className="rounded-lg text-xs font-semibold px-4 flex items-center gap-1.5 transition-all cursor-pointer"
-          >
-            {renderFriendButtonContent()}
-          </Button>
+          {!isOwnProfile && (
+            <>
+              <Button
+                onClick={handleFriendAction}
+                variant={friendStatus === "friends" ? "default" : "outline"}
+                className="rounded-lg text-xs font-semibold px-4 flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                {renderFriendButtonContent()}
+              </Button>
 
-          {/* Follow CTA */}
-          <Button
-            onClick={() => {
-              setIsFollowing(!isFollowing);
-              toast.success(
-                isFollowing
-                  ? `Unfollowed ${player.name}.`
-                  : `Followed ${player.name}!`
-              );
-            }}
-            variant={isFollowing ? "outline" : "default"}
-            className="rounded-lg text-xs font-semibold px-4 transition-all cursor-pointer"
-          >
-            {isFollowing ? "Following" : "Follow"}
-          </Button>
+              <Button
+                onClick={() => {
+                  setIsFollowing(!isFollowing);
+                  toast.success(
+                    isFollowing
+                      ? `Unfollowed ${player.name}.`
+                      : `Followed ${player.name}!`
+                  );
+                }}
+                variant={isFollowing ? "outline" : "default"}
+                className="rounded-lg text-xs font-semibold px-4 transition-all cursor-pointer"
+              >
+                {isFollowing ? "Following" : "Follow"}
+              </Button>
 
-          {/* Like CTA */}
-          <Button
-            onClick={handleLike}
-            variant="outline"
-            className="rounded-lg text-xs font-semibold px-3 flex items-center justify-center cursor-pointer"
-            aria-label="Like profile"
-          >
-            <Heart
-              className={`size-4 ${isLiked ? "text-red-500 fill-current" : ""}`}
-            />
-          </Button>
+              <Button
+                onClick={handleLike}
+                variant="outline"
+                className="rounded-lg text-xs font-semibold px-3 flex items-center justify-center cursor-pointer"
+                aria-label="Like profile"
+              >
+                <Heart
+                  className={`size-4 ${isLiked ? "text-red-500 fill-current" : ""}`}
+                />
+              </Button>
 
-          {/* Message DM CTA */}
-          <Button
-            onClick={onOpenDM}
-            variant="outline"
-            className="rounded-lg text-xs font-semibold px-4 flex items-center gap-1.5 cursor-pointer"
-          >
-            <MessageSquare className="size-3.5" /> DM
-          </Button>
+              <Button
+                onClick={onOpenDM}
+                variant="outline"
+                className="rounded-lg text-xs font-semibold px-4 flex items-center gap-1.5 cursor-pointer"
+              >
+                <MessageSquare className="size-3.5" /> DM
+              </Button>
 
-          {/* Issue Challenge CTA */}
-          <Button
-            onClick={onOpenChallenge}
-            className="rounded-lg text-xs font-semibold px-4 flex items-center gap-1.5 bg-brand-yellow text-black hover:bg-brand-yellow/80 cursor-pointer"
-          >
-            <Swords className="size-3.5" /> Challenge
-          </Button>
+              <Button
+                onClick={onOpenChallenge}
+                className="rounded-lg text-xs font-semibold px-4 flex items-center gap-1.5 bg-brand-yellow text-black hover:bg-brand-yellow/80 cursor-pointer"
+              >
+                <Swords className="size-3.5" /> Challenge
+              </Button>
+            </>
+          )}
+          {isOwnProfile && (
+            <Button
+              variant="outline"
+              className="rounded-lg text-xs font-semibold px-4 cursor-pointer"
+            >
+              Edit Profile
+            </Button>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-interface SocialPost {
-  id: string;
-  author: string;
-  avatar: string;
-  time: string;
-  content: string;
-  likes: number;
-  liked: boolean;
-  comments: { author: string; text: string; time: string }[];
-}
-
-const getChallengeBadgeClass = (status: string) => {
+const getChallengeBadgeClass = (status: string, result?: string) => {
+  if (result === "won") {
+    return "bg-green-500/15 text-green-400";
+  }
+  if (result === "lost") {
+    return "bg-red-500/15 text-red-400";
+  }
   if (status === "accepted") {
     return "bg-green-500/15 text-green-400";
   }
@@ -264,6 +300,22 @@ const getChallengeBadgeClass = (status: string) => {
     return "bg-red-500/15 text-red-400";
   }
   return "bg-yellow-500/15 text-yellow-400 animate-pulse";
+};
+
+const getChallengeBadgeText = (status: string, result?: string) => {
+  if (result === "won") {
+    return "Won";
+  }
+  if (result === "lost") {
+    return "Lost";
+  }
+  if (status === "accepted") {
+    return "Accepted";
+  }
+  if (status === "declined") {
+    return "Declined";
+  }
+  return "Upcoming";
 };
 
 const getSplitModeText = (splitMode?: string) => {
@@ -310,7 +362,6 @@ function ChallengeModal({
   const [requestCasting, setRequestCasting] = useState(false);
   const [castingSplit, setCastingSplit] = useState("split_2");
 
-  // Partner search for challenges
   const [partnerSearch, setPartnerSearch] = useState("");
   const [selectedPartner, setSelectedPartner] = useState<{
     id: string;
@@ -351,7 +402,6 @@ function ChallengeModal({
       venue: venues[challengeVenue] || "Crestwood Pickleball Park",
     });
 
-    // Reset local state
     setChallengeMsg("");
     setRequestCasting(false);
     setSelectedPartner(null);
@@ -670,7 +720,6 @@ function DMChatModal({
           </button>
         </div>
 
-        {/* Chat Body */}
         <div className="flex-1 p-4 overflow-y-auto space-y-3.5 bg-muted/10">
           {chatLog.map((chat, idx) => (
             <div
@@ -693,7 +742,6 @@ function DMChatModal({
           ))}
         </div>
 
-        {/* Chat Input */}
         <form
           onSubmit={onSendMessage}
           className="p-3 border-t border-border flex gap-2 shrink-0"
@@ -717,27 +765,253 @@ function DMChatModal({
   );
 }
 
+function useDMChat() {
+  const [dmMessage, setDmMessage] = useState("");
+  const [chatLog, setChatLog] = useState<
+    { sender: string; text: string; time: string }[]
+  >([
+    {
+      sender: "player",
+      text: "Hey! Down to play some pickleball this weekend?",
+      time: "Yesterday",
+    },
+  ]);
+
+  const handleSendDM = (e: React.FormEvent) => {
+    e.preventDefault();
+    const message = dmMessage.trim();
+    if (!message) {
+      return;
+    }
+
+    setChatLog((prev) => [
+      ...prev,
+      { sender: "me", text: message, time: "Just now" },
+    ]);
+    setDmMessage("");
+
+    setTimeout(() => {
+      setChatLog((prev) => [
+        ...prev,
+        {
+          sender: "player",
+          text: "Sounds awesome, let's look at the matches or send a challenge request!",
+          time: "Just now",
+        },
+      ]);
+    }, 1000);
+  };
+
+  return { chatLog, dmMessage, handleSendDM, setDmMessage };
+}
+
+function useProfileActions() {
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [friendStatus, setFriendStatus] = useState<
+    "none" | "pending" | "friends"
+  >("none");
+  const [isLiked, setIsLiked] = useState(false);
+  const [likesCount, setLikesCount] = useState(18);
+
+  return {
+    friendStatus,
+    isFollowing,
+    isLiked,
+    likesCount,
+    setFriendStatus,
+    setIsFollowing,
+    setIsLiked,
+    setLikesCount,
+  };
+}
+
+function buildFeedItems(
+  videos: VideoCardData[],
+  photosList: PhotoPost[],
+  challenges: Challenge[],
+  posts: SocialPost[]
+): FeedItem[] {
+  const items: FeedItem[] = [];
+
+  for (const vid of videos) {
+    items.push({ data: vid, id: `video-${vid.id}`, type: "video" });
+  }
+
+  for (const photo of photosList) {
+    items.push({ data: photo, id: `photo-${photo.id}`, type: "photo" });
+  }
+
+  for (const ch of challenges) {
+    items.push({ data: ch, id: `challenge-${ch.id}`, type: "challenge" });
+  }
+
+  for (const post of posts) {
+    items.push({ data: post, id: `post-${post.id}`, type: "post" });
+  }
+
+  return items;
+}
+
+function ProfileTabs({
+  activeTab,
+  onTabChange,
+}: {
+  activeTab: "all" | "videos" | "photos" | "challenges" | "about";
+  onTabChange: (
+    tab: "all" | "videos" | "photos" | "challenges" | "about"
+  ) => void;
+}) {
+  const tabs: {
+    icon: React.ReactNode;
+    label: string;
+    value: "all" | "videos" | "photos" | "challenges" | "about";
+  }[] = [
+    { icon: <Grid3X3 className="size-4" />, label: "All", value: "all" },
+    { icon: <Video className="size-4" />, label: "Videos", value: "videos" },
+    { icon: <Camera className="size-4" />, label: "Photos", value: "photos" },
+    {
+      icon: <Swords className="size-4" />,
+      label: "Challenges",
+      value: "challenges",
+    },
+    { icon: <Users className="size-4" />, label: "About", value: "about" },
+  ];
+
+  return (
+    <div className="border-b border-border flex justify-center gap-6">
+      {tabs.map((tab) => (
+        <button
+          key={tab.value}
+          onClick={() => onTabChange(tab.value)}
+          className={`pb-3 text-xs sm:text-sm font-bold tracking-wider uppercase flex items-center gap-1.5 border-b-2 transition-all cursor-pointer ${
+            activeTab === tab.value
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          {tab.icon} {tab.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function getFeedItemsForTab(
+  activeTab: "all" | "videos" | "photos" | "challenges" | "about",
+  allFeedItems: FeedItem[]
+): FeedItem[] {
+  switch (activeTab) {
+    case "all": {
+      return allFeedItems;
+    }
+    case "videos": {
+      return allFeedItems.filter((item) => item.type === "video");
+    }
+    case "photos": {
+      return allFeedItems.filter((item) => item.type === "photo");
+    }
+    case "challenges": {
+      return allFeedItems.filter(
+        (item) => item.type === "challenge" || item.type === "post"
+      );
+    }
+    default: {
+      return [];
+    }
+  }
+}
+
+function useModals() {
+  const [showChallengeModal, setShowChallengeModal] = useState(false);
+  const [showDMModal, setShowDMModal] = useState(false);
+
+  return {
+    setShowChallengeModal,
+    setShowDMModal,
+    showChallengeModal,
+    showDMModal,
+  };
+}
+
+function useFeedDetailModal() {
+  const [selectedFeedItem, setSelectedFeedItem] = useState<FeedItem | null>(
+    null
+  );
+  const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
+
+  return {
+    feedItems,
+    selectedFeedItem,
+    setFeedItems,
+    setSelectedFeedItem,
+  };
+}
+
+function useChallenges() {
+  const [challenges, setChallenges] = useState<Challenge[]>([
+    {
+      casted: true,
+      challenged: "Sarah Johnson",
+      challenger: "CG Stewart",
+      date: "2026-06-12",
+      id: "ch-1",
+      message: "Ready for a rematch after last week's game!",
+      mode: "singles",
+      result: "upcoming",
+      splitMode: "split_2",
+      status: "issued",
+      time: "18:00",
+      venue: "Crestwood Pickleball Park",
+    },
+    {
+      casted: false,
+      challenged: "Mike Rodriguez",
+      challenger: "CG Stewart",
+      date: "2026-06-10",
+      id: "ch-2",
+      message: "Great game!",
+      mode: "doubles",
+      result: "won",
+      status: "completed",
+      time: "14:00",
+      venue: "Mueller Sports Courts",
+      videoUrl: "https://example.com/video1.mp4",
+    },
+    {
+      casted: true,
+      challenged: "Alice Smith",
+      challenger: "CG Stewart",
+      date: "2026-06-08",
+      id: "ch-3",
+      message: "Tough match",
+      mode: "singles",
+      result: "lost",
+      splitMode: "split_2",
+      status: "completed",
+      time: "16:00",
+      venue: "South Lamar Rec Center",
+    },
+  ]);
+
+  const addChallenge = (challenge: Challenge) => {
+    setChallenges((prev) => [challenge, ...prev]);
+  };
+
+  return { addChallenge, challenges };
+}
+
 export const Route = createFileRoute("/players/$username")({
   component: PlayerProfilePage,
 });
 
-interface PhotoPost {
-  id: string;
-  url: string;
-  likes: number;
-  caption: string;
-  comments: { author: string; text: string; time: string }[];
-  hasLiked?: boolean;
-}
-
 function PlayerProfilePage() {
   const { username } = useParams({ from: "/players/$username" });
   const [activeTab, setActiveTab] = useState<
-    "videos" | "photos" | "feed" | "about"
-  >("videos");
+    "all" | "videos" | "photos" | "challenges" | "about"
+  >("all");
 
   // Photos State
-  const [photosList, setPhotosList] = useState<PhotoPost[]>([
+  const [photosList] = useState<PhotoPost[]>([
     {
       caption:
         "Weekend morning grind at Crestwood! Love the weather today. 🏓🔥",
@@ -777,34 +1051,29 @@ function PlayerProfilePage() {
       url: "https://images.unsplash.com/photo-1617083934383-e009403ec417?auto=format&fit=crop&w=600&q=80",
     },
   ]);
-  const [selectedPhoto, setSelectedPhoto] = useState<PhotoPost | null>(null);
 
-  // Profile state actions
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [friendStatus, setFriendStatus] = useState<
-    "none" | "pending" | "friends"
-  >("none");
-  const [isLiked, setIsLiked] = useState(false);
-  const [likesCount, setLikesCount] = useState(18);
+  const {
+    friendStatus,
+    isFollowing,
+    isLiked,
+    likesCount,
+    setFriendStatus,
+    setIsFollowing,
+    setIsLiked,
+    setLikesCount,
+  } = useProfileActions();
 
-  // Modals state
-  const [showChallengeModal, setShowChallengeModal] = useState(false);
-  const [showDMModal, setShowDMModal] = useState(false);
+  const {
+    setShowChallengeModal,
+    setShowDMModal,
+    showChallengeModal,
+    showDMModal,
+  } = useModals();
 
-  // DM State
-  const [dmMessage, setDmMessage] = useState("");
-  const [chatLog, setChatLog] = useState<
-    { sender: string; text: string; time: string }[]
-  >([
-    {
-      sender: "player",
-      text: "Hey! Down to play some pickleball this weekend?",
-      time: "Yesterday",
-    },
-  ]);
+  const { chatLog, dmMessage, handleSendDM, setDmMessage } = useDMChat();
 
   // Social feed state
-  const [posts, setPosts] = useState<SocialPost[]>([
+  const [posts] = useState<SocialPost[]>([
     {
       author: "Sarah Johnson",
       avatar: "S",
@@ -834,29 +1103,15 @@ function PlayerProfilePage() {
       time: "3 days ago",
     },
   ]);
-  const [newCommentTexts, setNewCommentTexts] = useState<
-    Record<string, string>
-  >({});
 
-  // Challenge states
-  const [challenges, setChallenges] = useState<Challenge[]>([
-    {
-      casted: true,
-      challenged: "Sarah Johnson",
-      challenger: "CG Stewart",
-      date: "2026-06-12",
-      id: "ch-1",
-      message: "Ready for a rematch after last week's game!",
-      mode: "singles",
-      splitMode: "split_2",
-      status: "issued",
-      time: "18:00",
-      venue: "Crestwood Pickleball Park",
-    },
-  ]);
+  const { addChallenge, challenges } = useChallenges();
+
+  const { feedItems, selectedFeedItem, setFeedItems, setSelectedFeedItem } =
+    useFeedDetailModal();
 
   const { data: sessionData } = authClient.useSession();
   const currentUser = sessionData?.user;
+  const isOwnProfile = currentUser?.id === username;
 
   const { data, isLoading, error } = useQuery({
     queryFn: async () => {
@@ -914,49 +1169,7 @@ function PlayerProfilePage() {
     .filter(Boolean)
     .join(", ");
 
-  const handlePostLike = (postId: string) => {
-    setPosts(
-      posts.map((post) => {
-        if (post.id === postId) {
-          return {
-            ...post,
-            liked: !post.liked,
-            likes: post.liked ? post.likes - 1 : post.likes + 1,
-          };
-        }
-        return post;
-      })
-    );
-  };
-
-  const handleAddComment = (postId: string) => {
-    const commentText = newCommentTexts[postId]?.trim();
-    if (!commentText) {
-      return;
-    }
-
-    setPosts(
-      posts.map((post) => {
-        if (post.id === postId) {
-          return {
-            ...post,
-            comments: [
-              ...post.comments,
-              {
-                author: currentUser?.name || "CG Stewart",
-                text: commentText,
-                time: "Just now",
-              },
-            ],
-          };
-        }
-        return post;
-      })
-    );
-
-    setNewCommentTexts({ ...newCommentTexts, [postId]: "" });
-    toast.success("Comment posted!");
-  };
+  const allFeedItems = buildFeedItems(videos, photosList, challenges, posts);
 
   const handleSendChallenge = (challengeData: {
     mode: "singles" | "doubles";
@@ -973,61 +1186,16 @@ function PlayerProfilePage() {
       challenged: player.name,
       challenger: currentUser?.name || "CG Stewart",
       id: `ch-${Date.now()}`,
+      result: "upcoming",
       status: "issued",
     };
 
-    setChallenges((prev) => [newChallenge, ...prev]);
+    addChallenge(newChallenge);
     setShowChallengeModal(false);
     toast.success(`Challenge successfully issued to ${player.name}!`);
   };
 
-  const handleChallengeAction = (
-    chId: string,
-    action: "accept" | "decline"
-  ) => {
-    setChallenges(
-      challenges.map((ch) => {
-        if (ch.id === chId) {
-          return {
-            ...ch,
-            status: action === "accept" ? "accepted" : "declined",
-          };
-        }
-        return ch;
-      })
-    );
-
-    if (action === "accept") {
-      toast.success("Match challenge accepted!");
-    } else {
-      toast.info("Match challenge declined.");
-    }
-  };
-
-  const handleSendDM = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!dmMessage.trim()) {
-      return;
-    }
-
-    setChatLog((prev) => [
-      ...prev,
-      { sender: "me", text: dmMessage, time: "Just now" },
-    ]);
-    setDmMessage("");
-
-    // Mock auto replies
-    setTimeout(() => {
-      setChatLog((prev) => [
-        ...prev,
-        {
-          sender: "player",
-          text: "Sounds awesome, let's look at the matches or send a challenge request!",
-          time: "Just now",
-        },
-      ]);
-    }, 1000);
-  };
+  const tabItems = getFeedItemsForTab(activeTab, allFeedItems);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 space-y-8 animate-in fade-in duration-300">
@@ -1056,6 +1224,7 @@ function PlayerProfilePage() {
           }
           setShowDMModal(true);
         }}
+        isOwnProfile={isOwnProfile}
       />
 
       <div className="grid grid-cols-3 gap-4 text-center">
@@ -1072,84 +1241,35 @@ function PlayerProfilePage() {
           </span>
         </div>
         <div className="p-3 bg-muted/20 border border-border/50 rounded-xl">
-          <span className="block text-xl font-bold">34</span>
+          <span className="block text-xl font-bold">{challenges.length}</span>
           <span className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-semibold">
             Matches
           </span>
         </div>
       </div>
 
-      <div className="border-b border-border flex justify-center gap-6">
-        <button
-          onClick={() => setActiveTab("videos")}
-          className={`pb-3 text-xs sm:text-sm font-bold tracking-wider uppercase flex items-center gap-1.5 border-b-2 transition-all cursor-pointer ${
-            activeTab === "videos"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Video className="size-4" /> Videos
-        </button>
-        <button
-          onClick={() => setActiveTab("photos")}
-          className={`pb-3 text-xs sm:text-sm font-bold tracking-wider uppercase flex items-center gap-1.5 border-b-2 transition-all cursor-pointer ${
-            activeTab === "photos"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Camera className="size-4" /> Photos
-        </button>
-        <button
-          onClick={() => setActiveTab("feed")}
-          className={`pb-3 text-xs sm:text-sm font-bold tracking-wider uppercase flex items-center gap-1.5 border-b-2 transition-all cursor-pointer ${
-            activeTab === "feed"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Swords className="size-4" /> Challenges & Feed
-        </button>
-        <button
-          onClick={() => setActiveTab("about")}
-          className={`pb-3 text-xs sm:text-sm font-bold tracking-wider uppercase flex items-center gap-1.5 border-b-2 transition-all cursor-pointer ${
-            activeTab === "about"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Users className="size-4" /> About
-        </button>
-      </div>
+      <ProfileTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
       <div className="pt-2">
-        {activeTab === "videos" && (
-          <VideosTab videos={videos} player={player} />
-        )}
-
-        {activeTab === "photos" && (
-          <PhotosTab
-            photosList={photosList}
-            setSelectedPhoto={setSelectedPhoto}
-          />
-        )}
-
-        {activeTab === "feed" && (
-          <FeedTab
-            challenges={challenges}
-            posts={posts}
-            player={player}
-            currentUser={currentUser || null}
-            newCommentTexts={newCommentTexts}
-            setNewCommentTexts={setNewCommentTexts}
-            handleChallengeAction={handleChallengeAction}
-            handlePostLike={handlePostLike}
-            handleAddComment={handleAddComment}
-          />
-        )}
-
         {activeTab === "about" && (
           <AboutTab player={player} location={location} />
+        )}
+        {activeTab !== "about" && tabItems.length > 0 && (
+          <ProfileGrid
+            items={tabItems}
+            onItemClick={(item, index) => {
+              setFeedItems(tabItems);
+              setSelectedFeedItem({ ...item, index } as FeedItem & {
+                index: number;
+              });
+            }}
+          />
+        )}
+        {activeTab !== "about" && tabItems.length === 0 && (
+          <EmptyState
+            message={`@${player.username || "player"} hasn't posted anything here yet.`}
+            title="No content yet"
+          />
         )}
       </div>
 
@@ -1171,132 +1291,242 @@ function PlayerProfilePage() {
         onSendMessage={handleSendDM}
       />
 
-      {/* Photo Lightbox Modal (Instagram-style) */}
-      {selectedPhoto && (
-        <PhotoLightboxModal
-          selectedPhoto={selectedPhoto}
-          onClose={() => setSelectedPhoto(null)}
+      {/* Feed Detail Modal (Instagram-style) */}
+      {selectedFeedItem && (
+        <FeedDetailModal
+          item={selectedFeedItem}
+          items={feedItems}
+          onClose={() => setSelectedFeedItem(null)}
+          onNavigate={(index) => {
+            setSelectedFeedItem({ ...feedItems[index], index } as FeedItem & {
+              index: number;
+            });
+          }}
           player={player}
-          currentUser={currentUser || null}
-          isFollowing={isFollowing}
-          setIsFollowing={setIsFollowing}
-          photosList={photosList}
-          setPhotosList={setPhotosList}
-          setSelectedPhoto={setSelectedPhoto}
         />
       )}
     </div>
   );
 }
 
-interface PhotoLightboxModalProps {
-  selectedPhoto: PhotoPost;
+interface ProfileGridProps {
+  items: FeedItem[];
+  onItemClick: (item: FeedItem, index: number) => void;
+}
+
+function ProfileGrid({ items, onItemClick }: ProfileGridProps) {
+  return (
+    <div className="grid grid-cols-3 gap-1 md:gap-3 animate-in fade-in duration-300">
+      {items.map((item, index) => (
+        <button
+          key={item.id}
+          type="button"
+          onClick={() => onItemClick(item, index)}
+          className="relative aspect-square rounded-lg overflow-hidden border border-border/40 group/photo cursor-pointer shadow-sm bg-muted w-full h-full p-0 text-left border-none"
+        >
+          <GridItemContent item={item} />
+          <div className="absolute inset-0 bg-black/0 group-hover/photo:bg-black/50 flex items-center justify-center gap-2 sm:gap-6 opacity-0 group-hover/photo:opacity-100 transition-all text-white font-bold text-xs sm:text-sm">
+            <GridItemOverlay item={item} />
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function GridItemContent({ item }: { item: FeedItem }) {
+  switch (item.type) {
+    case "video": {
+      return (
+        <div className="size-full bg-muted flex items-center justify-center">
+          <Video className="size-8 text-muted-foreground" />
+        </div>
+      );
+    }
+    case "photo": {
+      const photo = item.data as PhotoPost;
+      return (
+        <img
+          src={photo.url}
+          alt={photo.caption}
+          className="size-full object-cover transition-transform duration-300 group-hover/photo:scale-105"
+        />
+      );
+    }
+    case "challenge": {
+      const challenge = item.data as Challenge;
+      if (challenge.videoUrl) {
+        return (
+          <div className="size-full bg-muted flex items-center justify-center">
+            <Video className="size-8 text-muted-foreground" />
+          </div>
+        );
+      }
+      return (
+        <div className="size-full bg-muted flex flex-col items-center justify-center p-2">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="size-6 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold">
+              {challenge.challenger[0]}
+            </div>
+            <span className="text-[10px] text-muted-foreground">vs</span>
+            <div className="size-6 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold">
+              {challenge.challenged[0]}
+            </div>
+          </div>
+          <span className="text-[9px] text-muted-foreground truncate w-full text-center">
+            {challenge.venue}
+          </span>
+        </div>
+      );
+    }
+    case "post": {
+      const post = item.data as SocialPost;
+      return (
+        <div className="size-full bg-muted flex flex-col items-center justify-center p-3">
+          <MessageSquare className="size-6 text-muted-foreground mb-1" />
+          <p className="text-[9px] text-muted-foreground line-clamp-2 text-center">
+            {post.content}
+          </p>
+        </div>
+      );
+    }
+    default: {
+      return null;
+    }
+  }
+}
+
+function GridItemOverlay({ item }: { item: FeedItem }) {
+  switch (item.type) {
+    case "video": {
+      const video = item.data as VideoCardData;
+      return (
+        <span className="flex items-center gap-1.5">
+          <Video className="size-4 fill-current" /> {video.title}
+        </span>
+      );
+    }
+    case "photo": {
+      const photo = item.data as PhotoPost;
+      return (
+        <>
+          <span className="flex items-center gap-1.5">
+            <Heart className="size-4 fill-current text-red-500" /> {photo.likes}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <MessageSquare className="size-4 fill-current text-sky-400" />{" "}
+            {photo.comments.length}
+          </span>
+        </>
+      );
+    }
+    case "challenge": {
+      const challenge = item.data as Challenge;
+      return (
+        <span className="flex items-center gap-1.5">
+          <Swords className="size-4 fill-current" /> {challenge.mode}
+        </span>
+      );
+    }
+    case "post": {
+      const post = item.data as SocialPost;
+      return (
+        <span className="flex items-center gap-1.5">
+          <ThumbsUp className="size-4 fill-current" /> {post.likes}
+        </span>
+      );
+    }
+    default: {
+      return null;
+    }
+  }
+}
+
+interface FeedDetailModalProps {
+  item: FeedItem & { index: number };
+  items: FeedItem[];
   onClose: () => void;
+  onNavigate: (index: number) => void;
   player: {
     name: string;
     image?: string | null;
     username?: string | null;
   };
-  currentUser: {
-    name: string;
-  } | null;
-  isFollowing: boolean;
-  setIsFollowing: (val: boolean) => void;
-  photosList: PhotoPost[];
-  setPhotosList: (list: PhotoPost[]) => void;
-  setSelectedPhoto: (photo: PhotoPost | null) => void;
 }
 
-function PhotoLightboxModal({
-  selectedPhoto,
+function FeedDetailModal({
+  item,
+  items,
   onClose,
+  onNavigate,
   player,
-  currentUser,
-  isFollowing,
-  setIsFollowing,
-  photosList,
-  setPhotosList,
-  setSelectedPhoto,
-}: PhotoLightboxModalProps) {
-  const [photoCommentText, setPhotoCommentText] = useState("");
+}: FeedDetailModalProps) {
+  const currentIndex = item.index;
+  const hasPrevious = currentIndex > 0;
+  const hasNext = currentIndex < items.length - 1;
 
-  const handleLike = () => {
-    const updated = photosList.map((p) => {
-      if (p.id === selectedPhoto.id) {
-        const liked = !p.hasLiked;
-        return {
-          ...p,
-          hasLiked: liked,
-          likes: liked ? p.likes + 1 : p.likes - 1,
-        };
-      }
-      return p;
-    });
-    setPhotosList(updated);
-    const current = updated.find((p) => p.id === selectedPhoto.id);
-    if (current) {
-      setSelectedPhoto(current);
+  const handlePrevious = () => {
+    if (hasPrevious) {
+      onNavigate(currentIndex - 1);
     }
   };
 
-  const handleCommentSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentUser) {
-      toast.error("Please log in to write a comment.");
-      return;
+  const handleNext = () => {
+    if (hasNext) {
+      onNavigate(currentIndex + 1);
     }
-    if (!photoCommentText.trim()) {
-      return;
-    }
-
-    const updated = photosList.map((p) => {
-      if (p.id === selectedPhoto.id) {
-        return {
-          ...p,
-          comments: [
-            ...p.comments,
-            {
-              author: currentUser.name,
-              text: photoCommentText,
-              time: "Just now",
-            },
-          ],
-        };
-      }
-      return p;
-    });
-    setPhotosList(updated);
-    const current = updated.find((p) => p.id === selectedPhoto.id);
-    if (current) {
-      setSelectedPhoto(current);
-    }
-    setPhotoCommentText("");
-    toast.success("Comment posted!");
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="relative w-full max-w-4xl bg-card border border-border rounded-xl shadow-2xl overflow-hidden flex flex-col md:grid md:grid-cols-2 h-[80vh] max-h-[700px] animate-in scale-in duration-300">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm animate-in fade-in duration-200">
+      {/* Navigation Arrows */}
+      {hasPrevious && (
         <button
-          onClick={onClose}
-          type="button"
-          className="absolute top-3 right-3 z-10 text-white bg-black/60 hover:bg-black/80 p-1.5 rounded-full cursor-pointer transition-colors border-none"
+          onClick={handlePrevious}
+          className="absolute left-4 top-1/2 -translate-y-1/2 z-20 text-white bg-black/60 hover:bg-black/80 p-2 rounded-full cursor-pointer transition-colors"
+          aria-label="Previous item"
         >
-          <XCircle className="size-5" />
+          <ChevronLeft className="size-6" />
         </button>
+      )}
+      {hasNext && (
+        <button
+          onClick={handleNext}
+          className="absolute right-4 top-1/2 -translate-y-1/2 z-20 text-white bg-black/60 hover:bg-black/80 p-2 rounded-full cursor-pointer transition-colors"
+          aria-label="Next item"
+        >
+          <ChevronRight className="size-6" />
+        </button>
+      )}
 
-        {/* Left Column: Image */}
+      {/* Close Button */}
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 z-20 text-white bg-black/60 hover:bg-black/80 p-2 rounded-full cursor-pointer transition-colors"
+        aria-label="Close"
+      >
+        <XCircle className="size-6" />
+      </button>
+
+      {/* Back Button */}
+      <button
+        onClick={onClose}
+        className="absolute top-4 left-4 z-20 text-white bg-black/60 hover:bg-black/80 p-2 rounded-full cursor-pointer transition-colors flex items-center gap-2"
+      >
+        <ArrowLeft className="size-5" />
+        <span className="text-xs font-semibold">Back to Grid</span>
+      </button>
+
+      {/* Content */}
+      <div className="w-full max-w-4xl h-[90vh] bg-card border border-border rounded-xl overflow-hidden flex flex-col md:grid md:grid-cols-2 animate-in scale-in duration-300">
+        {/* Left: Content */}
         <div className="relative flex-1 bg-black flex items-center justify-center overflow-hidden border-b md:border-b-0 md:border-r border-border/40">
-          <img
-            src={selectedPhoto.url}
-            alt={selectedPhoto.caption}
-            className="size-full object-contain"
-          />
+          <FeedDetailContent item={item} />
         </div>
 
-        {/* Right Column: Post details, comments, feed */}
-        <div className="flex-1 flex flex-col h-full bg-card min-h-0">
-          {/* Header (Author) */}
+        {/* Right: Details */}
+        <div className="flex-1 flex flex-col h-full bg-card min-h-0 overflow-hidden">
+          {/* Header */}
           <div className="p-4 border-b border-border/40 flex items-center gap-3 shrink-0 bg-card">
             <div className="size-9 rounded-full border border-primary/20 bg-muted overflow-hidden flex items-center justify-center font-bold text-sm shrink-0">
               {player.image ? (
@@ -1317,119 +1547,247 @@ function PhotoLightboxModal({
                 @{player.username || "player"}
               </p>
             </div>
-            <Button
-              onClick={() => {
-                setIsFollowing(!isFollowing);
-                toast.success(
-                  isFollowing
-                    ? `Unfollowed ${player.name}`
-                    : `Followed ${player.name}`
-                );
-              }}
-              variant="ghost"
-              className="ml-auto text-xs text-primary font-bold hover:bg-transparent px-2"
-            >
-              {isFollowing ? "Following" : "Follow"}
-            </Button>
           </div>
 
-          {/* Scrollable Area: Caption & Comments */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 text-xs bg-card">
-            {/* Caption */}
-            <div className="flex gap-3">
-              <div className="size-8 rounded-full border border-primary/20 bg-muted overflow-hidden flex items-center justify-center font-bold text-xs shrink-0">
-                {player.image ? (
-                  <img
-                    src={player.image}
-                    alt={player.name}
-                    className="size-full object-cover"
-                  />
-                ) : (
-                  player.name.at(0)
-                )}
-              </div>
-              <div className="space-y-1 flex-1">
-                <span className="font-extrabold text-[11px] mr-1.5">
-                  {player.name}
-                </span>
-                <span className="text-muted-foreground leading-normal">
-                  {selectedPhoto.caption}
-                </span>
-              </div>
-            </div>
+          {/* Scrollable Content */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
+            <FeedDetailInfo item={item} />
+          </div>
 
-            {/* Comments List */}
-            <div className="space-y-3 pt-3 border-t border-border/20">
-              {selectedPhoto.comments.map((comment, index) => (
-                <div key={index} className="flex gap-3">
-                  <div className="size-7 rounded-full bg-primary/25 border border-primary/20 text-primary flex items-center justify-center font-bold text-[10px] shrink-0">
-                    {comment.author.at(0)}
-                  </div>
-                  <div className="space-y-0.5 flex-1">
-                    <div>
-                      <span className="font-extrabold text-[10px] mr-1.5">
-                        {comment.author}
-                      </span>
-                      <span className="text-muted-foreground leading-normal">
-                        {comment.text}
-                      </span>
-                    </div>
-                    <p className="text-[9px] text-muted-foreground">
-                      {comment.time}
-                    </p>
-                  </div>
-                </div>
+          {/* Footer: Navigation dots */}
+          <div className="p-3 border-t border-border/40 shrink-0 bg-card">
+            <div className="flex items-center justify-center gap-1.5">
+              {items.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => onNavigate(index)}
+                  className={`size-2 rounded-full transition-all cursor-pointer ${
+                    index === currentIndex
+                      ? "bg-primary w-4"
+                      : "bg-muted-foreground/30 hover:bg-muted-foreground/50"
+                  }`}
+                  aria-label={`Go to item ${index + 1}`}
+                />
               ))}
             </div>
-          </div>
-
-          {/* Footer actions (Likes, Comment input) */}
-          <div className="p-4 border-t border-border/40 space-y-3 shrink-0 bg-card">
-            <div className="flex items-center gap-4 text-xs font-bold text-foreground">
-              <button
-                onClick={handleLike}
-                type="button"
-                className={`flex items-center gap-1.5 cursor-pointer transition-colors border-none bg-transparent ${
-                  selectedPhoto.hasLiked
-                    ? "text-red-500"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Heart
-                  className={`size-4 ${selectedPhoto.hasLiked ? "fill-current" : ""}`}
-                />
-                <span>{selectedPhoto.likes} Likes</span>
-              </button>
-              <span className="text-muted-foreground inline-flex items-center gap-1">
-                <MessageSquare className="size-4" />
-                <span>{selectedPhoto.comments.length} Comments</span>
-              </span>
-            </div>
-
-            {/* Add comment form */}
-            <form
-              onSubmit={handleCommentSubmit}
-              className="flex gap-2 items-center"
-            >
-              <Input
-                placeholder="Write a comment..."
-                value={photoCommentText}
-                onChange={(e) => setPhotoCommentText(e.target.value)}
-                className="flex-1 text-xs h-9 bg-muted/30 border-border/50 rounded-lg focus-visible:ring-1 focus-visible:ring-primary"
-              />
-              <Button
-                type="submit"
-                size="sm"
-                className="h-9 px-3.5 rounded-lg text-xs font-bold bg-primary text-primary-foreground"
-              >
-                Post
-              </Button>
-            </form>
+            <p className="text-center text-[10px] text-muted-foreground mt-2">
+              {currentIndex + 1} of {items.length}
+            </p>
           </div>
         </div>
       </div>
     </div>
   );
+}
+
+function FeedDetailContent({ item }: { item: FeedItem }) {
+  switch (item.type) {
+    case "video": {
+      return (
+        <div className="size-full flex items-center justify-center">
+          <Video className="size-16 text-muted-foreground" />
+        </div>
+      );
+    }
+    case "photo": {
+      const photo = item.data as PhotoPost;
+      return (
+        <img
+          src={photo.url}
+          alt={photo.caption}
+          className="size-full object-contain"
+        />
+      );
+    }
+    case "challenge": {
+      const challenge = item.data as Challenge;
+      if (challenge.videoUrl) {
+        return (
+          <div className="size-full flex items-center justify-center">
+            <Video className="size-16 text-muted-foreground" />
+          </div>
+        );
+      }
+      return (
+        <div className="size-full flex flex-col items-center justify-center p-6 text-white">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="size-16 rounded-full bg-primary/30 flex items-center justify-center text-2xl font-bold border-2 border-primary">
+              {challenge.challenger[0]}
+            </div>
+            <span className="text-xl font-bold text-muted-foreground">vs</span>
+            <div className="size-16 rounded-full bg-primary/30 flex items-center justify-center text-2xl font-bold border-2 border-primary">
+              {challenge.challenged[0]}
+            </div>
+          </div>
+          <h3 className="text-lg font-bold text-center">
+            {challenge.challenger} vs {challenge.challenged}
+          </h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            {challenge.mode} at {challenge.venue}
+          </p>
+          <span
+            className={`mt-3 px-3 py-1 rounded-full text-xs font-bold capitalize ${getChallengeBadgeClass(challenge.status, challenge.result)}`}
+          >
+            {getChallengeBadgeText(challenge.status, challenge.result)}
+          </span>
+        </div>
+      );
+    }
+    case "post": {
+      const post = item.data as SocialPost;
+      return (
+        <div className="size-full flex flex-col items-center justify-center p-6 text-white">
+          <MessageSquare className="size-12 text-muted-foreground mb-3" />
+          <p className="text-sm text-center max-w-md">{post.content}</p>
+        </div>
+      );
+    }
+    default: {
+      return null;
+    }
+  }
+}
+
+function FeedDetailInfo({ item }: { item: FeedItem }) {
+  switch (item.type) {
+    case "video": {
+      const video = item.data as VideoCardData;
+      return (
+        <div className="space-y-3">
+          <h3 className="font-bold text-sm">{video.title}</h3>
+          <p className="text-muted-foreground">Video content details...</p>
+        </div>
+      );
+    }
+    case "photo": {
+      const photo = item.data as PhotoPost;
+      return (
+        <div className="space-y-3">
+          <p className="text-foreground">{photo.caption}</p>
+          <div className="flex items-center gap-4 text-xs font-bold">
+            <span className="flex items-center gap-1.5 text-red-500">
+              <Heart className="size-4 fill-current" /> {photo.likes} Likes
+            </span>
+            <span className="flex items-center gap-1.5 text-muted-foreground">
+              <MessageSquare className="size-4" /> {photo.comments.length}{" "}
+              Comments
+            </span>
+          </div>
+          {photo.comments.length > 0 && (
+            <div className="space-y-2 pt-2 border-t border-border/20">
+              {photo.comments.map((comment, index) => (
+                <div key={index} className="flex gap-2">
+                  <div className="size-6 rounded-full bg-primary/25 flex items-center justify-center text-[10px] font-bold shrink-0">
+                    {comment.author[0]}
+                  </div>
+                  <div>
+                    <span className="font-bold text-[11px]">
+                      {comment.author}
+                    </span>
+                    <p className="text-muted-foreground">{comment.text}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+    case "challenge": {
+      const challenge = item.data as Challenge;
+      return (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] bg-primary/10 text-primary font-bold px-2 py-0.5 rounded uppercase tracking-wider">
+              {challenge.mode}
+            </span>
+            <span
+              className={`font-bold px-2 py-0.5 rounded capitalize text-xs ${getChallengeBadgeClass(challenge.status, challenge.result)}`}
+            >
+              {getChallengeBadgeText(challenge.status, challenge.result)}
+            </span>
+          </div>
+
+          <h4 className="font-extrabold text-sm">
+            {challenge.challenger} challenged {challenge.challenged}
+          </h4>
+
+          <div className="grid grid-cols-2 gap-3 text-muted-foreground">
+            <div className="flex items-center gap-1.5">
+              <Calendar className="size-3.5 text-primary" /> {challenge.date}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Clock className="size-3.5 text-primary" /> {challenge.time}
+            </div>
+            <div className="flex items-center gap-1.5 col-span-2">
+              <MapPin className="size-3.5 text-primary" /> {challenge.venue}
+            </div>
+          </div>
+
+          {challenge.message && (
+            <div className="bg-muted/40 p-2.5 rounded-lg text-[11px] text-foreground leading-normal border border-border/30">
+              "{challenge.message}"
+            </div>
+          )}
+
+          {challenge.casted && (
+            <div className="p-2.5 rounded-lg border border-red-500/20 bg-red-500/5 text-red-400 text-[11px] flex justify-between items-center font-medium">
+              <span className="flex items-center gap-1">
+                <Video className="size-3.5" /> Recording Requested
+              </span>
+              <span>{getSplitModeText(challenge.splitMode)}</span>
+            </div>
+          )}
+
+          {challenge.result === "won" && (
+            <div className="flex items-center gap-2 text-green-400">
+              <Trophy className="size-4" />
+              <span className="font-bold text-xs">Victory</span>
+            </div>
+          )}
+          {challenge.result === "lost" && (
+            <div className="flex items-center gap-2 text-red-400">
+              <XCircle className="size-4" />
+              <span className="font-bold text-xs">Defeat</span>
+            </div>
+          )}
+        </div>
+      );
+    }
+    case "post": {
+      const post = item.data as SocialPost;
+      return (
+        <div className="space-y-3">
+          <p className="text-foreground leading-relaxed">{post.content}</p>
+          <div className="flex items-center gap-4 text-xs font-bold">
+            <span className="flex items-center gap-1.5 text-primary">
+              <ThumbsUp className="size-4 fill-current" /> {post.likes} Likes
+            </span>
+          </div>
+          {post.comments.length > 0 && (
+            <div className="space-y-2 pt-2 border-t border-border/20">
+              {post.comments.map((comment, index) => (
+                <div key={index} className="flex gap-2">
+                  <div className="size-6 rounded-full bg-primary/25 flex items-center justify-center text-[10px] font-bold shrink-0">
+                    {comment.author[0]}
+                  </div>
+                  <div>
+                    <span className="font-bold text-[11px]">
+                      {comment.author}
+                    </span>
+                    <p className="text-muted-foreground">{comment.text}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+    default: {
+      return null;
+    }
+  }
 }
 
 interface AboutTabProps {
@@ -1483,280 +1841,5 @@ function AboutTab({ player, location }: AboutTabProps) {
         </div>
       </CardContent>
     </Card>
-  );
-}
-
-interface FeedTabProps {
-  challenges: Challenge[];
-  posts: SocialPost[];
-  player: { name: string };
-  _currentUser: { name: string } | null;
-  newCommentTexts: Record<string, string>;
-  setNewCommentTexts: React.Dispatch<
-    React.SetStateAction<Record<string, string>>
-  >;
-  handleChallengeAction: (chId: string, action: "accept" | "decline") => void;
-  handlePostLike: (postId: string) => void;
-  handleAddComment: (postId: string) => void;
-}
-
-function FeedTab({
-  challenges,
-  posts,
-  player,
-  _currentUser,
-  newCommentTexts,
-  setNewCommentTexts,
-  handleChallengeAction,
-  handlePostLike,
-  handleAddComment,
-}: FeedTabProps) {
-  return (
-    <div className="space-y-8 max-w-2xl mx-auto">
-      {/* Challenges Section */}
-      <div className="space-y-4">
-        <h3 className="font-bold text-sm text-foreground flex items-center gap-1.5 uppercase tracking-wider">
-          <Swords className="size-4 text-primary" /> Active Challenges
-        </h3>
-
-        {challenges.length > 0 ? (
-          <div className="space-y-3">
-            {challenges.map((ch) => (
-              <Card
-                key={ch.id}
-                className="border border-border/60 bg-card/50 rounded-xl overflow-hidden shadow-sm"
-              >
-                <CardContent className="p-4 space-y-3 text-xs">
-                  <div className="flex justify-between items-start border-b border-border/40 pb-2.5">
-                    <div>
-                      <span className="text-[10px] bg-primary/10 text-primary font-bold px-2 py-0.5 rounded uppercase tracking-wider">
-                        {ch.mode}
-                      </span>
-                      <h4 className="font-extrabold text-sm text-foreground mt-1">
-                        {ch.challenger} challenged {ch.challenged}
-                      </h4>
-                      {ch.partner && (
-                        <p className="text-[10px] text-muted-foreground mt-0.5">
-                          Partner: {ch.partner}
-                        </p>
-                      )}
-                    </div>
-
-                    <span
-                      className={`font-bold px-2 py-0.5 rounded capitalize ${getChallengeBadgeClass(ch.status)}`}
-                    >
-                      {ch.status}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 text-muted-foreground">
-                    <div className="flex items-center gap-1.5">
-                      <Calendar className="size-3.5 text-primary" /> {ch.date}
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <Clock className="size-3.5 text-primary" /> {ch.time}
-                    </div>
-                    <div className="flex items-center gap-1.5 col-span-2">
-                      <MapPin className="size-3.5 text-primary" /> {ch.venue}
-                    </div>
-                  </div>
-
-                  {ch.message && (
-                    <div className="bg-muted/40 p-2.5 rounded-lg text-[11px] text-foreground leading-normal border border-border/30">
-                      "{ch.message}"
-                    </div>
-                  )}
-
-                  {ch.casted && (
-                    <div className="p-2.5 rounded-lg border border-red-500/20 bg-red-500/5 text-red-400 text-[11px] flex justify-between items-center font-medium">
-                      <span className="flex items-center gap-1">
-                        <Video className="size-3.5" /> Recording Requested
-                      </span>
-                      <span>{getSplitModeText(ch.splitMode)}</span>
-                    </div>
-                  )}
-
-                  {ch.status === "issued" && ch.challenged === player.name && (
-                    <div className="pt-2 flex gap-2">
-                      <Button
-                        onClick={() => handleChallengeAction(ch.id, "decline")}
-                        variant="outline"
-                        className="flex-1 text-red-400 border-red-500/20 hover:bg-red-500/10 rounded-lg text-xs py-3.5 cursor-pointer font-bold"
-                      >
-                        Decline
-                      </Button>
-                      <Button
-                        onClick={() => handleChallengeAction(ch.id, "accept")}
-                        className="flex-1 rounded-lg text-xs py-3.5 cursor-pointer font-bold"
-                      >
-                        Accept
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <p className="text-xs text-muted-foreground py-4 text-center border border-dashed border-border rounded-xl bg-muted/10">
-            No active challenges.
-          </p>
-        )}
-      </div>
-
-      {/* Social Posts Section */}
-      <div className="space-y-4 pt-4 border-t border-border/30">
-        <h3 className="font-bold text-sm text-foreground flex items-center gap-1.5 uppercase tracking-wider">
-          <MessageSquare className="size-4 text-primary" /> Player Feed
-        </h3>
-
-        <div className="space-y-4">
-          {posts.map((post) => (
-            <Card
-              key={post.id}
-              className="border border-border/50 bg-card rounded-xl overflow-hidden shadow-sm"
-            >
-              <CardContent className="p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="size-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-xs">
-                      {post.avatar}
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-xs text-foreground">
-                        {post.author}
-                      </h4>
-                      <p className="text-[10px] text-muted-foreground">
-                        {post.time}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <p className="text-xs text-foreground leading-relaxed">
-                  {post.content}
-                </p>
-
-                <div className="flex items-center gap-4 text-xs pt-1">
-                  <button
-                    onClick={() => handlePostLike(post.id)}
-                    type="button"
-                    className={`flex items-center gap-1.5 font-semibold cursor-pointer transition-colors border-none bg-transparent ${
-                      post.liked
-                        ? "text-primary"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <ThumbsUp className="size-3.5" />
-                    <span>{post.likes}</span>
-                  </button>
-                </div>
-
-                {/* Comments list */}
-                {post.comments.length > 0 && (
-                  <div className="mt-3 bg-muted/30 p-3 rounded-lg border border-border/30 space-y-2.5">
-                    {post.comments.map((comment, index) => (
-                      <div key={index} className="text-xs">
-                        <div className="flex justify-between items-center font-bold">
-                          <span>{comment.author}</span>
-                          <span className="text-[9px] text-muted-foreground font-normal">
-                            {comment.time}
-                          </span>
-                        </div>
-                        <p className="text-muted-foreground mt-0.5 leading-normal">
-                          {comment.text}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Add comment input */}
-                <div className="flex gap-2 pt-2 border-t border-border/20">
-                  <Input
-                    placeholder="Write a comment..."
-                    value={newCommentTexts[post.id] || ""}
-                    onChange={(e) =>
-                      setNewCommentTexts({
-                        ...newCommentTexts,
-                        [post.id]: e.target.value,
-                      })
-                    }
-                    className="text-xs h-9 bg-muted/30 border-border/50 rounded-lg focus-visible:ring-1 focus-visible:ring-primary"
-                  />
-                  <Button
-                    onClick={() => handleAddComment(post.id)}
-                    className="size-9 p-0 flex items-center justify-center rounded-lg shrink-0 cursor-pointer"
-                    aria-label="Post comment"
-                  >
-                    <Send className="size-3.5" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-interface VideosTabProps {
-  videos: VideoCardData[];
-  player: { username?: string | null };
-}
-
-function VideosTab({ videos, player }: VideosTabProps) {
-  if (videos.length > 0) {
-    return (
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {videos.map((vid) => (
-          <VideoCard key={vid.id} video={vid} />
-        ))}
-      </div>
-    );
-  }
-
-  return (
-    <EmptyState
-      message={`@${player.username || "player"} hasn't published any match recordings yet.`}
-      title="No videos posted"
-    />
-  );
-}
-
-interface PhotosTabProps {
-  photosList: PhotoPost[];
-  setSelectedPhoto: (photo: PhotoPost) => void;
-}
-
-function PhotosTab({ photosList, setSelectedPhoto }: PhotosTabProps) {
-  return (
-    <div className="grid grid-cols-3 gap-1 md:gap-3 animate-in fade-in duration-300">
-      {photosList.map((photo) => (
-        <button
-          key={photo.id}
-          type="button"
-          onClick={() => setSelectedPhoto(photo)}
-          className="relative aspect-square rounded-lg overflow-hidden border border-border/40 group/photo cursor-pointer shadow-sm bg-muted w-full h-full p-0 text-left border-none"
-        >
-          <img
-            src={photo.url}
-            alt={photo.caption}
-            className="size-full object-cover transition-transform duration-300 group-hover/photo:scale-105"
-          />
-          <div className="absolute inset-0 bg-black/0 group-hover/photo:bg-black/50 flex items-center justify-center gap-2 sm:gap-6 opacity-0 group-hover/photo:opacity-100 transition-all text-white font-bold text-xs sm:text-sm">
-            <span className="flex items-center gap-1.5">
-              <Heart className="size-4 fill-current text-red-500" />{" "}
-              {photo.likes}
-            </span>
-            <span className="flex items-center gap-1.5">
-              <MessageSquare className="size-4 fill-current text-sky-400" />{" "}
-              {photo.comments.length}
-            </span>
-          </div>
-        </button>
-      ))}
-    </div>
   );
 }

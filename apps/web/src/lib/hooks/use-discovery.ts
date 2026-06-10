@@ -11,19 +11,30 @@ import {
 } from "@/lib/demo-data";
 
 import { readApiJson } from "./api";
+import type { GeoLocation } from "./types";
 
 export type SearchEntity = "all" | "videos" | "players" | "events" | "parks";
 
-export const useTrending = () =>
+export const useTrending = (location?: GeoLocation) =>
   useQuery({
     queryFn: async () => {
       try {
-        return await readApiJson(apiClient.api.trending.$get());
+        return await readApiJson(
+          apiClient.api.trending.$get({
+            query: location
+              ? {
+                  lat: String(location.lat),
+                  lng: String(location.lng),
+                  radius: "50",
+                }
+              : {},
+          })
+        );
       } catch {
         return demoTrending;
       }
     },
-    queryKey: ["trending"],
+    queryKey: ["trending", location?.lat, location?.lng],
     select: (data) => withDemoTrending(data) ?? demoTrending,
   });
 
@@ -44,20 +55,29 @@ export const usePlayers = (query = "") =>
     select: (data) => withDemoList(data, "players", demoPlayers),
   });
 
-export const useVenues = (query = "") =>
+export const useVenues = (query = "", location?: GeoLocation) =>
   useQuery({
     queryFn: async () => {
       try {
         return await readApiJson(
           apiClient.api.venues.$get({
-            query: query ? { q: query } : {},
+            query: {
+              ...(query ? { q: query } : {}),
+              ...(location
+                ? {
+                    lat: String(location.lat),
+                    lng: String(location.lng),
+                    radius: "50",
+                  }
+                : {}),
+            },
           })
         );
       } catch {
         return { venues: demoVenues };
       }
     },
-    queryKey: ["venues", query],
+    queryKey: ["venues", query, location?.lat, location?.lng],
     select: (data) => withDemoList(data, "venues", demoVenues),
   });
 

@@ -16,13 +16,16 @@ import { castersRouter } from "./routes/casters";
 import { castingJobsRouter } from "./routes/casting-jobs";
 import { eventsRouter } from "./routes/events";
 import { muxRouter } from "./routes/mux";
+import { placesRouter } from "./routes/places";
 import { playersRouter } from "./routes/players";
 import { profileRouter } from "./routes/profile";
 import { searchRouter } from "./routes/search";
 import { stripeRouter } from "./routes/stripe";
 import { trendingRouter } from "./routes/trending";
+import { venueAnalyticsRouter } from "./routes/venue-analytics";
 import { venuesRouter } from "./routes/venues";
 import { videosRouter } from "./routes/videos";
+import { webhooksRouter } from "./routes/webhooks";
 
 const app = new Hono<AppEnv>();
 
@@ -72,10 +75,13 @@ const routes = app
   .route("/api/profile", profileRouter)
   .route("/api/players", playersRouter)
   .route("/api/venues", venuesRouter)
+  .route("/api/venues", venueAnalyticsRouter)
+  .route("/api/places", placesRouter)
   .route("/api/search", searchRouter)
   .route("/api/trending", trendingRouter)
   .route("/api/stripe", stripeRouter)
-  .route("/api/mux", muxRouter);
+  .route("/api/mux", muxRouter)
+  .route("/webhooks", webhooksRouter);
 
 routes.notFound(notFound);
 routes.onError(onError);

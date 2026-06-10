@@ -10,6 +10,7 @@
     }
   },
   "scripts": {
+    "check-types": "tsc -b",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {

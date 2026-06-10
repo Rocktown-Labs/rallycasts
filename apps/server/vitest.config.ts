@@ -16,8 +16,13 @@ export default defineConfig({
           BETTER_AUTH_URL: "http://localhost:3000",
           CORS_ORIGIN: "http://localhost:3001",
           GOOGLE_GENERATIVE_AI_API_KEY: "test-google-key",
+          GOOGLE_PLACES_API_KEY: "test-google-places-key",
+          RADAR_SECRET_KEY: "test-radar-key",
         },
         d1Databases: ["DB"],
+        queueProducers: {
+          GEOFENCE_EVENTS: { queueName: "geofence-events" },
+        },
       },
     }),
   ],

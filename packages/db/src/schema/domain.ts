@@ -82,10 +82,13 @@ export const venue = sqliteTable(
     latitude: real("latitude").notNull(),
     longitude: real("longitude").notNull(),
     name: text("name").notNull(),
+    photoUrl: text("photo_url"),
     postalCode: text("postal_code"),
     radarPlaceId: text("radar_place_id"),
+    rating: real("rating"),
     state: text("state"),
     updatedAt: timestamp("updated_at").$onUpdate(() => new Date()),
+    userRatingsTotal: integer("user_ratings_total"),
     venueType: text("venue_type", {
       enum: ["park", "club", "facility", "other"],
     })
@@ -95,6 +98,7 @@ export const venue = sqliteTable(
   (table) => [
     index("venue_location_idx").on(table.latitude, table.longitude),
     index("venue_city_state_idx").on(table.city, table.state),
+    uniqueIndex("venue_google_place_id_idx").on(table.googlePlaceId),
     uniqueIndex("venue_radar_place_id_idx").on(table.radarPlaceId),
   ]
 );
@@ -351,6 +355,28 @@ export const castingJobOffer = sqliteTable(
   ]
 );
 
+export const venueVisit = sqliteTable(
+  "venue_visit",
+  {
+    createdAt: timestamp("created_at"),
+    durationMinutes: integer("duration_minutes"),
+    enteredAt: timestamp("entered_at"),
+    exitedAt: nullableTimestamp("exited_at"),
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    venueId: text("venue_id")
+      .notNull()
+      .references(() => venue.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    index("venue_visit_venue_idx").on(table.venueId),
+    index("venue_visit_user_idx").on(table.userId),
+    index("venue_visit_entered_idx").on(table.enteredAt),
+  ]
+);
+
 export const conversation = sqliteTable("conversation", {
   castingJobId: text("casting_job_id").references(() => castingJob.id, {
     onDelete: "set null",
@@ -479,6 +505,18 @@ export const venueRelations = relations(venue, ({ one, many }) => ({
   }),
   events: many(event),
   videos: many(video),
+  visits: many(venueVisit),
+}));
+
+export const venueVisitRelations = relations(venueVisit, ({ one }) => ({
+  user: one(user, {
+    fields: [venueVisit.userId],
+    references: [user.id],
+  }),
+  venue: one(venue, {
+    fields: [venueVisit.venueId],
+    references: [venue.id],
+  }),
 }));
 
 export const videoRelations = relations(video, ({ one, many }) => ({

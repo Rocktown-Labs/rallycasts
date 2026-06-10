@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@ai-sdk/react": "catalog:",
+    "@radarlabs/plugin-autocomplete": "^1.1.0",
     "@rallycaststv/env": "workspace:*",
     "@rallycaststv/ui": "workspace:*",
     "@tailwindcss/vite": "^4.2.2",
@@ -22,6 +23,7 @@
     "hono": "^4.12.23",
     "lucide-react": "^1.8.0",
     "next-themes": "catalog:",
+    "radar-sdk-js": "^5.1.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "server": "workspace:*",

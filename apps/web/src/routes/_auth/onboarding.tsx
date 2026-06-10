@@ -1,3 +1,4 @@
+import { env } from "@rallycaststv/env/web";
 import { Button } from "@rallycaststv/ui/components/button";
 import { Card, CardContent } from "@rallycaststv/ui/components/card";
 import { Input } from "@rallycaststv/ui/components/input";
@@ -23,22 +24,20 @@ import { z } from "zod";
 import { authClient } from "@/lib/auth-client";
 import { useOnboarding, useProfile } from "@/lib/hooks";
 import type { ProfilePayload } from "@/lib/hooks";
+import { initializeRadar, Radar } from "@/lib/radar";
 
-// Definition for Radar address suggestions
-interface RadarAddress {
+interface CourtSuggestion {
+  addressLabel: string;
+  city: string;
+  countryCode: string;
+  formattedAddress: string;
   latitude: number;
   longitude: number;
-  formattedAddress: string;
-  addressLabel?: string;
-  city?: string;
-  stateCode?: string;
-  countryCode?: string;
-  placeId?: string;
-  addressId?: string;
+  stateCode: string;
 }
 
 // Popular pickleball locations across the country as a fallback mock database
-const mockCourts: RadarAddress[] = [
+const mockCourts: CourtSuggestion[] = [
   {
     addressLabel: "Austin Tennis & Pickleball Center",
     city: "Austin",
@@ -46,7 +45,6 @@ const mockCourts: RadarAddress[] = [
     formattedAddress: "Austin Tennis & Pickleball Center, Austin, TX",
     latitude: 30.3582,
     longitude: -97.6853,
-    placeId: "mock_place_austin_atpc",
     stateCode: "TX",
   },
   {
@@ -56,7 +54,6 @@ const mockCourts: RadarAddress[] = [
     formattedAddress: "Millennium Park Pickleball Courts, Chicago, IL",
     latitude: 41.8827,
     longitude: -87.6227,
-    placeId: "mock_place_chicago_millennium",
     stateCode: "IL",
   },
   {
@@ -66,7 +63,6 @@ const mockCourts: RadarAddress[] = [
     formattedAddress: "Little Lytle Park Pickleball, Cincinnati, OH",
     latitude: 39.0988,
     longitude: -84.5072,
-    placeId: "mock_place_cincy_lytle",
     stateCode: "OH",
   },
   {
@@ -76,7 +72,6 @@ const mockCourts: RadarAddress[] = [
     formattedAddress: "Bobby Riggs Racket & Paddle, San Diego, CA",
     latitude: 33.0415,
     longitude: -117.2687,
-    placeId: "mock_place_sd_riggs",
     stateCode: "CA",
   },
   {
@@ -86,7 +81,6 @@ const mockCourts: RadarAddress[] = [
     formattedAddress: "Chicken N Pickle, Kansas City, MO",
     latitude: 39.1438,
     longitude: -94.5772,
-    placeId: "mock_place_kc_chicken",
     stateCode: "MO",
   },
   {
@@ -96,7 +90,6 @@ const mockCourts: RadarAddress[] = [
     formattedAddress: "Central Park Courts, New York, NY",
     latitude: 40.7851,
     longitude: -73.9683,
-    placeId: "mock_place_ny_central",
     stateCode: "NY",
   },
   {
@@ -106,7 +99,6 @@ const mockCourts: RadarAddress[] = [
     formattedAddress: "Pioneer Park Courts, Salt Lake City, UT",
     latitude: 40.7618,
     longitude: -111.9016,
-    placeId: "mock_place_slc_pioneer",
     stateCode: "UT",
   },
   {
@@ -116,7 +108,6 @@ const mockCourts: RadarAddress[] = [
     formattedAddress: "Plaza Park Pickleball, Las Vegas, NV",
     latitude: 36.1699,
     longitude: -115.1398,
-    placeId: "mock_place_lv_plaza",
     stateCode: "NV",
   },
   {
@@ -126,7 +117,6 @@ const mockCourts: RadarAddress[] = [
     formattedAddress: "El Dorado Park Pickleball Courts, Long Beach, CA",
     latitude: 33.8183,
     longitude: -118.0864,
-    placeId: "mock_place_lb_eldorado",
     stateCode: "CA",
   },
   {
@@ -136,7 +126,6 @@ const mockCourts: RadarAddress[] = [
     formattedAddress: "Water Front Park Pickleball, Seattle, WA",
     latitude: 47.6062,
     longitude: -122.3321,
-    placeId: "mock_place_sea_waterfront",
     stateCode: "WA",
   },
 ];
@@ -1038,7 +1027,7 @@ function HomeCourtStep({
 }: CourtStepProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedQuery = useDebounce(searchQuery, 400);
-  const [suggestions, setSuggestions] = useState<RadarAddress[]>([]);
+  const [suggestions, setSuggestions] = useState<CourtSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
 
@@ -1048,7 +1037,73 @@ function HomeCourtStep({
   const [manualCity, setManualCity] = useState("");
   const [manualState, setManualState] = useState("");
 
-  const radarKey = import.meta.env.VITE_RADAR_PUBLISHABLE_KEY || "";
+  // User's approximate location for biasing autocomplete results
+  const [userLocation, setUserLocation] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
+
+  const radarKey = env.VITE_RADAR_PUBLISHABLE_KEY ?? "";
+
+  // Get approximate location on mount to bias search results
+  useEffect(() => {
+    let cancelled = false;
+    const getApproximateLocation = async () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            if (cancelled) {
+              return;
+            }
+            setUserLocation({
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+            });
+          },
+          async () => {
+            // Fallback to Radar IP geolocation
+            try {
+              const result = await Radar.ipGeocode();
+              if (
+                result.address?.latitude &&
+                result.address?.longitude &&
+                !cancelled
+              ) {
+                setUserLocation({
+                  lat: result.address.latitude,
+                  lng: result.address.longitude,
+                });
+              }
+            } catch {
+              // IP geolocation failed, will use IP bias by default
+            }
+          },
+          { maximumAge: 300_000, timeout: 5000 }
+        );
+      } else {
+        // Fallback to Radar IP geolocation
+        try {
+          const result = await Radar.ipGeocode();
+          if (
+            result.address?.latitude &&
+            result.address?.longitude &&
+            !cancelled
+          ) {
+            setUserLocation({
+              lat: result.address.latitude,
+              lng: result.address.longitude,
+            });
+          }
+        } catch {
+          // IP geolocation failed
+        }
+      }
+    };
+    getApproximateLocation();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (debouncedQuery.length < 3) {
@@ -1076,19 +1131,28 @@ function HomeCourtStep({
       }
 
       try {
-        const res = await fetch(
-          `https://api.radar.io/v1/search/autocomplete?query=${encodeURIComponent(
-            debouncedQuery
-          )}&limit=6`,
-          {
-            headers: {
-              Authorization: radarKey,
-            },
-          }
-        );
-        const data = await res.json();
-        if (active && data.addresses) {
-          setSuggestions(data.addresses);
+        const params: Parameters<typeof Radar.autocomplete>[0] = {
+          limit: 8,
+          query: debouncedQuery,
+        };
+        if (userLocation) {
+          params.near = {
+            latitude: userLocation.lat,
+            longitude: userLocation.lng,
+          };
+        }
+        const result = await Radar.autocomplete(params);
+        if (active && result.addresses) {
+          const mapped: CourtSuggestion[] = result.addresses.map((addr) => ({
+            addressLabel: addr.addressLabel ?? addr.placeLabel ?? "",
+            city: addr.city ?? "",
+            countryCode: addr.countryCode ?? "US",
+            formattedAddress: addr.formattedAddress ?? "",
+            latitude: addr.latitude,
+            longitude: addr.longitude,
+            stateCode: addr.stateCode ?? "",
+          }));
+          setSuggestions(mapped);
         }
       } catch {
         // Fallback to mock search on error
@@ -1113,18 +1177,18 @@ function HomeCourtStep({
     return () => {
       active = false;
     };
-  }, [debouncedQuery, radarKey]);
+  }, [debouncedQuery, radarKey, userLocation]);
 
-  const selectAddress = (addr: RadarAddress) => {
+  const selectAddress = (addr: CourtSuggestion) => {
     setPayload((prev) => ({
       ...prev,
       homeCity: addr.city || "Unknown",
-      homeCourtName: addr.addressLabel || addr.formattedAddress,
+      homeCourtName: addr.addressLabel || addr.formattedAddress || "Unknown",
       homeLatitude: addr.latitude,
       homeLongitude: addr.longitude,
-      homeState: addr.stateCode || addr.state || "US",
-      radarAddressId: addr.addressId || "",
-      radarPlaceId: addr.placeId || "",
+      homeState: addr.stateCode || "US",
+      radarAddressId: "",
+      radarPlaceId: "",
     }));
     setSearchQuery("");
     setShowDropdown(false);
@@ -1179,7 +1243,7 @@ function HomeCourtStep({
       <div className="py-1">
         {suggestions.map((addr, idx) => (
           <button
-            key={addr.placeId || idx}
+            key={idx}
             type="button"
             onClick={() => selectAddress(addr)}
             className="w-full text-left px-4 py-2 text-sm hover:bg-muted/80 flex items-center gap-2 border-b border-border last:border-0"
@@ -1690,6 +1754,11 @@ function OnboardingPage() {
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [usernameSuccess, setUsernameSuccess] = useState<boolean>(false);
+
+  // Initialize Radar SDK
+  useEffect(() => {
+    initializeRadar();
+  }, []);
 
   // Sync session and initial profile details
   useEffect(() => {
