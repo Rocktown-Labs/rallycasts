@@ -1,0 +1,26 @@
+{
+  "name": "rallycasts-server",
+  "main": "src/index.ts",
+  "compatibility_date": "2024-12-01",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "rallycaststv-db",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+    },
+  ],
+  "r2_buckets": [
+    {
+      "binding": "MEDIA_BUCKET",
+      "bucket_name": "rallycasts-media",
+    },
+  ],
+  "queues": {
+    "producers": [
+      {
+        "binding": "GEOFENCE_EVENTS",
+        "queue": "geofence-events",
+      },
+    ],
+  },
+}

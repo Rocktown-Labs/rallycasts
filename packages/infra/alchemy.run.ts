@@ -1,5 +1,11 @@
 import alchemy from "alchemy";
-import { D1Database, Queue, TanStackStart, Worker } from "alchemy/cloudflare";
+import {
+  D1Database,
+  Queue,
+  R2Bucket,
+  TanStackStart,
+  Worker,
+} from "alchemy/cloudflare";
 import { GitHubComment } from "alchemy/github";
 import { CloudflareStateStore } from "alchemy/state";
 import { config } from "dotenv";
@@ -43,18 +49,18 @@ const googleAiApiKey = required(
   alchemy.secret.env.GOOGLE_GENERATIVE_AI_API_KEY,
   "GOOGLE_GENERATIVE_AI_API_KEY"
 );
-const googlePlacesApiKey = alchemy.secret.env.GOOGLE_PLACES_API_KEY ?? "";
-const radarSecretKey = alchemy.secret.env.RADAR_SECRET_KEY ?? "";
-const radarPublishableKey = alchemy.secret.env.VITE_RADAR_PUBLISHABLE_KEY ?? "";
-const muxTokenSecret = alchemy.secret.env.MUX_TOKEN_SECRET ?? "";
-const muxTokenId = alchemy.secret.env.MUX_TOKEN_ID ?? "";
-const r2AccessKeyId = alchemy.secret.env.R2_ACCESS_KEY_ID ?? "";
-const r2SecretAccessKey = alchemy.secret.env.R2_SECRET_ACCESS_KEY ?? "";
-const r2BucketName = alchemy.secret.env.R2_BUCKET_NAME ?? "rallycaststv-media";
-const r2AccountId = alchemy.secret.env.R2_ACCOUNT_ID ?? "";
-const r2PublicUrl = alchemy.secret.env.R2_PUBLIC_URL ?? "";
+const googlePlacesApiKey = process.env.GOOGLE_PLACES_API_KEY ?? "";
+const radarSecretKey = process.env.RADAR_SECRET_KEY ?? "";
+const radarPublishableKey = process.env.VITE_RADAR_PUBLISHABLE_KEY ?? "";
+const muxTokenSecret = process.env.MUX_TOKEN_SECRET ?? "";
+const muxTokenId = process.env.MUX_TOKEN_ID ?? "";
+const r2AccessKeyId = process.env.R2_ACCESS_KEY_ID ?? "";
+const r2SecretAccessKey = process.env.R2_SECRET_ACCESS_KEY ?? "";
+const r2BucketName = process.env.R2_BUCKET_NAME ?? "rallycasts-media";
+const r2AccountId = process.env.R2_ACCOUNT_ID ?? "";
+const r2PublicUrl = process.env.R2_PUBLIC_URL ?? "";
 
-const mediaBucket = await alchemy.cloudflare.R2Bucket("media", {
+const mediaBucket = await R2Bucket("media", {
   bucketName: r2BucketName,
 });
 
