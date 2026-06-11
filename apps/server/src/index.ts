@@ -20,6 +20,7 @@ import { placesRouter } from "./routes/places";
 import { playersRouter } from "./routes/players";
 import { profileRouter } from "./routes/profile";
 import { searchRouter } from "./routes/search";
+import { socialRouter } from "./routes/social";
 import { stripeRouter } from "./routes/stripe";
 import { trendingRouter } from "./routes/trending";
 import { uploadRouter } from "./routes/upload";
@@ -29,6 +30,8 @@ import { videosRouter } from "./routes/videos";
 import { webhooksRouter } from "./routes/webhooks";
 
 const app = new Hono<AppEnv>();
+
+export { VenuePresence } from "./durable-objects/venue-presence";
 
 app.use(requestId());
 app.use(timing());
@@ -78,6 +81,7 @@ const routes = app
   .route("/api/venues", venuesRouter)
   .route("/api/venues", venueAnalyticsRouter)
   .route("/api/places", placesRouter)
+  .route("/api/social", socialRouter)
   .route("/api/search", searchRouter)
   .route("/api/trending", trendingRouter)
   .route("/api/stripe", stripeRouter)

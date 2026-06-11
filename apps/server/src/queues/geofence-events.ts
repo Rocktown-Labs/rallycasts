@@ -1,19 +1,24 @@
 import { createDb } from "@rallycaststv/db";
 import { venueVisit } from "@rallycaststv/db/schema/domain";
-import { eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 
 import type { RadarWebhookEvent } from "../routes/webhooks";
+
+export { VenuePresence } from "../durable-objects/venue-presence";
 
 export interface Env {
   DB: D1Database;
   VENUE_PRESENCE: DurableObjectNamespace;
 }
 
+type VenuePresenceStub = DurableObjectStub & {
+  getActiveUsers: () => Promise<{ enteredAt: string; userId: string }[]>;
+  userEntered: (userId: string) => Promise<{ count: number }>;
+  userExited: (userId: string) => Promise<{ count: number }>;
+};
+
 export default {
-  async queue(
-    batch: MessageBatch<{ body: RadarWebhookEvent }>,
-    env: Env
-  ): Promise<void> {
+  async queue(batch: MessageBatch<RadarWebhookEvent>, env: Env): Promise<void> {
     for (const message of batch.messages) {
       try {
         await processGeofenceEvent(message.body, env);
@@ -39,7 +44,7 @@ async function processGeofenceEvent(
 
   // Get the Durable Object for this venue
   const doId = env.VENUE_PRESENCE.idFromName(venueId);
-  const presence = env.VENUE_PRESENCE.get(doId);
+  const presence = env.VENUE_PRESENCE.get(doId) as VenuePresenceStub;
 
   const db = createDb(env.DB);
 
@@ -65,8 +70,10 @@ async function processGeofenceEvent(
     const [visit] = await db
       .select()
       .from(venueVisit)
-      .where(eq(venueVisit.userId, userId) && eq(venueVisit.venueId, venueId))
-      .orderBy(venueVisit.enteredAt)
+      .where(
+        and(eq(venueVisit.userId, userId), eq(venueVisit.venueId, venueId))
+      )
+      .orderBy(desc(venueVisit.enteredAt))
       .limit(1);
 
     if (visit) {

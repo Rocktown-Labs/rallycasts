@@ -73,7 +73,7 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
     // Nearby videos (broader, within 500 miles - state/region level)
     const videoDistance = distanceExpr(lat, lng);
     const nearbyVideos = await db
-      .select({ ...video })
+      .select({ video })
       .from(video)
       .innerJoin(venue, eq(video.venueId, venue.id))
       .where(
@@ -84,7 +84,7 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
 
     videos =
       nearbyVideos.length > 0
-        ? nearbyVideos
+        ? nearbyVideos.map((row) => row.video)
         : await db
             .select()
             .from(video)
@@ -95,7 +95,7 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
     // Nearby events (regional, within 200 miles)
     const eventDistance = distanceExpr(lat, lng);
     const nearbyEvents = await db
-      .select({ ...event })
+      .select({ event })
       .from(event)
       .innerJoin(venue, eq(event.venueId, venue.id))
       .where(
@@ -106,7 +106,7 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
 
     events =
       nearbyEvents.length > 0
-        ? nearbyEvents
+        ? nearbyEvents.map((row) => row.event)
         : await db
             .select()
             .from(event)

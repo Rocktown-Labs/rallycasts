@@ -32,6 +32,7 @@
     "dev:web": "turbo -F web dev",
     "dev:server": "turbo -F server dev",
     "db:generate": "turbo -F @rallycaststv/db db:generate",
+    "db:studio": "turbo -F @rallycaststv/db db:studio",
     "deploy": "turbo -F @rallycaststv/infra deploy",
     "destroy": "turbo -F @rallycaststv/infra destroy",
     "test": "turbo test",

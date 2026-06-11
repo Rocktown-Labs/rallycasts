@@ -33,6 +33,7 @@ export default defineConfig(async () => {
       }),
     ],
     test: {
+      exclude: ["dist/**", "node_modules/**"],
       provide: {
         d1Migrations: migrations,
       },

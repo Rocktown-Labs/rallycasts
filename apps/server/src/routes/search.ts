@@ -2,11 +2,13 @@ import { createDb } from "@rallycaststv/db";
 import { user } from "@rallycaststv/db/schema/auth";
 import {
   event,
+  post,
+  searchDocument,
   userProfile,
   venue,
   video,
 } from "@rallycaststv/db/schema/domain";
-import { eq, like, or } from "drizzle-orm";
+import { desc, eq, inArray, like, or } from "drizzle-orm";
 import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 
@@ -20,14 +22,67 @@ export const searchRouter = new Hono<AppEnv>().get("/", async (c) => {
   const type = c.req.query("type") ?? "all";
   const pattern = searchPattern(query);
   const shouldSearch = query.trim().length > 1;
+  const semanticDocuments = await (async () => {
+    if (!(type === "all" && c.env.AI && c.env.SEARCH_INDEX && shouldSearch)) {
+      return [];
+    }
+
+    const embeddings = await c.env.AI.run("@cf/baai/bge-base-en-v1.5", {
+      text: [query],
+    });
+    const vector = embeddings.data?.[0];
+
+    if (!vector) {
+      return [];
+    }
+
+    const vectorResults = await c.env.SEARCH_INDEX.query(vector, { topK: 10 });
+    const ids = vectorResults.matches.map((match) => match.id);
+
+    if (ids.length === 0) {
+      return [];
+    }
+
+    return db
+      .select()
+      .from(searchDocument)
+      .where(inArray(searchDocument.id, ids))
+      .limit(10);
+  })();
 
   if (!shouldSearch) {
     return c.json(
-      { casters: [], events: [], players: [], venues: [], videos: [] },
+      {
+        casters: [],
+        documents: [],
+        events: [],
+        players: [],
+        posts: [],
+        venues: [],
+        videos: [],
+      },
       HttpStatusCodes.OK
     );
   }
 
+  let documents: (typeof searchDocument.$inferSelect)[] = [];
+
+  if (type === "all") {
+    documents =
+      semanticDocuments.length > 0
+        ? semanticDocuments
+        : await db
+            .select()
+            .from(searchDocument)
+            .where(
+              or(
+                like(searchDocument.title, pattern),
+                like(searchDocument.content, pattern)
+              )
+            )
+            .orderBy(desc(searchDocument.updatedAt))
+            .limit(10);
+  }
   const videos =
     type === "all" || type === "videos"
       ? await db
@@ -36,6 +91,24 @@ export const searchRouter = new Hono<AppEnv>().get("/", async (c) => {
           .where(
             or(like(video.title, pattern), like(video.description, pattern))
           )
+          .limit(6)
+      : [];
+  const posts =
+    type === "all" || type === "posts"
+      ? await db
+          .select({
+            author: {
+              displayUsername: user.displayUsername,
+              id: user.id,
+              image: user.image,
+              name: user.name,
+              username: user.username,
+            },
+            post,
+          })
+          .from(post)
+          .innerJoin(user, eq(post.userId, user.id))
+          .where(like(post.content, pattern))
           .limit(6)
       : [];
   const players =
@@ -81,7 +154,22 @@ export const searchRouter = new Hono<AppEnv>().get("/", async (c) => {
       : [];
 
   return c.json(
-    { casters: [], events, players, venues, videos },
+    {
+      ai: {
+        embeddingBackfill: documents.some(
+          (document) => document.embeddingStatus === "pending"
+        ),
+        mode: semanticDocuments.length > 0 ? "semantic" : "keyword",
+        vectorReady: Boolean(c.env.AI && c.env.SEARCH_INDEX),
+      },
+      casters: [],
+      documents,
+      events,
+      players,
+      posts,
+      venues,
+      videos,
+    },
     HttpStatusCodes.OK
   );
 });

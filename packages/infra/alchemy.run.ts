@@ -1,9 +1,12 @@
 import alchemy from "alchemy";
 import {
+  Ai,
   D1Database,
+  DurableObjectNamespace,
   Queue,
   R2Bucket,
   TanStackStart,
+  VectorizeIndex,
   Worker,
 } from "alchemy/cloudflare";
 import { GitHubComment } from "alchemy/github";
@@ -26,17 +29,21 @@ const app = await alchemy("rallycaststv", {
   stateStore: (scope) => new CloudflareStateStore(scope),
 });
 
-const stage = process.env.STAGE || "prod";
-const isProd = stage === "prod";
-const serverWorkerUrl = isProd
-  ? "https://rallycasts-server.rocktown-labs.workers.dev"
-  : `https://rallycasts-server-${stage}.rocktown-labs.workers.dev`;
-const webWorkerUrl = isProd
-  ? "https://rallycasts-web.rocktown-labs.workers.dev"
-  : `https://rallycasts-web-${stage}.rocktown-labs.workers.dev`;
+const serverWorkerUrl = "https://rallycasts-server.rocktown-labs.workers.dev";
+const webWorkerUrl = "https://rallycasts-web.rocktown-labs.workers.dev";
 
 const db = await D1Database("database", {
+  adopt: true,
   migrationsDir: "../../packages/db/src/migrations",
+  name: "rallycaststv-db",
+});
+const ai = Ai();
+const searchIndex = await VectorizeIndex("search-index", {
+  adopt: true,
+  description: "RallyCasts semantic search index",
+  dimensions: 768,
+  metric: "cosine",
+  name: "rallycasts-search",
 });
 
 const betterAuthSecret = required(
@@ -61,19 +68,37 @@ const r2AccountId = process.env.R2_ACCOUNT_ID ?? "";
 const r2PublicUrl = process.env.R2_PUBLIC_URL ?? "";
 
 const mediaBucket = await R2Bucket("media", {
-  bucketName: r2BucketName,
+  adopt: true,
+  name: r2BucketName,
+});
+
+const venuePresence = DurableObjectNamespace("venue-presence", {
+  className: "VenuePresence",
+  sqlite: true,
 });
 
 const geofenceQueue = await Queue("geofence-events", {
-  consumer: {
-    cwd: "../../apps/server",
-    entrypoint: "src/queues/geofence-events.ts",
-    type: "worker",
+  adopt: true,
+  name: "rallycasts-geofence-events",
+});
+
+await Worker("rallycasts-geofence-events", {
+  adopt: true,
+  bindings: {
+    DB: db,
+    VENUE_PRESENCE: venuePresence,
   },
+  compatibility: "node",
+  cwd: "../../apps/server",
+  entrypoint: "src/queues/geofence-events.ts",
+  eventSources: [{ queue: geofenceQueue }],
+  name: "rallycasts-geofence-events",
 });
 
 export const server = await Worker("rallycasts-server", {
+  adopt: true,
   bindings: {
+    AI: ai,
     BETTER_AUTH_SECRET: betterAuthSecret,
     BETTER_AUTH_URL: betterAuthUrl,
     CORS_ORIGIN: corsOrigin,
@@ -89,17 +114,13 @@ export const server = await Worker("rallycasts-server", {
     R2_PUBLIC_URL: r2PublicUrl,
     R2_SECRET_ACCESS_KEY: r2SecretAccessKey,
     RADAR_SECRET_KEY: radarSecretKey,
+    SEARCH_INDEX: searchIndex,
+    VENUE_PRESENCE: venuePresence,
   },
   compatibility: "node",
   cwd: "../../apps/server",
   dev: {
     port: 3000,
-  },
-  durableObjects: {
-    VenuePresence: {
-      className: "VenuePresence",
-      scriptPath: "src/durable-objects/venue-presence.ts",
-    },
   },
   entrypoint: "src/index.ts",
   name: "rallycasts-server",
@@ -107,6 +128,7 @@ export const server = await Worker("rallycasts-server", {
 });
 
 export const web = await TanStackStart("rallycasts-web", {
+  adopt: true,
   bindings: {
     BETTER_AUTH_SECRET: betterAuthSecret,
     BETTER_AUTH_URL: betterAuthUrl,
@@ -125,7 +147,6 @@ export const web = await TanStackStart("rallycasts-web", {
 
 console.log(`Web    -> ${web.url}`);
 console.log(`Server -> ${server.url}`);
-console.log(`Stage  -> ${stage}`);
 
 if (process.env.PULL_REQUEST) {
   // Add a comment to the PR with the preview URL
@@ -134,7 +155,6 @@ if (process.env.PULL_REQUEST) {
 
 Your changes have been deployed to a preview environment:
 
-**Stage:** ${stage}
 **Web:** ${web.url}
 **Server:** ${server.url}
 

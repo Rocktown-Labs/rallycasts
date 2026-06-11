@@ -14,6 +14,43 @@ export interface TrendingData {
   videos: VideoCardData[];
 }
 
+export const demoPosts = [
+  {
+    author: {
+      displayUsername: "cgstewart",
+      id: "demo-player-1",
+      image: null,
+      name: "CG Stewart",
+      username: "cgstewart",
+    },
+    post: {
+      content:
+        "Crestwood is packed tonight. Courts 3 and 4 have strong 4.0 doubles going.",
+      createdAt: new Date().toISOString(),
+      id: "demo-post-1",
+      updatedAt: new Date().toISOString(),
+      userId: "demo-player-1",
+    },
+  },
+  {
+    author: {
+      displayUsername: "sarahpickle",
+      id: "demo-player-2",
+      image: null,
+      name: "Sarah Johnson",
+      username: "sarahpickle",
+    },
+    post: {
+      content:
+        "Looking for one more player for mixed doubles after the clinic tomorrow.",
+      createdAt: new Date().toISOString(),
+      id: "demo-post-2",
+      updatedAt: new Date().toISOString(),
+      userId: "demo-player-2",
+    },
+  },
+];
+
 export const demoVideos: VideoCardData[] = [
   {
     durationSeconds: 378,
@@ -209,8 +246,10 @@ export const filterDemoSearch = (query: string) => {
 
   return {
     casters: [],
+    documents: [],
     events: demoEvents.filter((item) => matches(item.name)),
     players: demoPlayers.filter((item) => matches(item.name)),
+    posts: demoPosts.filter((item) => matches(item.post.content)),
     venues: demoVenues.filter((item) => matches(item.name)),
     videos: demoVideos.filter((item) => matches(item.title)),
   };

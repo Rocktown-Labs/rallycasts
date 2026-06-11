@@ -5,4 +5,5 @@ export * from "./use-events";
 export * from "./use-geolocation";
 export * from "./use-profile";
 export * from "./use-radar-tracking";
+export * from "./use-social";
 export * from "./use-videos";

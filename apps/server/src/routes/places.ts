@@ -17,8 +17,8 @@ function parseAddress(address: string): {
 
   // Try to extract state and zip from "State ZIP" pattern
   const stateZipMatch = stateZip.match(/([A-Za-z\s]+)\s+(\d{5}(-\d{4})?)/u);
-  const state = stateZipMatch ? stateZipMatch[1].trim() : stateZip;
-  const postalCode = stateZipMatch ? stateZipMatch[2] : "";
+  const state = stateZipMatch?.[1]?.trim() ?? stateZip;
+  const postalCode = stateZipMatch?.[2] ?? "";
 
   // City is usually the part before state/zip
   const city = parts.length > 2 ? parts.at(-3) || "" : "";
@@ -110,7 +110,7 @@ export const placesRouter = new Hono<AppEnv>()
     }
   })
   .post("/venues", async (c) => {
-    const body = await c.req.json();
+    const body = (await c.req.json()) as { placeId?: string };
     const { placeId } = body;
 
     if (!placeId) {
@@ -151,8 +151,8 @@ export const placesRouter = new Hono<AppEnv>()
           country: "US",
           googlePlaceId: placeId,
           id: crypto.randomUUID(),
-          latitude: String(place.latitude),
-          longitude: String(place.longitude),
+          latitude: place.latitude,
+          longitude: place.longitude,
           name: place.name,
           photoUrl: place.photoUrl,
           postalCode,

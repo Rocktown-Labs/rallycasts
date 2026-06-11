@@ -24,6 +24,10 @@ import { z } from "zod";
 import { authClient } from "@/lib/auth-client";
 import { useOnboarding, useProfile } from "@/lib/hooks";
 import type { ProfilePayload } from "@/lib/hooks";
+import {
+  getDateOfBirthValidation,
+  parseDateOfBirth,
+} from "@/lib/onboarding-profile";
 import { initializeRadar, Radar } from "@/lib/radar";
 
 interface CourtSuggestion {
@@ -201,136 +205,6 @@ const usernameSchema = z
     "Username can only contain letters, numbers, and underscores"
   );
 
-const ageSchema = z
-  .number()
-  .int("Age must be a whole number")
-  .min(5, "Age must be at least 5")
-  .max(115, "Age must be at most 115");
-
-function getDateParts(
-  input: string,
-  clean: string
-): { month: number; day: number; year: number } | null {
-  if (clean.length === 6) {
-    const month = Number.parseInt(clean.slice(0, 2), 10);
-    const day = Number.parseInt(clean.slice(2, 4), 10);
-    const yy = Number.parseInt(clean.slice(4, 6), 10);
-    const year = yy > 26 ? 1900 + yy : 2000 + yy;
-    return { day, month, year };
-  }
-
-  if (clean.length === 8) {
-    const possibleYear = Number.parseInt(clean.slice(0, 4), 10);
-    if (possibleYear >= 1900 && possibleYear <= 2100) {
-      const month = Number.parseInt(clean.slice(4, 6), 10);
-      const day = Number.parseInt(clean.slice(6, 8), 10);
-      return { day, month, year: possibleYear };
-    }
-    const month = Number.parseInt(clean.slice(0, 2), 10);
-    const day = Number.parseInt(clean.slice(2, 4), 10);
-    const year = Number.parseInt(clean.slice(4, 8), 10);
-    return { day, month, year };
-  }
-
-  const parts = input.split(/[/\-.]/u);
-  if (parts.length !== 3) {
-    return null;
-  }
-  const [p0, p1, yStr] = parts;
-  if (!p0 || !p1 || !yStr) {
-    return null;
-  }
-
-  const firstNum = Number.parseInt(p0, 10);
-  if (firstNum >= 1900 && firstNum <= 2100) {
-    const month = Number.parseInt(p1, 10);
-    const day = Number.parseInt(yStr, 10);
-    return { day, month, year: firstNum };
-  }
-
-  const month = Number.parseInt(p0, 10);
-  const day = Number.parseInt(p1, 10);
-  let year = 0;
-  if (yStr.length === 2) {
-    const yy = Number.parseInt(yStr, 10);
-    year = yy > 26 ? 1900 + yy : 2000 + yy;
-  } else if (yStr.length === 4) {
-    year = Number.parseInt(yStr, 10);
-  } else {
-    return null;
-  }
-
-  return { day, month, year };
-}
-
-// Parses Date of Birth from text input (MMDDYY, MMDDYYYY, or MM/DD/YYYY formats)
-function parseDOB(input: string): { age: number; formatted: string } | null {
-  const clean = input.replaceAll(/\D/gu, "");
-  const parts = getDateParts(input, clean);
-  if (!parts) {
-    return null;
-  }
-  const { month, day, year } = parts;
-
-  if (month < 1 || month > 12 || day < 1 || day > 31) {
-    return null;
-  }
-
-  const dateObj = new Date(year, month - 1, day);
-  if (dateObj.getMonth() !== month - 1 || dateObj.getDate() !== day) {
-    return null;
-  }
-
-  const today = new Date();
-  let computedAge = today.getFullYear() - year;
-  const m = today.getMonth() - (month - 1);
-  if (m < 0 || (m === 0 && today.getDate() < day)) {
-    computedAge -= 1;
-  }
-
-  const months = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
-  const formatted = `${months[month - 1]} ${day}, ${year}`;
-
-  return { age: computedAge, formatted };
-}
-
-function getAgeValidation(
-  dobVal: string,
-  parsedDOB: ReturnType<typeof parseDOB>
-) {
-  if (dobVal === "") {
-    return { ageErrorText: null, isAgeValid: false };
-  }
-  if (!parsedDOB) {
-    return {
-      ageErrorText:
-        "Please enter a valid date of birth (MM/DD/YYYY or MMDDYY).",
-      isAgeValid: false,
-    };
-  }
-  const ageResult = ageSchema.safeParse(parsedDOB.age);
-  if (ageResult.success) {
-    return { ageErrorText: null, isAgeValid: true };
-  }
-  return {
-    ageErrorText: ageResult.error.issues[0]?.message || "Invalid age",
-    isAgeValid: false,
-  };
-}
-
 interface PresetAvatarsSelectorProps {
   imageVal: string;
   setImageVal: (val: string) => void;
@@ -505,7 +379,7 @@ function AccountInfoStep({
 
   const usernameResult = usernameSchema.safeParse(usernameVal);
   const nameResult = nameSchema.safeParse(nameVal);
-  const parsedDOB = parseDOB(dobVal);
+  const parsedDOB = parseDateOfBirth(dobVal);
 
   const handlePickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -518,7 +392,8 @@ function AccountInfoStep({
     }
   };
 
-  const { isAgeValid, ageErrorText } = getAgeValidation(dobVal, parsedDOB);
+  const { isValid: isDobValid, errorText: dobErrorText } =
+    getDateOfBirthValidation(dobVal, parsedDOB);
 
   const localUsernameError =
     !usernameResult.success && usernameVal !== ""
@@ -533,7 +408,7 @@ function AccountInfoStep({
   const canContinue =
     usernameSuccess &&
     !isCheckingUsername &&
-    isAgeValid &&
+    isDobValid &&
     !!parsedDOB &&
     nameResult.success;
 
@@ -541,11 +416,11 @@ function AccountInfoStep({
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold tracking-tight">
-          Create your player profile
+          Build your RallyCasts identity
         </h2>
         <p className="text-muted-foreground text-sm mt-1">
-          RallyCasts is a social pickleball community. Let's start with your
-          profile details.
+          Claim a handle, add a real birthday, and make your player card feel
+          like someone people would actually invite to a game.
         </p>
       </div>
 
@@ -646,17 +521,18 @@ function AccountInfoStep({
           </div>
           {parsedDOB ? (
             <p className="text-xs text-emerald-500 font-medium flex items-center gap-1">
-              <Check className="size-3" /> Validated: {parsedDOB.formatted}{" "}
-              (Age: {parsedDOB.age})
+              <Check className="size-3" /> Age group set from{" "}
+              {parsedDOB.formatted}
             </p>
           ) : (
             <p className="text-xs text-muted-foreground">
-              Enter your date of birth. This will determine your age group.
+              We only save your age. Your birthday helps us place you in the
+              right player and event context.
             </p>
           )}
-          {ageErrorText && (
+          {dobErrorText && (
             <p className="text-xs text-destructive font-medium">
-              {ageErrorText}
+              {dobErrorText}
             </p>
           )}
         </div>

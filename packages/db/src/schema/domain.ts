@@ -146,6 +146,24 @@ export const video = sqliteTable(
   ]
 );
 
+export const videoLike = sqliteTable(
+  "video_like",
+  {
+    createdAt: timestamp("created_at"),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    videoId: text("video_id")
+      .notNull()
+      .references(() => video.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    uniqueIndex("video_like_user_video_idx").on(table.videoId, table.userId),
+    index("video_like_video_idx").on(table.videoId),
+    index("video_like_user_idx").on(table.userId),
+  ]
+);
+
 export const event = sqliteTable(
   "event",
   {
@@ -278,6 +296,165 @@ export const postComment = sqliteTable(
   (table) => [
     index("post_comment_post_idx").on(table.postId),
     index("post_comment_user_idx").on(table.userId),
+  ]
+);
+
+export const friendship = sqliteTable(
+  "friendship",
+  {
+    createdAt: timestamp("created_at"),
+    requesterUserId: text("requester_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    uniqueIndex("friendship_pair_idx").on(table.userId, table.requesterUserId),
+    index("friendship_user_idx").on(table.userId),
+    index("friendship_requester_idx").on(table.requesterUserId),
+  ]
+);
+
+export const friendRequest = sqliteTable(
+  "friend_request",
+  {
+    createdAt: timestamp("created_at"),
+    fromUserId: text("from_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    id: text("id").primaryKey(),
+    message: text("message"),
+    respondedAt: nullableTimestamp("responded_at"),
+    status: text("status", {
+      enum: ["pending", "accepted", "declined", "cancelled"],
+    })
+      .default("pending")
+      .notNull(),
+    toUserId: text("to_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    updatedAt: timestamp("updated_at").$onUpdate(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("friend_request_pair_pending_idx").on(
+      table.fromUserId,
+      table.toUserId,
+      table.status
+    ),
+    index("friend_request_to_status_idx").on(table.toUserId, table.status),
+    index("friend_request_from_status_idx").on(table.fromUserId, table.status),
+  ]
+);
+
+export const notification = sqliteTable(
+  "notification",
+  {
+    actorUserId: text("actor_user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    body: text("body"),
+    createdAt: timestamp("created_at"),
+    entityId: text("entity_id"),
+    entityType: text("entity_type", {
+      enum: [
+        "friend_request",
+        "friendship",
+        "message",
+        "post",
+        "video",
+        "comment",
+        "share",
+        "event",
+        "casting_job",
+      ],
+    }).notNull(),
+    href: text("href").notNull(),
+    id: text("id").primaryKey(),
+    readAt: nullableTimestamp("read_at"),
+    title: text("title").notNull(),
+    type: text("type", {
+      enum: [
+        "friend_request",
+        "friend_accept",
+        "message",
+        "comment",
+        "like",
+        "share",
+        "event",
+        "casting_job",
+        "system",
+      ],
+    }).notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    index("notification_user_read_created_idx").on(
+      table.userId,
+      table.readAt,
+      table.createdAt
+    ),
+    index("notification_entity_idx").on(table.entityType, table.entityId),
+  ]
+);
+
+export const share = sqliteTable(
+  "share",
+  {
+    channel: text("channel", {
+      enum: ["copy_link", "direct_message", "external"],
+    })
+      .default("copy_link")
+      .notNull(),
+    createdAt: timestamp("created_at"),
+    entityId: text("entity_id").notNull(),
+    entityType: text("entity_type", {
+      enum: ["post", "video", "event", "venue", "profile"],
+    }).notNull(),
+    id: text("id").primaryKey(),
+    recipientUserId: text("recipient_user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    userId: text("user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+  },
+  (table) => [
+    index("share_entity_idx").on(table.entityType, table.entityId),
+    index("share_user_idx").on(table.userId),
+  ]
+);
+
+export const searchDocument = sqliteTable(
+  "search_document",
+  {
+    content: text("content").notNull(),
+    createdAt: timestamp("created_at"),
+    embeddingModel: text("embedding_model"),
+    embeddingStatus: text("embedding_status", {
+      enum: ["pending", "ready", "failed"],
+    })
+      .default("pending")
+      .notNull(),
+    entityId: text("entity_id").notNull(),
+    entityType: text("entity_type", {
+      enum: ["profile", "post", "video", "event", "venue"],
+    }).notNull(),
+    id: text("id").primaryKey(),
+    metadataJson: text("metadata_json"),
+    title: text("title").notNull(),
+    updatedAt: timestamp("updated_at").$onUpdate(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("search_document_entity_idx").on(
+      table.entityType,
+      table.entityId
+    ),
+    index("search_document_status_idx").on(table.embeddingStatus),
+    index("search_document_title_idx").on(table.title),
   ]
 );
 
@@ -554,6 +731,17 @@ export const videoCommentRelations = relations(videoComment, ({ one }) => ({
   }),
 }));
 
+export const videoLikeRelations = relations(videoLike, ({ one }) => ({
+  author: one(user, {
+    fields: [videoLike.userId],
+    references: [user.id],
+  }),
+  video: one(video, {
+    fields: [videoLike.videoId],
+    references: [video.id],
+  }),
+}));
+
 export const userProfileRelations = relations(userProfile, ({ one }) => ({
   user: one(user, {
     fields: [userProfile.userId],
@@ -584,6 +772,7 @@ export const venueVisitRelations = relations(venueVisit, ({ one }) => ({
 
 export const videoRelations = relations(video, ({ one, many }) => ({
   comments: many(videoComment),
+  likes: many(videoLike),
   owner: one(user, {
     fields: [video.ownerUserId],
     references: [user.id],
@@ -641,6 +830,50 @@ export const postLikeRelations = relations(postLike, ({ one }) => ({
   post: one(post, {
     fields: [postLike.postId],
     references: [post.id],
+  }),
+}));
+
+export const friendshipRelations = relations(friendship, ({ one }) => ({
+  friend: one(user, {
+    fields: [friendship.requesterUserId],
+    references: [user.id],
+  }),
+  user: one(user, {
+    fields: [friendship.userId],
+    references: [user.id],
+  }),
+}));
+
+export const friendRequestRelations = relations(friendRequest, ({ one }) => ({
+  fromUser: one(user, {
+    fields: [friendRequest.fromUserId],
+    references: [user.id],
+  }),
+  toUser: one(user, {
+    fields: [friendRequest.toUserId],
+    references: [user.id],
+  }),
+}));
+
+export const notificationRelations = relations(notification, ({ one }) => ({
+  actor: one(user, {
+    fields: [notification.actorUserId],
+    references: [user.id],
+  }),
+  user: one(user, {
+    fields: [notification.userId],
+    references: [user.id],
+  }),
+}));
+
+export const shareRelations = relations(share, ({ one }) => ({
+  recipient: one(user, {
+    fields: [share.recipientUserId],
+    references: [user.id],
+  }),
+  user: one(user, {
+    fields: [share.userId],
+    references: [user.id],
   }),
 }));
 

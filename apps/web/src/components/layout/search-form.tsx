@@ -17,6 +17,7 @@ const filters = [
   { label: "All", value: "all" },
   { label: "Videos", value: "videos" },
   { label: "Players", value: "players" },
+  { label: "Posts", value: "posts" },
   { label: "Events", value: "events" },
   { label: "Parks", value: "parks" },
 ] as const;
@@ -57,7 +58,7 @@ export default function SearchForm() {
     data &&
     (data.videos.length > 0 ||
       data.players.length > 0 ||
-      data.casters.length > 0 ||
+      data.posts.length > 0 ||
       data.events.length > 0 ||
       data.venues.length > 0);
 
@@ -114,7 +115,8 @@ export default function SearchForm() {
               {data.videos.slice(0, 3).map((video) => (
                 <Link
                   key={video.id}
-                  to="/videos"
+                  params={{ id: video.id }}
+                  to="/videos/$id"
                   className="rounded-md px-3 py-2 text-sm hover:bg-muted"
                 >
                   <span className="font-medium">{video.title}</span>
@@ -124,17 +126,44 @@ export default function SearchForm() {
               {data.players.slice(0, 3).map((player) => (
                 <Link
                   key={player.id}
-                  to="/players"
+                  params={{ username: player.username ?? player.id }}
+                  to="/players/$username"
                   className="rounded-md px-3 py-2 text-sm hover:bg-muted"
                 >
                   <span className="font-medium">{player.name}</span>
                   <span className="ml-2 text-muted-foreground">player</span>
                 </Link>
               ))}
+              {data.posts.slice(0, 3).map(({ author, post }) => (
+                <Link
+                  key={post.id}
+                  to="/"
+                  className="rounded-md px-3 py-2 text-sm hover:bg-muted"
+                >
+                  <span className="font-medium line-clamp-1">
+                    {post.content}
+                  </span>
+                  <span className="ml-2 text-muted-foreground">
+                    post by {author.name}
+                  </span>
+                </Link>
+              ))}
+              {data.events.slice(0, 3).map((event) => (
+                <Link
+                  key={event.id}
+                  params={{ id: event.id }}
+                  to="/events/$id"
+                  className="rounded-md px-3 py-2 text-sm hover:bg-muted"
+                >
+                  <span className="font-medium">{event.name}</span>
+                  <span className="ml-2 text-muted-foreground">event</span>
+                </Link>
+              ))}
               {data.venues.slice(0, 3).map((venue) => (
                 <Link
                   key={venue.id}
-                  to="/trending"
+                  params={{ id: venue.id }}
+                  to="/venues/$id"
                   className="rounded-md px-3 py-2 text-sm hover:bg-muted"
                 >
                   <span className="font-medium">{venue.name}</span>

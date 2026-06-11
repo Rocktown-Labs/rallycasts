@@ -1,11 +1,13 @@
 import { Button } from "@rallycaststv/ui/components/button";
 import { Link } from "@tanstack/react-router";
-import { Bell, Calendar, MessageSquare, Video } from "lucide-react";
+import { Bell, Calendar, MessageSquare, UserPlus, Video } from "lucide-react";
 import { useState } from "react";
 
-const notifications = [
+import { useMarkNotificationsRead, useNotifications } from "@/lib/hooks";
+
+const fallbackNotifications = [
   {
-    href: "/requests",
+    href: "/u/recording-requests/me",
     icon: Video,
     id: "request-ready",
     message: "Your next recording request can be scheduled now.",
@@ -19,7 +21,7 @@ const notifications = [
     title: "Local event nearby",
   },
   {
-    href: "/messages",
+    href: "/u/messages",
     icon: MessageSquare,
     id: "new-message",
     message: "A player replied about open play this weekend.",
@@ -27,13 +29,46 @@ const notifications = [
   },
 ] as const;
 
+const iconForType = (type: string) => {
+  if (type === "friend_request" || type === "friend_accept") {
+    return UserPlus;
+  }
+
+  if (type === "message") {
+    return MessageSquare;
+  }
+
+  if (type === "event") {
+    return Calendar;
+  }
+
+  return Video;
+};
+
 export default function NotificationButton() {
   const [open, setOpen] = useState(false);
-  const [unread, setUnread] = useState(notifications.length);
+  const { data } = useNotifications();
+  const markRead = useMarkNotificationsRead();
+  const liveNotifications = data?.notifications.map(
+    ({ notification: item }) => ({
+      href: item.href,
+      icon: iconForType(item.type),
+      id: item.id,
+      message: item.body ?? "",
+      title: item.title,
+    })
+  );
+  const notifications =
+    liveNotifications && liveNotifications.length > 0
+      ? liveNotifications
+      : fallbackNotifications;
+  const unread = data?.unreadCount ?? fallbackNotifications.length;
 
   const toggleOpen = () => {
     setOpen((value) => !value);
-    setUnread(0);
+    if (!open && unread > 0 && data) {
+      markRead.mutate();
+    }
   };
 
   return (

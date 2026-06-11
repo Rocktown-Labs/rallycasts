@@ -13,7 +13,13 @@ import {
 import { readApiJson } from "./api";
 import type { GeoLocation } from "./types";
 
-export type SearchEntity = "all" | "videos" | "players" | "events" | "parks";
+export type SearchEntity =
+  | "all"
+  | "events"
+  | "parks"
+  | "players"
+  | "posts"
+  | "videos";
 
 export const useTrending = (location?: GeoLocation) =>
   useQuery({
@@ -97,8 +103,10 @@ export const useSearch = (query: string, type: SearchEntity) =>
       } catch {
         data = demoResults ?? {
           casters: [],
+          documents: [],
           events: [],
           players: [],
+          posts: [],
           venues: [],
           videos: [],
         };
@@ -110,8 +118,11 @@ export const useSearch = (query: string, type: SearchEntity) =>
 
       return {
         casters: [],
+        documents:
+          data.documents.length > 0 ? data.documents : demoResults.documents,
         events: data.events.length > 0 ? data.events : demoResults.events,
         players: data.players.length > 0 ? data.players : demoResults.players,
+        posts: data.posts.length > 0 ? data.posts : demoResults.posts,
         venues: data.venues.length > 0 ? data.venues : demoResults.venues,
         videos: data.videos.length > 0 ? data.videos : demoResults.videos,
       };

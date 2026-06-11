@@ -1,13 +1,18 @@
 import { zValidator } from "@hono/zod-validator";
 import { createDb } from "@rallycaststv/db";
 import { user } from "@rallycaststv/db/schema/auth";
-import { video, videoComment } from "@rallycaststv/db/schema/domain";
-import { and, desc, eq } from "drizzle-orm";
+import { video, videoComment, videoLike } from "@rallycaststv/db/schema/domain";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 import { z } from "zod";
 
 import { createId } from "../lib/ids";
+import { createNotification } from "../lib/notifications";
+import {
+  scheduleSearchDocumentIndex,
+  upsertSearchDocument,
+} from "../lib/search-index";
 import type { AppEnv } from "../lib/types";
 import { requireAuth } from "../middleware/auth";
 
@@ -69,6 +74,18 @@ export const videosRouter = new Hono<AppEnv>()
     };
 
     await db.insert(video).values(draft);
+    const searchRecord = await upsertSearchDocument(db, {
+      content: [data.title, data.description].filter(Boolean).join("\n"),
+      entityId: draft.id,
+      entityType: "video",
+      metadata: {
+        mediaType: data.mediaType,
+        ownerUserId: authUser.id,
+        venueId: data.venueId,
+      },
+      title: data.title,
+    });
+    scheduleSearchDocumentIndex(() => c.executionCtx, c.env, searchRecord);
 
     return c.json({ video: draft }, HttpStatusCodes.CREATED);
   })
@@ -120,10 +137,96 @@ export const videosRouter = new Hono<AppEnv>()
           updatedAt: new Date(),
         })
         .where(and(eq(video.id, id), eq(video.ownerUserId, authUser.id)));
+      const [updated] = await db
+        .select()
+        .from(video)
+        .where(and(eq(video.id, id), eq(video.ownerUserId, authUser.id)))
+        .limit(1);
+
+      if (updated) {
+        const searchRecord = await upsertSearchDocument(db, {
+          content: [updated.title, updated.description]
+            .filter(Boolean)
+            .join("\n"),
+          entityId: updated.id,
+          entityType: "video",
+          metadata: {
+            mediaType: updated.mediaType,
+            ownerUserId: updated.ownerUserId,
+            venueId: updated.venueId,
+          },
+          title: updated.title,
+        });
+        scheduleSearchDocumentIndex(() => c.executionCtx, c.env, searchRecord);
+      }
 
       return c.json({ id, ...data }, HttpStatusCodes.OK);
     }
   )
+  .get("/:id/social", async (c) => {
+    const db = createDb(c.env.DB);
+    const id = c.req.param("id");
+    const [counts] = await db
+      .select({
+        comments: sql<number>`count(distinct ${videoComment.id})`,
+        likes: sql<number>`count(distinct ${videoLike.userId})`,
+      })
+      .from(video)
+      .leftJoin(videoLike, eq(videoLike.videoId, video.id))
+      .leftJoin(videoComment, eq(videoComment.videoId, video.id))
+      .where(eq(video.id, id))
+      .limit(1);
+
+    return c.json(
+      { comments: counts?.comments ?? 0, likes: counts?.likes ?? 0 },
+      HttpStatusCodes.OK
+    );
+  })
+  .post("/:id/likes", requireAuth, async (c) => {
+    const db = createDb(c.env.DB);
+    const { user: authUser } = c.var.authSession;
+    const id = c.req.param("id");
+    const [record] = await db
+      .select()
+      .from(video)
+      .where(eq(video.id, id))
+      .limit(1);
+
+    if (!record || record.status === "deleted") {
+      return c.json({ message: "Video not found" }, HttpStatusCodes.NOT_FOUND);
+    }
+
+    await db
+      .insert(videoLike)
+      .values({ userId: authUser.id, videoId: id })
+      .onConflictDoNothing();
+
+    if (record.ownerUserId !== authUser.id) {
+      await createNotification(db, {
+        actorUserId: authUser.id,
+        body: `${authUser.name} liked ${record.title}.`,
+        entityId: id,
+        entityType: "video",
+        href: `/videos/${id}`,
+        title: "Your video got a like",
+        type: "like",
+        userId: record.ownerUserId,
+      });
+    }
+
+    return c.json({ liked: true }, HttpStatusCodes.OK);
+  })
+  .delete("/:id/likes", requireAuth, async (c) => {
+    const db = createDb(c.env.DB);
+    const { user: authUser } = c.var.authSession;
+    const id = c.req.param("id");
+
+    await db
+      .delete(videoLike)
+      .where(and(eq(videoLike.videoId, id), eq(videoLike.userId, authUser.id)));
+
+    return c.json({ liked: false }, HttpStatusCodes.OK);
+  })
   .get("/:id/comments", async (c) => {
     const db = createDb(c.env.DB);
     const id = c.req.param("id");
@@ -184,6 +287,19 @@ export const videosRouter = new Hono<AppEnv>()
       };
 
       await db.insert(videoComment).values(newComment);
+
+      if (record.ownerUserId !== authUser.id) {
+        await createNotification(db, {
+          actorUserId: authUser.id,
+          body: content,
+          entityId: commentId,
+          entityType: "comment",
+          href: `/videos/${id}`,
+          title: `${authUser.name} commented on your video`,
+          type: "comment",
+          userId: record.ownerUserId,
+        });
+      }
 
       return c.json(
         {

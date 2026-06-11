@@ -1,10 +1,14 @@
 import { createDb } from "@rallycaststv/db";
 import { venueVisit } from "@rallycaststv/db/schema/domain";
-import { eq, sql, count } from "drizzle-orm";
+import { and, count, eq, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 
 import type { AppEnv } from "../lib/types";
+
+type VenuePresenceStub = DurableObjectStub & {
+  getActiveUsers: () => Promise<{ enteredAt: string; userId: string }[]>;
+};
 
 export const venueAnalyticsRouter = new Hono<AppEnv>().get(
   "/:id/analytics",
@@ -13,8 +17,9 @@ export const venueAnalyticsRouter = new Hono<AppEnv>().get(
     const db = createDb(c.env.DB);
 
     // Get active users from Durable Object
-    const doId = c.env.VENUE_PRESENCE.idFromName(venueId);
-    const presence = c.env.VENUE_PRESENCE.get(doId);
+    const venuePresence: DurableObjectNamespace = c.env.VENUE_PRESENCE;
+    const doId = venuePresence.idFromName(venueId);
+    const presence = venuePresence.get(doId) as VenuePresenceStub;
     const activeUsers = await presence.getActiveUsers();
     const activeCount = activeUsers.length;
 
@@ -25,8 +30,10 @@ export const venueAnalyticsRouter = new Hono<AppEnv>().get(
       .select({ count: count() })
       .from(venueVisit)
       .where(
-        eq(venueVisit.venueId, venueId) &&
+        and(
+          eq(venueVisit.venueId, venueId),
           sql`${venueVisit.enteredAt} >= ${today.getTime()}`
+        )
       );
 
     // Get this week's visits
@@ -37,8 +44,10 @@ export const venueAnalyticsRouter = new Hono<AppEnv>().get(
       .select({ count: count() })
       .from(venueVisit)
       .where(
-        eq(venueVisit.venueId, venueId) &&
+        and(
+          eq(venueVisit.venueId, venueId),
           sql`${venueVisit.enteredAt} >= ${weekStart.getTime()}`
+        )
       );
 
     // Get average duration
@@ -48,8 +57,10 @@ export const venueAnalyticsRouter = new Hono<AppEnv>().get(
       })
       .from(venueVisit)
       .where(
-        eq(venueVisit.venueId, venueId) &&
+        and(
+          eq(venueVisit.venueId, venueId),
           sql`${venueVisit.durationMinutes} IS NOT NULL`
+        )
       );
 
     // Get peak hours (last 7 days)
@@ -60,8 +71,10 @@ export const venueAnalyticsRouter = new Hono<AppEnv>().get(
       })
       .from(venueVisit)
       .where(
-        eq(venueVisit.venueId, venueId) &&
+        and(
+          eq(venueVisit.venueId, venueId),
           sql`${venueVisit.enteredAt} >= ${weekStart.getTime()}`
+        )
       )
       .groupBy(sql`strftime('%H', ${venueVisit.enteredAt} / 1000, 'unixepoch')`)
       .orderBy(sql`visits DESC`)
@@ -78,8 +91,10 @@ export const venueAnalyticsRouter = new Hono<AppEnv>().get(
       })
       .from(venueVisit)
       .where(
-        eq(venueVisit.venueId, venueId) &&
+        and(
+          eq(venueVisit.venueId, venueId),
           sql`${venueVisit.enteredAt} >= ${monthStart.getTime()}`
+        )
       )
       .groupBy(sql`strftime('%w', ${venueVisit.enteredAt} / 1000, 'unixepoch')`)
       .orderBy(sql`visits DESC`);
@@ -96,9 +111,9 @@ export const venueAnalyticsRouter = new Hono<AppEnv>().get(
     return c.json(
       {
         activeCount,
-        activeUsers: activeUsers.map((u) => ({
-          enteredAt: u.enteredAt,
-          userId: u.userId,
+        activeUsers: activeUsers.map((activeUser) => ({
+          enteredAt: activeUser.enteredAt,
+          userId: activeUser.userId,
         })),
         avgDurationMinutes: Math.round(durations[0]?.avgDuration ?? 0),
         heatScore,
