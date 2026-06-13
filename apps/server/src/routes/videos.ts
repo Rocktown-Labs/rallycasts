@@ -21,6 +21,10 @@ const createVideoSchema = z.object({
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
   mediaType: z.enum(["video", "short", "photo"]).default("video"),
+  muxUploadId: z.string().optional(),
+  status: z
+    .enum(["draft", "uploading", "processing", "ready", "failed", "deleted"])
+    .default("draft"),
   title: z.string().min(1).max(160),
   venueId: z.string().min(1).optional(),
   visibility: z.enum(["public", "friends", "private"]).default("public"),
@@ -37,6 +41,10 @@ const updateVideoSchema = createVideoSchema.partial().extend({
     .enum(["draft", "uploading", "processing", "ready", "failed", "deleted"])
     .optional(),
   thumbnailUrl: z.url().optional(),
+});
+
+const pinCommentSchema = z.object({
+  pinned: z.boolean(),
 });
 
 export const videosRouter = new Hono<AppEnv>()
@@ -236,6 +244,8 @@ export const videosRouter = new Hono<AppEnv>()
         content: videoComment.content,
         createdAt: videoComment.createdAt,
         id: videoComment.id,
+        isPinned: videoComment.isPinned,
+        pinnedAt: videoComment.pinnedAt,
         updatedAt: videoComment.updatedAt,
         user: {
           displayUsername: user.displayUsername,
@@ -248,7 +258,11 @@ export const videosRouter = new Hono<AppEnv>()
       .from(videoComment)
       .innerJoin(user, eq(videoComment.userId, user.id))
       .where(eq(videoComment.videoId, id))
-      .orderBy(desc(videoComment.createdAt));
+      .orderBy(
+        desc(videoComment.isPinned),
+        desc(videoComment.pinnedAt),
+        desc(videoComment.createdAt)
+      );
 
     return c.json({ comments }, HttpStatusCodes.OK);
   })
@@ -305,6 +319,8 @@ export const videosRouter = new Hono<AppEnv>()
         {
           comment: {
             ...newComment,
+            isPinned: false,
+            pinnedAt: null,
             user: {
               displayUsername: authUser.displayUsername,
               id: authUser.id,
@@ -316,5 +332,62 @@ export const videosRouter = new Hono<AppEnv>()
         },
         HttpStatusCodes.CREATED
       );
+    }
+  )
+  .patch(
+    "/:id/comments/:commentId/pin",
+    requireAuth,
+    zValidator("json", pinCommentSchema),
+    async (c) => {
+      const db = createDb(c.env.DB);
+      const { user: authUser } = c.var.authSession;
+      const id = c.req.param("id");
+      const commentId = c.req.param("commentId");
+      const { pinned } = c.req.valid("json");
+      const [record] = await db
+        .select()
+        .from(video)
+        .where(and(eq(video.id, id), eq(video.ownerUserId, authUser.id)))
+        .limit(1);
+
+      if (!record) {
+        return c.json(
+          { message: "Video not found" },
+          HttpStatusCodes.NOT_FOUND
+        );
+      }
+
+      const [comment] = await db
+        .select()
+        .from(videoComment)
+        .where(
+          and(eq(videoComment.id, commentId), eq(videoComment.videoId, id))
+        )
+        .limit(1);
+
+      if (!comment) {
+        return c.json(
+          { message: "Comment not found" },
+          HttpStatusCodes.NOT_FOUND
+        );
+      }
+
+      if (pinned) {
+        await db
+          .update(videoComment)
+          .set({ isPinned: false, pinnedAt: null })
+          .where(eq(videoComment.videoId, id));
+      }
+
+      await db
+        .update(videoComment)
+        .set({
+          isPinned: pinned,
+          pinnedAt: pinned ? new Date() : null,
+          updatedAt: new Date(),
+        })
+        .where(eq(videoComment.id, commentId));
+
+      return c.json({ id: commentId, pinned }, HttpStatusCodes.OK);
     }
   );

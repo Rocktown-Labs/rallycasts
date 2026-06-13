@@ -16,6 +16,10 @@ export default defineConfig(async () => {
               "test-secret-test-secret-test-secret-test-secret",
             BETTER_AUTH_URL: "http://localhost:3000",
             CORS_ORIGIN: "http://localhost:3001",
+            GITHUB_CLIENT_ID: "",
+            GITHUB_CLIENT_SECRET: "",
+            GOOGLE_CLIENT_ID: "",
+            GOOGLE_CLIENT_SECRET: "",
             GOOGLE_GENERATIVE_AI_API_KEY: "test-google-key",
             GOOGLE_PLACES_API_KEY: "test-google-places-key",
             MUX_TOKEN_ID: "test-mux-id",
@@ -38,6 +42,7 @@ export default defineConfig(async () => {
         d1Migrations: migrations,
       },
       setupFiles: ["./src/test/setup.ts"],
+      testTimeout: 30_000,
     },
   };
 });

@@ -3,22 +3,30 @@ import { useEffect, useState } from "react";
 import { initializeRadar, Radar } from "@/lib/radar";
 
 export interface GeoLocation {
+  isFallback?: boolean;
   lat: number;
   lng: number;
 }
+
+const ARKANSAS_TEST_LOCATION: GeoLocation = {
+  isFallback: true,
+  lat: 36.3729,
+  lng: -94.2088,
+};
 
 export function useGeolocation() {
   const [location, setLocation] = useState<GeoLocation | undefined>();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
+  const requestLocation = () => {
     if (typeof window === "undefined") {
       setIsLoading(false);
-      return;
+      return () => null;
     }
 
     initializeRadar();
+    setIsLoading(true);
 
     let cancelled = false;
 
@@ -50,9 +58,11 @@ export function useGeolocation() {
                 });
                 setError(null);
               } else {
+                setLocation(ARKANSAS_TEST_LOCATION);
                 setError(err.message);
               }
             } catch {
+              setLocation(ARKANSAS_TEST_LOCATION);
               setError(err.message);
             } finally {
               setIsLoading(false);
@@ -75,9 +85,11 @@ export function useGeolocation() {
             });
             setError(null);
           } else {
+            setLocation(ARKANSAS_TEST_LOCATION);
             setError("Geolocation is not supported by this browser.");
           }
         } catch {
+          setLocation(ARKANSAS_TEST_LOCATION);
           setError("Geolocation is not supported by this browser.");
         } finally {
           setIsLoading(false);
@@ -90,7 +102,9 @@ export function useGeolocation() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  };
 
-  return { error, isLoading, location };
+  useEffect(() => requestLocation(), []);
+
+  return { error, isLoading, location, requestLocation };
 }

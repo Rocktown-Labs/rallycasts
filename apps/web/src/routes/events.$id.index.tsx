@@ -18,7 +18,13 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { authClient } from "@/lib/auth-client";
-import { usePlayers } from "@/lib/hooks";
+import {
+  useEventLive,
+  useEventPlayers,
+  useJoinEvent,
+  useLeaveEvent,
+  usePlayers,
+} from "@/lib/hooks";
 
 import { useEventContext } from "./events.$id";
 
@@ -242,18 +248,31 @@ function RegistrationModal({
   );
 }
 
+// oxlint-disable-next-line complexity
 function EventOverviewTab() {
   const { event } = useEventContext();
   const { data: sessionData } = authClient.useSession();
   const currentUser = sessionData?.user;
+  const { data: playersData } = useEventPlayers(event.id);
+  const { data: liveData } = useEventLive(event.id);
+  const joinEvent = useJoinEvent(event.id);
+  const leaveEvent = useLeaveEvent(event.id);
 
   // Registration states
-  const [isRegistered, setIsRegistered] = useState(false);
   const [registeredTeam, setRegisteredTeam] = useState<{
     mode: string;
     partner?: string;
   } | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const players = playersData?.players ?? [];
+  const myRegistration = players.find(
+    ({ player }) => player.id === currentUser?.id
+  )?.registration;
+  const isRegistered = Boolean(myRegistration);
+  const registrationCount =
+    liveData?.snapshot?.registrationCount ?? players.length;
+  const capacity = event.capacity ?? Math.max(registrationCount, 1);
+  const progressPercent = Math.min(100, (registrationCount / capacity) * 100);
 
   const startsAtDate = new Date(event.startsAt);
   const formattedDate = startsAtDate.toLocaleDateString("en-US", {
@@ -271,19 +290,35 @@ function EventOverviewTab() {
     mode: "singles" | "doubles",
     partner: { id: string; name: string; username: string } | null
   ) => {
-    setIsRegistered(true);
-    setRegisteredTeam({
-      mode,
-      partner: mode === "doubles" && partner ? partner.name : undefined,
+    joinEvent.mutate(undefined, {
+      onError: () => {
+        toast.error("Could not register for this event. Please try again.");
+      },
+      onSuccess: (result) => {
+        setRegisteredTeam({
+          mode,
+          partner: mode === "doubles" && partner ? partner.name : undefined,
+        });
+        setShowModal(false);
+        toast.success(
+          result.registration?.status === "waitlisted"
+            ? `You're on the waitlist for ${event.name}.`
+            : `Successfully registered for ${event.name}!`
+        );
+      },
     });
-    setShowModal(false);
-    toast.success(`Successfully registered for ${event.name}!`);
   };
 
   const handleCancelRegistration = () => {
-    setIsRegistered(false);
-    setRegisteredTeam(null);
-    toast.info("Registration cancelled.");
+    leaveEvent.mutate(undefined, {
+      onError: () => {
+        toast.error("Could not cancel registration.");
+      },
+      onSuccess: () => {
+        setRegisteredTeam(null);
+        toast.info("Registration cancelled.");
+      },
+    });
   };
 
   return (
@@ -333,9 +368,15 @@ function EventOverviewTab() {
                 <h3 className="font-semibold text-sm">Player Capacity</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {event.capacity
-                    ? `${event.capacity} registered max`
+                    ? `${registrationCount}/${event.capacity}`
                     : "Open entry"}
                 </p>
+                <div className="mt-2 h-2 w-44 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all"
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
               </div>
             </div>
           </CardContent>
@@ -374,7 +415,7 @@ function EventOverviewTab() {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Mode:</span>
                 <span className="font-semibold capitalize text-foreground">
-                  {registeredTeam?.mode}
+                  {registeredTeam?.mode ?? "singles"}
                 </span>
               </div>
               {registeredTeam?.partner && (
@@ -389,12 +430,23 @@ function EventOverviewTab() {
                 <span className="text-muted-foreground font-normal">
                   Status:
                 </span>
-                <span className="text-green-500">Confirmed</span>
+                <span
+                  className={
+                    myRegistration?.status === "waitlisted"
+                      ? "text-brand-yellow"
+                      : "text-green-500"
+                  }
+                >
+                  {myRegistration?.status === "waitlisted"
+                    ? "Waitlisted"
+                    : "Confirmed"}
+                </span>
               </div>
             </div>
 
             <Button
               onClick={handleCancelRegistration}
+              disabled={leaveEvent.isPending}
               variant="outline"
               className="w-full rounded-lg text-xs font-semibold py-4 border-red-500/20 text-red-400 hover:bg-red-500/10"
             >
@@ -426,6 +478,7 @@ function EventOverviewTab() {
                 }
                 setShowModal(true);
               }}
+              disabled={joinEvent.isPending}
               className="w-full rounded-lg text-xs font-semibold py-5 cursor-pointer"
             >
               Register for Event

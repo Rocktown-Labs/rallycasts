@@ -1,9 +1,17 @@
 import { Button } from "@rallycaststv/ui/components/button";
 import { Card, CardContent } from "@rallycaststv/ui/components/card";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useParams } from "@tanstack/react-router";
 import { Award, Swords, Video } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+
+import {
+  useCreateCastingJob,
+  useEventBracket,
+  useGenerateEventBracket,
+} from "@/lib/hooks";
+
+import { useEventContext } from "./events.$id";
 
 export const Route = createFileRoute("/events/$id/bracket")({
   component: EventBracketTab,
@@ -114,33 +122,80 @@ const mockMatches: MatchNode[] = [
 ];
 
 function EventBracketTab() {
+  const { id } = useParams({ from: "/events/$id/bracket" });
+  const { event } = useEventContext();
+  const { data: bracketData } = useEventBracket(id);
+  const generateBracket = useGenerateEventBracket(id);
+  const createCastingJob = useCreateCastingJob();
   const [matches, setMatches] = useState<MatchNode[]>(mockMatches);
   const [selectedMatch, setSelectedMatch] = useState<MatchNode | null>(null);
+  const backendMatchCount = bracketData?.matches?.length ?? 0;
 
   const handleRequestCasting = (matchId: string) => {
-    setMatches((prev) =>
-      prev.map((m) => (m.id === matchId ? { ...m, casted: true } : m))
-    );
-    setSelectedMatch((prev) =>
-      prev && prev.id === matchId ? { ...prev, casted: true } : prev
-    );
-    toast.success(
-      "Casting request sent for this match! Caster fee: $50 split 50/50."
+    createCastingJob.mutate(
+      {
+        notes: `Caster requested from bracket match ${matchId} for ${event.name}.`,
+        requestedHours: 1,
+        startsAt: event.startsAt,
+        venueId: event.venueId ?? undefined,
+      },
+      {
+        onError: () => {
+          toast.error("Could not request a caster. Please try again.");
+        },
+        onSuccess: () => {
+          setMatches((prev) =>
+            prev.map((m) => (m.id === matchId ? { ...m, casted: true } : m))
+          );
+          setSelectedMatch((prev) =>
+            prev && prev.id === matchId ? { ...prev, casted: true } : prev
+          );
+          toast.success("Casting request sent for this match.");
+        },
+      }
     );
   };
 
-  const getMatchByNodeId = (id: string) => matches.find((m) => m.id === id);
+  const getMatchByNodeId = (nodeId: string) =>
+    matches.find((match) => match.id === nodeId);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       <div>
-        <h2 className="text-xl font-bold flex items-center gap-2">
-          <Award className="size-5 text-primary" /> Tournament Bracket
-        </h2>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="text-xl font-bold flex items-center gap-2">
+            <Award className="size-5 text-primary" /> Tournament Bracket
+          </h2>
+          <Button
+            onClick={() =>
+              generateBracket.mutate(
+                { force: backendMatchCount > 0 },
+                {
+                  onError: () => {
+                    toast.error("Could not generate bracket yet.");
+                  },
+                  onSuccess: () => {
+                    toast.success("Bracket generated from registrations.");
+                  },
+                }
+              )
+            }
+            disabled={generateBracket.isPending}
+            className="rounded-md text-xs"
+          >
+            {backendMatchCount > 0 ? "Regenerate bracket" : "Generate bracket"}
+          </Button>
+        </div>
         <p className="text-xs text-muted-foreground mt-1">
           Follow the paths of the tournament players. Click any match for more
           info and to request caster recording.
         </p>
+        {backendMatchCount > 0 && (
+          <p className="mt-2 text-xs font-medium text-primary">
+            {backendMatchCount} live bracket matches available in the Matches
+            tab.
+          </p>
+        )}
       </div>
 
       {/* Bracket Tree Layout */}
@@ -150,8 +205,8 @@ function EventBracketTab() {
           <h3 className="text-center text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">
             Quarterfinals
           </h3>
-          {["m1", "m2", "m3", "m4"].map((id) => {
-            const m = getMatchByNodeId(id);
+          {["m1", "m2", "m3", "m4"].map((nodeId) => {
+            const m = getMatchByNodeId(nodeId);
             if (!m) {
               return null;
             }
@@ -194,8 +249,8 @@ function EventBracketTab() {
           <h3 className="text-center text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">
             Semifinals
           </h3>
-          {["m5", "m6"].map((id) => {
-            const m = getMatchByNodeId(id);
+          {["m5", "m6"].map((nodeId) => {
+            const m = getMatchByNodeId(nodeId);
             if (!m) {
               return null;
             }
@@ -238,8 +293,8 @@ function EventBracketTab() {
           <h3 className="text-center text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">
             Finals
           </h3>
-          {["m7"].map((id) => {
-            const m = getMatchByNodeId(id);
+          {["m7"].map((nodeId) => {
+            const m = getMatchByNodeId(nodeId);
             if (!m) {
               return null;
             }

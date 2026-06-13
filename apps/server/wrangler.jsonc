@@ -2,6 +2,7 @@
   "name": "rallycasts-server",
   "main": "src/index.ts",
   "compatibility_date": "2024-12-01",
+  "compatibility_flags": ["nodejs_compat"],
   "d1_databases": [
     {
       "binding": "DB",
@@ -15,12 +16,34 @@
       "bucket_name": "rallycasts-media",
     },
   ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "VENUE_PRESENCE",
+        "class_name": "VenuePresence",
+      },
+      {
+        "name": "EVENT_COORDINATOR",
+        "class_name": "EventCoordinator",
+      },
+    ],
+  },
   "queues": {
     "producers": [
       {
         "binding": "GEOFENCE_EVENTS",
         "queue": "geofence-events",
       },
+      {
+        "binding": "EVENT_ACTIVITY_QUEUE",
+        "queue": "event-activity",
+      },
     ],
   },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["VenuePresence", "EventCoordinator"],
+    },
+  ],
 }

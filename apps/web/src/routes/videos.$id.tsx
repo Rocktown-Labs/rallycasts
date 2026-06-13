@@ -9,6 +9,7 @@ import {
   ThumbsUp,
   Share2,
   Play,
+  Pin,
 } from "lucide-react";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
@@ -18,6 +19,7 @@ import {
   useVideo,
   useVideoComments,
   useAddVideoComment,
+  usePinVideoComment,
   useVideos,
 } from "@/lib/hooks";
 
@@ -30,6 +32,8 @@ interface CommentUser {
 
 interface VideoCommentWithUser {
   id: string;
+  isPinned?: boolean;
+  pinnedAt?: string | Date | null;
   content: string;
   createdAt: string | Date;
   user: CommentUser | null;
@@ -250,7 +254,10 @@ interface CommentsSectionProps {
   commentText: string;
   setCommentText: (val: string) => void;
   handleAddComment: (e: React.FormEvent) => void;
+  handlePinComment: (commentId: string, pinned: boolean) => void;
   isPending: boolean;
+  isPinPending: boolean;
+  canPinComments: boolean;
 }
 
 function CommentsSection({
@@ -260,7 +267,10 @@ function CommentsSection({
   commentText,
   setCommentText,
   handleAddComment,
+  handlePinComment,
   isPending,
+  isPinPending,
+  canPinComments,
 }: CommentsSectionProps) {
   const renderCommentsContent = () => {
     if (commentsLoading) {
@@ -301,6 +311,11 @@ function CommentsSection({
               </Link>
               <div className="space-y-1 flex-1">
                 <div className="flex items-center gap-2">
+                  {comment.isPinned && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold text-primary">
+                      <Pin className="size-2.5" /> Pinned
+                    </span>
+                  )}
                   <Link
                     to="/players/$username"
                     params={{
@@ -321,6 +336,18 @@ function CommentsSection({
                 <p className="text-foreground leading-normal text-xs pr-4">
                   {comment.content}
                 </p>
+                {canPinComments && (
+                  <button
+                    type="button"
+                    disabled={isPinPending}
+                    onClick={() =>
+                      handlePinComment(comment.id, !comment.isPinned)
+                    }
+                    className="text-[10px] font-semibold text-muted-foreground hover:text-primary disabled:opacity-50"
+                  >
+                    {comment.isPinned ? "Unpin comment" : "Pin comment"}
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -503,6 +530,7 @@ function VideoSidebar({ otherVideos }: VideoSidebarProps) {
   );
 }
 
+// oxlint-disable-next-line complexity
 function VideoDetailPage() {
   const { id } = useParams({ from: "/videos/$id" });
   const { data: session } = authClient.useSession();
@@ -516,6 +544,7 @@ function VideoDetailPage() {
   const { data: commentsData, isLoading: commentsLoading } =
     useVideoComments(id);
   const addCommentMutation = useAddVideoComment(id);
+  const pinCommentMutation = usePinVideoComment(id);
   const { data: recommendedData } = useVideos();
 
   const [commentText, setCommentText] = useState("");
@@ -536,6 +565,9 @@ function VideoDetailPage() {
 
   const { video, owner } = videoData;
   const commentsList = commentsData?.comments ?? [];
+  const canPinComments = Boolean(
+    currentUser?.id && owner?.id && currentUser.id === owner.id
+  );
 
   const otherVideos = (recommendedData?.videos ?? []).filter(
     (v: { id: string }) => v.id !== video.id
@@ -580,6 +612,20 @@ function VideoDetailPage() {
         onSuccess: () => {
           setCommentText("");
           toast.success("Comment posted successfully!");
+        },
+      }
+    );
+  };
+
+  const handlePinComment = (commentId: string, pinned: boolean) => {
+    pinCommentMutation.mutate(
+      { commentId, pinned },
+      {
+        onError: () => {
+          toast.error("Could not update pinned comment.");
+        },
+        onSuccess: () => {
+          toast.success(pinned ? "Comment pinned." : "Comment unpinned.");
         },
       }
     );
@@ -686,7 +732,10 @@ function VideoDetailPage() {
             commentText={commentText}
             setCommentText={setCommentText}
             handleAddComment={handleAddComment}
+            handlePinComment={handlePinComment}
             isPending={addCommentMutation.isPending}
+            isPinPending={pinCommentMutation.isPending}
+            canPinComments={canPinComments}
           />
         </div>
 

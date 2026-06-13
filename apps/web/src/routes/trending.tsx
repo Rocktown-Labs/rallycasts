@@ -86,10 +86,12 @@ function LocationStatus({
   error,
   isLoading,
   location,
+  requestLocation,
 }: {
   error: string | null;
   isLoading: boolean;
-  location?: { lat: number; lng: number };
+  location?: { isFallback?: boolean; lat: number; lng: number };
+  requestLocation: () => void;
 }) {
   if (isLoading && !location) {
     return (
@@ -105,18 +107,23 @@ function LocationStatus({
         size="sm"
         variant="ghost"
         className="text-xs text-muted-foreground"
-        onClick={() => window.location.reload()}
+        onClick={requestLocation}
       >
-        Location unavailable
+        Use my location
       </Button>
     );
   }
 
   if (location) {
     return (
-      <span className="text-xs text-emerald-500 font-medium flex items-center gap-1">
-        <MapPin className="size-3" /> Location active
-      </span>
+      <button
+        type="button"
+        onClick={requestLocation}
+        className="text-xs text-emerald-500 font-medium flex items-center gap-1 hover:text-emerald-400"
+      >
+        <MapPin className="size-3" />{" "}
+        {location.isFallback ? "Arkansas fallback" : "Location active"}
+      </button>
     );
   }
 
@@ -124,7 +131,12 @@ function LocationStatus({
 }
 
 function TrendingPage() {
-  const { error: geoError, isLoading: geoLoading, location } = useGeolocation();
+  const {
+    error: geoError,
+    isLoading: geoLoading,
+    location,
+    requestLocation,
+  } = useGeolocation();
   const { data, isLoading } = useTrending(location);
   const { data: session } = authClient.useSession();
   useRadarTracking(session?.user?.id);
@@ -150,6 +162,7 @@ function TrendingPage() {
               error={geoError}
               isLoading={geoLoading}
               location={location}
+              requestLocation={requestLocation}
             />
           </div>
           <h1 className="mt-2 text-3xl font-bold md:text-5xl">
@@ -159,6 +172,11 @@ function TrendingPage() {
             Whether this is home or a new city, RallyCasts helps you spot active
             parks, nearby players, local clips, and events worth joining.
           </p>
+          {location?.isFallback && (
+            <p className="mt-3 text-xs font-medium text-primary">
+              Showing Northwest Arkansas while we wait for exact location.
+            </p>
+          )}
           <div className="mt-6 flex flex-wrap gap-3">
             <Link to="/players" className={cn(buttonVariants(), "rounded-md")}>
               <Users className="size-4" />

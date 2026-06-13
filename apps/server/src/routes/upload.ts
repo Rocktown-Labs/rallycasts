@@ -7,6 +7,14 @@ import { uploadToR2 } from "../lib/r2-client";
 import type { AppEnv } from "../lib/types";
 import { requireAuth } from "../middleware/auth";
 
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = new Set([
+  "image/avif",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+
 export const uploadRouter = new Hono<AppEnv>()
   .get("/mux", requireAuth, async (c) => {
     const tokenId = c.env.MUX_TOKEN_ID;
@@ -96,6 +104,20 @@ export const uploadRouter = new Hono<AppEnv>()
       }
 
       const contentType = file.type || "application/octet-stream";
+      if (!ALLOWED_IMAGE_TYPES.has(contentType)) {
+        return c.json(
+          { message: "Only AVIF, JPEG, PNG, and WebP images are supported" },
+          HttpStatusCodes.BAD_REQUEST
+        );
+      }
+
+      if (file.size > MAX_IMAGE_BYTES) {
+        return c.json(
+          { message: "Image must be 5MB or smaller" },
+          HttpStatusCodes.BAD_REQUEST
+        );
+      }
+
       const key = `images/${createId()}-${file.name}`;
       const buffer = await file.arrayBuffer();
 

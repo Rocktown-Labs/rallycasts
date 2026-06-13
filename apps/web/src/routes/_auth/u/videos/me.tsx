@@ -44,7 +44,7 @@ function UploadModal({
     setIsUploading(true);
 
     try {
-      const { uploadUrl } = await muxUpload.mutateAsync();
+      const { uploadId, uploadUrl } = await muxUpload.mutateAsync();
 
       const uploadRes = await fetch(uploadUrl, {
         body: file,
@@ -61,6 +61,8 @@ function UploadModal({
       await createVideo.mutateAsync({
         description: description || undefined,
         mediaType: "video",
+        muxUploadId: uploadId,
+        status: "uploading",
         title: title.trim(),
         visibility: "public",
       });
