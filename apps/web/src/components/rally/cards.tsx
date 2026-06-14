@@ -47,10 +47,16 @@ export interface VenueCardData {
   city?: string | null;
   courtCount?: number | null;
   distanceMiles?: number | null;
+  externalUrl?: string;
+  googlePlaceId?: string | null;
   heatScore?: number | null;
   id: string;
   name: string;
+  openNow?: boolean;
+  rating?: number | null;
+  source?: "google_places" | "rallycasts";
   state?: string | null;
+  userRatingsTotal?: number | null;
   venueType?: string;
 }
 
@@ -305,54 +311,112 @@ export function VenueCard({ venue }: { venue: VenueCardData }) {
 
 export function ParkHeatCard({ venue }: { venue: VenueCardData }) {
   const location = [venue.city, venue.state].filter(Boolean).join(", ");
-  const heatScore = venue.heatScore ?? 35;
+  const isGoogleDiscovery = venue.source === "google_places";
+  const heatScore =
+    venue.heatScore ??
+    (isGoogleDiscovery ? Math.round((venue.rating ?? 4) * 18) : 35);
   const heatWidth = `${Math.min(Math.max(heatScore, 8), 100)}%`;
+  const distanceLabel =
+    venue.distanceMiles !== undefined && venue.distanceMiles !== null
+      ? `${venue.distanceMiles.toFixed(venue.distanceMiles < 10 ? 1 : 0)} mi`
+      : "nearby";
+  const ratingLabel = venue.rating
+    ? `${venue.rating.toFixed(1)} rating`
+    : "discover";
+  const statusLabel = getVenueStatusLabel(venue, isGoogleDiscovery);
+  const cardLink = isGoogleDiscovery ? (
+    <a
+      href={venue.externalUrl}
+      target="_blank"
+      rel="noopener"
+      className="block"
+    >
+      <ParkHeatHeader heatScore={heatScore} heatWidth={heatWidth} />
+    </a>
+  ) : (
+    <Link to="/venues/$id" params={{ id: venue.id }} className="block">
+      <ParkHeatHeader heatScore={heatScore} heatWidth={heatWidth} />
+    </Link>
+  );
+  const titleLink = isGoogleDiscovery ? (
+    <a
+      href={venue.externalUrl}
+      target="_blank"
+      rel="noopener"
+      className="hover:text-primary transition-colors"
+    >
+      {venue.name}
+    </a>
+  ) : (
+    <Link
+      to="/venues/$id"
+      params={{ id: venue.id }}
+      className="hover:text-primary transition-colors"
+    >
+      {venue.name}
+    </Link>
+  );
 
   return (
     <article className="w-72 shrink-0 overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-      <Link to="/venues/$id" params={{ id: venue.id }} className="block">
-        <div className="relative h-28 bg-[radial-gradient(circle_at_28%_40%,hsl(78_100%_60%/.55),transparent_24%),radial-gradient(circle_at_72%_36%,hsl(142_100%_18%/.9),transparent_28%),linear-gradient(135deg,hsl(142_100%_18%/.45),hsl(240_10%_4%/.2))] hover:opacity-95 transition-opacity">
-          <div className="absolute inset-x-4 bottom-4">
-            <div className="h-2 overflow-hidden rounded-full bg-black/35">
-              <div
-                className="h-full rounded-full bg-brand-yellow"
-                style={{ width: heatWidth }}
-              />
-            </div>
-            <p className="mt-2 text-xs font-semibold text-white">
-              {heatScore}% heat
-            </p>
-          </div>
-        </div>
-      </Link>
+      {cardLink}
       <div className="space-y-3 p-4">
         <div>
-          <h3 className="line-clamp-1 font-semibold">
-            <Link
-              to="/venues/$id"
-              params={{ id: venue.id }}
-              className="hover:text-primary transition-colors"
-            >
-              {venue.name}
-            </Link>
-          </h3>
+          <h3 className="line-clamp-1 font-semibold">{titleLink}</h3>
           <p className="mt-1 text-xs text-muted-foreground">
             {location || venue.venueType || "Nearby park"}
           </p>
         </div>
         <div className="grid grid-cols-3 gap-2 text-xs">
+          <span className="rounded-md bg-muted px-2 py-1">{statusLabel}</span>
           <span className="rounded-md bg-muted px-2 py-1">
-            {venue.activePlayers ?? 0} playing
+            {isGoogleDiscovery
+              ? ratingLabel
+              : `${venue.courtCount ?? 0} courts`}
           </span>
-          <span className="rounded-md bg-muted px-2 py-1">
-            {venue.courtCount ?? 0} courts
-          </span>
-          <span className="rounded-md bg-muted px-2 py-1">
-            {venue.distanceMiles ? `${venue.distanceMiles} mi` : "nearby"}
-          </span>
+          <span className="rounded-md bg-muted px-2 py-1">{distanceLabel}</span>
         </div>
       </div>
     </article>
+  );
+}
+
+const getVenueStatusLabel = (
+  venue: VenueCardData,
+  isGoogleDiscovery: boolean
+) => {
+  if (!isGoogleDiscovery) {
+    return `${venue.activePlayers ?? 0} playing`;
+  }
+
+  if (venue.openNow === undefined) {
+    return "Maps";
+  }
+
+  return venue.openNow ? "Open now" : "Check hours";
+};
+
+function ParkHeatHeader({
+  heatScore,
+  heatWidth,
+}: {
+  heatScore: number;
+  heatWidth: string;
+}) {
+  return (
+    <div className="relative h-28 bg-[radial-gradient(circle_at_28%_40%,hsl(78_100%_60%/.55),transparent_24%),radial-gradient(circle_at_72%_36%,hsl(142_100%_18%/.9),transparent_28%),linear-gradient(135deg,hsl(142_100%_18%/.45),hsl(240_10%_4%/.2))] hover:opacity-95 transition-opacity">
+      <div className="absolute inset-x-4 bottom-4">
+        <div className="h-2 overflow-hidden rounded-full bg-black/35">
+          <div
+            className="h-full rounded-full bg-brand-yellow"
+            style={{ width: heatWidth }}
+          />
+        </div>
+        <p className="mt-2 text-xs font-semibold text-white">
+          {heatScore}% heat
+        </p>
+      </div>
+    </div>
   );
 }
 

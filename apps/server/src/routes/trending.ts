@@ -9,9 +9,11 @@ import {
 import { and, desc, eq, gte, isNotNull, lte } from "drizzle-orm";
 import type { SQLiteColumn } from "drizzle-orm/sqlite-core";
 import { Hono } from "hono";
+import type { Context } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 
 import { haversineDistance } from "../lib/geo";
+import { GooglePlacesClient } from "../lib/google-places";
 import type { AppEnv } from "../lib/types";
 
 const VENUE_RADIUS = 50;
@@ -20,6 +22,25 @@ const VIDEO_RADIUS = 500;
 const PLAYER_RADIUS = 100;
 const MILES_PER_LATITUDE_DEGREE = 69;
 const MAX_LOCATION_CANDIDATES = 100;
+const TRENDING_VENUE_LIMIT = 8;
+
+type DbVenue = typeof venue.$inferSelect;
+type TrendingDbVenue = DbVenue & {
+  distanceMiles?: number;
+  source?: "rallycasts";
+};
+type TrendingVenue = TrendingDbVenue | GoogleDiscoveryVenue;
+type GoogleDiscoveryVenue = Partial<DbVenue> & {
+  distanceMiles: number;
+  externalUrl: string;
+  googlePlaceId: string;
+  id: string;
+  latitude: number;
+  longitude: number;
+  name: string;
+  openNow?: boolean;
+  source: "google_places";
+};
 
 const getBoundingBox = (lat: number, lng: number, radiusMiles: number) => {
   const latitudeDelta = radiusMiles / MILES_PER_LATITUDE_DEGREE;
@@ -80,6 +101,91 @@ const withinRadius = (
   itemLng !== null &&
   haversineDistance(lat, lng, itemLat, itemLng) <= radiusMiles;
 
+const getGoogleMapsUrl = (placeId: string, lat: number, lng: number) => {
+  const url = new URL("https://www.google.com/maps/search/");
+  url.searchParams.set("api", "1");
+  url.searchParams.set("query", `${lat},${lng}`);
+  url.searchParams.set("query_place_id", placeId);
+  return url.toString();
+};
+
+const parseCityState = (address: string) => {
+  const parts = address.split(",").map((part) => part.trim());
+  const stateZip = parts.at(-2) ?? "";
+  const state = stateZip.match(/\b[A-Z]{2}\b/u)?.[0] ?? stateZip;
+  const city = parts.length > 2 ? (parts.at(-3) ?? null) : null;
+
+  return { city, state };
+};
+
+const getGoogleDiscoveryVenues = async (
+  c: Context<AppEnv>,
+  lat: number,
+  lng: number,
+  existingVenues: DbVenue[]
+): Promise<GoogleDiscoveryVenue[]> => {
+  if (!c.env.GOOGLE_PLACES_API_KEY) {
+    return [];
+  }
+
+  try {
+    const client = new GooglePlacesClient(c.env.GOOGLE_PLACES_API_KEY);
+    const places = await client.searchNearby(
+      lat,
+      lng,
+      Math.min(VENUE_RADIUS * 1609, 50_000),
+      "pickleball courts"
+    );
+    const existingPlaceIds = new Set(
+      existingVenues.flatMap((record) =>
+        record.googlePlaceId ? [record.googlePlaceId] : []
+      )
+    );
+
+    return places
+      .filter((place) => !existingPlaceIds.has(place.placeId))
+      .map((place) => {
+        const distanceMiles = haversineDistance(
+          lat,
+          lng,
+          place.latitude,
+          place.longitude
+        );
+        const location = parseCityState(place.address);
+
+        return {
+          city: location.city,
+          country: "US",
+          courtCount: null,
+          distanceMiles,
+          externalUrl: getGoogleMapsUrl(
+            place.placeId,
+            place.latitude,
+            place.longitude
+          ),
+          googlePlaceId: place.placeId,
+          id: `google:${place.placeId}`,
+          latitude: place.latitude,
+          longitude: place.longitude,
+          name: place.name,
+          openNow: place.openNow,
+          photoUrl: place.photoUrl,
+          rating: place.rating,
+          source: "google_places" as const,
+          state: location.state,
+          userRatingsTotal: place.userRatingsTotal,
+          venueType: "park" as const,
+        };
+      })
+      .filter((place) => place.distanceMiles <= VENUE_RADIUS)
+      .toSorted((left, right) => left.distanceMiles - right.distanceMiles)
+      .slice(0, TRENDING_VENUE_LIMIT);
+  } catch (error) {
+    console.error("Google Places trending parks error:", error);
+    return [];
+  }
+};
+
 export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
   const db = createDb(c.env.DB);
   const latParam = c.req.query("lat");
@@ -96,7 +202,7 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
 
   let videos: (typeof video.$inferSelect)[];
   let events: (typeof event.$inferSelect)[];
-  let venues: (typeof venue.$inferSelect)[];
+  let venues: TrendingVenue[];
   let players: {
     bio: string | null;
     displayUsername: string | null;
@@ -119,12 +225,29 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
       )
       .limit(MAX_LOCATION_CANDIDATES);
 
-    venues = nearbyVenueCandidates
+    const dbVenues = nearbyVenueCandidates
       .filter((row) =>
         withinRadius(lat, lng, row.latitude, row.longitude, VENUE_RADIUS)
       )
       .toSorted(byDistance(lat, lng))
-      .slice(0, 8);
+      .slice(0, TRENDING_VENUE_LIMIT)
+      .map((record) => ({
+        ...record,
+        distanceMiles: haversineDistance(
+          lat,
+          lng,
+          record.latitude ?? 0,
+          record.longitude ?? 0
+        ),
+        source: "rallycasts" as const,
+      }));
+
+    const googleVenues =
+      dbVenues.length < TRENDING_VENUE_LIMIT
+        ? await getGoogleDiscoveryVenues(c, lat, lng, dbVenues)
+        : [];
+
+    venues = [...dbVenues, ...googleVenues].slice(0, TRENDING_VENUE_LIMIT);
 
     // Nearby videos (broader, within 500 miles - state/region level)
     const nearbyVideoCandidates = await db
@@ -309,7 +432,7 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
       .orderBy(desc(event.startsAt))
       .limit(6);
 
-    venues = await db.select().from(venue).limit(8);
+    venues = await db.select().from(venue).limit(TRENDING_VENUE_LIMIT);
 
     players = await db
       .select({
