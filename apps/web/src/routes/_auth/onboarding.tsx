@@ -11,6 +11,7 @@ import {
   Sparkles,
   Trophy,
   User,
+  Video,
   ChevronLeft,
   ChevronRight,
   Search,
@@ -21,10 +22,13 @@ import {
 import { useState, useEffect, useRef } from "react";
 import { z } from "zod";
 
+import { apiClient } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
 import { useOnboarding, useProfile } from "@/lib/hooks";
 import type { ProfilePayload } from "@/lib/hooks";
+import { readApiJson } from "@/lib/hooks/api";
 import {
+  buildOnboardingBio,
   getDateOfBirthValidation,
   parseDateOfBirth,
 } from "@/lib/onboarding-profile";
@@ -37,102 +41,18 @@ interface CourtSuggestion {
   formattedAddress: string;
   latitude: number;
   longitude: number;
+  placeId?: string;
+  source: "google_places" | "radar";
   stateCode: string;
 }
 
-// Popular pickleball locations across the country as a fallback mock database
-const mockCourts: CourtSuggestion[] = [
-  {
-    addressLabel: "Austin Tennis & Pickleball Center",
-    city: "Austin",
-    countryCode: "US",
-    formattedAddress: "Austin Tennis & Pickleball Center, Austin, TX",
-    latitude: 30.3582,
-    longitude: -97.6853,
-    stateCode: "TX",
-  },
-  {
-    addressLabel: "Millennium Park Pickleball Courts",
-    city: "Chicago",
-    countryCode: "US",
-    formattedAddress: "Millennium Park Pickleball Courts, Chicago, IL",
-    latitude: 41.8827,
-    longitude: -87.6227,
-    stateCode: "IL",
-  },
-  {
-    addressLabel: "Little Lytle Park Pickleball",
-    city: "Cincinnati",
-    countryCode: "US",
-    formattedAddress: "Little Lytle Park Pickleball, Cincinnati, OH",
-    latitude: 39.0988,
-    longitude: -84.5072,
-    stateCode: "OH",
-  },
-  {
-    addressLabel: "Bobby Riggs Racket & Paddle",
-    city: "San Diego",
-    countryCode: "US",
-    formattedAddress: "Bobby Riggs Racket & Paddle, San Diego, CA",
-    latitude: 33.0415,
-    longitude: -117.2687,
-    stateCode: "CA",
-  },
-  {
-    addressLabel: "Chicken N Pickle",
-    city: "Kansas City",
-    countryCode: "US",
-    formattedAddress: "Chicken N Pickle, Kansas City, MO",
-    latitude: 39.1438,
-    longitude: -94.5772,
-    stateCode: "MO",
-  },
-  {
-    addressLabel: "Central Park Courts",
-    city: "New York",
-    countryCode: "US",
-    formattedAddress: "Central Park Courts, New York, NY",
-    latitude: 40.7851,
-    longitude: -73.9683,
-    stateCode: "NY",
-  },
-  {
-    addressLabel: "Pioneer Park Courts",
-    city: "Salt Lake City",
-    countryCode: "US",
-    formattedAddress: "Pioneer Park Courts, Salt Lake City, UT",
-    latitude: 40.7618,
-    longitude: -111.9016,
-    stateCode: "UT",
-  },
-  {
-    addressLabel: "Plaza Park Pickleball",
-    city: "Las Vegas",
-    countryCode: "US",
-    formattedAddress: "Plaza Park Pickleball, Las Vegas, NV",
-    latitude: 36.1699,
-    longitude: -115.1398,
-    stateCode: "NV",
-  },
-  {
-    addressLabel: "El Dorado Park Pickleball Courts",
-    city: "Long Beach",
-    countryCode: "US",
-    formattedAddress: "El Dorado Park Pickleball Courts, Long Beach, CA",
-    latitude: 33.8183,
-    longitude: -118.0864,
-    stateCode: "CA",
-  },
-  {
-    addressLabel: "Water Front Park Pickleball",
-    city: "Seattle",
-    countryCode: "US",
-    formattedAddress: "Water Front Park Pickleball, Seattle, WA",
-    latitude: 47.6062,
-    longitude: -122.3321,
-    stateCode: "WA",
-  },
-];
+interface GooglePlaceSuggestion {
+  address: string;
+  latitude: number;
+  longitude: number;
+  name: string;
+  placeId: string;
+}
 
 // Simple debounce hook
 function useDebounce<T>(value: T, delay: number): T {
@@ -555,8 +475,14 @@ function AccountInfoStep({
 // STEP 2: Interests & Goals Step
 // ---------------------------------------------------------------------
 interface GoalsStepProps {
+  availability: string[];
+  contentFormats: string[];
   goals: string[];
+  playStyle: string;
+  setAvailability: React.Dispatch<React.SetStateAction<string[]>>;
+  setContentFormats: React.Dispatch<React.SetStateAction<string[]>>;
   setGoals: React.Dispatch<React.SetStateAction<string[]>>;
+  setPlayStyle: (val: string) => void;
   frequency: string;
   setFrequency: (val: string) => void;
   isPlayer: boolean;
@@ -569,41 +495,91 @@ interface GoalsStepProps {
 
 const INTERESTS_OPTIONS = [
   {
-    desc: "Compete in leagues and local bracket play.",
+    desc: "League nights, brackets, DUPR-ready competition.",
     icon: <Trophy className="size-4" />,
     id: "tournaments",
-    label: "Find Tournaments",
+    label: "Compete",
   },
   {
-    desc: "Meet other local pickleballers matching your level.",
+    desc: "Find partners and foursomes around your level.",
     icon: <Users className="size-4" />,
     id: "players",
-    label: "Find Players",
+    label: "Meet Players",
   },
   {
-    desc: "Browse open play, clinics, and social meetups.",
+    desc: "Open play, clinics, socials, and pop-up sessions.",
     icon: <Calendar className="size-4" />,
     id: "events",
-    label: "Discover Events",
+    label: "Find Play",
   },
   {
-    desc: "Locate court facilities wherever you travel.",
+    desc: "See active courts and what is happening there.",
     icon: <MapPin className="size-4" />,
     id: "parks",
-    label: "Find Parks & Courts",
+    label: "Track Courts",
+  },
+  {
+    desc: "Watch highlights, resets, hands battles, and local clips.",
+    icon: <Video className="size-4" />,
+    id: "watch",
+    label: "Watch Clips",
+  },
+  {
+    desc: "Post matches, request recordings, and build a player reel.",
+    icon: <Camera className="size-4" />,
+    id: "share",
+    label: "Share Video",
   },
 ];
 
 const FREQ_OPTIONS = [
-  { id: "daily", label: "⚡ Everyday" },
-  { id: "weekly", label: "🎾 2-3 times a week" },
-  { id: "few_times_month", label: "🗓️ Once a week" },
-  { id: "occasionally", label: "☕ Occasionally / Just starting" },
+  { id: "daily", label: "Every day" },
+  { id: "weekly", label: "2-3 times a week" },
+  { id: "few_times_month", label: "Once a week" },
+  { id: "occasionally", label: "Getting started" },
 ];
 
+const PLAY_STYLE_OPTIONS = [
+  { id: "social", label: "Social", value: "Social" },
+  { id: "competitive", label: "Competitive", value: "Competitive" },
+  { id: "training", label: "Drill-focused", value: "Drill-focused" },
+  { id: "creator", label: "Video-first", value: "Video-first" },
+];
+
+const AVAILABILITY_OPTIONS = [
+  { id: "weekday_mornings", label: "Weekday mornings" },
+  { id: "weeknights", label: "Weeknights" },
+  { id: "saturday_mornings", label: "Saturday mornings" },
+  { id: "sunday_afternoons", label: "Sunday afternoons" },
+];
+
+const CONTENT_FORMAT_OPTIONS = [
+  { id: "highlights", label: "Match highlights" },
+  { id: "nearby_heat", label: "Local park heat" },
+  { id: "drills", label: "Drills and tips" },
+  { id: "events", label: "Events worth joining" },
+];
+
+const toggleSelection = (
+  value: string,
+  setValues: React.Dispatch<React.SetStateAction<string[]>>
+) => {
+  setValues((prev) =>
+    prev.includes(value)
+      ? prev.filter((item) => item !== value)
+      : [...prev, value]
+  );
+};
+
 function GoalsStep({
+  availability,
+  contentFormats,
   goals,
+  playStyle,
+  setAvailability,
+  setContentFormats,
   setGoals,
+  setPlayStyle,
   frequency,
   setFrequency,
   isPlayer,
@@ -613,26 +589,26 @@ function GoalsStep({
   onContinue,
   onBack,
 }: GoalsStepProps) {
-  const toggleGoal = (id: string) => {
-    setGoals((prev) =>
-      prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id]
-    );
-  };
-
   const isRoleValid = isPlayer || isOrganizer;
   const isGoalsValid = goals.length > 0;
   const isFreqValid = frequency !== "";
-  const canContinue = isRoleValid && isGoalsValid && isFreqValid;
+  const canContinue =
+    isRoleValid &&
+    isGoalsValid &&
+    isFreqValid &&
+    playStyle !== "" &&
+    availability.length > 0 &&
+    contentFormats.length > 0;
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold tracking-tight">
-          What gets you on the court?
+          Tune your pickleball signal
         </h2>
         <p className="text-muted-foreground text-sm mt-1">
-          Tell us about your pickleball routine so we can curate the ultimate
-          feed for you.
+          RallyCasts should feel local from the first scroll. Tell us what makes
+          a session worth showing up for.
         </p>
       </div>
 
@@ -659,7 +635,7 @@ function GoalsStep({
               <div>
                 <span className="font-semibold block text-sm">Player</span>
                 <span className="text-xs text-muted-foreground mt-0.5 block">
-                  Find matches, join open plays, and track your rating.
+                  Find players, watch local clips, and build your player graph.
                 </span>
               </div>
             </button>
@@ -679,8 +655,8 @@ function GoalsStep({
               <div>
                 <span className="font-semibold block text-sm">Organizer</span>
                 <span className="text-xs text-muted-foreground mt-0.5 block">
-                  Host tournaments, organize leagues, and manage pickleball
-                  parks.
+                  Run ladders, promote events, and make your courts easier to
+                  find.
                 </span>
               </div>
             </button>
@@ -694,7 +670,7 @@ function GoalsStep({
               <div className="grid gap-3 sm:grid-cols-2 text-xs leading-relaxed text-muted-foreground">
                 <div className="sm:border-r sm:border-border/50 sm:pr-3">
                   <span className="font-bold text-foreground block mb-0.5">
-                    Rally Free Organizer
+                    Organizer starter
                   </span>
                   <ul className="list-disc list-inside space-y-0.5">
                     <li>Create up to 2 active events</li>
@@ -704,7 +680,7 @@ function GoalsStep({
                 </div>
                 <div>
                   <span className="font-bold text-yellow-600 dark:text-yellow-500 block mb-0.5">
-                    Rally Premium Organizer
+                    Organizer growth
                   </span>
                   <ul className="list-disc list-inside space-y-0.5">
                     <li>Unlimited events, leagues & tournaments</li>
@@ -720,7 +696,7 @@ function GoalsStep({
         {/* Interests Selection */}
         <div className="space-y-3">
           <Label className="text-base font-semibold">
-            What are you looking for?{" "}
+            What do you want RallyCasts to find for you?{" "}
             <span className="text-destructive">*</span>
           </Label>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -730,7 +706,7 @@ function GoalsStep({
                 <button
                   key={opt.id}
                   type="button"
-                  onClick={() => toggleGoal(opt.id)}
+                  onClick={() => toggleSelection(opt.id, setGoals)}
                   className={`flex items-start gap-3 rounded-lg border p-3.5 text-left transition-all hover:bg-muted/40 ${
                     isSelected
                       ? "border-primary bg-primary/5 ring-1 ring-primary"
@@ -759,8 +735,7 @@ function GoalsStep({
         {/* Play Frequency */}
         <div className="space-y-3">
           <Label className="text-base font-semibold">
-            How often do you hit the courts?{" "}
-            <span className="text-destructive">*</span>
+            How often do you play? <span className="text-destructive">*</span>
           </Label>
           <div className="grid gap-2 grid-cols-2 lg:grid-cols-4">
             {FREQ_OPTIONS.map((opt) => {
@@ -772,6 +747,73 @@ function GoalsStep({
                   onClick={() => setFrequency(opt.id)}
                   type="button"
                   className="w-full text-xs py-5 px-3 whitespace-normal h-auto rounded-lg text-center"
+                >
+                  {opt.label}
+                </Button>
+              );
+            })}
+          </div>
+        </div>
+        <div className="space-y-3">
+          <Label className="text-base font-semibold">
+            Pick your court energy <span className="text-destructive">*</span>
+          </Label>
+          <div className="grid gap-2 grid-cols-2 lg:grid-cols-4">
+            {PLAY_STYLE_OPTIONS.map((opt) => {
+              const isSelected = playStyle === opt.value;
+              return (
+                <Button
+                  key={opt.id}
+                  variant={isSelected ? "default" : "outline"}
+                  onClick={() => setPlayStyle(opt.value)}
+                  type="button"
+                  className="w-full text-xs py-4 px-3 whitespace-normal h-auto rounded-lg text-center"
+                >
+                  {opt.label}
+                </Button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <Label className="text-base font-semibold">
+            When are you usually free?{" "}
+            <span className="text-destructive">*</span>
+          </Label>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            {AVAILABILITY_OPTIONS.map((opt) => {
+              const isSelected = availability.includes(opt.label);
+              return (
+                <Button
+                  key={opt.id}
+                  variant={isSelected ? "default" : "outline"}
+                  onClick={() => toggleSelection(opt.label, setAvailability)}
+                  type="button"
+                  className="w-full text-xs py-4 px-3 whitespace-normal h-auto rounded-lg text-center"
+                >
+                  {opt.label}
+                </Button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <Label className="text-base font-semibold">
+            What belongs in your video feed?{" "}
+            <span className="text-destructive">*</span>
+          </Label>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            {CONTENT_FORMAT_OPTIONS.map((opt) => {
+              const isSelected = contentFormats.includes(opt.label);
+              return (
+                <Button
+                  key={opt.id}
+                  variant={isSelected ? "default" : "outline"}
+                  onClick={() => toggleSelection(opt.label, setContentFormats)}
+                  type="button"
+                  className="w-full text-xs py-4 px-3 whitespace-normal h-auto rounded-lg text-center"
                 >
                   {opt.label}
                 </Button>
@@ -895,6 +937,63 @@ function CourtSVG() {
   );
 }
 
+const parsePlaceCityState = (address: string) => {
+  const parts = address.split(",").map((part) => part.trim());
+  const stateZip = parts.at(-2) ?? "";
+  const state = stateZip.match(/\b[A-Z]{2}\b/u)?.[0] ?? stateZip;
+  const city = parts.length > 2 ? (parts.at(-3) ?? "") : "";
+
+  return { city, state };
+};
+
+const mapGooglePlaceToCourtSuggestion = (
+  place: GooglePlaceSuggestion
+): CourtSuggestion => {
+  const location = parsePlaceCityState(place.address);
+
+  return {
+    addressLabel: place.name,
+    city: location.city,
+    countryCode: "US",
+    formattedAddress: place.address,
+    latitude: place.latitude,
+    longitude: place.longitude,
+    placeId: place.placeId,
+    source: "google_places",
+    stateCode: location.state,
+  };
+};
+
+const getCourtSourceLabel = (payload: ProfilePayload) => {
+  if (payload.radarAddressId === "manual") {
+    return "Custom Entry";
+  }
+
+  if (payload.radarAddressId === "google_places") {
+    return "Google Places";
+  }
+
+  if (payload.radarAddressId === "radar") {
+    return "Radar";
+  }
+
+  return "Verified";
+};
+
+const formatCoordinate = (
+  value: number | undefined,
+  positiveSuffix: string,
+  negativeSuffix: string
+) => {
+  if (value === undefined) {
+    return "";
+  }
+
+  return `${Math.abs(value).toFixed(4)}° ${
+    value >= 0 ? positiveSuffix : negativeSuffix
+  }`;
+};
+
 function HomeCourtStep({
   payload,
   setPayload,
@@ -990,56 +1089,68 @@ function HomeCourtStep({
     let active = true;
     setIsLoading(true);
 
-    const fetchRadarSuggestions = async () => {
+    const fetchGoogleSuggestions = async () => {
+      const result = await readApiJson<{ places: GooglePlaceSuggestion[] }>(
+        apiClient.api.places.search.$get({
+          query: {
+            q: debouncedQuery,
+            ...(userLocation
+              ? {
+                  lat: String(userLocation.lat),
+                  lng: String(userLocation.lng),
+                }
+              : {}),
+          },
+        })
+      );
+
+      return result.places.map(mapGooglePlaceToCourtSuggestion);
+    };
+
+    const fetchRadarSuggestions = async (): Promise<CourtSuggestion[]> => {
       if (!radarKey) {
-        // Fallback to local mock search when key is not defined
-        const term = debouncedQuery.toLowerCase();
-        const matches = mockCourts.filter(
-          (c) =>
-            c.formattedAddress.toLowerCase().includes(term) ||
-            c.addressLabel?.toLowerCase().includes(term)
-        );
-        if (active) {
-          setSuggestions(matches);
-          setIsLoading(false);
-        }
-        return;
+        return [];
       }
 
-      try {
-        const params: Parameters<typeof Radar.autocomplete>[0] = {
-          limit: 8,
-          query: debouncedQuery,
+      const params: Parameters<typeof Radar.autocomplete>[0] = {
+        limit: 8,
+        query: debouncedQuery,
+      };
+      if (userLocation) {
+        params.near = {
+          latitude: userLocation.lat,
+          longitude: userLocation.lng,
         };
-        if (userLocation) {
-          params.near = {
-            latitude: userLocation.lat,
-            longitude: userLocation.lng,
-          };
-        }
-        const result = await Radar.autocomplete(params);
-        if (active && result.addresses) {
-          const mapped: CourtSuggestion[] = result.addresses.map((addr) => ({
-            addressLabel: addr.addressLabel ?? addr.placeLabel ?? "",
-            city: addr.city ?? "",
-            countryCode: addr.countryCode ?? "US",
-            formattedAddress: addr.formattedAddress ?? "",
-            latitude: addr.latitude,
-            longitude: addr.longitude,
-            stateCode: addr.stateCode ?? "",
-          }));
-          setSuggestions(mapped);
+      }
+      const result = await Radar.autocomplete(params);
+      return (result.addresses ?? []).map((addr) => ({
+        addressLabel: addr.addressLabel ?? addr.placeLabel ?? "",
+        city: addr.city ?? "",
+        countryCode: addr.countryCode ?? "US",
+        formattedAddress: addr.formattedAddress ?? "",
+        latitude: addr.latitude,
+        longitude: addr.longitude,
+        source: "radar" as const,
+        stateCode: addr.stateCode ?? "",
+      }));
+    };
+
+    const fetchCourtSuggestions = async () => {
+      try {
+        const googleSuggestions = await fetchGoogleSuggestions();
+        if (active) {
+          setSuggestions(googleSuggestions);
         }
       } catch {
-        // Fallback to mock search on error
-        const term = debouncedQuery.toLowerCase();
-        const matches = mockCourts.filter(
-          (c) =>
-            c.formattedAddress.toLowerCase().includes(term) ||
-            c.addressLabel?.toLowerCase().includes(term)
-        );
-        if (active) {
-          setSuggestions(matches);
+        try {
+          const radarSuggestions = await fetchRadarSuggestions();
+          if (active) {
+            setSuggestions(radarSuggestions);
+          }
+        } catch {
+          if (active) {
+            setSuggestions([]);
+          }
         }
       } finally {
         if (active) {
@@ -1048,7 +1159,7 @@ function HomeCourtStep({
       }
     };
 
-    fetchRadarSuggestions();
+    fetchCourtSuggestions();
 
     return () => {
       active = false;
@@ -1063,8 +1174,8 @@ function HomeCourtStep({
       homeLatitude: addr.latitude,
       homeLongitude: addr.longitude,
       homeState: addr.stateCode || "US",
-      radarAddressId: "",
-      radarPlaceId: "",
+      radarAddressId: addr.source,
+      radarPlaceId: addr.placeId ?? "",
     }));
     setSearchQuery("");
     setShowDropdown(false);
@@ -1079,9 +1190,8 @@ function HomeCourtStep({
       ...prev,
       homeCity: manualCity,
       homeCourtName: manualName,
-      // Default backup coords
-      homeLatitude: 37.7749,
-      homeLongitude: -122.4194,
+      homeLatitude: undefined,
+      homeLongitude: undefined,
       homeState: manualState.toUpperCase(),
       radarAddressId: "manual",
       radarPlaceId: "manual",
@@ -1095,7 +1205,7 @@ function HomeCourtStep({
   if (isLoading) {
     dropdownContent = (
       <div className="p-4 text-xs text-muted-foreground text-center animate-pulse">
-        Searching Radar index...
+        Searching courts...
       </div>
     );
   } else if (suggestions.length === 0) {
@@ -1143,25 +1253,25 @@ function HomeCourtStep({
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold tracking-tight">
-          Select your home court
+          Anchor your local feed
         </h2>
         <p className="text-muted-foreground text-sm mt-1">
-          RallyCasts will use this to show tournaments, local events, and nearby
-          players first.
+          Your home court powers nearby clips, active park heat, player
+          suggestions, and the events you are most likely to care about.
         </p>
       </div>
 
       <div className="space-y-5">
         <div className="relative">
           <Label htmlFor="court-search" className="mb-2 block">
-            Search for pickleball courts, parks or addresses{" "}
+            Search for the court, park, club, or rec center you play most{" "}
             <span className="text-destructive">*</span>
           </Label>
           <div className="relative">
             <Search className="absolute left-3 top-3 size-4 text-muted-foreground" />
             <Input
               id="court-search"
-              placeholder="Search by venue name, e.g. Millennium Park"
+              placeholder="Search by venue name, e.g. Crestwood Pickleball Park"
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
@@ -1256,15 +1366,14 @@ function HomeCourtStep({
                 </p>
                 {payload.homeLatitude && payload.homeLongitude && (
                   <span className="text-[11px] text-muted-foreground block mt-1">
-                    Coordinates: {payload.homeLatitude.toFixed(4)}° N,{" "}
-                    {payload.homeLongitude.toFixed(4)}° W
+                    Coordinates:{" "}
+                    {formatCoordinate(payload.homeLatitude, "N", "S")},{" "}
+                    {formatCoordinate(payload.homeLongitude, "E", "W")}
                   </span>
                 )}
               </div>
               <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-semibold">
-                {payload.radarAddressId === "manual"
-                  ? "Custom Entry"
-                  : "Radar Verified"}
+                {getCourtSourceLabel(payload)}
               </span>
             </div>
 
@@ -1343,11 +1452,11 @@ function SkillLevelStep({
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold tracking-tight">
-          Select your pickleball skill level
+          Place yourself on the right courts
         </h2>
         <p className="text-muted-foreground text-sm mt-1">
-          RallyCasts connects players of similar levels. Select your rating
-          range to get accurate matches.
+          We use this to recommend players, clips, events, and recorded matches
+          that match your speed of play.
         </p>
       </div>
 
@@ -1412,11 +1521,11 @@ function CasterStep({
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold tracking-tight">
-          Do you want caster tools?
+          Make RallyCasts video-first
         </h2>
         <p className="text-muted-foreground text-sm mt-1">
-          Casters record, stream, or commentate on matches and can earn payouts
-          on RallyCasts.
+          Choose whether you want recording and caster tools in your player hub
+          from day one.
         </p>
       </div>
 
@@ -1435,10 +1544,10 @@ function CasterStep({
           >
             <Camera className="size-6" />
           </div>
-          <h4 className="font-bold text-sm">I want to cast</h4>
+          <h4 className="font-bold text-sm">Turn on creator tools</h4>
           <p className="text-xs text-muted-foreground mt-2 leading-relaxed max-w-[200px]">
-            Enable streaming dashboard, client booking schedules, and earn
-            payout tools.
+            Add video requests, match recording, and creator earning surfaces to
+            my hub.
           </p>
         </button>
 
@@ -1456,10 +1565,9 @@ function CasterStep({
           >
             <User className="size-6" />
           </div>
-          <h4 className="font-bold text-sm">Maybe later</h4>
+          <h4 className="font-bold text-sm">Player feed only</h4>
           <p className="text-xs text-muted-foreground mt-2 leading-relaxed max-w-[200px]">
-            Keep my dashboard focused on the standard player matching and court
-            feeds.
+            Keep my first session focused on courts, players, clips, and events.
           </p>
         </button>
       </div>
@@ -1489,11 +1597,11 @@ function PlanStep({ finish, onBack }: PlanStepProps) {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold tracking-tight">
-          Choose your subscription plan
+          Your court feed is ready
         </h2>
         <p className="text-muted-foreground text-sm mt-1">
-          Start for free or unlock the premium tier to power up your social
-          pickleball experience.
+          Pick how you want to enter RallyCasts. You can start free and upgrade
+          when you are ready to organize, analyze, or earn from video.
         </p>
       </div>
 
@@ -1505,32 +1613,31 @@ function PlanStep({ finish, onBack }: PlanStepProps) {
         >
           <div>
             <div className="flex justify-between items-center">
-              <h3 className="text-xl font-bold">Rally Free</h3>
+              <h3 className="text-xl font-bold">Start Free</h3>
               <span className="text-xs font-semibold px-2 py-0.5 bg-muted text-muted-foreground rounded-full">
                 Active
               </span>
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
-              Perfect for casual players looking to discover and connect
-              locally.
+              Best for players who want a personalized local video feed today.
             </p>
             <ul className="mt-4 space-y-2 text-xs text-muted-foreground">
               <li className="flex items-center gap-2">
                 <Check className="size-3.5 text-primary shrink-0" /> Find local
-                courts & parks
+                home court heat and nearby venues
               </li>
               <li className="flex items-center gap-2">
                 <Check className="size-3.5 text-primary shrink-0" /> Match with
-                players of your skill
+                players around your level
               </li>
               <li className="flex items-center gap-2">
                 <Check className="size-3.5 text-primary shrink-0" /> Join local
-                open play sessions
+                clips, events, and open play sessions
               </li>
             </ul>
           </div>
           <Button className="w-full mt-6 rounded-md" variant="outline">
-            Choose Free
+            Enter My Feed
           </Button>
         </button>
 
@@ -1545,33 +1652,34 @@ function PlanStep({ finish, onBack }: PlanStepProps) {
           <div>
             <div className="flex justify-between items-center">
               <h3 className="text-xl font-bold flex items-center gap-1.5">
-                Rally Premium <Sparkles className="size-4 text-yellow-500" />
+                Premium-ready <Sparkles className="size-4 text-yellow-500" />
               </h3>
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
-              For serious players, league coordinators, and casters.
+              For serious players, organizers, and creators who want richer
+              tools.
             </p>
             <ul className="mt-4 space-y-2 text-xs text-muted-foreground">
               <li className="flex items-center gap-2 text-foreground font-medium">
                 <Check className="size-3.5 text-yellow-500 shrink-0" /> Priority
-                discovery placement
+                discovery and profile placement
               </li>
               <li className="flex items-center gap-2 text-foreground font-medium">
                 <Check className="size-3.5 text-yellow-500 shrink-0" /> Rich
-                player & court analytics
+                player, video, and court analytics
               </li>
               <li className="flex items-center gap-2 text-foreground font-medium">
                 <Check className="size-3.5 text-yellow-500 shrink-0" /> Custom
-                event creator tools
+                event, ladder, and bracket tools
               </li>
               <li className="flex items-center gap-2 text-foreground font-medium">
                 <Check className="size-3.5 text-yellow-500 shrink-0" /> Earning
-                commission tools
+                recording and earning tools
               </li>
             </ul>
           </div>
           <Button className="w-full mt-6 rounded-md bg-yellow-500 hover:bg-yellow-600 text-black font-semibold border-0">
-            Upgrade to Premium
+            Unlock Premium Mode
           </Button>
         </button>
       </div>
@@ -1585,16 +1693,66 @@ function PlanStep({ finish, onBack }: PlanStepProps) {
   );
 }
 
+const toProfileRecord = (profile: unknown) =>
+  profile && typeof profile === "object"
+    ? (profile as Record<string, unknown>)
+    : {};
+
+const getProfileString = (
+  record: Record<string, unknown>,
+  key: string,
+  fallback = ""
+) => (typeof record[key] === "string" ? record[key] : fallback);
+
+const getProfileNumber = (record: Record<string, unknown>, key: string) =>
+  typeof record[key] === "number" ? record[key] : undefined;
+
+const getProfileBoolean = (
+  record: Record<string, unknown>,
+  key: string,
+  fallback: boolean
+) => (typeof record[key] === "boolean" ? record[key] : fallback);
+
+const getProfileSkillLevel = (record: Record<string, unknown>) => {
+  const value = record.skillLevel;
+  return value === "beginner" ||
+    value === "intermediate" ||
+    value === "advanced" ||
+    value === "pro"
+    ? value
+    : undefined;
+};
+
+const normalizeProfilePayload = (profile: unknown): ProfilePayload => {
+  const record = toProfileRecord(profile);
+
+  return {
+    accountTier: record.accountTier === "premium" ? "premium" : "free",
+    age: getProfileNumber(record, "age"),
+    homeCity: getProfileString(record, "homeCity"),
+    homeCourtName: getProfileString(record, "homeCourtName"),
+    homeLatitude: getProfileNumber(record, "homeLatitude"),
+    homeLongitude: getProfileNumber(record, "homeLongitude"),
+    homeState: getProfileString(record, "homeState"),
+    isCaster: getProfileBoolean(record, "isCaster", false),
+    isOrganizer: getProfileBoolean(record, "isOrganizer", false),
+    isPlayer: getProfileBoolean(record, "isPlayer", true),
+    radarAddressId: getProfileString(record, "radarAddressId"),
+    radarPlaceId: getProfileString(record, "radarPlaceId"),
+    skillLevel: getProfileSkillLevel(record),
+  };
+};
+
 // ---------------------------------------------------------------------
 // MAIN PAGE COMPONENT
 // ---------------------------------------------------------------------
 const steps = [
-  { label: "Profile" },
-  { label: "Interests" },
+  { label: "Identity" },
+  { label: "Play DNA" },
   { label: "Home Court" },
-  { label: "Skill Level" },
-  { label: "Caster" },
-  { label: "Plan" },
+  { label: "Level" },
+  { label: "Video" },
+  { label: "Launch" },
 ];
 
 function OnboardingPage() {
@@ -1626,6 +1784,9 @@ function OnboardingPage() {
   const [dobVal, setDobVal] = useState("");
   const [goals, setGoals] = useState<string[]>([]);
   const [frequency, setFrequency] = useState("");
+  const [playStyle, setPlayStyle] = useState("");
+  const [availability, setAvailability] = useState<string[]>([]);
+  const [contentFormats, setContentFormats] = useState<string[]>([]);
 
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [usernameError, setUsernameError] = useState<string | null>(null);
@@ -1654,22 +1815,9 @@ function OnboardingPage() {
 
   useEffect(() => {
     if (profileData?.profile) {
-      const p = profileData.profile;
       setPayload((prev) => ({
         ...prev,
-        accountTier: p.accountTier ?? "free",
-        age: p.age ?? undefined,
-        homeCity: p.homeCity ?? "",
-        homeCourtName: p.homeCourtName ?? "",
-        homeLatitude: p.homeLatitude ?? undefined,
-        homeLongitude: p.homeLongitude ?? undefined,
-        homeState: p.homeState ?? "",
-        isCaster: p.isCaster ?? false,
-        isOrganizer: p.isOrganizer ?? false,
-        isPlayer: p.isPlayer ?? true,
-        radarAddressId: p.radarAddressId ?? "",
-        radarPlaceId: p.radarPlaceId ?? "",
-        skillLevel: p.skillLevel ?? undefined,
+        ...normalizeProfilePayload(profileData.profile),
       }));
     }
   }, [profileData]);
@@ -1763,7 +1911,7 @@ function OnboardingPage() {
     }
   };
 
-  // Compile interests/goals & play frequency into a bio summaries
+  // Compile onboarding preferences into the current profile schema.
   const handleGoalsSubmit = () => {
     const activeGoals = goals
       .map((g) => {
@@ -1771,12 +1919,18 @@ function OnboardingPage() {
         return option ? option.label : "";
       })
       .filter(Boolean)
-      .join(", ");
+      .map((label) => label.toLowerCase());
 
     const freqOption = FREQ_OPTIONS.find((f) => f.id === frequency);
-    const freqLabel = freqOption ? freqOption.label : "";
+    const freqLabel = freqOption?.label ?? "";
 
-    const userBio = `Goals: Looking for ${activeGoals.toLowerCase()}. Plays ${freqLabel.toLowerCase()}.`;
+    const userBio = buildOnboardingBio({
+      availability,
+      contentFormats,
+      frequencyLabel: freqLabel,
+      goalLabels: activeGoals,
+      playStyle,
+    });
 
     setPayload((prev) => ({
       ...prev,
@@ -1829,14 +1983,14 @@ function OnboardingPage() {
     <div className="mx-auto max-w-4xl space-y-8 px-4 py-6">
       <div className="text-center md:text-left">
         <p className="text-sm font-semibold text-primary uppercase tracking-wider">
-          RallyCasts onboarding
+          RallyCasts setup
         </p>
         <h1 className="mt-2 text-3xl md:text-4xl font-extrabold tracking-tight">
-          Tune your feed to the courts you care about.
+          Build the pickleball feed you wish already existed.
         </h1>
         <p className="text-muted-foreground text-sm max-w-2xl mt-2">
-          Tell us where you play and what you're looking for to tailor your
-          match notifications, local events feed, and court recommendations.
+          RallyCasts is video-first, local-first, and player-first. This takes a
+          minute, then your courts, clips, players, and events start lining up.
         </p>
       </div>
 
@@ -1909,8 +2063,14 @@ function OnboardingPage() {
 
           {step === 1 && (
             <GoalsStep
+              availability={availability}
+              contentFormats={contentFormats}
               goals={goals}
+              playStyle={playStyle}
+              setAvailability={setAvailability}
+              setContentFormats={setContentFormats}
               setGoals={setGoals}
+              setPlayStyle={setPlayStyle}
               frequency={frequency}
               setFrequency={setFrequency}
               isPlayer={payload.isPlayer ?? true}
