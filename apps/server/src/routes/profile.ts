@@ -6,6 +6,7 @@ import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 import { z } from "zod";
 
+import { isPlatformAdminEmail } from "../lib/admin";
 import type { AppEnv } from "../lib/types";
 import { requireAuth } from "../middleware/auth";
 
@@ -39,11 +40,50 @@ const defaultProfile = (userId: string) => ({
   userId,
 });
 
+const adminProfilePatch = {
+  accountTier: "premium" as const,
+  bio: "Official RallyCasts account for hosted events, featured brackets, and platform announcements.",
+  isOrganizer: true,
+  isPlayer: true,
+  onboardingStatus: "complete" as const,
+};
+
+const ensureAdminProfile = async (
+  db: ReturnType<typeof createDb>,
+  userId: string
+) => {
+  const record = {
+    ...adminProfilePatch,
+    updatedAt: new Date(),
+    userId,
+  };
+
+  await db.insert(userProfile).values(record).onConflictDoUpdate({
+    set: record,
+    target: userProfile.userId,
+  });
+
+  const [profile] = await db
+    .select()
+    .from(userProfile)
+    .where(eq(userProfile.userId, userId))
+    .limit(1);
+
+  return profile;
+};
+
 export const profileRouter = new Hono<AppEnv>()
   .use(requireAuth)
   .get("/me", async (c) => {
     const db = createDb(c.env.DB);
     const { user } = c.var.authSession;
+    const isPlatformAdmin = isPlatformAdminEmail(user.email, c.env);
+    if (isPlatformAdmin) {
+      const profile = await ensureAdminProfile(db, user.id);
+
+      return c.json({ isPlatformAdmin, profile, user }, HttpStatusCodes.OK);
+    }
+
     const [profile] = await db
       .select()
       .from(userProfile)
@@ -56,6 +96,7 @@ export const profileRouter = new Hono<AppEnv>()
 
       return c.json(
         {
+          isPlatformAdmin,
           profile: {
             ...draft,
             accountTier: "free",
@@ -69,14 +110,16 @@ export const profileRouter = new Hono<AppEnv>()
       );
     }
 
-    return c.json({ profile, user }, HttpStatusCodes.OK);
+    return c.json({ isPlatformAdmin, profile, user }, HttpStatusCodes.OK);
   })
   .patch("/me", zValidator("json", profileSchema), async (c) => {
     const db = createDb(c.env.DB);
     const { user } = c.var.authSession;
     const data = c.req.valid("json");
+    const isPlatformAdmin = isPlatformAdminEmail(user.email, c.env);
     const record = {
       ...data,
+      ...(isPlatformAdmin ? adminProfilePatch : {}),
       updatedAt: new Date(),
       userId: user.id,
     };
@@ -98,8 +141,10 @@ export const profileRouter = new Hono<AppEnv>()
     const db = createDb(c.env.DB);
     const { user } = c.var.authSession;
     const data = c.req.valid("json");
+    const isPlatformAdmin = isPlatformAdminEmail(user.email, c.env);
     const record = {
       ...data,
+      ...(isPlatformAdmin ? adminProfilePatch : {}),
       updatedAt: new Date(),
       userId: user.id,
     };

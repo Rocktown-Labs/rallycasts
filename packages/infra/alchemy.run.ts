@@ -52,6 +52,9 @@ const betterAuthSecret = required(
 );
 const betterAuthUrl = serverWorkerUrl;
 const corsOrigin = webWorkerUrl;
+const adminEmails = process.env.ADMIN_EMAILS ?? "camstewart7@gmail.com";
+const rallycastsAdminEmail =
+  process.env.RALLYCASTS_ADMIN_EMAIL ?? "camstewart7@gmail.com";
 const googleAiApiKey = required(
   alchemy.secret.env.GOOGLE_GENERATIVE_AI_API_KEY,
   "GOOGLE_GENERATIVE_AI_API_KEY"
@@ -124,6 +127,7 @@ await Worker("rallycasts-event-activity", {
 export const server = await Worker("rallycasts-server", {
   adopt: true,
   bindings: {
+    ADMIN_EMAILS: adminEmails,
     AI: ai,
     BETTER_AUTH_SECRET: betterAuthSecret,
     BETTER_AUTH_URL: betterAuthUrl,
@@ -146,6 +150,7 @@ export const server = await Worker("rallycasts-server", {
     R2_PUBLIC_URL: r2PublicUrl,
     R2_SECRET_ACCESS_KEY: r2SecretAccessKey,
     RADAR_SECRET_KEY: radarSecretKey,
+    RALLYCASTS_ADMIN_EMAIL: rallycastsAdminEmail,
     SEARCH_INDEX: searchIndex,
     VENUE_PRESENCE: venuePresence,
   },

@@ -176,6 +176,12 @@ export const event = sqliteTable(
     })
       .default("open_play")
       .notNull(),
+    hostLabel: text("host_label"),
+    hostType: text("host_type", {
+      enum: ["organizer", "rallycasts"],
+    })
+      .default("organizer")
+      .notNull(),
     id: text("id").primaryKey(),
     name: text("name").notNull(),
     organizerUserId: text("organizer_user_id")

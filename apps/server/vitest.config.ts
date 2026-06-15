@@ -12,6 +12,7 @@ export default defineConfig(async () => {
       cloudflareTest({
         miniflare: {
           bindings: {
+            ADMIN_EMAILS: "camstewart7@gmail.com",
             BETTER_AUTH_SECRET:
               "test-secret-test-secret-test-secret-test-secret",
             BETTER_AUTH_URL: "http://localhost:3000",
@@ -29,6 +30,7 @@ export default defineConfig(async () => {
             R2_PUBLIC_URL: "https://media.example.com",
             R2_SECRET_ACCESS_KEY: "test-r2-secret",
             RADAR_SECRET_KEY: "test-radar-key",
+            RALLYCASTS_ADMIN_EMAIL: "camstewart7@gmail.com",
           },
         },
         wrangler: {

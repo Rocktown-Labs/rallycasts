@@ -3,13 +3,13 @@ import { describe, expect, it } from "vitest";
 
 import app from "../index";
 
-const signUp = async (name: string) => {
+const signUp = async (name: string, email?: string) => {
   const username = `${name.toLowerCase().replaceAll(" ", "")}${crypto.randomUUID().slice(0, 8)}`;
   const response = await app.request(
     "/api/auth/sign-up/email",
     {
       body: JSON.stringify({
-        email: `${username}@example.com`,
+        email: email ?? `${username}@example.com`,
         name,
         password: "password-12345678",
         username,
@@ -53,6 +53,46 @@ const jsonRequest = (
   );
 
 describe("events API", () => {
+  it("promotes configured RallyCasts admins to organizers and labels hosted events", async () => {
+    const admin = await signUp("RallyCasts Admin", "camstewart7@gmail.com");
+    const profileResponse = await app.request(
+      "/api/profile/me",
+      {
+        headers: {
+          Cookie: admin.cookie,
+        },
+      },
+      env
+    );
+
+    expect(profileResponse.status).toBe(200);
+    await expect(profileResponse.json()).resolves.toMatchObject({
+      isPlatformAdmin: true,
+      profile: {
+        accountTier: "premium",
+        isOrganizer: true,
+        onboardingStatus: "complete",
+      },
+    });
+
+    const eventResponse = await jsonRequest("/api/events", admin.cookie, {
+      capacity: 16,
+      eventType: "tournament",
+      name: "RallyCasts Friday Night Bracket",
+      startsAt: new Date("2027-05-01T23:00:00.000Z").toISOString(),
+      status: "published",
+    });
+
+    expect(eventResponse.status).toBe(201);
+    await expect(eventResponse.json()).resolves.toMatchObject({
+      event: {
+        hostLabel: "RallyCasts",
+        hostType: "rallycasts",
+        organizerUserId: admin.id,
+      },
+    });
+  });
+
   it("lets players join events and organizers manage bracket matches", async () => {
     const organizer = await signUp("Olive Organizer");
     const playerOne = await signUp("Parker Player");

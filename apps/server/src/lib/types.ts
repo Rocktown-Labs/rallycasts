@@ -34,9 +34,11 @@ interface VectorizeBinding {
 
 export interface AppEnv {
   Bindings: Env & {
+    ADMIN_EMAILS?: string;
     AI?: WorkersAiBinding;
     EVENT_ACTIVITY_QUEUE?: Queue<EventActivityMessage>;
     EVENT_COORDINATOR: DurableObjectNamespace;
+    RALLYCASTS_ADMIN_EMAIL?: string;
     SEARCH_INDEX?: VectorizeBinding;
     VENUE_PRESENCE: DurableObjectNamespace;
   };

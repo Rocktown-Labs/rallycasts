@@ -16,6 +16,7 @@ import {
   MapPin,
   Play,
   Star,
+  Trophy,
   Users,
   Video,
 } from "lucide-react";
@@ -72,6 +73,8 @@ export interface CasterCardData {
 export interface EventCardData {
   capacity?: number | null;
   eventType?: string;
+  hostLabel?: string | null;
+  hostType?: "organizer" | "rallycasts" | string;
   id: string;
   name: string;
   startsAt: Date | string;
@@ -478,6 +481,7 @@ const formatDateRange = (start: Date, end: Date | null) => {
 export function EventCard({ event }: { event: EventCardData }) {
   const startsAtDate = new Date(event.startsAt);
   const endsAtDate = event.endsAt ? new Date(event.endsAt) : null;
+  const isRallyCastsHosted = event.hostType === "rallycasts";
 
   // Static fallback values matching the mockup image
   const fallbacks: Record<
@@ -537,7 +541,12 @@ export function EventCard({ event }: { event: EventCardData }) {
         </div>
 
         {/* Title text embedded in overlay bottom left */}
-        <div className="absolute left-4 bottom-3 right-4 z-10">
+        <div className="absolute left-4 bottom-3 right-4 z-10 space-y-2">
+          {isRallyCastsHosted ? (
+            <span className="inline-flex w-fit items-center rounded-full bg-brand-yellow px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-black shadow">
+              RallyCasts Hosted
+            </span>
+          ) : null}
           <h3 className="text-base font-extrabold tracking-tight text-white drop-shadow group-hover:text-primary transition-colors">
             {event.name}
           </h3>
@@ -561,6 +570,12 @@ export function EventCard({ event }: { event: EventCardData }) {
             <Users className="size-4 text-primary shrink-0" />
             <span>{event.capacity ?? "Open"} players</span>
           </div>
+          {event.hostLabel ? (
+            <div className="flex items-center gap-2">
+              <Trophy className="size-4 text-primary shrink-0" />
+              <span>{event.hostLabel}</span>
+            </div>
+          ) : null}
         </div>
 
         {/* Tags Row */}

@@ -13,6 +13,7 @@ import type { Context } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 import { z } from "zod";
 
+import { isPlatformAdminEmail } from "../lib/admin";
 import { enqueueEventActivity } from "../lib/event-activity";
 import type { EventActivityMessage } from "../lib/event-activity";
 import { createId } from "../lib/ids";
@@ -175,7 +176,12 @@ export const eventsRouter = new Hono<AppEnv>()
     const db = createDb(c.env.DB);
     const { user } = c.var.authSession;
     const data = c.req.valid("json");
+    const isPlatformAdmin = isPlatformAdminEmail(user.email, c.env);
     const record = {
+      hostLabel: isPlatformAdmin ? "RallyCasts" : undefined,
+      hostType: isPlatformAdmin
+        ? ("rallycasts" as const)
+        : ("organizer" as const),
       id: createId(),
       organizerUserId: user.id,
       ...data,

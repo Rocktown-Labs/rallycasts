@@ -30,6 +30,26 @@ export const useEvent = (id: string) =>
     queryKey: ["events", id],
   });
 
+export const useCreateEvent = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (json: {
+      capacity?: number;
+      description?: string;
+      endsAt?: string;
+      eventType?: "clinic" | "league" | "open_play" | "tournament";
+      name: string;
+      startsAt: string;
+      status?: "cancelled" | "completed" | "draft" | "published";
+      venueId?: string;
+    }) => readApiJson(apiClient.api.events.$post({ json })),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+    },
+  });
+};
+
 export const useEventPlayers = (id: string) =>
   useQuery({
     enabled: id.length > 0,

@@ -71,6 +71,13 @@
       "when": 1781386005447,
       "tag": "0009_futuristic_korath",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1781541556971,
+      "tag": "0010_breezy_callisto",
+      "breakpoints": true
     }
   ]
 }
