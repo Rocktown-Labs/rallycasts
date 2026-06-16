@@ -67,10 +67,14 @@ export const createAuth = (database: D1Database) => {
     secret: env.BETTER_AUTH_SECRET,
     socialProviders: getSocialProviders(),
     trustedOrigins: [
-      env.CORS_ORIGIN,
+      ...(env.CORS_ORIGIN
+        ? env.CORS_ORIGIN.split(",").map((origin) => origin.trim())
+        : []),
       "rallycaststv://",
       "exp://",
       "http://localhost:8081",
+      "http://localhost:3001",
+      "http://127.0.0.1:3001",
     ],
   });
 };

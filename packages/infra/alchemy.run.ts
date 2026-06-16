@@ -29,7 +29,8 @@ const app = await alchemy("rallycaststv", {
   stateStore: (scope) => new CloudflareStateStore(scope),
 });
 
-const serverWorkerUrl = "https://rallycasts-server.rocktown-labs.workers.dev";
+const productionServerUrl = "https://api.rallycasts.com";
+const productionWebUrl = "https://rallycasts.com";
 const webWorkerUrl = "https://rallycasts-web.rocktown-labs.workers.dev";
 
 const db = await D1Database("database", {
@@ -50,8 +51,8 @@ const betterAuthSecret = required(
   alchemy.secret.env.BETTER_AUTH_SECRET,
   "BETTER_AUTH_SECRET"
 );
-const betterAuthUrl = serverWorkerUrl;
-const corsOrigin = webWorkerUrl;
+const betterAuthUrl = productionServerUrl;
+const corsOrigin = `${webWorkerUrl},${productionWebUrl}`;
 const adminEmails = process.env.ADMIN_EMAILS ?? "camstewart7@gmail.com";
 const rallycastsAdminEmail =
   process.env.RALLYCASTS_ADMIN_EMAIL ?? "camstewart7@gmail.com";
@@ -72,7 +73,7 @@ const r2AccessKeyId = process.env.R2_ACCESS_KEY_ID ?? "";
 const r2SecretAccessKey = process.env.R2_SECRET_ACCESS_KEY ?? "";
 const r2BucketName = process.env.R2_BUCKET_NAME ?? "rallycasts-media";
 const r2AccountId = process.env.R2_ACCOUNT_ID ?? "";
-const r2PublicUrl = process.env.R2_PUBLIC_URL ?? "";
+const r2PublicUrl = process.env.R2_PUBLIC_URL ?? "https://media.rallycasts.com";
 
 const mediaBucket = await R2Bucket("media", {
   adopt: true,
@@ -159,6 +160,7 @@ export const server = await Worker("rallycasts-server", {
   dev: {
     port: 3000,
   },
+  domains: ["api.rallycasts.com"],
   entrypoint: "src/index.ts",
   name: "rallycasts-server",
   url: true,
@@ -179,9 +181,10 @@ export const web = await TanStackStart("rallycasts-web", {
     GOOGLE_PLACES_API_KEY: googlePlacesApiKey,
     RADAR_SECRET_KEY: radarSecretKey,
     VITE_RADAR_PUBLISHABLE_KEY: radarPublishableKey,
-    VITE_SERVER_URL: required(server.url, "server.url"),
+    VITE_SERVER_URL: productionServerUrl,
   },
   cwd: "../../apps/web",
+  domains: ["rallycasts.com"],
   name: "rallycasts-web",
   url: true,
 });
