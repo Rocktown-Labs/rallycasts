@@ -89,13 +89,15 @@ const eventCoordinator = DurableObjectNamespace("event-coordinator", {
   sqlite: true,
 });
 
+const stage = app.stage ?? "dev";
+
 const geofenceQueue = await Queue("geofence-events", {
   adopt: true,
-  name: "rallycasts-geofence-events",
+  name: `rallycasts-geofence-events-${stage}`,
 });
 const eventActivityQueue = await Queue("event-activity", {
   adopt: true,
-  name: "rallycasts-event-activity",
+  name: `rallycasts-event-activity-${stage}`,
 });
 
 await Worker("rallycasts-geofence-events", {
@@ -108,7 +110,7 @@ await Worker("rallycasts-geofence-events", {
   cwd: "../../apps/server",
   entrypoint: "src/queues/geofence-events.ts",
   eventSources: [{ queue: geofenceQueue }],
-  name: "rallycasts-geofence-events",
+  name: `rallycasts-geofence-events-${stage}`,
 });
 
 await Worker("rallycasts-event-activity", {
@@ -122,7 +124,7 @@ await Worker("rallycasts-event-activity", {
   cwd: "../../apps/server",
   entrypoint: "src/queues/event-activity.ts",
   eventSources: [{ queue: eventActivityQueue }],
-  name: "rallycasts-event-activity",
+  name: `rallycasts-event-activity-${stage}`,
 });
 
 export const server = await Worker("rallycasts-server", {
