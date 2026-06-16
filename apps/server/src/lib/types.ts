@@ -1,5 +1,7 @@
 import type { createAuth } from "@rallycaststv/auth";
 
+import type { EventActivityMessage } from "./event-activity";
+
 type Auth = ReturnType<typeof createAuth>;
 export type AuthSession = NonNullable<
   Awaited<ReturnType<Auth["api"]["getSession"]>>
@@ -32,7 +34,11 @@ interface VectorizeBinding {
 
 export interface AppEnv {
   Bindings: Env & {
+    ADMIN_EMAILS?: string;
     AI?: WorkersAiBinding;
+    EVENT_ACTIVITY_QUEUE?: Queue<EventActivityMessage>;
+    EVENT_COORDINATOR: DurableObjectNamespace;
+    RALLYCASTS_ADMIN_EMAIL?: string;
     SEARCH_INDEX?: VectorizeBinding;
     VENUE_PRESENCE: DurableObjectNamespace;
   };

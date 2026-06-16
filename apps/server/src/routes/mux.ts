@@ -45,6 +45,11 @@ export const muxRouter = new Hono<AppEnv>()
     const eventType = getStringProperty(value, "type") ?? "mux.unknown";
     const data = getRecord(value, "data");
     const muxAssetId = data ? getStringProperty(data, "id") : null;
+    const muxUploadId = data ? getStringProperty(data, "upload_id") : null;
+    const playbackIds = data?.playback_ids;
+    const muxPlaybackId = Array.isArray(playbackIds)
+      ? getStringProperty(playbackIds[0], "id")
+      : null;
     const muxStatus = data ? getStringProperty(data, "status") : null;
 
     await db
@@ -62,12 +67,18 @@ export const muxRouter = new Hono<AppEnv>()
       await db
         .update(video)
         .set({
+          muxAssetId,
+          muxPlaybackId: muxPlaybackId ?? undefined,
           muxStatus,
           publishedAt: muxStatus === "ready" ? new Date() : undefined,
           status: muxStatus === "ready" ? "ready" : "processing",
           updatedAt: new Date(),
         })
-        .where(eq(video.muxAssetId, muxAssetId));
+        .where(
+          muxUploadId
+            ? eq(video.muxUploadId, muxUploadId)
+            : eq(video.muxAssetId, muxAssetId)
+        );
     }
 
     return c.json(

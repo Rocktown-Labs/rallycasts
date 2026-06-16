@@ -6,6 +6,23 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { username } from "better-auth/plugins/username";
 
+const getSocialProviders = () => ({
+  github:
+    env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET
+      ? {
+          clientId: env.GITHUB_CLIENT_ID,
+          clientSecret: env.GITHUB_CLIENT_SECRET,
+        }
+      : undefined,
+  google:
+    env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
+      ? {
+          clientId: env.GOOGLE_CLIENT_ID,
+          clientSecret: env.GOOGLE_CLIENT_SECRET,
+        }
+      : undefined,
+});
+
 export const createAuth = (database: D1Database) => {
   const db = createDb(database);
 
@@ -31,6 +48,7 @@ export const createAuth = (database: D1Database) => {
     }),
     emailAndPassword: {
       enabled: true,
+      revokeSessionsOnPasswordReset: true,
     },
     // uncomment cookieCache setting when ready to deploy to Cloudflare using *.workers.dev domains
     // session: {
@@ -47,11 +65,16 @@ export const createAuth = (database: D1Database) => {
       }),
     ],
     secret: env.BETTER_AUTH_SECRET,
+    socialProviders: getSocialProviders(),
     trustedOrigins: [
-      env.CORS_ORIGIN,
+      ...(env.CORS_ORIGIN
+        ? env.CORS_ORIGIN.split(",").map((origin) => origin.trim())
+        : []),
       "rallycaststv://",
       "exp://",
       "http://localhost:8081",
+      "http://localhost:3001",
+      "http://127.0.0.1:3001",
     ],
   });
 };

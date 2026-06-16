@@ -30,8 +30,35 @@ import { videosRouter } from "./routes/videos";
 import { webhooksRouter } from "./routes/webhooks";
 
 const app = new Hono<AppEnv>();
+const localDevOrigins = new Set([
+  "http://localhost:3001",
+  "http://127.0.0.1:3001",
+]);
+
+const isAllowedOrigin = (
+  requestOrigin: string | undefined,
+  configuredOrigin: string | undefined
+) => {
+  if (!requestOrigin) {
+    return "";
+  }
+
+  const allowedOrigins = new Set(
+    (configuredOrigin ?? "")
+      .split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean)
+  );
+
+  for (const localOrigin of localDevOrigins) {
+    allowedOrigins.add(localOrigin);
+  }
+
+  return allowedOrigins.has(requestOrigin) ? requestOrigin : "";
+};
 
 export { VenuePresence } from "./durable-objects/venue-presence";
+export { EventCoordinator } from "./durable-objects/event-coordinator";
 
 app.use(requestId());
 app.use(timing());
@@ -41,7 +68,7 @@ app.use("/*", (c, next) => {
     allowHeaders: ["Content-Type", "Authorization"],
     allowMethods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
-    origin: c.env.CORS_ORIGIN,
+    origin: (origin) => isAllowedOrigin(origin, c.env.CORS_ORIGIN),
   });
 
   return corsMiddleware(c, next);

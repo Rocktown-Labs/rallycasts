@@ -176,6 +176,12 @@ export const event = sqliteTable(
     })
       .default("open_play")
       .notNull(),
+    hostLabel: text("host_label"),
+    hostType: text("host_type", {
+      enum: ["organizer", "rallycasts"],
+    })
+      .default("organizer")
+      .notNull(),
     id: text("id").primaryKey(),
     name: text("name").notNull(),
     organizerUserId: text("organizer_user_id")
@@ -196,6 +202,114 @@ export const event = sqliteTable(
     index("event_starts_at_idx").on(table.startsAt),
     index("event_venue_idx").on(table.venueId),
     index("event_organizer_idx").on(table.organizerUserId),
+  ]
+);
+
+export const eventRegistration = sqliteTable(
+  "event_registration",
+  {
+    checkedInAt: nullableTimestamp("checked_in_at"),
+    createdAt: timestamp("created_at"),
+    eventId: text("event_id")
+      .notNull()
+      .references(() => event.id, { onDelete: "cascade" }),
+    id: text("id").primaryKey(),
+    seed: integer("seed"),
+    status: text("status", {
+      enum: ["registered", "waitlisted", "cancelled", "checked_in"],
+    })
+      .default("registered")
+      .notNull(),
+    updatedAt: timestamp("updated_at").$onUpdate(() => new Date()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    uniqueIndex("event_registration_event_user_idx").on(
+      table.eventId,
+      table.userId
+    ),
+    index("event_registration_event_status_idx").on(
+      table.eventId,
+      table.status
+    ),
+    index("event_registration_user_idx").on(table.userId),
+  ]
+);
+
+export const eventMatch = sqliteTable(
+  "event_match",
+  {
+    courtLabel: text("court_label"),
+    createdAt: timestamp("created_at"),
+    eventId: text("event_id")
+      .notNull()
+      .references(() => event.id, { onDelete: "cascade" }),
+    id: text("id").primaryKey(),
+    playerOneScore: integer("player_one_score"),
+    playerOneUserId: text("player_one_user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    playerTwoScore: integer("player_two_score"),
+    playerTwoUserId: text("player_two_user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    round: integer("round").notNull(),
+    scheduledAt: nullableTimestamp("scheduled_at"),
+    status: text("status", {
+      enum: ["scheduled", "in_progress", "completed", "cancelled"],
+    })
+      .default("scheduled")
+      .notNull(),
+    updatedAt: timestamp("updated_at").$onUpdate(() => new Date()),
+    winnerUserId: text("winner_user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+  },
+  (table) => [
+    index("event_match_event_round_idx").on(table.eventId, table.round),
+    index("event_match_player_one_idx").on(table.playerOneUserId),
+    index("event_match_player_two_idx").on(table.playerTwoUserId),
+    index("event_match_winner_idx").on(table.winnerUserId),
+  ]
+);
+
+export const eventScoreSubmission = sqliteTable(
+  "event_score_submission",
+  {
+    createdAt: timestamp("created_at"),
+    eventId: text("event_id")
+      .notNull()
+      .references(() => event.id, { onDelete: "cascade" }),
+    id: text("id").primaryKey(),
+    matchId: text("match_id")
+      .notNull()
+      .references(() => eventMatch.id, { onDelete: "cascade" }),
+    note: text("note"),
+    playerOneScore: integer("player_one_score").notNull(),
+    playerTwoScore: integer("player_two_score").notNull(),
+    status: text("status", {
+      enum: ["pending", "confirmed", "disputed", "superseded"],
+    })
+      .default("pending")
+      .notNull(),
+    submittedByUserId: text("submitted_by_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    winnerUserId: text("winner_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    index("event_score_submission_match_status_idx").on(
+      table.matchId,
+      table.status
+    ),
+    index("event_score_submission_event_idx").on(table.eventId),
+    index("event_score_submission_submitted_by_idx").on(
+      table.submittedByUserId
+    ),
   ]
 );
 
@@ -706,6 +820,10 @@ export const videoComment = sqliteTable(
     content: text("content").notNull(),
     createdAt: timestamp("created_at"),
     id: text("id").primaryKey(),
+    isPinned: integer("is_pinned", { mode: "boolean" })
+      .default(false)
+      .notNull(),
+    pinnedAt: integer("pinned_at", { mode: "timestamp_ms" }),
     updatedAt: timestamp("updated_at").$onUpdate(() => new Date()),
     userId: text("user_id")
       .notNull()

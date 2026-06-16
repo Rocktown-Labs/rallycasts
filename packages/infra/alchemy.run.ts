@@ -29,7 +29,8 @@ const app = await alchemy("rallycaststv", {
   stateStore: (scope) => new CloudflareStateStore(scope),
 });
 
-const serverWorkerUrl = "https://rallycasts-server.rocktown-labs.workers.dev";
+const productionServerUrl = "https://api.rallycasts.com";
+const productionWebUrl = "https://rallycasts.com";
 const webWorkerUrl = "https://rallycasts-web.rocktown-labs.workers.dev";
 
 const db = await D1Database("database", {
@@ -50,12 +51,19 @@ const betterAuthSecret = required(
   alchemy.secret.env.BETTER_AUTH_SECRET,
   "BETTER_AUTH_SECRET"
 );
-const betterAuthUrl = serverWorkerUrl;
-const corsOrigin = webWorkerUrl;
+const betterAuthUrl = productionServerUrl;
+const corsOrigin = `${webWorkerUrl},${productionWebUrl}`;
+const adminEmails = process.env.ADMIN_EMAILS ?? "camstewart7@gmail.com";
+const rallycastsAdminEmail =
+  process.env.RALLYCASTS_ADMIN_EMAIL ?? "camstewart7@gmail.com";
 const googleAiApiKey = required(
   alchemy.secret.env.GOOGLE_GENERATIVE_AI_API_KEY,
   "GOOGLE_GENERATIVE_AI_API_KEY"
 );
+const githubClientId = process.env.GITHUB_CLIENT_ID ?? "";
+const githubClientSecret = process.env.GITHUB_CLIENT_SECRET ?? "";
+const googleClientId = process.env.GOOGLE_CLIENT_ID ?? "";
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET ?? "";
 const googlePlacesApiKey = process.env.GOOGLE_PLACES_API_KEY ?? "";
 const radarSecretKey = process.env.RADAR_SECRET_KEY ?? "";
 const radarPublishableKey = process.env.VITE_RADAR_PUBLISHABLE_KEY ?? "";
@@ -65,7 +73,7 @@ const r2AccessKeyId = process.env.R2_ACCESS_KEY_ID ?? "";
 const r2SecretAccessKey = process.env.R2_SECRET_ACCESS_KEY ?? "";
 const r2BucketName = process.env.R2_BUCKET_NAME ?? "rallycasts-media";
 const r2AccountId = process.env.R2_ACCOUNT_ID ?? "";
-const r2PublicUrl = process.env.R2_PUBLIC_URL ?? "";
+const r2PublicUrl = process.env.R2_PUBLIC_URL ?? "https://media.rallycasts.com";
 
 const mediaBucket = await R2Bucket("media", {
   adopt: true,
@@ -76,10 +84,20 @@ const venuePresence = DurableObjectNamespace("venue-presence", {
   className: "VenuePresence",
   sqlite: true,
 });
+const eventCoordinator = DurableObjectNamespace("event-coordinator", {
+  className: "EventCoordinator",
+  sqlite: true,
+});
+
+const stage = app.stage ?? "dev";
 
 const geofenceQueue = await Queue("geofence-events", {
   adopt: true,
-  name: "rallycasts-geofence-events",
+  name: `rallycasts-geofence-events-${stage}`,
+});
+const eventActivityQueue = await Queue("event-activity", {
+  adopt: true,
+  name: `rallycasts-event-activity-${stage}`,
 });
 
 await Worker("rallycasts-geofence-events", {
@@ -92,18 +110,39 @@ await Worker("rallycasts-geofence-events", {
   cwd: "../../apps/server",
   entrypoint: "src/queues/geofence-events.ts",
   eventSources: [{ queue: geofenceQueue }],
-  name: "rallycasts-geofence-events",
+  name: `rallycasts-geofence-events-${stage}`,
+});
+
+await Worker("rallycasts-event-activity", {
+  adopt: true,
+  bindings: {
+    DB: db,
+    EVENT_ACTIVITY_QUEUE: eventActivityQueue,
+    EVENT_COORDINATOR: eventCoordinator,
+  },
+  compatibility: "node",
+  cwd: "../../apps/server",
+  entrypoint: "src/queues/event-activity.ts",
+  eventSources: [{ queue: eventActivityQueue }],
+  name: `rallycasts-event-activity-${stage}`,
 });
 
 export const server = await Worker("rallycasts-server", {
   adopt: true,
   bindings: {
+    ADMIN_EMAILS: adminEmails,
     AI: ai,
     BETTER_AUTH_SECRET: betterAuthSecret,
     BETTER_AUTH_URL: betterAuthUrl,
     CORS_ORIGIN: corsOrigin,
     DB: db,
+    EVENT_ACTIVITY_QUEUE: eventActivityQueue,
+    EVENT_COORDINATOR: eventCoordinator,
     GEOFENCE_EVENTS: geofenceQueue,
+    GITHUB_CLIENT_ID: githubClientId,
+    GITHUB_CLIENT_SECRET: githubClientSecret,
+    GOOGLE_CLIENT_ID: googleClientId,
+    GOOGLE_CLIENT_SECRET: googleClientSecret,
     GOOGLE_GENERATIVE_AI_API_KEY: googleAiApiKey,
     GOOGLE_PLACES_API_KEY: googlePlacesApiKey,
     MEDIA_BUCKET: mediaBucket,
@@ -114,6 +153,7 @@ export const server = await Worker("rallycasts-server", {
     R2_PUBLIC_URL: r2PublicUrl,
     R2_SECRET_ACCESS_KEY: r2SecretAccessKey,
     RADAR_SECRET_KEY: radarSecretKey,
+    RALLYCASTS_ADMIN_EMAIL: rallycastsAdminEmail,
     SEARCH_INDEX: searchIndex,
     VENUE_PRESENCE: venuePresence,
   },
@@ -122,6 +162,7 @@ export const server = await Worker("rallycasts-server", {
   dev: {
     port: 3000,
   },
+  domains: ["api.rallycasts.com"],
   entrypoint: "src/index.ts",
   name: "rallycasts-server",
   url: true,
@@ -134,13 +175,18 @@ export const web = await TanStackStart("rallycasts-web", {
     BETTER_AUTH_URL: betterAuthUrl,
     CORS_ORIGIN: corsOrigin,
     DB: db,
+    GITHUB_CLIENT_ID: githubClientId,
+    GITHUB_CLIENT_SECRET: githubClientSecret,
+    GOOGLE_CLIENT_ID: googleClientId,
+    GOOGLE_CLIENT_SECRET: googleClientSecret,
     GOOGLE_GENERATIVE_AI_API_KEY: googleAiApiKey,
     GOOGLE_PLACES_API_KEY: googlePlacesApiKey,
     RADAR_SECRET_KEY: radarSecretKey,
     VITE_RADAR_PUBLISHABLE_KEY: radarPublishableKey,
-    VITE_SERVER_URL: required(server.url, "server.url"),
+    VITE_SERVER_URL: productionServerUrl,
   },
   cwd: "../../apps/web",
+  domains: ["rallycasts.com"],
   name: "rallycasts-web",
   url: true,
 });

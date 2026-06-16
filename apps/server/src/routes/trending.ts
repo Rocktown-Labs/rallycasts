@@ -6,29 +6,185 @@ import {
   venue,
   video,
 } from "@rallycaststv/db/schema/domain";
-import { desc, eq, isNotNull, sql } from "drizzle-orm";
+import { and, desc, eq, gte, isNotNull, lte } from "drizzle-orm";
+import type { SQLiteColumn } from "drizzle-orm/sqlite-core";
 import { Hono } from "hono";
+import type { Context } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 
-import { EARTH_RADIUS_MILES } from "../lib/geo";
+import { haversineDistance } from "../lib/geo";
+import { GooglePlacesClient } from "../lib/google-places";
 import type { AppEnv } from "../lib/types";
 
 const VENUE_RADIUS = 50;
 const EVENT_RADIUS = 200;
 const VIDEO_RADIUS = 500;
 const PLAYER_RADIUS = 100;
+const MILES_PER_LATITUDE_DEGREE = 69;
+const MAX_LOCATION_CANDIDATES = 100;
+const TRENDING_VENUE_LIMIT = 8;
 
-function distanceExpr(lat: number, lng: number) {
-  return sql<number>`
-    ${EARTH_RADIUS_MILES} * 2 * ASIN(
-      SQRT(
-        POWER(SIN((${lat} * ${Math.PI} / 180 - ${venue.latitude} * ${Math.PI} / 180) / 2), 2) +
-        COS(${lat} * ${Math.PI} / 180) * COS(${venue.latitude} * ${Math.PI} / 180) *
-        POWER(SIN((${lng} * ${Math.PI} / 180 - ${venue.longitude} * ${Math.PI} / 180) / 2), 2)
+type DbVenue = typeof venue.$inferSelect;
+type TrendingDbVenue = DbVenue & {
+  distanceMiles?: number;
+  source?: "rallycasts";
+};
+type TrendingVenue = TrendingDbVenue | GoogleDiscoveryVenue;
+type GoogleDiscoveryVenue = Partial<DbVenue> & {
+  distanceMiles: number;
+  externalUrl: string;
+  googlePlaceId: string;
+  id: string;
+  latitude: number;
+  longitude: number;
+  name: string;
+  openNow?: boolean;
+  source: "google_places";
+};
+
+const getBoundingBox = (lat: number, lng: number, radiusMiles: number) => {
+  const latitudeDelta = radiusMiles / MILES_PER_LATITUDE_DEGREE;
+  const longitudeDelta =
+    radiusMiles /
+    (MILES_PER_LATITUDE_DEGREE *
+      Math.max(Math.cos((lat * Math.PI) / 180), 0.01));
+
+  return {
+    maxLat: lat + latitudeDelta,
+    maxLng: lng + longitudeDelta,
+    minLat: lat - latitudeDelta,
+    minLng: lng - longitudeDelta,
+  };
+};
+
+const locationBounds = (
+  lat: number,
+  lng: number,
+  radiusMiles: number,
+  latitudeColumn: SQLiteColumn,
+  longitudeColumn: SQLiteColumn
+) => {
+  const box = getBoundingBox(lat, lng, radiusMiles);
+
+  return and(
+    isNotNull(latitudeColumn),
+    isNotNull(longitudeColumn),
+    gte(latitudeColumn, box.minLat),
+    lte(latitudeColumn, box.maxLat),
+    gte(longitudeColumn, box.minLng),
+    lte(longitudeColumn, box.maxLng)
+  );
+};
+
+const byDistance =
+  (lat: number, lng: number) =>
+  <
+    T extends {
+      latitude: number | null;
+      longitude: number | null;
+    },
+  >(
+    left: T,
+    right: T
+  ) =>
+    haversineDistance(lat, lng, left.latitude ?? 0, left.longitude ?? 0) -
+    haversineDistance(lat, lng, right.latitude ?? 0, right.longitude ?? 0);
+
+const withinRadius = (
+  lat: number,
+  lng: number,
+  itemLat: number | null,
+  itemLng: number | null,
+  radiusMiles: number
+) =>
+  itemLat !== null &&
+  itemLng !== null &&
+  haversineDistance(lat, lng, itemLat, itemLng) <= radiusMiles;
+
+const getGoogleMapsUrl = (placeId: string, lat: number, lng: number) => {
+  const url = new URL("https://www.google.com/maps/search/");
+  url.searchParams.set("api", "1");
+  url.searchParams.set("query", `${lat},${lng}`);
+  url.searchParams.set("query_place_id", placeId);
+  return url.toString();
+};
+
+const parseCityState = (address: string) => {
+  const parts = address.split(",").map((part) => part.trim());
+  const stateZip = parts.at(-2) ?? "";
+  const state = stateZip.match(/\b[A-Z]{2}\b/u)?.[0] ?? stateZip;
+  const city = parts.length > 2 ? (parts.at(-3) ?? null) : null;
+
+  return { city, state };
+};
+
+const getGoogleDiscoveryVenues = async (
+  c: Context<AppEnv>,
+  lat: number,
+  lng: number,
+  existingVenues: DbVenue[]
+): Promise<GoogleDiscoveryVenue[]> => {
+  if (!c.env.GOOGLE_PLACES_API_KEY) {
+    return [];
+  }
+
+  try {
+    const client = new GooglePlacesClient(c.env.GOOGLE_PLACES_API_KEY);
+    const places = await client.searchNearby(
+      lat,
+      lng,
+      Math.min(VENUE_RADIUS * 1609, 50_000),
+      "pickleball courts"
+    );
+    const existingPlaceIds = new Set(
+      existingVenues.flatMap((record) =>
+        record.googlePlaceId ? [record.googlePlaceId] : []
       )
-    )
-  `;
-}
+    );
+
+    return places
+      .filter((place) => !existingPlaceIds.has(place.placeId))
+      .map((place) => {
+        const distanceMiles = haversineDistance(
+          lat,
+          lng,
+          place.latitude,
+          place.longitude
+        );
+        const location = parseCityState(place.address);
+
+        return {
+          city: location.city,
+          country: "US",
+          courtCount: null,
+          distanceMiles,
+          externalUrl: getGoogleMapsUrl(
+            place.placeId,
+            place.latitude,
+            place.longitude
+          ),
+          googlePlaceId: place.placeId,
+          id: `google:${place.placeId}`,
+          latitude: place.latitude,
+          longitude: place.longitude,
+          name: place.name,
+          openNow: place.openNow,
+          photoUrl: place.photoUrl,
+          rating: place.rating,
+          source: "google_places" as const,
+          state: location.state,
+          userRatingsTotal: place.userRatingsTotal,
+          venueType: "park" as const,
+        };
+      })
+      .filter((place) => place.distanceMiles <= VENUE_RADIUS)
+      .toSorted((left, right) => left.distanceMiles - right.distanceMiles)
+      .slice(0, TRENDING_VENUE_LIMIT);
+  } catch (error) {
+    console.error("Google Places trending parks error:", error);
+    return [];
+  }
+};
 
 export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
   const db = createDb(c.env.DB);
@@ -46,7 +202,7 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
 
   let videos: (typeof video.$inferSelect)[];
   let events: (typeof event.$inferSelect)[];
-  let venues: (typeof venue.$inferSelect)[];
+  let venues: TrendingVenue[];
   let players: {
     bio: string | null;
     displayUsername: string | null;
@@ -60,31 +216,74 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
   }[];
 
   if (hasLocation) {
-    const venueDistance = distanceExpr(lat, lng);
-
     // Nearby venues (strictly local, within 50 miles)
-    venues = await db
+    const nearbyVenueCandidates = await db
       .select()
       .from(venue)
-      .where(sql`${venueDistance} <= ${VENUE_RADIUS}`)
-      .orderBy(sql`${venueDistance} ASC`)
-      .limit(8);
+      .where(
+        locationBounds(lat, lng, VENUE_RADIUS, venue.latitude, venue.longitude)
+      )
+      .limit(MAX_LOCATION_CANDIDATES);
+
+    const dbVenues = nearbyVenueCandidates
+      .filter((row) =>
+        withinRadius(lat, lng, row.latitude, row.longitude, VENUE_RADIUS)
+      )
+      .toSorted(byDistance(lat, lng))
+      .slice(0, TRENDING_VENUE_LIMIT)
+      .map((record) => ({
+        ...record,
+        distanceMiles: haversineDistance(
+          lat,
+          lng,
+          record.latitude ?? 0,
+          record.longitude ?? 0
+        ),
+        source: "rallycasts" as const,
+      }));
+
+    const googleVenues =
+      dbVenues.length < TRENDING_VENUE_LIMIT
+        ? await getGoogleDiscoveryVenues(c, lat, lng, dbVenues)
+        : [];
+
+    venues = [...dbVenues, ...googleVenues].slice(0, TRENDING_VENUE_LIMIT);
 
     // Nearby videos (broader, within 500 miles - state/region level)
-    const videoDistance = distanceExpr(lat, lng);
-    const nearbyVideos = await db
-      .select({ video })
+    const nearbyVideoCandidates = await db
+      .select({
+        latitude: venue.latitude,
+        longitude: venue.longitude,
+        video,
+      })
       .from(video)
       .innerJoin(venue, eq(video.venueId, venue.id))
       .where(
-        sql`${eq(video.visibility, "public")} AND ${isNotNull(video.venueId)} AND ${videoDistance} <= ${VIDEO_RADIUS}`
+        and(
+          eq(video.visibility, "public"),
+          isNotNull(video.venueId),
+          locationBounds(
+            lat,
+            lng,
+            VIDEO_RADIUS,
+            venue.latitude,
+            venue.longitude
+          )
+        )
       )
       .orderBy(desc(video.publishedAt))
-      .limit(12);
+      .limit(MAX_LOCATION_CANDIDATES);
+
+    const nearbyVideos = nearbyVideoCandidates
+      .filter((row) =>
+        withinRadius(lat, lng, row.latitude, row.longitude, VIDEO_RADIUS)
+      )
+      .map((row) => row.video)
+      .slice(0, 12);
 
     videos =
       nearbyVideos.length > 0
-        ? nearbyVideos.map((row) => row.video)
+        ? nearbyVideos
         : await db
             .select()
             .from(video)
@@ -93,20 +292,40 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
             .limit(12);
 
     // Nearby events (regional, within 200 miles)
-    const eventDistance = distanceExpr(lat, lng);
-    const nearbyEvents = await db
-      .select({ event })
+    const nearbyEventCandidates = await db
+      .select({
+        event,
+        latitude: venue.latitude,
+        longitude: venue.longitude,
+      })
       .from(event)
       .innerJoin(venue, eq(event.venueId, venue.id))
       .where(
-        sql`${eq(event.status, "published")} AND ${isNotNull(event.venueId)} AND ${eventDistance} <= ${EVENT_RADIUS}`
+        and(
+          eq(event.status, "published"),
+          isNotNull(event.venueId),
+          locationBounds(
+            lat,
+            lng,
+            EVENT_RADIUS,
+            venue.latitude,
+            venue.longitude
+          )
+        )
       )
       .orderBy(desc(event.startsAt))
-      .limit(6);
+      .limit(MAX_LOCATION_CANDIDATES);
+
+    const nearbyEvents = nearbyEventCandidates
+      .filter((row) =>
+        withinRadius(lat, lng, row.latitude, row.longitude, EVENT_RADIUS)
+      )
+      .map((row) => row.event)
+      .slice(0, 6);
 
     events =
       nearbyEvents.length > 0
-        ? nearbyEvents.map((row) => row.event)
+        ? nearbyEvents
         : await db
             .select()
             .from(event)
@@ -115,12 +334,13 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
             .limit(6);
 
     // Nearby players (within 100 miles)
-    const playerDistance = distanceExpr(lat, lng);
-    const nearbyPlayers = await db
+    const nearbyPlayerCandidates = await db
       .select({
         bio: userProfile.bio,
         displayUsername: user.displayUsername,
         homeCity: userProfile.homeCity,
+        homeLatitude: userProfile.homeLatitude,
+        homeLongitude: userProfile.homeLongitude,
         homeState: userProfile.homeState,
         id: user.id,
         image: user.image,
@@ -131,10 +351,52 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
       .from(userProfile)
       .innerJoin(user, eq(userProfile.userId, user.id))
       .where(
-        sql`${eq(userProfile.isPlayer, true)} AND ${isNotNull(userProfile.homeLatitude)} AND ${isNotNull(userProfile.homeLongitude)} AND ${playerDistance} <= ${PLAYER_RADIUS}`
+        and(
+          eq(userProfile.isPlayer, true),
+          locationBounds(
+            lat,
+            lng,
+            PLAYER_RADIUS,
+            userProfile.homeLatitude,
+            userProfile.homeLongitude
+          )
+        )
       )
-      .orderBy(sql`${playerDistance} ASC`)
-      .limit(6);
+      .limit(MAX_LOCATION_CANDIDATES);
+
+    const nearbyPlayers = nearbyPlayerCandidates
+      .filter((row) =>
+        withinRadius(
+          lat,
+          lng,
+          row.homeLatitude,
+          row.homeLongitude,
+          PLAYER_RADIUS
+        )
+      )
+      .toSorted(
+        (left, right) =>
+          haversineDistance(
+            lat,
+            lng,
+            left.homeLatitude ?? 0,
+            left.homeLongitude ?? 0
+          ) -
+          haversineDistance(
+            lat,
+            lng,
+            right.homeLatitude ?? 0,
+            right.homeLongitude ?? 0
+          )
+      )
+      .slice(0, 6)
+      .map(
+        ({
+          homeLatitude: _homeLatitude,
+          homeLongitude: _homeLongitude,
+          ...row
+        }) => row
+      );
 
     players =
       nearbyPlayers.length > 0
@@ -170,7 +432,7 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
       .orderBy(desc(event.startsAt))
       .limit(6);
 
-    venues = await db.select().from(venue).limit(8);
+    venues = await db.select().from(venue).limit(TRENDING_VENUE_LIMIT);
 
     players = await db
       .select({

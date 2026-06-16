@@ -6,8 +6,12 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { EmptyState, EventCard } from "@/components/rally/cards";
-import type { EventCardData } from "@/components/rally/cards";
-import { useEvents, useProfile, useUpdateProfile } from "@/lib/hooks";
+import {
+  useCreateEvent,
+  useEvents,
+  useProfile,
+  useUpdateProfile,
+} from "@/lib/hooks";
 
 export const Route = createFileRoute("/events/")({
   component: EventsPage,
@@ -17,11 +21,12 @@ function EventsPage() {
   const { data: eventsData, isLoading: eventsLoading } = useEvents();
   const { data: profileData } = useProfile();
   const updateProfileMutation = useUpdateProfile();
+  const createEventMutation = useCreateEvent();
 
   const profile = profileData?.profile;
   const isOrganizer = profile?.isOrganizer ?? false;
+  const isPlatformAdmin = profileData?.isPlatformAdmin ?? false;
 
-  const [events, setEvents] = useState<EventCardData[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Form states for creating an event
@@ -29,10 +34,9 @@ function EventsPage() {
   const [eventType, setEventType] = useState("tournament");
   const [startsAt, setStartsAt] = useState("2026-06-20T15:00");
   const [capacity, setCapacity] = useState("96");
-  const [venueId, setVenueId] = useState("demo-venue-1");
   const [description, setDescription] = useState("");
 
-  const allEvents = [...(eventsData?.events ?? []), ...events];
+  const allEvents = eventsData?.events ?? [];
 
   const handleUpgrade = async () => {
     try {
@@ -45,33 +49,41 @@ function EventsPage() {
     }
   };
 
-  const handleCreateEvent = (e: React.FormEvent) => {
+  const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!eventName.trim()) {
       toast.error("Event name is required.");
       return;
     }
 
-    const newEvent: EventCardData = {
-      capacity: Number.parseInt(capacity, 10) || 64,
-      eventType,
-      id: `custom-event-${Date.now()}`,
-      name: eventName,
-      startsAt: new Date(startsAt).toISOString(),
-      status: "published",
-      venueId,
-    };
+    try {
+      await createEventMutation.mutateAsync({
+        capacity: Number.parseInt(capacity, 10) || 64,
+        description: description.trim() || undefined,
+        eventType: eventType as
+          | "clinic"
+          | "league"
+          | "open_play"
+          | "tournament",
+        name: eventName,
+        startsAt: new Date(startsAt).toISOString(),
+        status: "published",
+      });
 
-    setEvents((prev) => [newEvent, ...prev]);
-    setShowCreateModal(false);
+      setShowCreateModal(false);
+      setEventName("");
+      setEventType("tournament");
+      setCapacity("96");
+      setDescription("");
 
-    // Clear form
-    setEventName("");
-    setEventType("tournament");
-    setCapacity("96");
-    setDescription("");
-
-    toast.success(`Successfully published event: ${eventName}!`);
+      toast.success(
+        isPlatformAdmin
+          ? `Published RallyCasts-hosted event: ${eventName}.`
+          : `Successfully published event: ${eventName}!`
+      );
+    } catch {
+      toast.error("Failed to publish event. Please try again.");
+    }
   };
 
   // Render events grid or empty state to avoid nested ternaries
@@ -97,6 +109,24 @@ function EventsPage() {
       />
     );
   };
+  const organizerTitle = (() => {
+    if (!isOrganizer) {
+      return "Upgrade to an Organizer Account";
+    }
+
+    return isPlatformAdmin
+      ? "Manage RallyCasts Hosted Events"
+      : "Manage Your Club & Tournaments";
+  })();
+  const organizerCopy = (() => {
+    if (!isOrganizer) {
+      return "Organizer premium is for leagues, clinics, and tournaments that want discoverable events, recording packages, and better player turnout.";
+    }
+
+    return isPlatformAdmin
+      ? "Publish official RallyCasts events, manage registration lists, configure brackets, and request caster coverage."
+      : "Publish new events, manage registration lists, view seeds, configure brackets, and request premium caster coverage.";
+  })();
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -110,14 +140,10 @@ function EventsPage() {
             </span>
           </div>
           <h2 className="text-xl md:text-2xl font-bold tracking-tight">
-            {isOrganizer
-              ? "Manage Your Club & Tournaments"
-              : "Upgrade to an Organizer Account"}
+            {organizerTitle}
           </h2>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            {isOrganizer
-              ? "Publish new events, manage registration lists, view seeds, configure brackets, and request premium caster coverage."
-              : "Organizer premium is for leagues, clinics, and tournaments that want discoverable events, recording packages, and better player turnout."}
+            {organizerCopy}
           </p>
         </div>
 
@@ -214,30 +240,11 @@ function EventsPage() {
                     </select>
                   </div>
 
-                  <div className="space-y-1">
-                    <label
-                      htmlFor="venueIdSelect"
-                      className="text-xs font-semibold text-muted-foreground block"
-                    >
-                      Venue
-                    </label>
-                    <select
-                      id="venueIdSelect"
-                      value={venueId}
-                      onChange={(e) => setVenueId(e.target.value)}
-                      className="w-full p-2.5 bg-card border border-border rounded-md text-xs focus:ring-1 focus:ring-primary focus:outline-none"
-                    >
-                      <option value="demo-venue-1">
-                        Crestwood Pickleball Park
-                      </option>
-                      <option value="demo-venue-2">
-                        Mueller Sports Courts
-                      </option>
-                      <option value="demo-venue-3">
-                        South Lamar Rec Center
-                      </option>
-                    </select>
-                  </div>
+                  <p className="rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+                    Venue selection is optional for now. Add location details in
+                    the description, then attach a saved venue once the venue
+                    picker is wired in.
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -306,9 +313,12 @@ function EventsPage() {
                 </Button>
                 <Button
                   type="submit"
+                  disabled={createEventMutation.isPending}
                   className="flex-1 rounded-lg text-xs font-semibold cursor-pointer"
                 >
-                  Publish Event
+                  {createEventMutation.isPending
+                    ? "Publishing..."
+                    : "Publish Event"}
                 </Button>
               </div>
             </form>

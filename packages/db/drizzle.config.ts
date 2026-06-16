@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { fileURLToPath } from "node:url";
+import { URL, fileURLToPath } from "node:url";
 
 import dotenv from "dotenv";
 import { defineConfig } from "drizzle-kit";

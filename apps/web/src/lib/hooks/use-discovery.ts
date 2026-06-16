@@ -7,7 +7,6 @@ import {
   demoVenues,
   filterDemoSearch,
   withDemoList,
-  withDemoTrending,
 } from "@/lib/demo-data";
 
 import { readApiJson } from "./api";
@@ -41,7 +40,6 @@ export const useTrending = (location?: GeoLocation) =>
       }
     },
     queryKey: ["trending", location?.lat, location?.lng],
-    select: (data) => withDemoTrending(data) ?? demoTrending,
   });
 
 export const usePlayers = (query = "") =>
@@ -84,7 +82,6 @@ export const useVenues = (query = "", location?: GeoLocation) =>
       }
     },
     queryKey: ["venues", query, location?.lat, location?.lng],
-    select: (data) => withDemoList(data, "venues", demoVenues),
   });
 
 export const useSearch = (query: string, type: SearchEntity) =>

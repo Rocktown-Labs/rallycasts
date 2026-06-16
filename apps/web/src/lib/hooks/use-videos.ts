@@ -45,6 +45,8 @@ export const useCreateVideo = () => {
       latitude?: number;
       longitude?: number;
       mediaType?: "video" | "short" | "photo";
+      muxUploadId?: string;
+      status?: "draft" | "uploading" | "processing" | "ready" | "failed";
       title: string;
       venueId?: string;
       visibility?: "public" | "friends" | "private";
@@ -76,6 +78,25 @@ export const useAddVideoComment = (videoId: string) => {
         apiClient.api.videos[":id"].comments.$post({
           json,
           param: { id: videoId },
+        })
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["videos", videoId, "comments"],
+      });
+    },
+  });
+};
+
+export const usePinVideoComment = (videoId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (json: { commentId: string; pinned: boolean }) =>
+      readApiJson(
+        apiClient.api.videos[":id"].comments[":commentId"].pin.$patch({
+          json: { pinned: json.pinned },
+          param: { commentId: json.commentId, id: videoId },
         })
       ),
     onSuccess: () => {
