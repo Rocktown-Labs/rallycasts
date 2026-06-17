@@ -70,4 +70,4 @@ jobs:
         run: bun install
 
       - name: Check Database Types
-        run: bun run check-types --filter=db
+        run: bun run check-types --filter=@rallycaststv/db
