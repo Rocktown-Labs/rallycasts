@@ -87,25 +87,15 @@ export default function AppSidebar({
             <PanelLeftClose className="size-4" />
           )}
         </Button>
-        {collapsed ? (
-          <Link
-            to="/"
-            className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full transition-opacity hover:opacity-85"
-          >
-            <img
-              src="/rallycasts-500-trans.png"
-              alt="RallyCasts"
-              className="size-9 object-cover"
-            />
-          </Link>
-        ) : (
-          <Link
-            to="/"
-            className="inline-flex h-9.5 min-w-32 items-center justify-center rounded-full bg-primary px-5 text-xl font-logo lowercase text-brand-yellow"
-          >
-            rallycasts
-          </Link>
-        )}
+        <Link
+          to="/"
+          className={cn(
+            "flex shrink-0 items-center transition-opacity hover:opacity-85",
+            collapsed ? "h-7 w-auto" : "h-8 w-auto"
+          )}
+        >
+          <img src="/logo.svg" alt="RallyCasts" className="h-full w-auto" />
+        </Link>
       </div>
 
       <div className="flex-1 space-y-10 overflow-y-auto px-2 py-6">
@@ -114,18 +104,20 @@ export default function AppSidebar({
           items={discoverNavItems}
           label="Discover"
         />
-        {isOrganizer && (
+        {session && (
+          <NavSection
+            collapsed={collapsed}
+            items={accountNavItems}
+            label="Your Account"
+          />
+        )}
+        {session && isOrganizer && (
           <NavSection
             collapsed={collapsed}
             items={organizerNavItems}
             label="Organizer Tools"
           />
         )}
-        <NavSection
-          collapsed={collapsed}
-          items={accountNavItems}
-          label="Your Account"
-        />
       </div>
       <div className="border-t border-sidebar-border p-2">
         {session ? (

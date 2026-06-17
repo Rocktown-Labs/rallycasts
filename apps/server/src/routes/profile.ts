@@ -8,6 +8,7 @@ import * as HttpStatusCodes from "stoker/http-status-codes";
 import { z } from "zod";
 
 import { isPlatformAdminEmail } from "../lib/admin";
+import { BloomFilter } from "../lib/bloom";
 import type { AppEnv } from "../lib/types";
 import { requireAuth } from "../middleware/auth";
 
@@ -85,6 +86,42 @@ const ensureAdminProfile = async (
 
 export const profileRouter = new Hono<AppEnv>()
   .use(requireAuth)
+  .get("/check-username", async (c) => {
+    const usernameQuery = c.req.query("username")?.trim().toLowerCase();
+    if (!usernameQuery) {
+      return c.json({ available: false }, HttpStatusCodes.BAD_REQUEST);
+    }
+
+    const db = createDb(c.env.DB);
+    const allUsers = await db
+      .select({ username: user.username })
+      .from(user)
+      .all();
+    const bloom = new BloomFilter(1000, 3);
+    for (const u of allUsers) {
+      if (u.username) {
+        bloom.add(u.username.toLowerCase());
+      }
+    }
+
+    if (!bloom.has(usernameQuery)) {
+      return c.json(
+        { available: true, source: "bloom_filter" },
+        HttpStatusCodes.OK
+      );
+    }
+
+    const [existing] = await db
+      .select()
+      .from(user)
+      .where(eq(user.username, usernameQuery))
+      .limit(1);
+
+    return c.json(
+      { available: !existing, source: "database" },
+      HttpStatusCodes.OK
+    );
+  })
   .get("/me", async (c) => {
     const db = createDb(c.env.DB);
     const { user: authUser } = c.var.authSession;

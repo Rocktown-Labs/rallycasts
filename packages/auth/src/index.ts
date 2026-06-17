@@ -6,6 +6,22 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { username } from "better-auth/plugins/username";
 
+const getCookieDomain = (url: string) => {
+  try {
+    const { hostname } = new URL(url);
+    if (hostname === "localhost" || hostname.endsWith(".localhost")) {
+      return;
+    }
+    const parts = hostname.split(".");
+    if (parts.length <= 2) {
+      return `.${hostname}`;
+    }
+    return `.${parts.slice(1).join(".")}`;
+  } catch {
+    // Ignore invalid URL parsing errors
+  }
+};
+
 const getSocialProviders = () => ({
   github:
     env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET
@@ -51,6 +67,7 @@ export const createAuth = (
   return betterAuth({
     advanced: {
       defaultCookieAttributes: {
+        domain: getCookieDomain(env.BETTER_AUTH_URL),
         httpOnly: true,
         sameSite: "none",
         secure: true,

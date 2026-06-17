@@ -49,7 +49,7 @@ const searchIndex = await VectorizeIndex("search-index", {
   description: "RallyCasts semantic search index",
   dimensions: 768,
   metric: "cosine",
-  name: isProd ? "rallycasts-search" : `rallycasts-search-${stage}`,
+  name: isProd ? "rallycasts-search-v2" : `rallycasts-search-${stage}`,
 });
 
 const betterAuthSecret = required(

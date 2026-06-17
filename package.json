@@ -34,6 +34,7 @@
     "db:generate": "turbo -F @rallycaststv/db db:generate",
     "db:studio": "turbo -F @rallycaststv/db db:studio",
     "deploy": "turbo -F @rallycaststv/infra deploy",
+    "deploy:prod": "turbo -F @rallycaststv/infra deploy -- --stage prod",
     "destroy": "turbo -F @rallycaststv/infra destroy",
     "test": "turbo test",
     "check": "ultracite check",

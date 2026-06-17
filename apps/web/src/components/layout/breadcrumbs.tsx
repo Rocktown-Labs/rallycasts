@@ -63,7 +63,7 @@ export default function Breadcrumbs() {
             <Link
               to={pathname}
               className={cn(
-                "inline-flex h-9.5 min-w-32 max-w-48 items-center justify-center rounded-full bg-primary px-5 text-lg font-logo text-primary-foreground transition-colors",
+                "inline-flex h-8 min-w-28 max-w-44 items-center justify-center rounded-full bg-primary px-4 text-base font-logo text-primary-foreground transition-colors",
                 isLast && "bg-primary text-brand-yellow"
               )}
             >

@@ -1,7 +1,9 @@
+import { debounce } from "@tanstack/pacer";
 import { Check } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { apiClient } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
 import { withForm } from "@/lib/hooks/onboarding-form";
 
@@ -45,7 +47,6 @@ export const StepProfile = withForm({
     const [usernameError, setUsernameError] = useState<string | null>(null);
     const [usernameSuccess, setUsernameSuccess] = useState(false);
     const [isCheckingUsername, setIsCheckingUsername] = useState(false);
-    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const usernameValue = form.getFieldValue("profile.username");
 
@@ -64,7 +65,41 @@ export const StepProfile = withForm({
       }
     }, [session?.user, form]);
 
-    // Debounced username availability check
+    // Debounced username availability check using TanStack Pacer
+    const debouncedCheck = useMemo(
+      () =>
+        debounce(
+          async (username: string) => {
+            setIsCheckingUsername(true);
+            setUsernameError(null);
+            try {
+              const res = await apiClient.api.profile["check-username"].$get({
+                query: { username },
+              });
+              if (res.ok) {
+                const data = await res.json();
+                if (data.available) {
+                  setUsernameSuccess(true);
+                } else {
+                  setUsernameSuccess(false);
+                  setUsernameError("Username is already taken");
+                }
+              } else {
+                setUsernameSuccess(false);
+                setUsernameError("Failed to check username");
+              }
+            } catch {
+              setUsernameSuccess(false);
+              setUsernameError("Failed to check username");
+            } finally {
+              setIsCheckingUsername(false);
+            }
+          },
+          { wait: 400 }
+        ),
+      []
+    );
+
     useEffect(() => {
       const cleanUsername = usernameValue?.trim();
       if (!cleanUsername || cleanUsername.length < 3) {
@@ -79,37 +114,8 @@ export const StepProfile = withForm({
         return;
       }
 
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
-
-      timerRef.current = setTimeout(async () => {
-        setIsCheckingUsername(true);
-        setUsernameError(null);
-        try {
-          const res = await authClient.isUsernameAvailable({
-            username: cleanUsername,
-          });
-          if (res.data?.available) {
-            setUsernameSuccess(true);
-          } else {
-            setUsernameSuccess(false);
-            setUsernameError("Username is already taken");
-          }
-        } catch {
-          setUsernameSuccess(false);
-          setUsernameError("Failed to check username");
-        } finally {
-          setIsCheckingUsername(false);
-        }
-      }, 400);
-
-      return () => {
-        if (timerRef.current) {
-          clearTimeout(timerRef.current);
-        }
-      };
-    }, [usernameValue, session?.user?.username]);
+      debouncedCheck(cleanUsername);
+    }, [usernameValue, session?.user?.username, debouncedCheck]);
 
     const imageValue = form.getFieldValue("profile.image") || "";
 

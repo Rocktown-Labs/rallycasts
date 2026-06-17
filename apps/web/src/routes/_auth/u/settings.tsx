@@ -1,3 +1,4 @@
+/* eslint-disable complexity */
 import { Button } from "@rallycaststv/ui/components/button";
 import {
   Card,
@@ -9,6 +10,7 @@ import {
 import { Checkbox } from "@rallycaststv/ui/components/checkbox";
 import { Input } from "@rallycaststv/ui/components/input";
 import { Label } from "@rallycaststv/ui/components/label";
+import { debounce } from "@tanstack/pacer";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   CheckCircle,
@@ -19,11 +21,12 @@ import {
   Sparkles,
   User,
 } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { apiClient } from "@/lib/api-client";
 import { useProfile, useUpdateProfile } from "@/lib/hooks";
+import type { ProfilePayload } from "@/lib/hooks";
 import { readApiJson } from "@/lib/hooks/api";
 
 export const Route = createFileRoute("/_auth/u/settings")({
@@ -179,6 +182,62 @@ function SettingsPage() {
   const [suggestions, setSuggestions] = useState<CourtSuggestion[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [isSearchingPlaces, setIsSearchingPlaces] = useState(false);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [usernameSuccess, setUsernameSuccess] = useState(false);
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+
+  // Debounced username check using TanStack Pacer
+  const debouncedCheck = useMemo(
+    () =>
+      debounce(
+        async (username: string) => {
+          setIsCheckingUsername(true);
+          setUsernameError(null);
+          try {
+            const res = await apiClient.api.profile["check-username"].$get({
+              query: { username },
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (data.available) {
+                setUsernameSuccess(true);
+              } else {
+                setUsernameSuccess(false);
+                setUsernameError("Username is already taken");
+              }
+            } else {
+              setUsernameSuccess(false);
+              setUsernameError("Failed to check username");
+            }
+          } catch {
+            setUsernameSuccess(false);
+            setUsernameError("Failed to check username");
+          } finally {
+            setIsCheckingUsername(false);
+          }
+        },
+        { wait: 400 }
+      ),
+    []
+  );
+
+  useEffect(() => {
+    const cleanUsername = form.username?.trim();
+    const currentUsername = user?.username || user?.displayUsername;
+    if (!cleanUsername || cleanUsername.length < 3) {
+      setUsernameError(null);
+      setUsernameSuccess(false);
+      return;
+    }
+
+    if (currentUsername === cleanUsername) {
+      setUsernameError(null);
+      setUsernameSuccess(true);
+      return;
+    }
+
+    debouncedCheck(cleanUsername);
+  }, [form.username, user?.username, user?.displayUsername, debouncedCheck]);
 
   const debouncedQuery = useDebounce(searchQuery, 400);
 
@@ -250,6 +309,12 @@ function SettingsPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Full Name validation
+    if (!form.name.trim()) {
+      toast.error("Full Name is required");
+      return;
+    }
+
     // Username validation
     const usernameRegex = /^[a-zA-Z0-9_]+$/u;
     if (form.username && !usernameRegex.test(form.username)) {
@@ -259,7 +324,45 @@ function SettingsPage() {
       return;
     }
 
-    updateProfile.mutate(form, {
+    if (form.username && form.username.length < 3) {
+      toast.error("Username must be at least 3 characters");
+      return;
+    }
+
+    const currentUsername = user?.username || user?.displayUsername;
+    if (
+      form.username &&
+      form.username.trim() !== currentUsername &&
+      !usernameSuccess
+    ) {
+      toast.error("Please resolve username availability before saving");
+      return;
+    }
+
+    const payload: ProfilePayload = {
+      bio: form.bio,
+      homeCity: form.homeCity || undefined,
+      homeCourtName: form.homeCourtName || undefined,
+      homeState: form.homeState || undefined,
+      isCaster: form.isCaster,
+      isOrganizer: form.isOrganizer,
+      isPlayer: form.isPlayer,
+      name: form.name.trim(),
+      radarPlaceId: form.radarPlaceId || undefined,
+    };
+
+    if (form.username.trim()) {
+      payload.username = form.username.trim();
+    }
+
+    if (form.homeLatitude !== 0) {
+      payload.homeLatitude = form.homeLatitude;
+    }
+    if (form.homeLongitude !== 0) {
+      payload.homeLongitude = form.homeLongitude;
+    }
+
+    updateProfile.mutate(payload, {
       onError: (err: unknown) => {
         const message =
           err instanceof Error ? err.message : "Failed to update profile";
@@ -368,7 +471,7 @@ function SettingsPage() {
                   onChange={(e) =>
                     setForm((prev) => ({ ...prev, name: e.target.value }))
                   }
-                  className="rounded-full bg-muted/20 border-border/80"
+                  className="rounded-md bg-muted/20 border-border/80"
                 />
               </div>
 
@@ -381,8 +484,25 @@ function SettingsPage() {
                   onChange={(e) =>
                     setForm((prev) => ({ ...prev, username: e.target.value }))
                   }
-                  className="rounded-full bg-muted/20 border-border/80"
+                  className="rounded-md bg-muted/20 border-border/80"
                 />
+                {isCheckingUsername && (
+                  <p className="text-xs text-muted-foreground px-2 animate-pulse mt-1">
+                    Checking availability...
+                  </p>
+                )}
+                {usernameError && (
+                  <p className="text-xs text-destructive px-2 mt-1">
+                    {usernameError}
+                  </p>
+                )}
+                {usernameSuccess &&
+                  form.username !== (user?.username || user?.displayUsername) &&
+                  !usernameError && (
+                    <p className="text-xs text-emerald-600 flex items-center gap-1 px-2 mt-1">
+                      <CheckCircle className="size-3" /> Available
+                    </p>
+                  )}
                 <p className="text-[10px] text-muted-foreground px-2">
                   Allowed characters: letters, numbers, underscores. Must be
                   unique.
@@ -433,7 +553,7 @@ function SettingsPage() {
                     setShowDropdown(true);
                   }}
                   onFocus={() => setShowDropdown(true)}
-                  className="pl-9 rounded-full bg-muted/20 border-border/80"
+                  className="pl-9 rounded-md bg-muted/20 border-border/80"
                 />
               </div>
 
@@ -474,7 +594,7 @@ function SettingsPage() {
                   onChange={(e) =>
                     setForm((prev) => ({ ...prev, homeCity: e.target.value }))
                   }
-                  className="rounded-full bg-muted/20 border-border/80"
+                  className="rounded-md bg-muted/20 border-border/80"
                 />
               </div>
 
@@ -487,7 +607,7 @@ function SettingsPage() {
                   onChange={(e) =>
                     setForm((prev) => ({ ...prev, homeState: e.target.value }))
                   }
-                  className="rounded-full bg-muted/20 border-border/80"
+                  className="rounded-md bg-muted/20 border-border/80"
                 />
               </div>
             </div>
@@ -581,7 +701,7 @@ function SettingsPage() {
           <Button
             type="submit"
             disabled={updateProfile.isPending}
-            className="bg-primary text-brand-yellow font-bold hover:bg-primary/95 rounded-full px-6 gap-2"
+            className="bg-primary text-brand-yellow font-bold hover:bg-primary/95 rounded-md px-6 gap-2"
           >
             <Save className="size-4" />
             {updateProfile.isPending ? "Saving..." : "Save Settings"}

@@ -40,7 +40,7 @@ export const placesRouter = new Hono<AppEnv>()
     }
 
     try {
-      const client = createGooglePlacesClient();
+      const client = createGooglePlacesClient(c.env.GOOGLE_PLACES_API_KEY);
       const results = await client.searchText(
         query,
         lat ? Number(lat) : undefined,
@@ -69,7 +69,7 @@ export const placesRouter = new Hono<AppEnv>()
     }
 
     try {
-      const client = createGooglePlacesClient();
+      const client = createGooglePlacesClient(c.env.GOOGLE_PLACES_API_KEY);
       const results = await client.searchNearby(
         Number(lat),
         Number(lng),
@@ -97,7 +97,7 @@ export const placesRouter = new Hono<AppEnv>()
     }
 
     try {
-      const client = createGooglePlacesClient();
+      const client = createGooglePlacesClient(c.env.GOOGLE_PLACES_API_KEY);
       const result = await client.getPlaceDetails(placeId);
 
       return c.json({ place: result }, HttpStatusCodes.OK);
@@ -121,7 +121,7 @@ export const placesRouter = new Hono<AppEnv>()
     }
 
     try {
-      const client = createGooglePlacesClient();
+      const client = createGooglePlacesClient(c.env.GOOGLE_PLACES_API_KEY);
       const place = await client.getPlaceDetails(placeId);
       const db = createDb(c.env.DB);
 

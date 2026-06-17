@@ -6,6 +6,7 @@ import {
   Home,
   MessageSquare,
   Radio,
+  Settings,
   Trophy,
   User,
   Users,
@@ -35,6 +36,7 @@ export const accountNavItems = [
   },
   { icon: MessageSquare, label: "Messages", to: "/u/messages" },
   { icon: Clock, label: "History", to: "/u/history" },
+  { icon: Settings, label: "Settings", to: "/u/settings" },
 ] as const;
 
 export const mobileNavItems = [

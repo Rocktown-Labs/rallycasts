@@ -225,6 +225,6 @@ export class GooglePlacesClient {
   }
 }
 
-export function createGooglePlacesClient(): GooglePlacesClient {
-  return new GooglePlacesClient();
+export function createGooglePlacesClient(apiKey?: string): GooglePlacesClient {
+  return new GooglePlacesClient(apiKey);
 }

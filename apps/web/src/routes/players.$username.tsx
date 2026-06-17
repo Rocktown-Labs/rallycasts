@@ -3,7 +3,12 @@ import { Card, CardContent } from "@rallycaststv/ui/components/card";
 import { Input } from "@rallycaststv/ui/components/input";
 import { Label } from "@rallycaststv/ui/components/label";
 import { useQuery } from "@tanstack/react-query";
-import { useParams, Link, createFileRoute } from "@tanstack/react-router";
+import {
+  useParams,
+  Link,
+  createFileRoute,
+  redirect,
+} from "@tanstack/react-router";
 import {
   MapPin,
   Star,
@@ -1153,6 +1158,14 @@ function ProfileTabContent({
 }
 
 export const Route = createFileRoute("/players/$username")({
+  beforeLoad: async () => {
+    const session = await authClient.getSession().catch(() => null);
+    if (!session?.data) {
+      throw redirect({
+        to: "/login",
+      });
+    }
+  },
   component: PlayerProfilePage,
 });
 
