@@ -4,16 +4,18 @@ import { Check } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import type { WizardValues } from "@/components/onboarding/shared-form";
+import {
+  wizardFormOpts,
+  wizardSchema,
+} from "@/components/onboarding/shared-form";
+import { StepGame } from "@/components/onboarding/step-game";
+import { StepLocation } from "@/components/onboarding/step-location";
+import { StepProfile } from "@/components/onboarding/step-profile";
+import { StepRoles } from "@/components/onboarding/step-roles";
 import { authClient } from "@/lib/auth-client";
 import { useOnboarding } from "@/lib/hooks";
 import { useAppForm } from "@/lib/hooks/onboarding-form";
-
-import type { WizardValues } from "./shared-form";
-import { wizardFormOpts, wizardSchema } from "./shared-form";
-import { StepGame } from "./step-game";
-import { StepLocation } from "./step-location";
-import { StepProfile } from "./step-profile";
-import { StepRoles } from "./step-roles";
 
 const STEPS = [
   { label: "Profile" },
