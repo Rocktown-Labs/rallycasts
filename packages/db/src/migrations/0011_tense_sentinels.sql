@@ -1,0 +1,1 @@
+ALTER TABLE `video` ADD `tagged_user_ids` text;

@@ -23,7 +23,29 @@ const getSocialProviders = () => ({
       : undefined,
 });
 
-export const createAuth = (database: D1Database) => {
+export interface AuthEmailCallbacks {
+  sendResetPassword?: (data: {
+    user: {
+      email: string;
+      id: string;
+      name: string;
+    };
+    url: string;
+  }) => Promise<void>;
+  sendVerificationEmail?: (data: {
+    user: {
+      email: string;
+      id: string;
+      name: string;
+    };
+    url: string;
+  }) => Promise<void>;
+}
+
+export const createAuth = (
+  database: D1Database,
+  emailCallbacks?: AuthEmailCallbacks
+) => {
   const db = createDb(database);
 
   return betterAuth({
@@ -33,30 +55,22 @@ export const createAuth = (database: D1Database) => {
         sameSite: "none",
         secure: true,
       },
-      // uncomment crossSubDomainCookies setting when ready to deploy and replace <your-workers-subdomain> with your actual workers subdomain
-      // https://developers.cloudflare.com/workers/wrangler/configuration/#workersdev
-      // crossSubDomainCookies: {
-      //   enabled: true,
-      //   domain: "<your-workers-subdomain>",
-      // },
     },
     baseURL: env.BETTER_AUTH_URL,
     database: drizzleAdapter(db, {
       provider: "sqlite",
-
       schema,
     }),
     emailAndPassword: {
       enabled: true,
       revokeSessionsOnPasswordReset: true,
+      sendResetPassword: emailCallbacks?.sendResetPassword,
     },
-    // uncomment cookieCache setting when ready to deploy to Cloudflare using *.workers.dev domains
-    // session: {
-    //   cookieCache: {
-    //     enabled: true,
-    //     maxAge: 60,
-    //   },
-    // },
+    emailVerification: {
+      autoSendOnSignUp: true,
+      sendOnSignIn: false,
+      sendVerificationEmail: emailCallbacks?.sendVerificationEmail,
+    },
     plugins: [
       expo(),
       username({

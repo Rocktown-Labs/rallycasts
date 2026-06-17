@@ -29,14 +29,19 @@ const app = await alchemy("rallycaststv", {
   stateStore: (scope) => new CloudflareStateStore(scope),
 });
 
+const stage = app.stage ?? "dev";
+const isProd = stage === "prod";
+
 const productionServerUrl = "https://api.rallycasts.com";
 const productionWebUrl = "https://rallycasts.com";
-const webWorkerUrl = "https://rallycasts-web.rocktown-labs.workers.dev";
+const webWorkerUrl = isProd
+  ? "https://rallycasts-web.rocktown-labs.workers.dev"
+  : `https://rallycasts-web-${stage}.rocktown-labs.workers.dev`;
 
 const db = await D1Database("database", {
   adopt: true,
   migrationsDir: "../../packages/db/src/migrations",
-  name: "rallycaststv-db",
+  name: isProd ? "rallycaststv-db" : `rallycaststv-db-${stage}`,
 });
 const ai = Ai();
 const searchIndex = await VectorizeIndex("search-index", {
@@ -44,7 +49,7 @@ const searchIndex = await VectorizeIndex("search-index", {
   description: "RallyCasts semantic search index",
   dimensions: 768,
   metric: "cosine",
-  name: "rallycasts-search",
+  name: isProd ? "rallycasts-search" : `rallycasts-search-${stage}`,
 });
 
 const betterAuthSecret = required(
@@ -74,6 +79,8 @@ const r2SecretAccessKey = process.env.R2_SECRET_ACCESS_KEY ?? "";
 const r2BucketName = process.env.R2_BUCKET_NAME ?? "rallycasts-media";
 const r2AccountId = process.env.R2_ACCOUNT_ID ?? "";
 const r2PublicUrl = process.env.R2_PUBLIC_URL ?? "https://media.rallycasts.com";
+const resendApiKey = process.env.RESEND_API_KEY ?? "";
+const resendWebhookSecret = process.env.RESEND_WEBHOOK_SECRET ?? "";
 
 const mediaBucket = await R2Bucket("media", {
   adopt: true,
@@ -89,7 +96,7 @@ const eventCoordinator = DurableObjectNamespace("event-coordinator", {
   sqlite: true,
 });
 
-const stage = app.stage ?? "dev";
+// stage is defined at the top
 
 const geofenceQueue = await Queue("geofence-events", {
   adopt: true,
@@ -154,6 +161,8 @@ export const server = await Worker("rallycasts-server", {
     R2_SECRET_ACCESS_KEY: r2SecretAccessKey,
     RADAR_SECRET_KEY: radarSecretKey,
     RALLYCASTS_ADMIN_EMAIL: rallycastsAdminEmail,
+    RESEND_API_KEY: resendApiKey,
+    RESEND_WEBHOOK_SECRET: resendWebhookSecret,
     SEARCH_INDEX: searchIndex,
     VENUE_PRESENCE: venuePresence,
   },
@@ -162,9 +171,9 @@ export const server = await Worker("rallycasts-server", {
   dev: {
     port: 3000,
   },
-  domains: ["api.rallycasts.com"],
+  domains: isProd ? ["api.rallycasts.com"] : undefined,
   entrypoint: "src/index.ts",
-  name: "rallycasts-server",
+  name: isProd ? "rallycasts-server" : `rallycasts-server-${stage}`,
   url: true,
 });
 
@@ -186,8 +195,8 @@ export const web = await TanStackStart("rallycasts-web", {
     VITE_SERVER_URL: productionServerUrl,
   },
   cwd: "../../apps/web",
-  domains: ["rallycasts.com"],
-  name: "rallycasts-web",
+  domains: isProd ? ["rallycasts.com"] : undefined,
+  name: isProd ? "rallycasts-web" : `rallycasts-web-${stage}`,
   url: true,
 });
 

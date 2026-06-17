@@ -29,7 +29,7 @@ export default function Breadcrumbs() {
     .filter(
       (pathname, index, all) => pathname && all.indexOf(pathname) === index
     );
-  const visiblePathnames = pathnames.length > 0 ? pathnames : ["/"];
+  const visiblePathnames = pathnames.filter((pathname) => pathname !== "/");
 
   return (
     <nav
@@ -50,7 +50,7 @@ export default function Breadcrumbs() {
             <Link
               to={pathname}
               className={cn(
-                "inline-flex h-6 min-w-28 max-w-40 items-center justify-center rounded-full bg-primary px-4 text-xs font-semibold text-primary-foreground transition-colors",
+                "inline-flex h-6 min-w-28 max-w-40 items-center justify-center rounded-full bg-primary px-4 text-xs font-logo text-primary-foreground transition-colors",
                 isLast && "bg-primary text-brand-yellow"
               )}
             >

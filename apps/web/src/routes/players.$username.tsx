@@ -25,6 +25,7 @@ import {
   ChevronRight,
   Trophy,
   ArrowLeft,
+  Info,
 } from "lucide-react";
 import React, { useState } from "react";
 import { toast } from "sonner";
@@ -33,6 +34,7 @@ import { EmptyState } from "@/components/rally/cards";
 import type { VideoCardData } from "@/components/rally/cards";
 import { apiClient } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
+import { demoPlayers } from "@/lib/demo-data";
 import { usePlayers } from "@/lib/hooks";
 
 const duprRatings: Record<string, string> = {
@@ -94,6 +96,7 @@ interface PlayerHeaderProps {
     username?: string | null;
     displayUsername?: string | null;
     bio?: string | null;
+    onboardingStatus?: string | null;
   };
   location: string;
   isFollowing: boolean;
@@ -107,6 +110,99 @@ interface PlayerHeaderProps {
   onOpenChallenge: () => void;
   onOpenDM: () => void;
   isOwnProfile: boolean;
+}
+
+interface PlayerHeaderActionsProps {
+  isOwnProfile: boolean;
+  friendStatus: "none" | "pending" | "friends";
+  isFollowing: boolean;
+  isLiked: boolean;
+  playerName: string;
+  handleFriendAction: () => void;
+  renderFriendButtonContent: () => React.ReactNode;
+  setIsFollowing: (val: boolean) => void;
+  handleLike: () => void;
+  onOpenDM: () => void;
+  onOpenChallenge: () => void;
+}
+
+function PlayerHeaderActions({
+  isOwnProfile,
+  friendStatus,
+  isFollowing,
+  isLiked,
+  playerName,
+  handleFriendAction,
+  renderFriendButtonContent,
+  setIsFollowing,
+  handleLike,
+  onOpenDM,
+  onOpenChallenge,
+}: PlayerHeaderActionsProps) {
+  return (
+    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-2">
+      {!isOwnProfile && (
+        <>
+          <Button
+            onClick={handleFriendAction}
+            variant={friendStatus === "friends" ? "default" : "outline"}
+            className="rounded-lg text-xs font-semibold px-4 flex items-center gap-1.5 transition-all cursor-pointer"
+          >
+            {renderFriendButtonContent()}
+          </Button>
+
+          <Button
+            onClick={() => {
+              setIsFollowing(!isFollowing);
+              toast.success(
+                isFollowing
+                  ? `Unfollowed ${playerName}.`
+                  : `Followed ${playerName}!`
+              );
+            }}
+            variant={isFollowing ? "outline" : "default"}
+            className="rounded-lg text-xs font-semibold px-4 transition-all cursor-pointer"
+          >
+            {isFollowing ? "Following" : "Follow"}
+          </Button>
+
+          <Button
+            onClick={handleLike}
+            variant="outline"
+            className="rounded-lg text-xs font-semibold px-3 flex items-center justify-center cursor-pointer"
+            aria-label="Like profile"
+          >
+            <Heart
+              className={`size-4 ${isLiked ? "text-red-500 fill-current" : ""}`}
+            />
+          </Button>
+
+          <Button
+            onClick={onOpenDM}
+            variant="outline"
+            className="rounded-lg text-xs font-semibold px-4 flex items-center gap-1.5 cursor-pointer"
+          >
+            <MessageSquare className="size-3.5" /> DM
+          </Button>
+
+          <Button
+            onClick={onOpenChallenge}
+            className="rounded-lg text-xs font-semibold px-4 flex items-center gap-1.5 bg-brand-yellow text-black hover:bg-brand-yellow/80 cursor-pointer"
+          >
+            <Swords className="size-3.5" /> Challenge
+          </Button>
+        </>
+      )}
+      {isOwnProfile && (
+        <Button
+          variant="outline"
+          className="rounded-lg text-xs font-semibold px-4 cursor-pointer"
+        >
+          Edit Profile
+        </Button>
+      )}
+    </div>
+  );
 }
 
 function PlayerHeader({
@@ -128,24 +224,24 @@ function PlayerHeader({
     if (isLiked) {
       setLikesCount(likesCount - 1);
       setIsLiked(false);
-      toast.info(`Unliked ${player.name}'s profile.`);
+      toast.info(`Unliked ${player.name || "Player"}'s profile.`);
     } else {
       setLikesCount(likesCount + 1);
       setIsLiked(true);
-      toast.success(`Liked ${player.name}'s profile!`);
+      toast.success(`Liked ${player.name || "Player"}'s profile!`);
     }
   };
 
   const handleFriendAction = () => {
     if (friendStatus === "none") {
       setFriendStatus("pending");
-      toast.success(`Friend request sent to ${player.name}.`);
+      toast.success(`Friend request sent to ${player.name || "Player"}.`);
     } else if (friendStatus === "pending") {
       setFriendStatus("none");
       toast.info("Friend request cancelled.");
     } else {
       setFriendStatus("none");
-      toast.info(`Removed ${player.name} from friends.`);
+      toast.info(`Removed ${player.name || "Player"} from friends.`);
     }
   };
 
@@ -173,25 +269,27 @@ function PlayerHeader({
         {player.image ? (
           <img
             src={player.image}
-            alt={player.name}
+            alt={player.name || "Player"}
             className="size-full object-cover"
           />
         ) : (
-          player.name.at(0)
+          (player.name || player.username || "P").at(0)
         )}
       </div>
       <div className="flex-1 text-center sm:text-left space-y-3 min-w-0">
         <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
           <h1 className="text-2xl font-extrabold tracking-tight">
-            {player.name}
+            {player.name || `@${player.username || player.displayUsername}`}
           </h1>
           <span className="text-xs bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full capitalize">
             {player.skillLevel || "open play"}
           </span>
         </div>
-        <p className="text-muted-foreground text-sm">
-          @{player.username || player.displayUsername}
-        </p>
+        {player.name && (
+          <p className="text-muted-foreground text-sm">
+            @{player.username || player.displayUsername}
+          </p>
+        )}
 
         <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-muted-foreground">
           {location && (
@@ -219,68 +317,19 @@ function PlayerHeader({
           </p>
         )}
 
-        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-2">
-          {!isOwnProfile && (
-            <>
-              <Button
-                onClick={handleFriendAction}
-                variant={friendStatus === "friends" ? "default" : "outline"}
-                className="rounded-lg text-xs font-semibold px-4 flex items-center gap-1.5 transition-all cursor-pointer"
-              >
-                {renderFriendButtonContent()}
-              </Button>
-
-              <Button
-                onClick={() => {
-                  setIsFollowing(!isFollowing);
-                  toast.success(
-                    isFollowing
-                      ? `Unfollowed ${player.name}.`
-                      : `Followed ${player.name}!`
-                  );
-                }}
-                variant={isFollowing ? "outline" : "default"}
-                className="rounded-lg text-xs font-semibold px-4 transition-all cursor-pointer"
-              >
-                {isFollowing ? "Following" : "Follow"}
-              </Button>
-
-              <Button
-                onClick={handleLike}
-                variant="outline"
-                className="rounded-lg text-xs font-semibold px-3 flex items-center justify-center cursor-pointer"
-                aria-label="Like profile"
-              >
-                <Heart
-                  className={`size-4 ${isLiked ? "text-red-500 fill-current" : ""}`}
-                />
-              </Button>
-
-              <Button
-                onClick={onOpenDM}
-                variant="outline"
-                className="rounded-lg text-xs font-semibold px-4 flex items-center gap-1.5 cursor-pointer"
-              >
-                <MessageSquare className="size-3.5" /> DM
-              </Button>
-
-              <Button
-                onClick={onOpenChallenge}
-                className="rounded-lg text-xs font-semibold px-4 flex items-center gap-1.5 bg-brand-yellow text-black hover:bg-brand-yellow/80 cursor-pointer"
-              >
-                <Swords className="size-3.5" /> Challenge
-              </Button>
-            </>
-          )}
-          {isOwnProfile && (
-            <Button
-              variant="outline"
-              className="rounded-lg text-xs font-semibold px-4 cursor-pointer"
-            >
-              Edit Profile
-            </Button>
-          )}
-        </div>
+        <PlayerHeaderActions
+          isOwnProfile={isOwnProfile}
+          friendStatus={friendStatus}
+          isFollowing={isFollowing}
+          isLiked={isLiked}
+          playerName={player.name || player.username || "Player"}
+          handleFriendAction={handleFriendAction}
+          renderFriendButtonContent={renderFriendButtonContent}
+          setIsFollowing={setIsFollowing}
+          handleLike={handleLike}
+          onOpenDM={onOpenDM}
+          onOpenChallenge={onOpenChallenge}
+        />
       </div>
     </div>
   );
@@ -955,103 +1004,56 @@ function useChallenges() {
   };
 }
 
-export const Route = createFileRoute("/players/$username")({
-  component: PlayerProfilePage,
-});
+interface RawPlayer {
+  id: string;
+  name: string | null;
+  username: string | null;
+  displayUsername?: string | null;
+  image?: string | null;
+  skillLevel?: string | null;
+  bio?: string | null;
+  homeCity?: string | null;
+  homeState?: string | null;
+  onboardingStatus?: string | null;
+}
 
-function PlayerProfilePage() {
-  const { username } = useParams({ from: "/players/$username" });
-  const [activeTab, setActiveTab] = useState<
-    "all" | "videos" | "photos" | "challenges" | "about"
-  >("all");
+interface RawPhoto {
+  id: string;
+  description?: string | null;
+  title?: string | null;
+  thumbnailUrl?: string | null;
+  r2Key?: string | null;
+}
 
-  const {
-    friendStatus,
-    isFollowing,
-    isLiked,
-    likesCount,
-    setFriendStatus,
-    setIsFollowing,
-    setIsLiked,
-    setLikesCount,
-  } = useProfileActions();
+interface RawChallenge {
+  casted?: boolean | null;
+  challengedName?: string | null;
+  challengerName?: string | null;
+  scheduledAt?: string | null;
+  id: string;
+  message?: string | null;
+  matchMode?: string | null;
+  partnerName?: string | null;
+  result?: string | null;
+  castingSplitMode?: string | null;
+  status?: string | null;
+  venueName?: string | null;
+  videoUrl?: string | null;
+}
 
-  const {
-    setShowChallengeModal,
-    setShowDMModal,
-    showChallengeModal,
-    showDMModal,
-  } = useModals();
+interface RawPost {
+  id: string;
+  content?: string | null;
+  createdAt?: string | null;
+}
 
-  const { chatLog, dmMessage, handleSendDM, setDmMessage } = useDMChat();
-
-  const { addChallenge } = useChallenges();
-
-  const { feedItems, selectedFeedItem, setFeedItems, setSelectedFeedItem } =
-    useFeedDetailModal();
-
-  const { data: sessionData } = authClient.useSession();
-  const currentUser = sessionData?.user;
-  const isOwnProfile = currentUser?.id === username;
-
-  const { data, isLoading, error } = useQuery({
-    queryFn: async () => {
-      const res = await apiClient.api.players[":username"].$get({
-        param: { username },
-      });
-      if (!res.ok) {
-        throw new Error("Failed to fetch player");
-      }
-      return res.json();
-    },
-    queryKey: ["player", username],
-  });
-
-  if (isLoading) {
-    return (
-      <div className="mx-auto max-w-4xl px-4 py-8 space-y-6 animate-pulse">
-        <div className="flex items-center gap-6 pb-6 border-b border-border/50">
-          <div className="size-20 sm:size-24 rounded-full bg-muted" />
-          <div className="space-y-3 flex-1">
-            <div className="h-6 w-48 bg-muted rounded" />
-            <div className="h-4 w-32 bg-muted rounded" />
-          </div>
-        </div>
-        <div className="grid gap-6 md:grid-cols-3">
-          <div className="h-28 bg-muted rounded-xl" />
-          <div className="h-28 bg-muted rounded-xl" />
-          <div className="h-28 bg-muted rounded-xl" />
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !data?.player) {
-    return (
-      <div className="mx-auto max-w-4xl px-4 py-12 text-center space-y-4">
-        <h2 className="text-2xl font-bold text-destructive">
-          Profile not found
-        </h2>
-        <p className="text-muted-foreground text-sm">
-          The player username "@{username}" does not exist or has not completed
-          onboarding.
-        </p>
-        <Link to="/players">
-          <Button variant="outline" className="rounded-md text-xs mt-4">
-            Back to Players
-          </Button>
-        </Link>
-      </div>
-    );
-  }
-
-  const {
-    player,
-    videos = [],
-    photos = [],
-    challenges: apiChallenges = [],
-    posts: apiPosts = [],
-  } = data;
+function transformProfileData(
+  player: RawPlayer,
+  videos: VideoCardData[],
+  photos: RawPhoto[],
+  apiChallenges: RawChallenge[],
+  apiPosts: RawPost[]
+) {
   const location = [player.homeCity, player.homeState]
     .filter(Boolean)
     .join(", ");
@@ -1098,6 +1100,188 @@ function PlayerProfilePage() {
 
   const allFeedItems = buildFeedItems(videos, photosList, challenges, posts);
 
+  return {
+    allFeedItems,
+    challenges,
+    location,
+    photosList,
+    posts,
+  };
+}
+
+interface ProfileTabContentProps {
+  activeTab: string;
+  player: RawPlayer;
+  location: string;
+  tabItems: FeedItem[];
+  setFeedItems: (items: FeedItem[]) => void;
+  setSelectedFeedItem: (item: (FeedItem & { index: number }) | null) => void;
+}
+
+function ProfileTabContent({
+  activeTab,
+  player,
+  location,
+  tabItems,
+  setFeedItems,
+  setSelectedFeedItem,
+}: ProfileTabContentProps) {
+  if (activeTab === "about") {
+    return <AboutTab player={player} location={location} />;
+  }
+  if (tabItems.length > 0) {
+    return (
+      <ProfileGrid
+        items={tabItems}
+        onItemClick={(item, index) => {
+          setFeedItems(tabItems);
+          setSelectedFeedItem({ ...item, index } as FeedItem & {
+            index: number;
+          });
+        }}
+      />
+    );
+  }
+  return (
+    <EmptyState
+      message={`@${player.username || "player"} hasn't posted anything here yet.`}
+      title="No content yet"
+    />
+  );
+}
+
+export const Route = createFileRoute("/players/$username")({
+  component: PlayerProfilePage,
+});
+
+function PlayerProfilePage() {
+  const { username: rawUsername } = useParams({ from: "/players/$username" });
+  const username = rawUsername.startsWith("@")
+    ? rawUsername.slice(1)
+    : rawUsername;
+  const [activeTab, setActiveTab] = useState<
+    "all" | "videos" | "photos" | "challenges" | "about"
+  >("all");
+
+  const {
+    friendStatus,
+    isFollowing,
+    isLiked,
+    likesCount,
+    setFriendStatus,
+    setIsFollowing,
+    setIsLiked,
+    setLikesCount,
+  } = useProfileActions();
+
+  const {
+    setShowChallengeModal,
+    setShowDMModal,
+    showChallengeModal,
+    showDMModal,
+  } = useModals();
+
+  const { chatLog, dmMessage, handleSendDM, setDmMessage } = useDMChat();
+
+  const { addChallenge } = useChallenges();
+
+  const { feedItems, selectedFeedItem, setFeedItems, setSelectedFeedItem } =
+    useFeedDetailModal();
+
+  const { data: sessionData } = authClient.useSession();
+  const currentUser = sessionData?.user;
+  const isOwnProfile = currentUser?.id === username;
+
+  const {
+    data,
+    isLoading,
+    error: queryError,
+  } = useQuery({
+    queryFn: async () => {
+      try {
+        const res = await apiClient.api.players[":username"].$get({
+          param: { username },
+        });
+        if (!res.ok) {
+          throw new Error("Failed to fetch player");
+        }
+        return await res.json();
+      } catch (error) {
+        const demoPlayer = demoPlayers.find(
+          (p) => p.username === username || p.displayUsername === username
+        );
+        if (demoPlayer) {
+          return {
+            challenges: [],
+            photos: [],
+            player: {
+              ...demoPlayer,
+              displayUsername:
+                demoPlayer.displayUsername ?? demoPlayer.username,
+            },
+            posts: [],
+            videos: [],
+          };
+        }
+        throw error;
+      }
+    },
+    queryKey: ["player", username],
+  });
+
+  if (isLoading) {
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-8 space-y-6 animate-pulse">
+        <div className="flex items-center gap-6 pb-6 border-b border-border/50">
+          <div className="size-20 sm:size-24 rounded-full bg-muted" />
+          <div className="space-y-3 flex-1">
+            <div className="h-6 w-48 bg-muted rounded" />
+            <div className="h-4 w-32 bg-muted rounded" />
+          </div>
+        </div>
+        <div className="grid gap-6 md:grid-cols-3">
+          <div className="h-28 bg-muted rounded-xl" />
+          <div className="h-28 bg-muted rounded-xl" />
+          <div className="h-28 bg-muted rounded-xl" />
+        </div>
+      </div>
+    );
+  }
+
+  if (queryError || !data?.player) {
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-12 text-center space-y-4">
+        <h2 className="text-2xl font-bold text-destructive">
+          Profile not found
+        </h2>
+        <p className="text-muted-foreground text-sm">
+          The player username "@{username}" does not exist or has not completed
+          onboarding.
+        </p>
+        <Link to="/players">
+          <Button variant="outline" className="rounded-md text-xs mt-4">
+            Back to Players
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
+  const {
+    player,
+    videos = [],
+    photos = [],
+    challenges: apiChallenges = [],
+    posts: apiPosts = [],
+  } = data;
+  const { location, challenges, allFeedItems } = transformProfileData(
+    player,
+    videos,
+    photos,
+    apiChallenges,
+    apiPosts
+  );
+
   const handleSendChallenge = (challengeData: {
     mode: "singles" | "doubles";
     partner?: string;
@@ -1126,6 +1310,22 @@ function PlayerProfilePage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 space-y-8 animate-in fade-in duration-300">
+      {player.onboardingStatus === "pending" && (
+        <div className="bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 rounded-xl p-4 text-sm flex items-center gap-3 animate-in slide-in-from-top-4 duration-300">
+          <div className="bg-amber-500/20 rounded-full p-1.5 text-amber-600 dark:text-amber-400">
+            <Info className="size-4" />
+          </div>
+          <div>
+            <p className="font-semibold text-xs sm:text-sm">
+              Onboarding Setup Pending
+            </p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">
+              This player hasn't completed their onboarding yet. Some stats or
+              records might not be fully configured.
+            </p>
+          </div>
+        </div>
+      )}
       <PlayerHeader
         player={player}
         location={location}
@@ -1178,26 +1378,14 @@ function PlayerProfilePage() {
       <ProfileTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
       <div className="pt-2">
-        {activeTab === "about" && (
-          <AboutTab player={player} location={location} />
-        )}
-        {activeTab !== "about" && tabItems.length > 0 && (
-          <ProfileGrid
-            items={tabItems}
-            onItemClick={(item, index) => {
-              setFeedItems(tabItems);
-              setSelectedFeedItem({ ...item, index } as FeedItem & {
-                index: number;
-              });
-            }}
-          />
-        )}
-        {activeTab !== "about" && tabItems.length === 0 && (
-          <EmptyState
-            message={`@${player.username || "player"} hasn't posted anything here yet.`}
-            title="No content yet"
-          />
-        )}
+        <ProfileTabContent
+          activeTab={activeTab}
+          player={player}
+          location={location}
+          tabItems={tabItems}
+          setFeedItems={setFeedItems}
+          setSelectedFeedItem={setSelectedFeedItem}
+        />
       </div>
 
       <ChallengeModal
@@ -1459,16 +1647,16 @@ function FeedDetailModal({
               {player.image ? (
                 <img
                   src={player.image}
-                  alt={player.name}
+                  alt={player.name || "Player"}
                   className="size-full object-cover"
                 />
               ) : (
-                player.name.at(0)
+                (player.name || player.username || "P").at(0)
               )}
             </div>
             <div className="min-w-0 flex-1">
               <h4 className="font-extrabold text-sm text-foreground truncate">
-                {player.name}
+                {player.name || `@${player.username || player.displayUsername}`}
               </h4>
               <p className="text-[10px] text-muted-foreground truncate">
                 @{player.username || "player"}

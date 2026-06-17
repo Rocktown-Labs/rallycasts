@@ -129,6 +129,7 @@ export const video = sqliteTable(
     })
       .default("draft")
       .notNull(),
+    taggedUserIds: text("tagged_user_ids"),
     thumbnailUrl: text("thumbnail_url"),
     title: text("title").notNull(),
     updatedAt: timestamp("updated_at").$onUpdate(() => new Date()),

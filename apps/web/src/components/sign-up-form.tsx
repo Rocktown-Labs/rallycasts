@@ -73,7 +73,7 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
     <div className="mx-auto w-full mt-10 max-w-md p-4 flex flex-col justify-center min-h-[80vh]">
       <Card className="border border-border bg-card/60 backdrop-blur-md shadow-xl rounded-xl p-2">
         <CardHeader className="text-center pb-4">
-          <div className="mx-auto mb-2 flex h-8 w-28 items-center justify-center rounded-full bg-primary text-brand-yellow font-bold text-xs lowercase tracking-wider">
+          <div className="mx-auto mb-2 flex h-8 w-28 items-center justify-center rounded-full bg-primary text-brand-yellow font-logo text-sm lowercase">
             rallycasts
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight text-foreground mt-2">

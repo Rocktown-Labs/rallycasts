@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TrendingRouteImport } from './routes/trending'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PlayersRouteImport } from './routes/players'
 import { Route as OrganizersRouteImport } from './routes/organizers'
 import { Route as LoginRouteImport } from './routes/login'
@@ -46,6 +47,11 @@ import { Route as AuthUProfileAnalyticsRouteImport } from './routes/_auth/u/prof
 const TrendingRoute = TrendingRouteImport.update({
   id: '/trending',
   path: '/trending',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlayersRoute = PlayersRouteImport.update({
@@ -218,6 +224,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/organizers': typeof OrganizersRoute
   '/players': typeof PlayersRouteWithChildren
+  '/reset-password': typeof ResetPasswordRoute
   '/trending': typeof TrendingRoute
   '/onboarding': typeof AuthOnboardingRoute
   '/u': typeof AuthURouteWithChildren
@@ -249,6 +256,7 @@ export interface FileRoutesByTo {
   '/ai': typeof AiRoute
   '/login': typeof LoginRoute
   '/organizers': typeof OrganizersRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/trending': typeof TrendingRoute
   '/onboarding': typeof AuthOnboardingRoute
   '/casters/$id': typeof CastersIdRoute
@@ -283,6 +291,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/organizers': typeof OrganizersRoute
   '/players': typeof PlayersRouteWithChildren
+  '/reset-password': typeof ResetPasswordRoute
   '/trending': typeof TrendingRoute
   '/_auth/onboarding': typeof AuthOnboardingRoute
   '/_auth/u': typeof AuthURouteWithChildren
@@ -319,6 +328,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/organizers'
     | '/players'
+    | '/reset-password'
     | '/trending'
     | '/onboarding'
     | '/u'
@@ -350,6 +360,7 @@ export interface FileRouteTypes {
     | '/ai'
     | '/login'
     | '/organizers'
+    | '/reset-password'
     | '/trending'
     | '/onboarding'
     | '/casters/$id'
@@ -383,6 +394,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/organizers'
     | '/players'
+    | '/reset-password'
     | '/trending'
     | '/_auth/onboarding'
     | '/_auth/u'
@@ -419,6 +431,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   OrganizersRoute: typeof OrganizersRoute
   PlayersRoute: typeof PlayersRouteWithChildren
+  ResetPasswordRoute: typeof ResetPasswordRoute
   TrendingRoute: typeof TrendingRoute
   VenuesIdRoute: typeof VenuesIdRoute
   VideosIdRoute: typeof VideosIdRoute
@@ -431,6 +444,13 @@ declare module '@tanstack/react-router' {
       path: '/trending'
       fullPath: '/trending'
       preLoaderRoute: typeof TrendingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/players': {
@@ -768,6 +788,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   OrganizersRoute: OrganizersRoute,
   PlayersRoute: PlayersRouteWithChildren,
+  ResetPasswordRoute: ResetPasswordRoute,
   TrendingRoute: TrendingRoute,
   VenuesIdRoute: VenuesIdRoute,
   VideosIdRoute: VideosIdRoute,

@@ -10,6 +10,7 @@ import {
   Share2,
   Play,
   Pin,
+  Users,
 } from "lucide-react";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
@@ -140,8 +141,23 @@ interface VideoMetaHeaderProps {
   hasLiked: boolean;
   handleSubscribeToggle: () => void;
   handleLikeToggle: () => void;
+  venue?: {
+    id: string;
+    name: string;
+    city?: string | null;
+    state?: string | null;
+  } | null;
+  taggedUsers?:
+    | {
+        id: string;
+        name: string | null;
+        username: string | null;
+        image: string | null;
+      }[]
+    | null;
 }
 
+// oxlint-disable-next-line complexity
 function VideoMetaHeader({
   video,
   owner,
@@ -150,6 +166,8 @@ function VideoMetaHeader({
   hasLiked,
   handleSubscribeToggle,
   handleLikeToggle,
+  venue,
+  taggedUsers,
 }: VideoMetaHeaderProps) {
   const ownerUsername = owner?.username ?? "player";
   const ownerName = owner?.name ?? "Player";
@@ -190,9 +208,26 @@ function VideoMetaHeader({
             >
               {ownerName}
             </Link>
-            <p className="text-xs text-muted-foreground truncate">
-              @{displayUsername}
-            </p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-muted-foreground">
+                @{displayUsername}
+              </span>
+              {venue && (
+                <>
+                  <span className="text-muted-foreground/40 text-[10px]">
+                    •
+                  </span>
+                  <Link
+                    to="/venues/$id"
+                    params={{ id: venue.id }}
+                    className="text-xs text-primary hover:text-primary/80 transition-colors flex items-center gap-0.5 font-semibold animate-pulse-subtle"
+                  >
+                    <MapPin className="size-3 shrink-0" />
+                    <span>{venue.name}</span>
+                  </Link>
+                </>
+              )}
+            </div>
           </div>
           <Button
             onClick={handleSubscribeToggle}
@@ -227,7 +262,7 @@ function VideoMetaHeader({
       </div>
 
       <Card className="border border-border/40 bg-muted/40 rounded-xl overflow-hidden shadow-sm">
-        <CardContent className="p-4 space-y-2 text-xs">
+        <CardContent className="p-4 space-y-3 text-xs">
           <div className="flex flex-wrap gap-x-4 gap-y-1 font-bold text-foreground">
             <span>1,208 views</span>
             <span>{formatDate(video.createdAt)}</span>
@@ -235,10 +270,57 @@ function VideoMetaHeader({
           <p className="text-muted-foreground leading-relaxed">
             {videoDescription}
           </p>
-          {video.venueId && (
+          {venue && (
+            <div className="flex items-center gap-1.5 text-primary pt-1 font-semibold">
+              <MapPin className="size-3.5" />
+              <Link
+                to="/venues/$id"
+                params={{ id: venue.id }}
+                className="hover:underline"
+              >
+                {venue.name}
+                {venue.city || venue.state
+                  ? ` (${[venue.city, venue.state].filter(Boolean).join(", ")})`
+                  : ""}
+              </Link>
+            </div>
+          )}
+          {!venue && video.venueId && (
             <div className="flex items-center gap-1 text-primary pt-1 font-medium">
               <MapPin className="size-3.5" />
               <span>Venue Location ID: {video.venueId}</span>
+            </div>
+          )}
+
+          {taggedUsers && taggedUsers.length > 0 && (
+            <div className="pt-3 border-t border-border/20 mt-3 space-y-2">
+              <p className="font-bold text-foreground flex items-center gap-1.5">
+                <Users className="size-3.5 text-muted-foreground" />
+                In this video
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {taggedUsers.map((u) => (
+                  <Link
+                    key={u.id}
+                    to="/players/$username"
+                    params={{ username: u.username || "player" }}
+                    className="flex items-center gap-1.5 px-2.5 py-1 bg-background hover:bg-accent border border-border hover:border-primary/30 rounded-full text-[11px] font-semibold text-foreground hover:text-primary transition-all cursor-pointer shadow-sm"
+                  >
+                    <div className="size-4 rounded-full bg-muted overflow-hidden shrink-0 flex items-center justify-center">
+                      {u.image ? (
+                        <img
+                          src={u.image}
+                          alt=""
+                          className="size-full object-cover"
+                        />
+                      ) : (
+                        <Users className="size-2 text-muted-foreground" />
+                      )}
+                    </div>
+                    <span>@{u.username || u.name}</span>
+                  </Link>
+                ))}
+              </div>
             </div>
           )}
         </CardContent>
@@ -563,7 +645,7 @@ function VideoDetailPage() {
     return <VideoNotFound />;
   }
 
-  const { video, owner } = videoData;
+  const { video, owner, venue, taggedUsers } = videoData;
   const commentsList = commentsData?.comments ?? [];
   const canPinComments = Boolean(
     currentUser?.id && owner?.id && currentUser.id === owner.id
@@ -723,6 +805,8 @@ function VideoDetailPage() {
             hasLiked={hasLiked}
             handleSubscribeToggle={handleSubscribeToggle}
             handleLikeToggle={handleLikeToggle}
+            venue={venue}
+            taggedUsers={taggedUsers}
           />
 
           <CommentsSection

@@ -63,7 +63,7 @@ const SignInForm = ({ onSwitchToSignUp }: { onSwitchToSignUp: () => void }) => {
     <div className="mx-auto w-full mt-16 max-w-md p-4 flex flex-col justify-center min-h-[70vh]">
       <Card className="border border-border bg-card/60 backdrop-blur-md shadow-xl rounded-xl p-2">
         <CardHeader className="text-center pb-4">
-          <div className="mx-auto mb-2 flex h-8 w-28 items-center justify-center rounded-full bg-primary text-brand-yellow font-bold text-xs lowercase tracking-wider">
+          <div className="mx-auto mb-2 flex h-8 w-28 items-center justify-center rounded-full bg-primary text-brand-yellow font-logo text-sm lowercase">
             rallycasts
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight text-foreground mt-2">
@@ -166,7 +166,22 @@ const SignInForm = ({ onSwitchToSignUp }: { onSwitchToSignUp: () => void }) => {
             </form.Subscribe>
           </form>
 
-          <div className="mt-6 text-center text-xs">
+          <div className="mt-4 text-center">
+            <Button
+              variant="link"
+              onClick={() =>
+                navigate({
+                  search: { mode: "forgot" },
+                  to: "/login",
+                })
+              }
+              className="text-muted-foreground hover:text-primary dark:hover:text-brand-yellow font-medium hover:underline p-0 h-auto text-[11px] cursor-pointer"
+            >
+              Forgot your password?
+            </Button>
+          </div>
+
+          <div className="mt-4 text-center text-xs">
             <span className="text-muted-foreground">Need an account? </span>
             <Button
               variant="link"

@@ -2,28 +2,37 @@ import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import z from "zod";
 
+import ForgotPasswordForm from "@/components/forgot-password-form";
 import SignInForm from "@/components/sign-in-form";
 import SignUpForm from "@/components/sign-up-form";
 
 const RouteComponent = () => {
   const { mode } = useSearch({ from: "/login" });
-  const [showSignIn, setShowSignIn] = useState(mode === "signin");
+  const [activeMode, setActiveMode] = useState<"signin" | "signup" | "forgot">(
+    mode ?? "signin"
+  );
 
   useEffect(() => {
     if (mode) {
-      setShowSignIn(mode === "signin");
+      setActiveMode(mode);
     }
   }, [mode]);
 
-  return showSignIn ? (
-    <SignInForm onSwitchToSignUp={() => setShowSignIn(false)} />
+  if (activeMode === "forgot") {
+    return (
+      <ForgotPasswordForm onSwitchToSignIn={() => setActiveMode("signin")} />
+    );
+  }
+
+  return activeMode === "signin" ? (
+    <SignInForm onSwitchToSignUp={() => setActiveMode("signup")} />
   ) : (
-    <SignUpForm onSwitchToSignIn={() => setShowSignIn(true)} />
+    <SignUpForm onSwitchToSignIn={() => setActiveMode("signin")} />
   );
 };
 
 const loginSearchSchema = z.object({
-  mode: z.enum(["signin", "signup"]).optional(),
+  mode: z.enum(["signin", "signup", "forgot"]).optional(),
 });
 
 export const Route = createFileRoute("/login")({

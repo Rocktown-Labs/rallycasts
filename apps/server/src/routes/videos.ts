@@ -1,8 +1,13 @@
 import { zValidator } from "@hono/zod-validator";
 import { createDb } from "@rallycaststv/db";
 import { user } from "@rallycaststv/db/schema/auth";
-import { video, videoComment, videoLike } from "@rallycaststv/db/schema/domain";
-import { and, desc, eq, sql } from "drizzle-orm";
+import {
+  venue,
+  video,
+  videoComment,
+  videoLike,
+} from "@rallycaststv/db/schema/domain";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 import { z } from "zod";
@@ -25,8 +30,9 @@ const createVideoSchema = z.object({
   status: z
     .enum(["draft", "uploading", "processing", "ready", "failed", "deleted"])
     .default("draft"),
+  taggedUserIds: z.array(z.string()).optional(),
   title: z.string().min(1).max(160),
-  venueId: z.string().min(1).optional(),
+  venueId: z.string().min(1).nullable().optional(),
   visibility: z.enum(["public", "friends", "private"]).default("public"),
 });
 
@@ -47,6 +53,91 @@ const pinCommentSchema = z.object({
   pinned: z.boolean(),
 });
 
+async function resolveVideosRelations(
+  db: ReturnType<typeof createDb>,
+  videosList: (typeof video.$inferSelect)[]
+) {
+  if (videosList.length === 0) {
+    return [];
+  }
+
+  // 1. Gather all venue IDs
+  const venueIds = [
+    ...new Set(videosList.map((v) => v.venueId).filter(Boolean)),
+  ] as string[];
+  const venues =
+    venueIds.length > 0
+      ? await db.select().from(venue).where(inArray(venue.id, venueIds))
+      : [];
+
+  // 2. Gather all owner user IDs
+  const ownerIds = [
+    ...new Set(videosList.map((v) => v.ownerUserId).filter(Boolean)),
+  ];
+
+  // 3. Gather all tagged user IDs
+  const taggedIds: string[] = [];
+  for (const v of videosList) {
+    if (v.taggedUserIds) {
+      try {
+        const parsed = JSON.parse(v.taggedUserIds);
+        if (Array.isArray(parsed)) {
+          taggedIds.push(...parsed);
+        }
+      } catch {
+        // ignore JSON parsing errors
+      }
+    }
+  }
+
+  // 4. Combine all user IDs to fetch in a single query
+  const allUserIds = [...new Set([...ownerIds, ...taggedIds])];
+  const users =
+    allUserIds.length > 0
+      ? await db
+          .select({
+            displayUsername: user.displayUsername,
+            id: user.id,
+            image: user.image,
+            name: user.name,
+            username: user.username,
+          })
+          .from(user)
+          .where(inArray(user.id, allUserIds))
+      : [];
+
+  const venueMap = new Map(venues.map((v) => [v.id, v]));
+  const userMap = new Map(users.map((u) => [u.id, u]));
+
+  return videosList.map((v) => {
+    let parsedTaggedUserIds: string[] = [];
+    if (v.taggedUserIds) {
+      try {
+        const parsed = JSON.parse(v.taggedUserIds);
+        if (Array.isArray(parsed)) {
+          parsedTaggedUserIds = parsed;
+        }
+      } catch {
+        // ignore JSON parsing errors
+      }
+    }
+
+    const resolvedOwner = userMap.get(v.ownerUserId) || null;
+    const resolvedVenue = v.venueId ? venueMap.get(v.venueId) || null : null;
+    const resolvedTaggedUsers = parsedTaggedUserIds
+      .map((id) => userMap.get(id))
+      .filter(Boolean);
+
+    return {
+      ...v,
+      owner: resolvedOwner,
+      taggedUserIds: parsedTaggedUserIds,
+      taggedUsers: resolvedTaggedUsers,
+      venue: resolvedVenue,
+    };
+  });
+}
+
 export const videosRouter = new Hono<AppEnv>()
   .get("/", async (c) => {
     const db = createDb(c.env.DB);
@@ -57,7 +148,8 @@ export const videosRouter = new Hono<AppEnv>()
       .orderBy(desc(video.publishedAt))
       .limit(50);
 
-    return c.json({ videos }, HttpStatusCodes.OK);
+    const resolved = await resolveVideosRelations(db, videos);
+    return c.json({ videos: resolved }, HttpStatusCodes.OK);
   })
   .get("/me", requireAuth, async (c) => {
     const db = createDb(c.env.DB);
@@ -69,16 +161,20 @@ export const videosRouter = new Hono<AppEnv>()
       .orderBy(desc(video.updatedAt))
       .limit(100);
 
-    return c.json({ videos }, HttpStatusCodes.OK);
+    const resolved = await resolveVideosRelations(db, videos);
+    return c.json({ videos: resolved }, HttpStatusCodes.OK);
   })
   .post("/", requireAuth, zValidator("json", createVideoSchema), async (c) => {
     const db = createDb(c.env.DB);
     const { user: authUser } = c.var.authSession;
     const data = c.req.valid("json");
+    const { taggedUserIds, ...rest } = data;
+
     const draft = {
       id: createId(),
       ownerUserId: authUser.id,
-      ...data,
+      ...rest,
+      taggedUserIds: taggedUserIds ? JSON.stringify(taggedUserIds) : null,
     };
 
     await db.insert(video).values(draft);
@@ -95,34 +191,44 @@ export const videosRouter = new Hono<AppEnv>()
     });
     scheduleSearchDocumentIndex(() => c.executionCtx, c.env, searchRecord);
 
-    return c.json({ video: draft }, HttpStatusCodes.CREATED);
+    const returnedVideo = {
+      ...draft,
+      taggedUserIds: taggedUserIds || [],
+    };
+
+    return c.json({ video: returnedVideo }, HttpStatusCodes.CREATED);
   })
   .get("/:id", async (c) => {
     const db = createDb(c.env.DB);
     const id = c.req.param("id");
 
-    const [record] = await db
-      .select({
-        owner: {
-          displayUsername: user.displayUsername,
-          id: user.id,
-          image: user.image,
-          name: user.name,
-          username: user.username,
-        },
-        video,
-      })
+    const [videoRecord] = await db
+      .select()
       .from(video)
-      .innerJoin(user, eq(video.ownerUserId, user.id))
       .where(eq(video.id, id))
       .limit(1);
 
-    if (!record || record.video.status === "deleted") {
+    if (!videoRecord || videoRecord.status === "deleted") {
       return c.json({ message: "Video not found" }, HttpStatusCodes.NOT_FOUND);
     }
 
+    const resolvedList = await resolveVideosRelations(db, [videoRecord]);
+    const [resolved] = resolvedList;
+    if (!resolved) {
+      return c.json({ message: "Video not found" }, HttpStatusCodes.NOT_FOUND);
+    }
     return c.json(
-      { owner: record.owner, video: record.video },
+      {
+        owner: resolved.owner,
+        taggedUsers: resolved.taggedUsers,
+        venue: resolved.venue,
+        video: {
+          ...resolved,
+          owner: undefined,
+          taggedUsers: undefined,
+          venue: undefined,
+        },
+      },
       HttpStatusCodes.OK
     );
   })
@@ -137,14 +243,19 @@ export const videosRouter = new Hono<AppEnv>()
       const data = c.req.valid("json");
       const publishedAt = data.status === "ready" ? new Date() : undefined;
 
+      const { taggedUserIds, ...rest } = data;
       await db
         .update(video)
         .set({
-          ...data,
+          ...rest,
           publishedAt,
+          taggedUserIds: taggedUserIds
+            ? JSON.stringify(taggedUserIds)
+            : undefined,
           updatedAt: new Date(),
         })
         .where(and(eq(video.id, id), eq(video.ownerUserId, authUser.id)));
+
       const [updated] = await db
         .select()
         .from(video)
@@ -168,7 +279,16 @@ export const videosRouter = new Hono<AppEnv>()
         scheduleSearchDocumentIndex(() => c.executionCtx, c.env, searchRecord);
       }
 
-      return c.json({ id, ...data }, HttpStatusCodes.OK);
+      const returnedVideo = updated
+        ? {
+            ...updated,
+            taggedUserIds: updated.taggedUserIds
+              ? JSON.parse(updated.taggedUserIds)
+              : [],
+          }
+        : null;
+
+      return c.json({ id, ...data, video: returnedVideo }, HttpStatusCodes.OK);
     }
   )
   .get("/:id/social", async (c) => {

@@ -48,8 +48,9 @@ export const useCreateVideo = () => {
       muxUploadId?: string;
       status?: "draft" | "uploading" | "processing" | "ready" | "failed";
       title: string;
-      venueId?: string;
+      venueId?: string | null;
       visibility?: "public" | "friends" | "private";
+      taggedUserIds?: string[];
     }) => readApiJson(apiClient.api.videos.$post({ json })),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["videos"] });

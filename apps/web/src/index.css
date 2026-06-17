@@ -1,2 +1,13 @@
 @import "@rallycaststv/ui/globals.css";
 @source "../node_modules/streamdown/dist/*.js";
+
+@font-face {
+  font-family: "Magz";
+  src: url("/fonts/Magz.otf") format("opentype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@theme {
+  --font-logo: "Magz", sans-serif;
+}

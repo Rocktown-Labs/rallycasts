@@ -76,10 +76,21 @@ export default function AppSidebar({
             <PanelLeftClose className="size-4" />
           )}
         </Button>
-        {collapsed ? null : (
+        {collapsed ? (
           <Link
             to="/"
-            className="inline-flex h-6 min-w-28 items-center justify-center rounded-full bg-primary px-4 text-sm font-bold lowercase text-brand-yellow"
+            className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full transition-opacity hover:opacity-85"
+          >
+            <img
+              src="/rallycasts-500-trans.png"
+              alt="RallyCasts"
+              className="size-8 object-cover"
+            />
+          </Link>
+        ) : (
+          <Link
+            to="/"
+            className="inline-flex h-6 min-w-28 items-center justify-center rounded-full bg-primary px-4 text-sm font-logo lowercase text-brand-yellow"
           >
             rallycasts
           </Link>

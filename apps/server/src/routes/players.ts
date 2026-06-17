@@ -27,6 +27,7 @@ export const playersRouter = new Hono<AppEnv>()
         id: user.id,
         image: user.image,
         name: user.name,
+        onboardingStatus: userProfile.onboardingStatus,
         skillLevel: userProfile.skillLevel,
         username: user.username,
       })
@@ -48,7 +49,10 @@ export const playersRouter = new Hono<AppEnv>()
   })
   .get("/:username", async (c) => {
     const db = createDb(c.env.DB);
-    const username = c.req.param("username");
+    const rawUsername = c.req.param("username");
+    const username = rawUsername.startsWith("@")
+      ? rawUsername.slice(1)
+      : rawUsername;
 
     const [player] = await db
       .select({
@@ -59,6 +63,7 @@ export const playersRouter = new Hono<AppEnv>()
         id: user.id,
         image: user.image,
         name: user.name,
+        onboardingStatus: userProfile.onboardingStatus,
         skillLevel: userProfile.skillLevel,
         username: user.username,
       })

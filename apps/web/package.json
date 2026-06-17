@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@ai-sdk/react": "catalog:",
+    "@mux/cli": "^1.3.2",
     "@radarlabs/plugin-autocomplete": "^1.1.0",
     "@rallycaststv/env": "workspace:*",
     "@rallycaststv/ui": "workspace:*",
