@@ -6,12 +6,14 @@ export interface GeoLocation {
   isFallback?: boolean;
   lat: number;
   lng: number;
+  stateCode?: string;
 }
 
 const ARKANSAS_TEST_LOCATION: GeoLocation = {
   isFallback: true,
   lat: 36.3729,
   lng: -94.2088,
+  stateCode: "AR",
 };
 
 export function useGeolocation() {
@@ -55,6 +57,7 @@ export function useGeolocation() {
                 setLocation({
                   lat: result.address.latitude,
                   lng: result.address.longitude,
+                  stateCode: result.address.stateCode || undefined,
                 });
                 setError(null);
               } else {
@@ -82,6 +85,7 @@ export function useGeolocation() {
             setLocation({
               lat: result.address.latitude,
               lng: result.address.longitude,
+              stateCode: result.address.stateCode || undefined,
             });
             setError(null);
           } else {

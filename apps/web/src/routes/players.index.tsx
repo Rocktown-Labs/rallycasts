@@ -2,7 +2,7 @@ import { Button } from "@rallycaststv/ui/components/button";
 import { Input } from "@rallycaststv/ui/components/input";
 import { cn } from "@rallycaststv/ui/lib/utils";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { Flame, Globe, MapPin, Sparkles, Trophy, Users } from "lucide-react";
+import { MapPin, Sparkles, Users } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -13,12 +13,6 @@ export const Route = createFileRoute("/players/")({
   component: PlayersPage,
 });
 
-type TabType =
-  | "near-you"
-  | "state-leaderboard"
-  | "global-leaderboard"
-  | "trending";
-
 interface PlayerWithStreak {
   bio?: string | null;
   displayUsername?: string | null;
@@ -26,9 +20,9 @@ interface PlayerWithStreak {
   homeState?: string | null;
   id: string;
   image?: string | null;
-  name: string | null;
+  name: string;
   skillLevel?: string | null;
-  username: string | null;
+  username?: string | null;
   streak?: number;
   trendingReason?: string;
 }
@@ -81,19 +75,33 @@ const handleChallenge = (playerName: string) => {
   toast.success(`Challenge request sent to ${playerName}!`);
 };
 
+const stateNames: Record<string, string> = {
+  AR: "Arkansas",
+  AZ: "Arizona",
+  CA: "California",
+  CO: "Colorado",
+  FL: "Florida",
+  NY: "New York",
+  TX: "Texas",
+};
+
+const getStateName = (code: string) => stateNames[code.toUpperCase()] || code;
+
 function PlayersPage() {
   const [query, setQuery] = useState("");
   const [selectedState, setSelectedState] = useState("");
   const [selectedSkill, setSelectedSkill] = useState("");
-  const [activeTab, setActiveTab] = useState<TabType>("near-you");
+  const [viewAllSection, setViewAllSection] = useState<
+    "near-you" | "state" | "global" | null
+  >(null);
 
   const { location } = useGeolocation();
-  const userState = selectedState || location?.stateCode || "AR";
+  const userState = location?.stateCode || "AR";
 
   const { data, isLoading } = usePlayers(query);
   const players = data?.players ?? [];
 
-  // Filter players based on search and filters
+  // Filter players based on state and skill dropdowns (if active)
   const filteredPlayers = players.filter((player) => {
     const matchesState = selectedState
       ? player.homeState?.toLowerCase() === selectedState.toLowerCase()
@@ -112,50 +120,132 @@ function PlayersPage() {
   // State Leaderboard: Sorted by score descending
   const stateLeaderboard = [...filteredPlayers]
     .filter((p) => p.homeState?.toUpperCase() === userState.toUpperCase())
-    .toSorted(
+    // eslint-disable-next-line unicorn/no-array-sort
+    .sort(
       (a, b) => getPlayerScore(b.skillLevel) - getPlayerScore(a.skillLevel)
     );
 
   // Global Leaderboard: All filtered players sorted by score descending
-  const globalLeaderboard = [...filteredPlayers].toSorted(
+  // eslint-disable-next-line unicorn/no-array-sort
+  const globalLeaderboard = [...filteredPlayers].sort(
     (a, b) => getPlayerScore(b.skillLevel) - getPlayerScore(a.skillLevel)
   );
 
-  // Trending / Who's Hot: Simulating based on challenges/history
-  const trendingPlayers = filteredPlayers
-    .map((p, idx) => ({
-      ...p,
-      streak: idx % 2 === 0 ? 3 + idx : undefined,
-      trendingReason: idx % 2 === 0 ? "On a win streak!" : "Highly challenged",
-    }))
-    .filter((p) => p.streak !== undefined);
+  const isSearching =
+    query !== "" || selectedState !== "" || selectedSkill !== "";
 
-  const getActiveList = (): PlayerWithStreak[] => {
-    switch (activeTab) {
-      case "near-you": {
-        return localPlayers;
-      }
-      case "state-leaderboard": {
-        return stateLeaderboard;
-      }
-      case "global-leaderboard": {
-        return globalLeaderboard;
-      }
-      case "trending": {
-        return trendingPlayers;
-      }
-      default: {
-        return filteredPlayers;
-      }
-    }
+  const renderPlayerCard = (player: PlayerWithStreak, rank?: number) => {
+    const rating = getDuprRating(player.skillLevel);
+    return (
+      <div
+        key={player.id}
+        className="group relative overflow-hidden rounded-2xl border border-border bg-card p-5 transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 flex flex-col justify-between min-h-[190px]"
+      >
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
+        <div className="relative z-10 space-y-4">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <div className="size-12 rounded-full overflow-hidden border border-border/80 bg-muted flex items-center justify-center">
+                  {player.image ? (
+                    <img
+                      src={player.image}
+                      alt={player.name || "Player avatar"}
+                      className="size-full object-cover"
+                    />
+                  ) : (
+                    <Users className="size-5 text-muted-foreground" />
+                  )}
+                </div>
+                {rank && (
+                  <div
+                    className={cn(
+                      "absolute -bottom-1 -right-1 size-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white border border-background shadow-sm",
+                      getRankBadgeClass(rank)
+                    )}
+                  >
+                    {rank}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <Link
+                  to="/players/$username"
+                  params={{
+                    username: player.username || player.displayUsername || "",
+                  }}
+                  className="font-bold hover:underline text-foreground block text-sm"
+                >
+                  {player.name ||
+                    `@${player.username || player.displayUsername}`}
+                </Link>
+                {player.name && (
+                  <span className="text-xs text-muted-foreground block">
+                    @{player.username || player.displayUsername}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-lg bg-primary/10 border border-primary/20 px-2 py-1 text-center">
+              <span className="block text-[8px] font-bold uppercase tracking-wider text-primary">
+                DUPR
+              </span>
+              <span className="block text-xs font-black text-primary">
+                {rating}
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-2 text-xs">
+            <p className="text-muted-foreground line-clamp-2 leading-relaxed">
+              {player.bio || "No bio added yet."}
+            </p>
+            <div className="flex flex-wrap items-center gap-3 text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <MapPin className="size-3 text-primary/70" />
+                {player.homeCity && player.homeState
+                  ? `${player.homeCity}, ${player.homeState}`
+                  : (player.homeState ?? "Unknown")}
+              </span>
+              <span className="rounded-full bg-muted/80 px-2 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground/90">
+                {player.skillLevel || "Player"}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="relative z-10 mt-5 pt-4 border-t border-border/50 flex items-center justify-between gap-2">
+          <Link
+            to="/players/$username"
+            params={{
+              username: player.username || player.displayUsername || "",
+            }}
+            className="text-xs text-primary hover:underline font-semibold"
+          >
+            View profile
+          </Link>
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleChallenge(player.name || "Player")}
+            className="h-8 rounded-md text-xs border-primary/20 hover:bg-primary/5 hover:text-primary transition-all duration-200"
+          >
+            Challenge
+          </Button>
+        </div>
+      </div>
+    );
   };
 
-  const activeList = getActiveList();
+  let mainContent;
 
-  let content;
   if (isLoading) {
-    content = (
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    mainContent = (
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 animate-in fade-in duration-300">
         {Array.from({ length: 6 }).map((_, idx) => (
           <div
             key={idx}
@@ -164,137 +254,205 @@ function PlayersPage() {
         ))}
       </div>
     );
-  } else if (activeList.length > 0) {
-    content = (
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {activeList.map((player, idx) => {
-          const rating = getDuprRating(player.skillLevel);
-          const rank = idx + 1;
-          const { streak } = player;
+  } else if (isSearching) {
+    mainContent = (
+      <div className="space-y-6 animate-in fade-in duration-300">
+        <h2 className="text-xl font-bold tracking-tight text-foreground">
+          Search Results ({filteredPlayers.length})
+        </h2>
+        {filteredPlayers.length > 0 ? (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredPlayers.map((player) => renderPlayerCard(player))}
+          </div>
+        ) : (
+          <EmptyState
+            message="No players match the chosen search query or filters."
+            title="No search results"
+          />
+        )}
+      </div>
+    );
+  } else if (viewAllSection) {
+    const getSectionDetails = () => {
+      switch (viewAllSection) {
+        case "near-you": {
+          return {
+            list: localPlayers,
+            title: `Near You in ${getStateName(userState)}`,
+          };
+        }
+        case "state": {
+          return {
+            list: stateLeaderboard,
+            ranked: true,
+            title: `${getStateName(userState)} Leaderboard`,
+          };
+        }
+        case "global": {
+          return {
+            list: globalLeaderboard,
+            ranked: true,
+            title: "Global Leaderboard",
+          };
+        }
+        default: {
+          return { list: [], title: "" };
+        }
+      }
+    };
 
-          return (
-            <div
-              key={player.id}
-              className="group relative overflow-hidden rounded-2xl border border-border bg-card p-5 transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 flex flex-col justify-between"
-            >
-              {/* Background glow on card hover */}
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+    const section = getSectionDetails();
 
-              <div className="relative z-10 space-y-4">
-                {/* Card Header */}
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    {/* Avatar */}
-                    <div className="relative">
-                      <div className="size-12 rounded-full overflow-hidden border border-border/80 bg-muted flex items-center justify-center">
-                        {player.image ? (
-                          <img
-                            src={player.image}
-                            alt={player.name || "Player avatar"}
-                            className="size-full object-cover"
-                          />
-                        ) : (
-                          <Users className="size-5 text-muted-foreground" />
-                        )}
-                      </div>
-                      {/* Tab-specific Rank Badge */}
-                      {(activeTab === "state-leaderboard" ||
-                        activeTab === "global-leaderboard") && (
-                        <div
-                          className={cn(
-                            "absolute -bottom-1 -right-1 size-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white border border-background shadow-sm",
-                            getRankBadgeClass(rank)
-                          )}
-                        >
-                          {rank}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Name / Handle */}
-                    <div>
-                      <Link
-                        to={`/players/${player.username || player.displayUsername}`}
-                        className="font-bold hover:underline text-foreground block text-sm"
-                      >
-                        {player.name ||
-                          `@${player.username || player.displayUsername}`}
-                      </Link>
-                      {player.name && (
-                        <span className="text-xs text-muted-foreground block">
-                          @{player.username || player.displayUsername}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* DUPR Rating Badge */}
-                  <div className="rounded-lg bg-primary/10 border border-primary/20 px-2 py-1 text-center">
-                    <span className="block text-[8px] font-bold uppercase tracking-wider text-primary">
-                      DUPR
-                    </span>
-                    <span className="block text-xs font-black text-primary">
-                      {rating}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Bio & Details */}
-                <div className="space-y-2 text-xs">
-                  <p className="text-muted-foreground line-clamp-2 leading-relaxed">
-                    {player.bio || "No bio added yet."}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-3 text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <MapPin className="size-3 text-primary/70" />
-                      {player.homeCity && player.homeState
-                        ? `${player.homeCity}, ${player.homeState}`
-                        : (player.homeState ?? "Unknown")}
-                    </span>
-                    <span className="rounded-full bg-muted/80 px-2 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground/90">
-                      {player.skillLevel || "Player"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Card Footer Actions */}
-              <div className="relative z-10 mt-5 pt-4 border-t border-border/50 flex items-center justify-between gap-2">
-                {/* Streak/Badge details if trending */}
-                {activeTab === "trending" && streak && (
-                  <span className="inline-flex items-center gap-1 rounded bg-orange-500/10 px-2 py-0.5 text-[10px] font-bold text-orange-600">
-                    <Flame className="size-3 fill-orange-600" />
-                    <span>{streak} Win Streak!</span>
-                  </span>
-                )}
-
-                <Link
-                  to={`/players/${player.username || player.displayUsername}`}
-                  className="text-xs text-primary hover:underline font-semibold"
-                >
-                  View profile
-                </Link>
-
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleChallenge(player.name || "Player")}
-                  className="h-8 rounded-md text-xs border-primary/20 hover:bg-primary/5 hover:text-primary transition-all duration-200"
-                >
-                  Challenge
-                </Button>
-              </div>
-            </div>
-          );
-        })}
+    mainContent = (
+      <div className="space-y-6 animate-in fade-in duration-300">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold tracking-tight text-foreground">
+            {section.title} ({section.list.length})
+          </h2>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setViewAllSection(null)}
+            className="rounded-full h-8 text-xs"
+          >
+            ← Back to Discover
+          </Button>
+        </div>
+        {section.list.length > 0 ? (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {section.list.map((player, idx) =>
+              renderPlayerCard(player, section.ranked ? idx + 1 : undefined)
+            )}
+          </div>
+        ) : (
+          <EmptyState
+            message="No players currently in this section."
+            title="No players found"
+          />
+        )}
       </div>
     );
   } else {
-    content = (
-      <EmptyState
-        message="No players match the chosen state or skill level filter."
-        title="No players found"
-      />
+    // Dashboard sections with horizontal scroll
+    mainContent = (
+      <div className="space-y-10 animate-in fade-in duration-500">
+        {/* Section 1: Near You */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold tracking-tight text-foreground">
+              Near You ({getStateName(userState)})
+            </h2>
+            {localPlayers.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setViewAllSection("near-you")}
+                className="text-primary hover:text-primary/80 font-semibold text-xs rounded-full"
+              >
+                View All
+              </Button>
+            )}
+          </div>
+          {localPlayers.length > 0 ? (
+            <div
+              className="flex gap-6 overflow-x-auto pb-4 snap-x snap-mandatory scroll-smooth -mx-4 px-4 md:-mx-0 md:px-0"
+              style={{ msOverflowStyle: "none", scrollbarWidth: "none" }}
+            >
+              {localPlayers.map((player) => (
+                <div
+                  key={player.id}
+                  className="w-[300px] sm:w-[330px] shrink-0 snap-start"
+                >
+                  {renderPlayerCard(player)}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              message="No players registered in your state yet."
+              title="No local players"
+            />
+          )}
+        </div>
+
+        {/* Section 2: State Leaderboard */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold tracking-tight text-foreground">
+              State Leaderboard ({getStateName(userState)})
+            </h2>
+            {stateLeaderboard.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setViewAllSection("state")}
+                className="text-primary hover:text-primary/80 font-semibold text-xs rounded-full"
+              >
+                View All
+              </Button>
+            )}
+          </div>
+          {stateLeaderboard.length > 0 ? (
+            <div
+              className="flex gap-6 overflow-x-auto pb-4 snap-x snap-mandatory scroll-smooth -mx-4 px-4 md:-mx-0 md:px-0"
+              style={{ msOverflowStyle: "none", scrollbarWidth: "none" }}
+            >
+              {stateLeaderboard.map((player, idx) => (
+                <div
+                  key={player.id}
+                  className="w-[300px] sm:w-[330px] shrink-0 snap-start"
+                >
+                  {renderPlayerCard(player, idx + 1)}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              message="No players registered in your state yet."
+              title="No leaderboard entries"
+            />
+          )}
+        </div>
+
+        {/* Section 3: Global Leaderboard */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold tracking-tight text-foreground">
+              Global Leaderboard
+            </h2>
+            {globalLeaderboard.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setViewAllSection("global")}
+                className="text-primary hover:text-primary/80 font-semibold text-xs rounded-full"
+              >
+                View All
+              </Button>
+            )}
+          </div>
+          {globalLeaderboard.length > 0 ? (
+            <div
+              className="flex gap-6 overflow-x-auto pb-4 snap-x snap-mandatory scroll-smooth -mx-4 px-4 md:-mx-0 md:px-0"
+              style={{ msOverflowStyle: "none", scrollbarWidth: "none" }}
+            >
+              {globalLeaderboard.map((player, idx) => (
+                <div
+                  key={player.id}
+                  className="w-[300px] sm:w-[330px] shrink-0 snap-start"
+                >
+                  {renderPlayerCard(player, idx + 1)}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              message="No players registered on the platform yet."
+              title="No global entries"
+            />
+          )}
+        </div>
+      </div>
     );
   }
 
@@ -320,20 +478,26 @@ function PlayersPage() {
         </div>
       </div>
 
-      {/* Filters & Tabs Wrapper */}
+      {/* Filters & Search - Rounded Full */}
       <div className="space-y-4">
-        {/* Search and Dropdowns */}
         <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-[2fr_1fr_1fr]">
           <Input
             placeholder="Search players by name, handle, or city..."
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            className="w-full bg-muted/40 border-border/80 focus:border-primary/50"
+            onChange={(event) => {
+              setQuery(event.target.value);
+              // Reset detail view on type
+              setViewAllSection(null);
+            }}
+            className="w-full bg-muted/40 border-border/80 focus:border-primary/50 rounded-full h-10 px-4"
           />
           <select
             value={selectedSkill}
-            onChange={(e) => setSelectedSkill(e.target.value)}
-            className="h-10 rounded-md border border-border bg-background px-3 py-2 text-sm text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+            onChange={(e) => {
+              setSelectedSkill(e.target.value);
+              setViewAllSection(null);
+            }}
+            className="h-10 rounded-full border border-border bg-background px-4 py-2 text-sm text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary cursor-pointer"
           >
             <option value="">All Skill Levels</option>
             <option value="beginner">Beginner (2.5+)</option>
@@ -343,8 +507,11 @@ function PlayersPage() {
           </select>
           <select
             value={selectedState}
-            onChange={(e) => setSelectedState(e.target.value)}
-            className="h-10 rounded-md border border-border bg-background px-3 py-2 text-sm text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+            onChange={(e) => {
+              setSelectedState(e.target.value);
+              setViewAllSection(null);
+            }}
+            className="h-10 rounded-full border border-border bg-background px-4 py-2 text-sm text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary cursor-pointer"
           >
             <option value="">All States</option>
             <option value="AR">Arkansas</option>
@@ -355,50 +522,10 @@ function PlayersPage() {
             <option value="CA">California</option>
           </select>
         </div>
-
-        {/* Tab Controls */}
-        <div className="flex flex-wrap gap-2 border-b border-border/50 pb-3">
-          <Button
-            variant={activeTab === "near-you" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setActiveTab("near-you")}
-            className="rounded-full gap-1.5 h-9"
-          >
-            <MapPin className="size-3.5" />
-            <span>Near You ({localPlayers.length})</span>
-          </Button>
-          <Button
-            variant={activeTab === "state-leaderboard" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setActiveTab("state-leaderboard")}
-            className="rounded-full gap-1.5 h-9"
-          >
-            <Trophy className="size-3.5" />
-            <span>State Leaderboard</span>
-          </Button>
-          <Button
-            variant={activeTab === "global-leaderboard" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setActiveTab("global-leaderboard")}
-            className="rounded-full gap-1.5 h-9"
-          >
-            <Globe className="size-3.5" />
-            <span>Global ({globalLeaderboard.length})</span>
-          </Button>
-          <Button
-            variant={activeTab === "trending" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setActiveTab("trending")}
-            className="rounded-full gap-1.5 h-9"
-          >
-            <Flame className="size-3.5" />
-            <span>Trending 🔥</span>
-          </Button>
-        </div>
       </div>
 
       {/* List / Grid Display */}
-      {content}
+      {mainContent}
     </div>
   );
 }

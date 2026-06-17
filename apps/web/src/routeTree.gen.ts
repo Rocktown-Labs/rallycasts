@@ -35,8 +35,11 @@ import { Route as EventsIdPlayersRouteImport } from './routes/events.$id.players
 import { Route as EventsIdMatchesRouteImport } from './routes/events.$id.matches'
 import { Route as EventsIdLocationsRouteImport } from './routes/events.$id.locations'
 import { Route as EventsIdBracketRouteImport } from './routes/events.$id.bracket'
+import { Route as AuthUSettingsRouteImport } from './routes/_auth/u/settings'
 import { Route as AuthUMessagesRouteImport } from './routes/_auth/u/messages'
+import { Route as AuthUMeRouteImport } from './routes/_auth/u/me'
 import { Route as AuthUHistoryRouteImport } from './routes/_auth/u/history'
+import { Route as AuthUProfileIndexRouteImport } from './routes/_auth/u/profile/index'
 import { Route as AuthUVideosMeRouteImport } from './routes/_auth/u/videos/me'
 import { Route as AuthURecordingRequestsMeRouteImport } from './routes/_auth/u/recording-requests/me'
 import { Route as AuthUProfileMyRallycastsRouteImport } from './routes/_auth/u/profile/my-rallycasts'
@@ -173,14 +176,29 @@ const EventsIdBracketRoute = EventsIdBracketRouteImport.update({
   path: '/bracket',
   getParentRoute: () => EventsIdRoute,
 } as any)
+const AuthUSettingsRoute = AuthUSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthURoute,
+} as any)
 const AuthUMessagesRoute = AuthUMessagesRouteImport.update({
   id: '/messages',
   path: '/messages',
   getParentRoute: () => AuthURoute,
 } as any)
+const AuthUMeRoute = AuthUMeRouteImport.update({
+  id: '/me',
+  path: '/me',
+  getParentRoute: () => AuthURoute,
+} as any)
 const AuthUHistoryRoute = AuthUHistoryRouteImport.update({
   id: '/history',
   path: '/history',
+  getParentRoute: () => AuthURoute,
+} as any)
+const AuthUProfileIndexRoute = AuthUProfileIndexRouteImport.update({
+  id: '/profile/',
+  path: '/profile/',
   getParentRoute: () => AuthURoute,
 } as any)
 const AuthUVideosMeRoute = AuthUVideosMeRouteImport.update({
@@ -237,7 +255,9 @@ export interface FileRoutesByFullPath {
   '/events/': typeof EventsIndexRoute
   '/players/': typeof PlayersIndexRoute
   '/u/history': typeof AuthUHistoryRoute
+  '/u/me': typeof AuthUMeRoute
   '/u/messages': typeof AuthUMessagesRoute
+  '/u/settings': typeof AuthUSettingsRoute
   '/events/$id/bracket': typeof EventsIdBracketRoute
   '/events/$id/locations': typeof EventsIdLocationsRoute
   '/events/$id/matches': typeof EventsIdMatchesRoute
@@ -250,6 +270,7 @@ export interface FileRoutesByFullPath {
   '/u/profile/my-rallycasts': typeof AuthUProfileMyRallycastsRoute
   '/u/recording-requests/me': typeof AuthURecordingRequestsMeRoute
   '/u/videos/me': typeof AuthUVideosMeRoute
+  '/u/profile/': typeof AuthUProfileIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -267,7 +288,9 @@ export interface FileRoutesByTo {
   '/events': typeof EventsIndexRoute
   '/players': typeof PlayersIndexRoute
   '/u/history': typeof AuthUHistoryRoute
+  '/u/me': typeof AuthUMeRoute
   '/u/messages': typeof AuthUMessagesRoute
+  '/u/settings': typeof AuthUSettingsRoute
   '/events/$id/bracket': typeof EventsIdBracketRoute
   '/events/$id/locations': typeof EventsIdLocationsRoute
   '/events/$id/matches': typeof EventsIdMatchesRoute
@@ -280,6 +303,7 @@ export interface FileRoutesByTo {
   '/u/profile/my-rallycasts': typeof AuthUProfileMyRallycastsRoute
   '/u/recording-requests/me': typeof AuthURecordingRequestsMeRoute
   '/u/videos/me': typeof AuthUVideosMeRoute
+  '/u/profile': typeof AuthUProfileIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -304,7 +328,9 @@ export interface FileRoutesById {
   '/events/': typeof EventsIndexRoute
   '/players/': typeof PlayersIndexRoute
   '/_auth/u/history': typeof AuthUHistoryRoute
+  '/_auth/u/me': typeof AuthUMeRoute
   '/_auth/u/messages': typeof AuthUMessagesRoute
+  '/_auth/u/settings': typeof AuthUSettingsRoute
   '/events/$id/bracket': typeof EventsIdBracketRoute
   '/events/$id/locations': typeof EventsIdLocationsRoute
   '/events/$id/matches': typeof EventsIdMatchesRoute
@@ -317,6 +343,7 @@ export interface FileRoutesById {
   '/_auth/u/profile/my-rallycasts': typeof AuthUProfileMyRallycastsRoute
   '/_auth/u/recording-requests/me': typeof AuthURecordingRequestsMeRoute
   '/_auth/u/videos/me': typeof AuthUVideosMeRoute
+  '/_auth/u/profile/': typeof AuthUProfileIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -341,7 +368,9 @@ export interface FileRouteTypes {
     | '/events/'
     | '/players/'
     | '/u/history'
+    | '/u/me'
     | '/u/messages'
+    | '/u/settings'
     | '/events/$id/bracket'
     | '/events/$id/locations'
     | '/events/$id/matches'
@@ -354,6 +383,7 @@ export interface FileRouteTypes {
     | '/u/profile/my-rallycasts'
     | '/u/recording-requests/me'
     | '/u/videos/me'
+    | '/u/profile/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -371,7 +401,9 @@ export interface FileRouteTypes {
     | '/events'
     | '/players'
     | '/u/history'
+    | '/u/me'
     | '/u/messages'
+    | '/u/settings'
     | '/events/$id/bracket'
     | '/events/$id/locations'
     | '/events/$id/matches'
@@ -384,6 +416,7 @@ export interface FileRouteTypes {
     | '/u/profile/my-rallycasts'
     | '/u/recording-requests/me'
     | '/u/videos/me'
+    | '/u/profile'
   id:
     | '__root__'
     | '/'
@@ -407,7 +440,9 @@ export interface FileRouteTypes {
     | '/events/'
     | '/players/'
     | '/_auth/u/history'
+    | '/_auth/u/me'
     | '/_auth/u/messages'
+    | '/_auth/u/settings'
     | '/events/$id/bracket'
     | '/events/$id/locations'
     | '/events/$id/matches'
@@ -420,6 +455,7 @@ export interface FileRouteTypes {
     | '/_auth/u/profile/my-rallycasts'
     | '/_auth/u/recording-requests/me'
     | '/_auth/u/videos/me'
+    | '/_auth/u/profile/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -621,6 +657,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EventsIdBracketRouteImport
       parentRoute: typeof EventsIdRoute
     }
+    '/_auth/u/settings': {
+      id: '/_auth/u/settings'
+      path: '/settings'
+      fullPath: '/u/settings'
+      preLoaderRoute: typeof AuthUSettingsRouteImport
+      parentRoute: typeof AuthURoute
+    }
     '/_auth/u/messages': {
       id: '/_auth/u/messages'
       path: '/messages'
@@ -628,11 +671,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthUMessagesRouteImport
       parentRoute: typeof AuthURoute
     }
+    '/_auth/u/me': {
+      id: '/_auth/u/me'
+      path: '/me'
+      fullPath: '/u/me'
+      preLoaderRoute: typeof AuthUMeRouteImport
+      parentRoute: typeof AuthURoute
+    }
     '/_auth/u/history': {
       id: '/_auth/u/history'
       path: '/history'
       fullPath: '/u/history'
       preLoaderRoute: typeof AuthUHistoryRouteImport
+      parentRoute: typeof AuthURoute
+    }
+    '/_auth/u/profile/': {
+      id: '/_auth/u/profile/'
+      path: '/profile'
+      fullPath: '/u/profile/'
+      preLoaderRoute: typeof AuthUProfileIndexRouteImport
       parentRoute: typeof AuthURoute
     }
     '/_auth/u/videos/me': {
@@ -682,7 +739,9 @@ declare module '@tanstack/react-router' {
 
 interface AuthURouteChildren {
   AuthUHistoryRoute: typeof AuthUHistoryRoute
+  AuthUMeRoute: typeof AuthUMeRoute
   AuthUMessagesRoute: typeof AuthUMessagesRoute
+  AuthUSettingsRoute: typeof AuthUSettingsRoute
   AuthUIndexRoute: typeof AuthUIndexRoute
   AuthUProfileAnalyticsRoute: typeof AuthUProfileAnalyticsRoute
   AuthUProfileEarnRoute: typeof AuthUProfileEarnRoute
@@ -690,11 +749,14 @@ interface AuthURouteChildren {
   AuthUProfileMyRallycastsRoute: typeof AuthUProfileMyRallycastsRoute
   AuthURecordingRequestsMeRoute: typeof AuthURecordingRequestsMeRoute
   AuthUVideosMeRoute: typeof AuthUVideosMeRoute
+  AuthUProfileIndexRoute: typeof AuthUProfileIndexRoute
 }
 
 const AuthURouteChildren: AuthURouteChildren = {
   AuthUHistoryRoute: AuthUHistoryRoute,
+  AuthUMeRoute: AuthUMeRoute,
   AuthUMessagesRoute: AuthUMessagesRoute,
+  AuthUSettingsRoute: AuthUSettingsRoute,
   AuthUIndexRoute: AuthUIndexRoute,
   AuthUProfileAnalyticsRoute: AuthUProfileAnalyticsRoute,
   AuthUProfileEarnRoute: AuthUProfileEarnRoute,
@@ -702,6 +764,7 @@ const AuthURouteChildren: AuthURouteChildren = {
   AuthUProfileMyRallycastsRoute: AuthUProfileMyRallycastsRoute,
   AuthURecordingRequestsMeRoute: AuthURecordingRequestsMeRoute,
   AuthUVideosMeRoute: AuthUVideosMeRoute,
+  AuthUProfileIndexRoute: AuthUProfileIndexRoute,
 }
 
 const AuthURouteWithChildren = AuthURoute._addFileChildren(AuthURouteChildren)

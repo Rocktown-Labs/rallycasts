@@ -5,8 +5,13 @@ import { LogIn, PanelLeftClose, PanelLeftOpen, UserPlus } from "lucide-react";
 
 import UserMenu from "@/components/user-menu";
 import { authClient } from "@/lib/auth-client";
+import { useProfile } from "@/lib/hooks";
 
-import { accountNavItems, discoverNavItems } from "./nav-items";
+import {
+  accountNavItems,
+  discoverNavItems,
+  organizerNavItems,
+} from "./nav-items";
 
 const NavSection = ({
   collapsed,
@@ -14,7 +19,10 @@ const NavSection = ({
   label,
 }: {
   collapsed: boolean;
-  items: typeof discoverNavItems | typeof accountNavItems;
+  items:
+    | typeof discoverNavItems
+    | typeof accountNavItems
+    | typeof organizerNavItems;
   label: string;
 }) => (
   <div className="space-y-2">
@@ -55,6 +63,9 @@ export default function AppSidebar({
   onToggle: () => void;
 }) {
   const { data: session } = authClient.useSession();
+  const { data: profileData } = useProfile();
+  const profile = profileData?.profile;
+  const isOrganizer = profile?.isOrganizer ?? false;
 
   return (
     <aside
@@ -79,18 +90,18 @@ export default function AppSidebar({
         {collapsed ? (
           <Link
             to="/"
-            className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full transition-opacity hover:opacity-85"
+            className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full transition-opacity hover:opacity-85"
           >
             <img
               src="/rallycasts-500-trans.png"
               alt="RallyCasts"
-              className="size-8 object-cover"
+              className="size-9 object-cover"
             />
           </Link>
         ) : (
           <Link
             to="/"
-            className="inline-flex h-6 min-w-28 items-center justify-center rounded-full bg-primary px-4 text-sm font-logo lowercase text-brand-yellow"
+            className="inline-flex h-9.5 min-w-32 items-center justify-center rounded-full bg-primary px-5 text-xl font-logo lowercase text-brand-yellow"
           >
             rallycasts
           </Link>
@@ -103,6 +114,13 @@ export default function AppSidebar({
           items={discoverNavItems}
           label="Discover"
         />
+        {isOrganizer && (
+          <NavSection
+            collapsed={collapsed}
+            items={organizerNavItems}
+            label="Organizer Tools"
+          />
+        )}
         <NavSection
           collapsed={collapsed}
           items={accountNavItems}

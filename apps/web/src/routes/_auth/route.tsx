@@ -39,7 +39,7 @@ export const Route = createFileRoute("/_auth")({
       location.pathname === "/onboarding"
     ) {
       throw redirect({
-        to: "/u",
+        to: "/u/me",
       });
     }
 

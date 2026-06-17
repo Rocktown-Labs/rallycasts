@@ -21,9 +21,13 @@ export const discoverNavItems = [
   { icon: Trophy, label: "Organizers", to: "/organizers" },
 ] as const;
 
+export const organizerNavItems = [
+  { icon: Calendar, label: "Manage Events", to: "/events" },
+] as const;
+
 export const accountNavItems = [
   { icon: Video, label: "Your Videos", to: "/u/videos/me" },
-  { icon: User, label: "Profile", to: "/u/profile/me" },
+  { icon: User, label: "Profile", to: "/u/profile" },
   {
     icon: Calendar,
     label: "Recording Requests",
@@ -37,6 +41,6 @@ export const mobileNavItems = [
   discoverNavItems[0],
   discoverNavItems[1],
   discoverNavItems[2],
-  { icon: Radio, label: "Studio", to: "/u/profile/me" },
+  { icon: Radio, label: "Studio", to: "/u/profile" },
   accountNavItems[2],
 ] as const;

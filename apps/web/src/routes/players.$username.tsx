@@ -194,12 +194,14 @@ function PlayerHeaderActions({
         </>
       )}
       {isOwnProfile && (
-        <Button
-          variant="outline"
-          className="rounded-lg text-xs font-semibold px-4 cursor-pointer"
-        >
-          Edit Profile
-        </Button>
+        <Link to="/u/settings">
+          <Button
+            variant="outline"
+            className="rounded-lg text-xs font-semibold px-4 cursor-pointer"
+          >
+            Edit Profile
+          </Button>
+        </Link>
       )}
     </div>
   );
@@ -1154,6 +1156,7 @@ export const Route = createFileRoute("/players/$username")({
   component: PlayerProfilePage,
 });
 
+// eslint-disable-next-line complexity
 function PlayerProfilePage() {
   const { username: rawUsername } = useParams({ from: "/players/$username" });
   const username = rawUsername.startsWith("@")
@@ -1190,7 +1193,6 @@ function PlayerProfilePage() {
 
   const { data: sessionData } = authClient.useSession();
   const currentUser = sessionData?.user;
-  const isOwnProfile = currentUser?.id === username;
 
   const {
     data,
@@ -1228,6 +1230,12 @@ function PlayerProfilePage() {
     },
     queryKey: ["player", username],
   });
+
+  const isOwnProfile =
+    currentUser?.id === username ||
+    (currentUser?.username &&
+      currentUser.username.toLowerCase() === username.toLowerCase()) ||
+    (data?.player?.id && currentUser?.id === data.player.id);
 
   if (isLoading) {
     return (

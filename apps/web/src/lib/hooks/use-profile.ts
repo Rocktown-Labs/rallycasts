@@ -19,6 +19,8 @@ export interface ProfilePayload {
   radarAddressId?: string;
   radarPlaceId?: string;
   homeCourtName?: string;
+  name?: string;
+  username?: string;
   age?: number;
   skillLevel?: "beginner" | "intermediate" | "advanced" | "pro";
 }

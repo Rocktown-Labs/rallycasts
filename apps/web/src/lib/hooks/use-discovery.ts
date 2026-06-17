@@ -42,21 +42,66 @@ export const useTrending = (location?: GeoLocation) =>
     queryKey: ["trending", location?.lat, location?.lng],
   });
 
-export const usePlayers = (query = "") =>
+export const usePlayers = (
+  query = "",
+  role?: "player" | "organizer" | "caster"
+) =>
   useQuery({
     queryFn: async () => {
       try {
         return await readApiJson(
           apiClient.api.players.$get({
-            query: query ? { q: query } : {},
+            query: {
+              ...(query ? { q: query } : {}),
+              ...(role ? { role } : {}),
+            },
           })
         );
       } catch {
         return { players: demoPlayers };
       }
     },
-    queryKey: ["players", query],
+    queryKey: ["players", query, role],
     select: (data) => withDemoList(data, "players", demoPlayers),
+  });
+
+export const useOrganizers = (query = "") =>
+  useQuery({
+    queryFn: async () => {
+      try {
+        return await readApiJson(
+          apiClient.api.players.$get({
+            query: {
+              ...(query ? { q: query } : {}),
+              role: "organizer",
+            },
+          })
+        );
+      } catch {
+        // Fallback to demo organizers (we can filter players with organizer profiles or use demo)
+        const demoOrganizers = demoPlayers.map((p, idx) => ({
+          ...p,
+          bio:
+            idx % 2 === 0
+              ? "Leagues coordinator & tournament host"
+              : "Pickleball Club director",
+        }));
+        return { players: demoOrganizers };
+      }
+    },
+    queryKey: ["organizers", query],
+    select: (data) =>
+      withDemoList(
+        data,
+        "players",
+        demoPlayers.map((p, idx) => ({
+          ...p,
+          bio:
+            idx % 2 === 0
+              ? "Leagues coordinator & tournament host"
+              : "Pickleball Club director",
+        }))
+      ),
   });
 
 export const useVenues = (query = "", location?: GeoLocation) =>

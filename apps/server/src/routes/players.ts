@@ -18,6 +18,28 @@ export const playersRouter = new Hono<AppEnv>()
   .get("/", async (c) => {
     const db = createDb(c.env.DB);
     const query = c.req.query("q");
+    const role = c.req.query("role");
+
+    const conditions = [];
+
+    if (role === "organizer") {
+      conditions.push(eq(userProfile.isOrganizer, true));
+    } else if (role === "caster") {
+      conditions.push(eq(userProfile.isCaster, true));
+    } else {
+      conditions.push(eq(userProfile.isPlayer, true));
+    }
+
+    if (query) {
+      conditions.push(
+        or(
+          like(user.name, searchPattern(query)),
+          like(user.username, searchPattern(query)),
+          like(userProfile.homeCity, searchPattern(query))
+        )
+      );
+    }
+
     const players = await db
       .select({
         bio: userProfile.bio,
@@ -33,15 +55,7 @@ export const playersRouter = new Hono<AppEnv>()
       })
       .from(userProfile)
       .innerJoin(user, eq(userProfile.userId, user.id))
-      .where(
-        query
-          ? or(
-              like(user.name, searchPattern(query)),
-              like(user.username, searchPattern(query)),
-              like(userProfile.homeCity, searchPattern(query))
-            )
-          : eq(userProfile.isPlayer, true)
-      )
+      .where(and(...conditions))
       .orderBy(desc(userProfile.updatedAt))
       .limit(50);
 
