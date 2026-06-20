@@ -6,6 +6,7 @@ import * as HttpStatusCodes from "stoker/http-status-codes";
 
 import { createGooglePlacesClient } from "../lib/google-places";
 import type { AppEnv } from "../lib/types";
+import { requireAuth } from "../middleware/auth";
 
 function parseAddress(address: string): {
   city: string;
@@ -109,7 +110,7 @@ export const placesRouter = new Hono<AppEnv>()
       );
     }
   })
-  .post("/venues", async (c) => {
+  .post("/venues", requireAuth, async (c) => {
     const body = (await c.req.json()) as { placeId?: string };
     const { placeId } = body;
 
@@ -125,24 +126,8 @@ export const placesRouter = new Hono<AppEnv>()
       const place = await client.getPlaceDetails(placeId);
       const db = createDb(c.env.DB);
 
-      // Check if venue already exists
-      const existing = await db
-        .select()
-        .from(venue)
-        .where(eq(venue.googlePlaceId, placeId))
-        .limit(1);
-
-      if (existing.length > 0) {
-        return c.json(
-          { error: "Venue already exists", venue: existing[0] },
-          HttpStatusCodes.CONFLICT
-        );
-      }
-
-      // Parse address components
       const { city, state, postalCode } = parseAddress(place.address);
 
-      // Create new venue from Google place
       const newVenue = await db
         .insert(venue)
         .values({
@@ -160,7 +145,21 @@ export const placesRouter = new Hono<AppEnv>()
           state,
           userRatingsTotal: place.userRatingsTotal,
         })
+        .onConflictDoNothing({ target: venue.googlePlaceId })
         .returning();
+
+      if (!newVenue[0]) {
+        const existing = await db
+          .select()
+          .from(venue)
+          .where(eq(venue.googlePlaceId, placeId))
+          .limit(1);
+
+        return c.json(
+          { error: "Venue already exists", venue: existing[0] },
+          HttpStatusCodes.CONFLICT
+        );
+      }
 
       return c.json({ venue: newVenue[0] }, HttpStatusCodes.CREATED);
     } catch (error) {

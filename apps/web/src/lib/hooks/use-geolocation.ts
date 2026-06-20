@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { initializeRadar, Radar } from "@/lib/radar";
 
@@ -16,12 +16,16 @@ const ARKANSAS_TEST_LOCATION: GeoLocation = {
   stateCode: "AR",
 };
 
-export function useGeolocation() {
+export function useGeolocation(enabled = true) {
   const [location, setLocation] = useState<GeoLocation | undefined>();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const requestLocation = () => {
+  const requestLocation = useCallback(() => {
+    if (!enabled) {
+      setIsLoading(false);
+      return () => null;
+    }
     if (typeof window === "undefined") {
       setIsLoading(false);
       return () => null;
@@ -106,9 +110,9 @@ export function useGeolocation() {
     return () => {
       cancelled = true;
     };
-  };
+  }, [enabled]);
 
-  useEffect(() => requestLocation(), []);
+  useEffect(() => requestLocation(), [requestLocation]);
 
   return { error, isLoading, location, requestLocation };
 }

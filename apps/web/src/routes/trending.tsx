@@ -1,30 +1,48 @@
 import { Button, buttonVariants } from "@rallycaststv/ui/components/button";
 import { cn } from "@rallycaststv/ui/lib/utils";
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute, useSearch } from "@tanstack/react-router";
 import {
   Calendar,
   Flame,
   MapPin,
   Navigation,
+  Sparkles,
   TrendingUp,
   Users,
   Video,
 } from "lucide-react";
+import { useEffect, useRef } from "react";
 import type { ReactNode } from "react";
+import { z } from "zod";
 
 import {
   EmptyState,
   EventCard,
   ParkHeatCard,
   PlayerCard,
-  StatCard,
   VideoCard,
 } from "@/components/rally/cards";
+import type {
+  VenueCardData,
+  VideoCardData,
+  PlayerCardData,
+  EventCardData,
+} from "@/components/rally/cards";
 import { authClient } from "@/lib/auth-client";
-import { useGeolocation, useRadarTracking, useTrending } from "@/lib/hooks";
+import {
+  useGeolocation,
+  useInfiniteVideos,
+  useRadarTracking,
+  useTrending,
+} from "@/lib/hooks";
+
+const trendingSearchSchema = z.object({
+  section: z.string().optional(),
+});
 
 export const Route = createFileRoute("/trending")({
   component: TrendingPage,
+  validateSearch: trendingSearchSchema,
 });
 
 function HorizontalScroll({
@@ -49,13 +67,15 @@ function HorizontalScroll({
 function SectionHeader({
   icon,
   title,
-  href,
+  to,
+  search,
   count,
   scope,
 }: {
   icon: React.ReactNode;
   title: string;
-  href: string;
+  to: string;
+  search?: Record<string, string>;
   count?: number;
   scope?: string;
 }) {
@@ -65,17 +85,24 @@ function SectionHeader({
         {icon}
         <h2 className="text-xl font-bold">{title}</h2>
         {scope && (
-          <span className="text-[10px] bg-muted text-muted-foreground font-semibold px-2 py-0.5 rounded-full">
+          <span className="text-[10px] bg-muted text-muted-foreground font-semibold px-2 py-0.5 rounded-md">
             {scope}
           </span>
         )}
         {count !== undefined && count > 0 && (
-          <span className="text-[10px] bg-primary/10 text-primary font-semibold px-2 py-0.5 rounded-full">
+          <span className="text-[10px] bg-primary/10 text-primary font-semibold px-2 py-0.5 rounded-md">
             {count}
           </span>
         )}
       </div>
-      <Link to={href} className={buttonVariants({ variant: "ghost" })}>
+      <Link
+        to={to as unknown as never}
+        search={search as unknown as never}
+        className={cn(
+          buttonVariants({ variant: "ghost" }),
+          "rounded-md text-xs font-semibold"
+        )}
+      >
         View all
       </Link>
     </div>
@@ -130,83 +157,240 @@ function LocationStatus({
   return null;
 }
 
-function TrendingPage() {
-  const {
-    error: geoError,
-    isLoading: geoLoading,
-    location,
-    requestLocation,
-  } = useGeolocation();
-  const { data, isLoading } = useTrending(location);
-  const { data: session } = authClient.useSession();
-  useRadarTracking(session?.user?.id);
-  const videos = data?.videos ?? [];
-  const venues = data?.venues ?? [];
-  const players = data?.players ?? [];
-  const events = data?.events ?? [];
-  const playerCount = venues.reduce(
-    (total, venue) => total + (venue.activePlayers ?? 0),
-    0
-  );
+function VenuesViewSection({ venues }: { venues: VenueCardData[] }) {
+  return (
+    <div className="mx-auto max-w-7xl space-y-8 px-4 py-4 animate-in fade-in duration-300">
+      {/* Banner */}
+      <div className="relative overflow-hidden rounded-xl bg-primary p-6 text-white shadow-xl sm:p-8">
+        <div className="relative z-10 max-w-2xl space-y-2">
+          <div className="inline-flex items-center gap-1.5 rounded-md bg-secondary/20 px-2.5 py-1 text-xs font-semibold text-[#bcdf21]">
+            <Flame className="size-3" />
+            <span>Parks Near You</span>
+          </div>
+          <h1 className="text-3xl font-logo sm:text-4xl tracking-wide lowercase">
+            venues
+          </h1>
+          <p className="text-sm text-gray-200 sm:text-base leading-relaxed">
+            Explore local pickleball and padel courts, tracked by active
+            check-ins.
+          </p>
+        </div>
+      </div>
 
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold">
+          All Nearby Venues ({venues.length})
+        </h2>
+        <Link
+          to="/trending"
+          className={cn(
+            buttonVariants({ variant: "outline" }),
+            "rounded-md text-xs"
+          )}
+        >
+          ← Back to Trending
+        </Link>
+      </div>
+
+      {venues.length > 0 ? (
+        <div className="grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-3">
+          {venues.map((venue) => (
+            <ParkHeatCard key={venue.id} venue={venue} />
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          icon={<MapPin className="size-5" />}
+          message="No nearby courts with active play found."
+          title="No venues found"
+        />
+      )}
+    </div>
+  );
+}
+
+function VideosViewSection() {
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
+    useInfiniteVideos();
+  const videos = data?.pages.flatMap((page) => page.videos) ?? [];
+
+  useEffect(() => {
+    const target = loadMoreRef.current;
+    if (!target || !hasNextPage) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && !isFetchingNextPage) {
+          void fetchNextPage();
+        }
+      },
+      { rootMargin: "320px" }
+    );
+    observer.observe(target);
+
+    return () => observer.disconnect();
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+
+  return (
+    <div className="mx-auto max-w-7xl space-y-8 px-4 py-4 animate-in fade-in duration-300">
+      {/* Banner */}
+      <div className="relative overflow-hidden rounded-xl bg-primary p-6 text-white shadow-xl sm:p-8">
+        <div className="relative z-10 max-w-2xl space-y-2">
+          <div className="inline-flex items-center gap-1.5 rounded-md bg-secondary/20 px-2.5 py-1 text-xs font-semibold text-[#bcdf21]">
+            <Video className="size-3" />
+            <span>Trending Highlights</span>
+          </div>
+          <h1 className="text-3xl font-logo sm:text-4xl tracking-wide lowercase">
+            videos
+          </h1>
+          <p className="text-sm text-gray-200 sm:text-base leading-relaxed">
+            Watch top rallies, matches, and gameplay clips captured by the
+            community.
+          </p>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold flex-1 truncate">
+          All Videos ({videos.length})
+        </h2>
+        <Link
+          to="/trending"
+          className={cn(
+            buttonVariants({ variant: "outline" }),
+            "rounded-md text-xs"
+          )}
+        >
+          ← Back to Trending
+        </Link>
+      </div>
+
+      {isLoading ? (
+        <div className="h-72 animate-pulse rounded-xl bg-muted" />
+      ) : null}
+      {videos.length > 0 ? (
+        <div className="grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-3">
+          {videos.map((video) => (
+            <VideoCard key={video.id} video={video} />
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          message="No trending videos available yet."
+          title="No videos found"
+        />
+      )}
+      <div
+        ref={loadMoreRef}
+        className="flex min-h-12 items-center justify-center"
+      >
+        {isFetchingNextPage ? (
+          <span className="text-xs text-muted-foreground">
+            Loading more rallies…
+          </span>
+        ) : null}
+        {!hasNextPage && videos.length > 0 ? (
+          <span className="text-xs text-muted-foreground">
+            You’re all caught up.
+          </span>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function TrendingDashboardView({
+  geoError,
+  geoLoading,
+  location,
+  requestLocation,
+  venues,
+  videos,
+  players,
+  events,
+  playerCount,
+  isLoading,
+  isAuthenticated,
+}: {
+  geoError: string | null;
+  geoLoading: boolean;
+  location?: { isFallback?: boolean; lat: number; lng: number } | null;
+  requestLocation: () => void;
+  venues: VenueCardData[];
+  videos: VideoCardData[];
+  players: PlayerCardData[];
+  events: EventCardData[];
+  playerCount: number;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+}) {
   return (
     <div className="mx-auto max-w-7xl space-y-10">
       {/* Hero */}
-      <section className="grid gap-4 md:grid-cols-[1.3fr_.7fr]">
-        <div className="rounded-lg border border-border bg-[linear-gradient(135deg,hsl(142_100%_18%/.28),hsl(240_10%_4%/.4))] p-6">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold text-primary">
-              Happening near you
-            </p>
-            <LocationStatus
-              error={geoError}
-              isLoading={geoLoading}
-              location={location}
-              requestLocation={requestLocation}
-            />
-          </div>
-          <h1 className="mt-2 text-3xl font-bold md:text-5xl">
-            Find the courts with energy right now.
-          </h1>
-          <p className="mt-4 max-w-2xl text-muted-foreground">
-            Whether this is home or a new city, RallyCasts helps you spot active
-            parks, nearby players, local clips, and events worth joining.
-          </p>
-          {location?.isFallback && (
-            <p className="mt-3 text-xs font-medium text-primary">
-              Showing Northwest Arkansas while we wait for exact location.
-            </p>
-          )}
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link to="/players" className={cn(buttonVariants(), "rounded-md")}>
-              <Users className="size-4" />
-              Find players
-            </Link>
-            <Link
-              to="/events"
-              className={cn(
-                buttonVariants({ variant: "outline" }),
-                "rounded-md"
+      <section className="relative overflow-hidden rounded-xl bg-primary p-6 text-white shadow-xl">
+        <div className="flex flex-col justify-between">
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="max-w-xl space-y-2">
+              <div className="inline-flex items-center gap-1.5 rounded-md bg-secondary/20 px-2.5 py-1 text-xs font-semibold text-[#bcdf21]">
+                <Sparkles className="size-3" />
+                <span>Happening near you</span>
+              </div>
+              <h1 className="text-3xl font-logo tracking-wide lowercase sm:text-4xl">
+                trending
+              </h1>
+              <p className="text-sm text-gray-200 sm:text-base leading-relaxed">
+                Spot active parks, nearby players, local clips, and events worth
+                playing in.
+              </p>
+              {location?.isFallback && (
+                <p className="text-xs font-medium text-[#bcdf21] pt-1">
+                  Showing Northwest Arkansas while we wait for exact location.
+                </p>
               )}
-            >
-              <Calendar className="size-4" />
-              Upcoming events
-            </Link>
+            </div>
           </div>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-1">
-          <StatCard
-            icon={<Flame className="size-5" />}
-            label="Parks heating up"
-            value={`${venues.length}`}
-            trend="Within 50 miles"
-          />
-          <StatCard
-            icon={<Navigation className="size-5" />}
-            label="Players nearby"
-            value={`${playerCount || players.length}`}
-            trend="Within 100 miles"
-          />
+
+          <div className="relative z-10 mt-6 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-lg border border-white/15 bg-black/15 p-4 backdrop-blur-sm">
+              <div className="flex items-center gap-2 text-xs text-white/75">
+                <Flame className="size-4 text-[#bcdf21]" /> Parks heating up
+              </div>
+              <p className="mt-2 text-2xl font-black">{venues.length}</p>
+              <p className="text-[11px] text-white/60">Within 50 miles</p>
+            </div>
+            <div className="rounded-lg border border-white/15 bg-black/15 p-4 backdrop-blur-sm">
+              <div className="flex items-center gap-2 text-xs text-white/75">
+                <Users className="size-4 text-[#bcdf21]" /> Players nearby
+              </div>
+              <p className="mt-2 text-2xl font-black">
+                {playerCount || players.length}
+              </p>
+              <p className="text-[11px] text-white/60">Within 100 miles</p>
+            </div>
+            <div className="rounded-lg border border-white/15 bg-black/15 p-4 backdrop-blur-sm">
+              <div className="flex items-center gap-2 text-xs text-white/75">
+                <Navigation className="size-4 text-[#bcdf21]" /> Your location
+              </div>
+              <div className="mt-3 min-h-7 text-xs text-white/75">
+                {isAuthenticated ? (
+                  <LocationStatus
+                    error={geoError}
+                    isLoading={geoLoading}
+                    location={location || undefined}
+                    requestLocation={requestLocation}
+                  />
+                ) : (
+                  <Link className="font-semibold text-[#bcdf21]" to="/login">
+                    Sign in to activate
+                  </Link>
+                )}
+              </div>
+              <p className="text-[11px] text-white/60">Tap to refresh</p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -219,7 +403,8 @@ function TrendingPage() {
         <SectionHeader
           icon={<Flame className="size-5 text-primary" />}
           title="Parks Near You"
-          href="/venues"
+          to="/trending"
+          search={{ section: "venues" }}
           count={venues.length}
           scope="Within 50 mi"
         />
@@ -243,7 +428,8 @@ function TrendingPage() {
         <SectionHeader
           icon={<Video className="size-5 text-primary" />}
           title="Trending Videos"
-          href="/"
+          to="/trending"
+          search={{ section: "videos" }}
           count={videos.length}
           scope="Within 500 mi"
         />
@@ -268,7 +454,8 @@ function TrendingPage() {
         <SectionHeader
           icon={<Users className="size-5 text-primary" />}
           title="Top Players Nearby"
-          href="/players"
+          to="/players"
+          search={{ section: "near-you" }}
           count={players.length}
           scope="Within 100 mi"
         />
@@ -288,12 +475,13 @@ function TrendingPage() {
         )}
       </section>
 
-      {/* Events Worth Recording */}
+      {/* Events Worth Joining */}
       <section className="space-y-4">
         <SectionHeader
           icon={<Calendar className="size-5 text-primary" />}
-          title="Events Worth Recording"
-          href="/events"
+          title="Events Worth Joining"
+          to="/events"
+          search={{ section: "near-you" }}
           count={events.length}
           scope="Within 200 mi"
         />
@@ -316,8 +504,9 @@ function TrendingPage() {
       {/* Quick links */}
       <section className="grid gap-4 sm:grid-cols-3">
         <Link
-          to="/venues"
-          className="group rounded-lg border border-border bg-card p-5 hover:border-primary/40 transition-all"
+          to="/trending"
+          search={{ section: "venues" }}
+          className="group rounded-xl border border-border bg-card p-5 hover:border-primary/40 transition-all"
         >
           <MapPin className="size-5 text-primary mb-3" />
           <h3 className="font-bold text-sm group-hover:text-primary transition-colors">
@@ -329,7 +518,7 @@ function TrendingPage() {
         </Link>
         <Link
           to="/events"
-          className="group rounded-lg border border-border bg-card p-5 hover:border-primary/40 transition-all"
+          className="group rounded-xl border border-border bg-card p-5 hover:border-primary/40 transition-all"
         >
           <TrendingUp className="size-5 text-primary mb-3" />
           <h3 className="font-bold text-sm group-hover:text-primary transition-colors">
@@ -341,7 +530,7 @@ function TrendingPage() {
         </Link>
         <Link
           to="/players"
-          className="group rounded-lg border border-border bg-card p-5 hover:border-primary/40 transition-all"
+          className="group rounded-xl border border-border bg-card p-5 hover:border-primary/40 transition-all"
         >
           <Users className="size-5 text-primary mb-3" />
           <h3 className="font-bold text-sm group-hover:text-primary transition-colors">
@@ -353,5 +542,54 @@ function TrendingPage() {
         </Link>
       </section>
     </div>
+  );
+}
+
+function TrendingPage() {
+  const { data: session } = authClient.useSession();
+  const {
+    error: geoError,
+    isLoading: geoLoading,
+    location,
+    requestLocation,
+  } = useGeolocation(Boolean(session?.user));
+  const { data, isLoading } = useTrending(session?.user ? location : undefined);
+  useRadarTracking(session?.user?.id);
+  const videos = data?.videos ?? [];
+  const venues = data?.venues ?? [];
+  const players = data?.players ?? [];
+  const events = data?.events ?? [];
+  const playerCount = venues.reduce(
+    (total, venue) =>
+      total + ((venue as unknown as VenueCardData).activePlayers ?? 0),
+    0
+  );
+
+  const search = useSearch({ strict: false });
+  const viewSection =
+    typeof search.section === "string" ? search.section : null;
+
+  if (viewSection === "venues") {
+    return <VenuesViewSection venues={venues as unknown as VenueCardData[]} />;
+  }
+
+  if (viewSection === "videos") {
+    return <VideosViewSection />;
+  }
+
+  return (
+    <TrendingDashboardView
+      geoError={geoError}
+      geoLoading={geoLoading}
+      location={location}
+      requestLocation={requestLocation}
+      venues={venues as unknown as VenueCardData[]}
+      videos={videos as unknown as VideoCardData[]}
+      players={players as unknown as PlayerCardData[]}
+      events={events as unknown as EventCardData[]}
+      playerCount={playerCount}
+      isLoading={isLoading}
+      isAuthenticated={Boolean(session?.user)}
+    />
   );
 }

@@ -25,6 +25,11 @@ import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { apiClient } from "@/lib/api-client";
+import { mapGooglePlaceToCourtSuggestion } from "@/lib/google-places";
+import type {
+  CourtSuggestion,
+  GooglePlaceSuggestion,
+} from "@/lib/google-places";
 import { useProfile, useUpdateProfile } from "@/lib/hooks";
 import type { ProfilePayload } from "@/lib/hooks";
 import { readApiJson } from "@/lib/hooks/api";
@@ -44,54 +49,6 @@ function useDebounce<T>(value: T, delay: number): T {
   }, [value, delay]);
   return debouncedValue;
 }
-
-interface GooglePlaceSuggestion {
-  address: string;
-  latitude: number;
-  longitude: number;
-  name: string;
-  placeId: string;
-}
-
-interface CourtSuggestion {
-  addressLabel: string;
-  city: string;
-  countryCode: string;
-  formattedAddress: string;
-  latitude: number;
-  longitude: number;
-  placeId?: string;
-  source: "google_places";
-  stateCode: string;
-}
-
-const parsePlaceCityState = (address: string) => {
-  const parts = address.split(",").map((s) => s.trim());
-  if (parts.length >= 3) {
-    const stateZip = parts.at(-2)?.split(" ") || [];
-    const [state] = stateZip;
-    const city = parts.at(-3) || "Unknown";
-    return { city, state: state || "US" };
-  }
-  return { city: "Unknown", state: "US" };
-};
-
-const mapGooglePlaceToCourtSuggestion = (
-  place: GooglePlaceSuggestion
-): CourtSuggestion => {
-  const location = parsePlaceCityState(place.address);
-  return {
-    addressLabel: place.name,
-    city: location.city,
-    countryCode: "US",
-    formattedAddress: place.address,
-    latitude: place.latitude,
-    longitude: place.longitude,
-    placeId: place.placeId,
-    source: "google_places" as const,
-    stateCode: location.state,
-  };
-};
 
 interface ProfileData {
   profile?: {
