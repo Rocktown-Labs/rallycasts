@@ -151,12 +151,6 @@
       "skillPath": "skills/marketing-psychology/SKILL.md",
       "computedHash": "50d735eb0f5c36f379ed2200f21aeacc9b9ad85667b5d33ec6111857352a1340"
     },
-    "mux-video": {
-      "source": "muxinc/skills",
-      "sourceType": "github",
-      "skillPath": "skills/mux/SKILL.md",
-      "computedHash": "eaf3453ee47a8e00c657a6e9562389a88c03604761a6ed10a44224b4e7128f8a"
-    },
     "native-data-fetching": {
       "source": "expo/skills",
       "sourceType": "github",
