@@ -171,7 +171,7 @@ function OrganizersPage() {
 
   if (isLoading) {
     mainContent = (
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 animate-in fade-in duration-300">
+      <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3 animate-in fade-in duration-300">
         {Array.from({ length: 6 }).map((_, idx) => (
           <div
             key={idx}
@@ -187,7 +187,7 @@ function OrganizersPage() {
           Search Results ({filteredOrganizers.length})
         </h2>
         {filteredOrganizers.length > 0 ? (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3">
             {filteredOrganizers.map((org) => (
               <OrganizerCard key={org.id} org={org} />
             ))}
@@ -230,13 +230,13 @@ function OrganizersPage() {
             variant="outline"
             size="sm"
             onClick={() => setViewAllSection(null)}
-            className="rounded-full h-8 text-xs"
+            className="rounded-md h-8 text-xs"
           >
             ← Back to Directory
           </Button>
         </div>
         {section.list.length > 0 ? (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3">
             {section.list.map((org) => (
               <OrganizerCard key={org.id} org={org} />
             ))}
@@ -263,7 +263,7 @@ function OrganizersPage() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setViewAllSection("near-you")}
-                className="text-primary hover:text-primary/80 font-semibold text-xs rounded-full"
+                className="text-primary hover:text-primary/80 font-semibold text-xs rounded-md"
               >
                 View All
               </Button>
@@ -302,7 +302,7 @@ function OrganizersPage() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setViewAllSection("global")}
-                className="text-primary hover:text-primary/80 font-semibold text-xs rounded-full"
+                className="text-primary hover:text-primary/80 font-semibold text-xs rounded-md"
               >
                 View All
               </Button>
@@ -336,12 +336,9 @@ function OrganizersPage() {
   return (
     <div className="mx-auto max-w-7xl space-y-8 px-4 py-4 animate-in fade-in duration-300">
       {/* Hero Section */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary via-primary/95 to-sidebar p-6 text-white shadow-xl sm:p-8">
-        <div className="absolute -right-8 -top-8 size-48 rounded-full bg-secondary/10 blur-2xl" />
-        <div className="absolute -bottom-8 -left-8 size-48 rounded-full bg-brand-green/20 blur-2xl" />
-
+      <div className="relative overflow-hidden rounded-2xl bg-primary p-6 text-white shadow-xl sm:p-8">
         <div className="relative z-10 max-w-2xl space-y-2">
-          <div className="inline-flex items-center gap-1.5 rounded-full bg-secondary/20 px-3 py-1 text-xs font-semibold text-brand-yellow">
+          <div className="inline-flex items-center gap-1.5 rounded-md bg-secondary/20 px-2.5 py-1 text-xs font-semibold text-[#bcdf21]">
             <Sparkles className="size-3" />
             <span>Tournament & Leagues Coverage</span>
           </div>
@@ -355,7 +352,7 @@ function OrganizersPage() {
         </div>
       </div>
 
-      {/* Filters & Search - Rounded Full */}
+      {/* Filters & Search - Rounded Md */}
       <div className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-[3fr_1fr]">
           <Input
@@ -366,7 +363,7 @@ function OrganizersPage() {
               setViewAllSection(null);
               setQuery(event.target.value);
             }}
-            className="w-full bg-muted/40 border-border/80 focus:border-primary/50 rounded-full h-10 px-4"
+            className="w-full bg-muted/40 border-border/80 focus:border-primary/50 rounded-md h-10 px-4"
           />
           <select
             value={selectedState}
@@ -374,7 +371,7 @@ function OrganizersPage() {
               setViewAllSection(null);
               setSelectedState(e.target.value);
             }}
-            className="h-10 rounded-full border border-border bg-background px-4 py-2 text-sm text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary cursor-pointer"
+            className="h-10 rounded-md border border-border bg-background px-4 py-2 text-sm text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary cursor-pointer"
           >
             <option value="">All States</option>
             <option value="AR">Arkansas</option>

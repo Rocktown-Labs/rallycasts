@@ -89,7 +89,7 @@ export default function SearchForm() {
         </label>
         <select
           aria-label="Search filter"
-          className="h-8 rounded-md border border-border bg-muted px-2 text-sm text-foreground outline-none"
+          className="h-8 rounded-md border border-border bg-muted px-1.5 text-xs text-foreground outline-none md:px-2 md:text-sm"
           value={filter}
           onChange={(event) => setFilter(event.target.value as SearchEntity)}
         >
@@ -99,7 +99,7 @@ export default function SearchForm() {
             </option>
           ))}
         </select>
-        <Search className="mx-2 size-4 text-muted-foreground" />
+        <Search className="mx-1 md:mx-2 size-4 text-muted-foreground shrink-0" />
         <Input
           id="global-search"
           className="h-8 flex-1 border-0 bg-transparent px-1 shadow-none focus-visible:ring-0"

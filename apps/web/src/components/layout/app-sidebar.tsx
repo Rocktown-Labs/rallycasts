@@ -55,6 +55,48 @@ const NavSection = ({
   </div>
 );
 
+const SidebarAuthButtons = ({ collapsed }: { collapsed: boolean }) => (
+  <div
+    className={cn(
+      "flex gap-1.5",
+      collapsed ? "flex-col items-center" : "flex-col"
+    )}
+  >
+    <Link
+      to="/login"
+      search={{ mode: "signup" }}
+      className={collapsed ? "" : "w-full"}
+      title={collapsed ? "Sign Up" : undefined}
+    >
+      <Button
+        className={cn(
+          "bg-primary text-brand-yellow font-semibold hover:bg-primary/95 transition-all shadow-sm rounded-md w-full",
+          collapsed ? "size-8 p-0" : "h-8"
+        )}
+        variant="default"
+      >
+        {collapsed ? <UserPlus className="size-4" /> : <span>Sign Up</span>}
+      </Button>
+    </Link>
+    <Link
+      to="/login"
+      search={{ mode: "signin" }}
+      className={collapsed ? "" : "w-full"}
+      title={collapsed ? "Sign In" : undefined}
+    >
+      <Button
+        className={cn(
+          "border-sidebar-border hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md w-full",
+          collapsed ? "size-8 p-0" : "h-8"
+        )}
+        variant="outline"
+      >
+        {collapsed ? <LogIn className="size-4" /> : <span>Sign In</span>}
+      </Button>
+    </Link>
+  </div>
+);
+
 export default function AppSidebar({
   collapsed,
   onToggle,
@@ -74,7 +116,12 @@ export default function AppSidebar({
         collapsed ? "w-16" : "w-56"
       )}
     >
-      <div className="flex h-(--header-height) items-center gap-2 border-b border-sidebar-border px-3">
+      <div
+        className={cn(
+          "flex h-(--header-height) items-center border-b border-sidebar-border",
+          collapsed ? "justify-center px-0" : "gap-2 px-3"
+        )}
+      >
         <Button
           aria-label="Toggle sidebar"
           size="icon-sm"
@@ -91,10 +138,10 @@ export default function AppSidebar({
           to="/"
           className={cn(
             "flex shrink-0 items-center transition-opacity hover:opacity-85",
-            collapsed ? "h-7 w-auto" : "h-8 w-auto"
+            collapsed ? "hidden" : "h-7 w-auto"
           )}
         >
-          <img src="/logo.svg" alt="RallyCasts" className="h-full w-auto" />
+          <img src="/logo.svg?v=3" alt="RallyCasts" className="h-full w-auto" />
         </Link>
       </div>
 
@@ -123,53 +170,7 @@ export default function AppSidebar({
         {session ? (
           <UserMenu collapsed={collapsed} />
         ) : (
-          <div
-            className={cn(
-              "flex gap-1.5",
-              collapsed ? "flex-col items-center" : "flex-col"
-            )}
-          >
-            <Link
-              to="/login"
-              search={{ mode: "signup" }}
-              className={collapsed ? "" : "w-full"}
-              title={collapsed ? "Sign Up" : undefined}
-            >
-              <Button
-                className={cn(
-                  "bg-primary text-brand-yellow font-semibold hover:bg-primary/95 transition-all shadow-sm rounded-md w-full",
-                  collapsed ? "size-8 p-0" : "h-8"
-                )}
-                variant="default"
-              >
-                {collapsed ? (
-                  <UserPlus className="size-4" />
-                ) : (
-                  <span>Sign Up</span>
-                )}
-              </Button>
-            </Link>
-            <Link
-              to="/login"
-              search={{ mode: "signin" }}
-              className={collapsed ? "" : "w-full"}
-              title={collapsed ? "Sign In" : undefined}
-            >
-              <Button
-                className={cn(
-                  "border-sidebar-border hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md w-full",
-                  collapsed ? "size-8 p-0" : "h-8"
-                )}
-                variant="outline"
-              >
-                {collapsed ? (
-                  <LogIn className="size-4" />
-                ) : (
-                  <span>Sign In</span>
-                )}
-              </Button>
-            </Link>
-          </div>
+          <SidebarAuthButtons collapsed={collapsed} />
         )}
       </div>
     </aside>

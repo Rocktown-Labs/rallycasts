@@ -1,16 +1,22 @@
 import { Button } from "@rallycaststv/ui/components/button";
 import { Input } from "@rallycaststv/ui/components/input";
 import { cn } from "@rallycaststv/ui/lib/utils";
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute, useSearch } from "@tanstack/react-router";
 import { MapPin, Sparkles, Users } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { z } from "zod";
 
 import { EmptyState } from "@/components/rally/cards";
 import { useGeolocation, usePlayers } from "@/lib/hooks";
 
+const playersSearchSchema = z.object({
+  section: z.string().optional(),
+});
+
 export const Route = createFileRoute("/players/")({
   component: PlayersPage,
+  validateSearch: playersSearchSchema,
 });
 
 interface PlayerWithStreak {
@@ -88,12 +94,19 @@ const stateNames: Record<string, string> = {
 const getStateName = (code: string) => stateNames[code.toUpperCase()] || code;
 
 function PlayersPage() {
+  const search = useSearch({ strict: false });
+  const initialSection =
+    typeof search.section === "string" &&
+    ["near-you", "state", "global"].includes(search.section)
+      ? (search.section as "near-you" | "state" | "global")
+      : null;
+
   const [query, setQuery] = useState("");
   const [selectedState, setSelectedState] = useState("");
   const [selectedSkill, setSelectedSkill] = useState("");
   const [viewAllSection, setViewAllSection] = useState<
     "near-you" | "state" | "global" | null
-  >(null);
+  >(initialSection);
 
   const { location } = useGeolocation();
   const userState = location?.stateCode || "AR";
@@ -245,7 +258,7 @@ function PlayersPage() {
 
   if (isLoading) {
     mainContent = (
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 animate-in fade-in duration-300">
+      <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3 animate-in fade-in duration-300">
         {Array.from({ length: 6 }).map((_, idx) => (
           <div
             key={idx}
@@ -261,7 +274,7 @@ function PlayersPage() {
           Search Results ({filteredPlayers.length})
         </h2>
         {filteredPlayers.length > 0 ? (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3">
             {filteredPlayers.map((player) => renderPlayerCard(player))}
           </div>
         ) : (
@@ -313,13 +326,13 @@ function PlayersPage() {
             variant="outline"
             size="sm"
             onClick={() => setViewAllSection(null)}
-            className="rounded-full h-8 text-xs"
+            className="rounded-md h-8 text-xs"
           >
             ← Back to Discover
           </Button>
         </div>
         {section.list.length > 0 ? (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3">
             {section.list.map((player, idx) =>
               renderPlayerCard(player, section.ranked ? idx + 1 : undefined)
             )}
@@ -347,7 +360,7 @@ function PlayersPage() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setViewAllSection("near-you")}
-                className="text-primary hover:text-primary/80 font-semibold text-xs rounded-full"
+                className="text-primary hover:text-primary/80 font-semibold text-xs rounded-md"
               >
                 View All
               </Button>
@@ -386,7 +399,7 @@ function PlayersPage() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setViewAllSection("state")}
-                className="text-primary hover:text-primary/80 font-semibold text-xs rounded-full"
+                className="text-primary hover:text-primary/80 font-semibold text-xs rounded-md"
               >
                 View All
               </Button>
@@ -425,7 +438,7 @@ function PlayersPage() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setViewAllSection("global")}
-                className="text-primary hover:text-primary/80 font-semibold text-xs rounded-full"
+                className="text-primary hover:text-primary/80 font-semibold text-xs rounded-md"
               >
                 View All
               </Button>
@@ -459,12 +472,9 @@ function PlayersPage() {
   return (
     <div className="mx-auto max-w-7xl space-y-8 px-4 py-4 animate-in fade-in duration-300">
       {/* Hero Section */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary via-primary/95 to-sidebar p-6 text-white shadow-xl sm:p-8">
-        <div className="absolute -right-8 -top-8 size-48 rounded-full bg-secondary/10 blur-2xl" />
-        <div className="absolute -bottom-8 -left-8 size-48 rounded-full bg-brand-green/20 blur-2xl" />
-
+      <div className="relative overflow-hidden rounded-2xl bg-primary p-6 text-white shadow-xl sm:p-8">
         <div className="relative z-10 max-w-2xl space-y-2">
-          <div className="inline-flex items-center gap-1.5 rounded-full bg-secondary/20 px-3 py-1 text-xs font-semibold text-brand-yellow">
+          <div className="inline-flex items-center gap-1.5 rounded-md bg-secondary/20 px-2.5 py-1 text-xs font-semibold text-[#bcdf21]">
             <Sparkles className="size-3" />
             <span>Padel & Pickleball Community</span>
           </div>
@@ -478,7 +488,7 @@ function PlayersPage() {
         </div>
       </div>
 
-      {/* Filters & Search - Rounded Full */}
+      {/* Filters & Search - Rounded Md */}
       <div className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-[2fr_1fr_1fr]">
           <Input
@@ -489,7 +499,7 @@ function PlayersPage() {
               // Reset detail view on type
               setViewAllSection(null);
             }}
-            className="w-full bg-muted/40 border-border/80 focus:border-primary/50 rounded-full h-10 px-4"
+            className="w-full bg-muted/40 border-border/80 focus:border-primary/50 rounded-md h-10 px-4"
           />
           <select
             value={selectedSkill}
@@ -497,7 +507,7 @@ function PlayersPage() {
               setSelectedSkill(e.target.value);
               setViewAllSection(null);
             }}
-            className="h-10 rounded-full border border-border bg-background px-4 py-2 text-sm text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary cursor-pointer"
+            className="h-10 rounded-md border border-border bg-background px-4 py-2 text-sm text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary cursor-pointer"
           >
             <option value="">All Skill Levels</option>
             <option value="beginner">Beginner (2.5+)</option>
@@ -511,7 +521,7 @@ function PlayersPage() {
               setSelectedState(e.target.value);
               setViewAllSection(null);
             }}
-            className="h-10 rounded-full border border-border bg-background px-4 py-2 text-sm text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary cursor-pointer"
+            className="h-10 rounded-md border border-border bg-background px-4 py-2 text-sm text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary cursor-pointer"
           >
             <option value="">All States</option>
             <option value="AR">Arkansas</option>

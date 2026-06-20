@@ -5,12 +5,13 @@ import {
   Flame,
   Home,
   MessageSquare,
-  Radio,
   Settings,
   Trophy,
   User,
   Users,
   Video,
+  ArrowLeft,
+  LayoutDashboard,
 } from "lucide-react";
 
 export const discoverNavItems = [
@@ -39,10 +40,21 @@ export const accountNavItems = [
   { icon: Settings, label: "Settings", to: "/u/settings" },
 ] as const;
 
-export const mobileNavItems = [
-  discoverNavItems[0],
-  discoverNavItems[1],
-  discoverNavItems[2],
-  { icon: Radio, label: "Studio", to: "/u/profile" },
-  accountNavItems[2],
+export const mobileDiscoverItems = [
+  { icon: Home, label: "Home", to: "/" },
+  { icon: Flame, label: "Trending", to: "/trending" },
+  { icon: Users, label: "Players", to: "/players" },
+  { icon: Calendar, label: "Events", to: "/events" },
+  { icon: User, label: "My Account", to: "/u" },
 ] as const;
+
+export const mobileAccountItems = [
+  { icon: LayoutDashboard, label: "Dashboard", to: "/u/me" },
+  { icon: Video, label: "Videos", to: "/u/videos/me" },
+  { icon: Camera, label: "Requests", to: "/u/recording-requests/me" },
+  { icon: MessageSquare, label: "Messages", to: "/u/messages" },
+  { icon: ArrowLeft, label: "Back", to: "/" },
+] as const;
+
+// Retain legacy export for safety/compatibility
+export const mobileNavItems = mobileDiscoverItems;
