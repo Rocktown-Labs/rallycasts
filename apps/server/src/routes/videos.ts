@@ -7,12 +7,13 @@ import {
   videoComment,
   videoLike,
 } from "@rallycaststv/db/schema/domain";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, lt, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 import { z } from "zod";
 
 import { createId } from "../lib/ids";
+import { createMuxClip } from "../lib/mux-client";
 import { createNotification } from "../lib/notifications";
 import {
   scheduleSearchDocumentIndex,
@@ -52,6 +53,57 @@ const updateVideoSchema = createVideoSchema.partial().extend({
 const pinCommentSchema = z.object({
   pinned: z.boolean(),
 });
+
+const uploadStateSchema = z.object({
+  state: z.enum(["failed", "processing"]),
+});
+
+const createClipSchema = z
+  .object({
+    endTime: z.number().positive(),
+    startTime: z.number().min(0),
+    title: z.string().trim().min(1).max(160),
+  })
+  .refine(({ endTime, startTime }) => endTime > startTime, {
+    message: "Clip end time must be after its start time",
+  })
+  .refine(({ endTime, startTime }) => endTime - startTime <= 120, {
+    message: "Clips can be up to 2 minutes long",
+  });
+
+const DEFAULT_VIDEO_PAGE_SIZE = 12;
+const MAX_VIDEO_PAGE_SIZE = 50;
+
+interface VideoCursor {
+  id: string;
+  timestamp: number;
+}
+
+const videoSortTimestamp = sql<number>`coalesce(${video.publishedAt}, ${video.createdAt})`;
+
+const encodeVideoCursor = (record: typeof video.$inferSelect): string =>
+  btoa(
+    JSON.stringify({
+      id: record.id,
+      timestamp: (record.publishedAt ?? record.createdAt).getTime(),
+    } satisfies VideoCursor)
+  );
+
+const decodeVideoCursor = (cursor: string): VideoCursor | null => {
+  try {
+    const value = JSON.parse(atob(cursor)) as Partial<VideoCursor>;
+    if (
+      typeof value.id !== "string" ||
+      typeof value.timestamp !== "number" ||
+      !Number.isFinite(value.timestamp)
+    ) {
+      return null;
+    }
+    return { id: value.id, timestamp: value.timestamp };
+  } catch {
+    return null;
+  }
+};
 
 async function resolveVideosRelations(
   db: ReturnType<typeof createDb>,
@@ -141,15 +193,56 @@ async function resolveVideosRelations(
 export const videosRouter = new Hono<AppEnv>()
   .get("/", async (c) => {
     const db = createDb(c.env.DB);
+    const requestedLimit = Number.parseInt(c.req.query("limit") ?? "", 10);
+    const limit = Number.isFinite(requestedLimit)
+      ? Math.min(Math.max(requestedLimit, 1), MAX_VIDEO_PAGE_SIZE)
+      : DEFAULT_VIDEO_PAGE_SIZE;
+    const cursorParam = c.req.query("cursor");
+    const cursor = cursorParam ? decodeVideoCursor(cursorParam) : null;
+
+    if (cursorParam && !cursor) {
+      return c.json(
+        { message: "Invalid video cursor" },
+        HttpStatusCodes.BAD_REQUEST
+      );
+    }
+
+    const visibilityFilter = and(
+      eq(video.status, "ready"),
+      eq(video.visibility, "public")
+    );
+    const pageFilter = cursor
+      ? and(
+          visibilityFilter,
+          or(
+            lt(videoSortTimestamp, cursor.timestamp),
+            and(
+              eq(videoSortTimestamp, cursor.timestamp),
+              lt(video.id, cursor.id)
+            )
+          )
+        )
+      : visibilityFilter;
     const videos = await db
       .select()
       .from(video)
-      .where(and(eq(video.status, "ready"), eq(video.visibility, "public")))
-      .orderBy(desc(video.publishedAt))
-      .limit(50);
+      .where(pageFilter)
+      .orderBy(desc(videoSortTimestamp), desc(video.id))
+      .limit(limit + 1);
 
-    const resolved = await resolveVideosRelations(db, videos);
-    return c.json({ videos: resolved }, HttpStatusCodes.OK);
+    const hasNextPage = videos.length > limit;
+    const page = videos.slice(0, limit);
+    const resolved = await resolveVideosRelations(db, page);
+    const lastVideo = page.at(-1);
+
+    return c.json(
+      {
+        nextCursor:
+          hasNextPage && lastVideo ? encodeVideoCursor(lastVideo) : null,
+        videos: resolved,
+      },
+      HttpStatusCodes.OK
+    );
   })
   .get("/me", requireAuth, async (c) => {
     const db = createDb(c.env.DB);
@@ -198,6 +291,119 @@ export const videosRouter = new Hono<AppEnv>()
 
     return c.json({ video: returnedVideo }, HttpStatusCodes.CREATED);
   })
+  .post(
+    "/:id/upload-state",
+    requireAuth,
+    zValidator("json", uploadStateSchema),
+    async (c) => {
+      const db = createDb(c.env.DB);
+      const { user: authUser } = c.var.authSession;
+      const id = c.req.param("id");
+      const { state } = c.req.valid("json");
+
+      await db
+        .update(video)
+        .set({
+          muxStatus: state === "failed" ? "upload_failed" : "uploaded",
+          status: state,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(video.id, id), eq(video.ownerUserId, authUser.id)));
+
+      const [updated] = await db
+        .select()
+        .from(video)
+        .where(and(eq(video.id, id), eq(video.ownerUserId, authUser.id)))
+        .limit(1);
+
+      if (!updated) {
+        return c.json(
+          { message: "Video not found" },
+          HttpStatusCodes.NOT_FOUND
+        );
+      }
+
+      return c.json({ video: updated }, HttpStatusCodes.OK);
+    }
+  )
+  .get("/:id/studio", requireAuth, async (c) => {
+    const db = createDb(c.env.DB);
+    const { user: authUser } = c.var.authSession;
+    const id = c.req.param("id");
+    const [record] = await db
+      .select()
+      .from(video)
+      .where(and(eq(video.id, id), eq(video.ownerUserId, authUser.id)))
+      .limit(1);
+
+    if (!record || record.status === "deleted") {
+      return c.json({ message: "Video not found" }, HttpStatusCodes.NOT_FOUND);
+    }
+
+    const [resolved] = await resolveVideosRelations(db, [record]);
+    return c.json({ video: resolved ?? record }, HttpStatusCodes.OK);
+  })
+  .post(
+    "/:id/clips",
+    requireAuth,
+    zValidator("json", createClipSchema),
+    async (c) => {
+      const db = createDb(c.env.DB);
+      const { user: authUser } = c.var.authSession;
+      const id = c.req.param("id");
+      const data = c.req.valid("json");
+      const [sourceVideo] = await db
+        .select()
+        .from(video)
+        .where(and(eq(video.id, id), eq(video.ownerUserId, authUser.id)))
+        .limit(1);
+
+      if (
+        !sourceVideo?.muxAssetId ||
+        sourceVideo.status !== "ready" ||
+        (sourceVideo.durationSeconds !== null &&
+          data.endTime > sourceVideo.durationSeconds)
+      ) {
+        return c.json(
+          { message: "The source video is not ready for that clip range" },
+          HttpStatusCodes.BAD_REQUEST
+        );
+      }
+
+      if (!c.env.MUX_TOKEN_ID || !c.env.MUX_TOKEN_SECRET) {
+        return c.json(
+          { message: "Mux not configured" },
+          HttpStatusCodes.INTERNAL_SERVER_ERROR
+        );
+      }
+
+      const clipId = createId();
+      const muxClip = await createMuxClip(
+        sourceVideo.muxAssetId,
+        data.startTime,
+        data.endTime,
+        c.env.MUX_TOKEN_ID,
+        c.env.MUX_TOKEN_SECRET,
+        clipId
+      );
+      const clip = {
+        description: `Clip from ${sourceVideo.title}`,
+        durationSeconds: Math.round(data.endTime - data.startTime),
+        id: clipId,
+        mediaType: "short" as const,
+        muxAssetId: muxClip.assetId,
+        muxPlaybackId: muxClip.playbackId,
+        muxStatus: muxClip.status,
+        ownerUserId: authUser.id,
+        status: "processing" as const,
+        title: data.title,
+        visibility: "private" as const,
+      };
+
+      await db.insert(video).values(clip);
+      return c.json({ video: clip }, HttpStatusCodes.CREATED);
+    }
+  )
   .get("/:id", async (c) => {
     const db = createDb(c.env.DB);
     const id = c.req.param("id");
@@ -205,14 +411,35 @@ export const videosRouter = new Hono<AppEnv>()
     const [videoRecord] = await db
       .select()
       .from(video)
-      .where(eq(video.id, id))
+      .where(
+        and(
+          eq(video.id, id),
+          eq(video.status, "ready"),
+          eq(video.visibility, "public")
+        )
+      )
       .limit(1);
 
-    if (!videoRecord || videoRecord.status === "deleted") {
+    if (!videoRecord) {
       return c.json({ message: "Video not found" }, HttpStatusCodes.NOT_FOUND);
     }
 
-    const resolvedList = await resolveVideosRelations(db, [videoRecord]);
+    const relatedRecords = await db
+      .select()
+      .from(video)
+      .where(
+        and(
+          eq(video.status, "ready"),
+          eq(video.visibility, "public"),
+          sql`${video.id} != ${id}`
+        )
+      )
+      .orderBy(desc(videoSortTimestamp))
+      .limit(8);
+    const [resolvedList, relatedVideos] = await Promise.all([
+      resolveVideosRelations(db, [videoRecord]),
+      resolveVideosRelations(db, relatedRecords),
+    ]);
     const [resolved] = resolvedList;
     if (!resolved) {
       return c.json({ message: "Video not found" }, HttpStatusCodes.NOT_FOUND);
@@ -220,6 +447,7 @@ export const videosRouter = new Hono<AppEnv>()
     return c.json(
       {
         owner: resolved.owner,
+        relatedVideos,
         taggedUsers: resolved.taggedUsers,
         venue: resolved.venue,
         video: {

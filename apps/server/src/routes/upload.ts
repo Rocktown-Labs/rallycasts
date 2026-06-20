@@ -1,5 +1,9 @@
+import { zValidator } from "@hono/zod-validator";
+import { createDb } from "@rallycaststv/db";
+import { video } from "@rallycaststv/db/schema/domain";
 import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
+import { z } from "zod";
 
 import { createId } from "../lib/ids";
 import { createMuxUploadUrl, getMuxUpload } from "../lib/mux-client";
@@ -15,7 +19,71 @@ const ALLOWED_IMAGE_TYPES = new Set([
   "image/webp",
 ]);
 
+const createMuxUploadSchema = z.object({
+  description: z.string().max(2000).optional(),
+  mediaType: z.enum(["video", "short"]).default("video"),
+  title: z.string().trim().min(1).max(160),
+  visibility: z.enum(["public", "friends", "private"]).default("private"),
+});
+
 export const uploadRouter = new Hono<AppEnv>()
+  .post(
+    "/mux",
+    requireAuth,
+    zValidator("json", createMuxUploadSchema),
+    async (c) => {
+      const tokenId = c.env.MUX_TOKEN_ID;
+      const tokenSecret = c.env.MUX_TOKEN_SECRET;
+
+      if (!tokenId || !tokenSecret) {
+        return c.json(
+          { message: "Mux not configured" },
+          HttpStatusCodes.INTERNAL_SERVER_ERROR
+        );
+      }
+
+      const db = createDb(c.env.DB);
+      const { user: authUser } = c.var.authSession;
+      const data = c.req.valid("json");
+      const videoId = createId();
+
+      try {
+        const { uploadId, uploadUrl } = await createMuxUploadUrl(
+          tokenId,
+          tokenSecret,
+          videoId,
+          c.env.CORS_ORIGIN
+        );
+
+        const draft = {
+          description: data.description,
+          id: videoId,
+          mediaType: data.mediaType,
+          muxStatus: "waiting",
+          muxUploadId: uploadId,
+          ownerUserId: authUser.id,
+          status: "uploading" as const,
+          title: data.title,
+          visibility: data.visibility,
+        };
+
+        await db.insert(video).values(draft);
+
+        return c.json(
+          { uploadId, uploadUrl, video: draft },
+          HttpStatusCodes.CREATED
+        );
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Unknown error";
+
+        return c.json(
+          { message: `Mux upload creation failed: ${message}` },
+          HttpStatusCodes.INTERNAL_SERVER_ERROR
+        );
+      }
+    }
+  )
   .get("/mux", requireAuth, async (c) => {
     const tokenId = c.env.MUX_TOKEN_ID;
     const tokenSecret = c.env.MUX_TOKEN_SECRET;

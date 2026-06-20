@@ -38,6 +38,7 @@ export interface AppEnv {
     AI?: WorkersAiBinding;
     EVENT_ACTIVITY_QUEUE?: Queue<EventActivityMessage>;
     EVENT_COORDINATOR: DurableObjectNamespace;
+    MUX_WEBHOOK_SECRET?: string;
     RALLYCASTS_ADMIN_EMAIL?: string;
     SEARCH_INDEX?: VectorizeBinding;
     VENUE_PRESENCE: DurableObjectNamespace;

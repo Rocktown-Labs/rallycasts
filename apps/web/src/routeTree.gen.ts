@@ -41,11 +41,14 @@ import { Route as AuthUMeRouteImport } from './routes/_auth/u/me'
 import { Route as AuthUHistoryRouteImport } from './routes/_auth/u/history'
 import { Route as AuthUProfileIndexRouteImport } from './routes/_auth/u/profile/index'
 import { Route as AuthUVideosMeRouteImport } from './routes/_auth/u/videos/me'
+import { Route as AuthUStudioUploadRouteImport } from './routes/_auth/u/studio/upload'
 import { Route as AuthURecordingRequestsMeRouteImport } from './routes/_auth/u/recording-requests/me'
 import { Route as AuthUProfileMyRallycastsRouteImport } from './routes/_auth/u/profile/my-rallycasts'
 import { Route as AuthUProfileMeRouteImport } from './routes/_auth/u/profile/me'
 import { Route as AuthUProfileEarnRouteImport } from './routes/_auth/u/profile/earn'
 import { Route as AuthUProfileAnalyticsRouteImport } from './routes/_auth/u/profile/analytics'
+import { Route as AuthUStudioVideosIdRouteImport } from './routes/_auth/u/studio/videos.$id'
+import { Route as AuthUStudioVideosIdClipsRouteImport } from './routes/_auth/u/studio/videos.$id.clips'
 
 const TrendingRoute = TrendingRouteImport.update({
   id: '/trending',
@@ -206,6 +209,11 @@ const AuthUVideosMeRoute = AuthUVideosMeRouteImport.update({
   path: '/videos/me',
   getParentRoute: () => AuthURoute,
 } as any)
+const AuthUStudioUploadRoute = AuthUStudioUploadRouteImport.update({
+  id: '/studio/upload',
+  path: '/studio/upload',
+  getParentRoute: () => AuthURoute,
+} as any)
 const AuthURecordingRequestsMeRoute =
   AuthURecordingRequestsMeRouteImport.update({
     id: '/recording-requests/me',
@@ -233,6 +241,17 @@ const AuthUProfileAnalyticsRoute = AuthUProfileAnalyticsRouteImport.update({
   path: '/profile/analytics',
   getParentRoute: () => AuthURoute,
 } as any)
+const AuthUStudioVideosIdRoute = AuthUStudioVideosIdRouteImport.update({
+  id: '/studio/videos/$id',
+  path: '/studio/videos/$id',
+  getParentRoute: () => AuthURoute,
+} as any)
+const AuthUStudioVideosIdClipsRoute =
+  AuthUStudioVideosIdClipsRouteImport.update({
+    id: '/clips',
+    path: '/clips',
+    getParentRoute: () => AuthUStudioVideosIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -269,8 +288,11 @@ export interface FileRoutesByFullPath {
   '/u/profile/me': typeof AuthUProfileMeRoute
   '/u/profile/my-rallycasts': typeof AuthUProfileMyRallycastsRoute
   '/u/recording-requests/me': typeof AuthURecordingRequestsMeRoute
+  '/u/studio/upload': typeof AuthUStudioUploadRoute
   '/u/videos/me': typeof AuthUVideosMeRoute
   '/u/profile/': typeof AuthUProfileIndexRoute
+  '/u/studio/videos/$id': typeof AuthUStudioVideosIdRouteWithChildren
+  '/u/studio/videos/$id/clips': typeof AuthUStudioVideosIdClipsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -302,8 +324,11 @@ export interface FileRoutesByTo {
   '/u/profile/me': typeof AuthUProfileMeRoute
   '/u/profile/my-rallycasts': typeof AuthUProfileMyRallycastsRoute
   '/u/recording-requests/me': typeof AuthURecordingRequestsMeRoute
+  '/u/studio/upload': typeof AuthUStudioUploadRoute
   '/u/videos/me': typeof AuthUVideosMeRoute
   '/u/profile': typeof AuthUProfileIndexRoute
+  '/u/studio/videos/$id': typeof AuthUStudioVideosIdRouteWithChildren
+  '/u/studio/videos/$id/clips': typeof AuthUStudioVideosIdClipsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -342,8 +367,11 @@ export interface FileRoutesById {
   '/_auth/u/profile/me': typeof AuthUProfileMeRoute
   '/_auth/u/profile/my-rallycasts': typeof AuthUProfileMyRallycastsRoute
   '/_auth/u/recording-requests/me': typeof AuthURecordingRequestsMeRoute
+  '/_auth/u/studio/upload': typeof AuthUStudioUploadRoute
   '/_auth/u/videos/me': typeof AuthUVideosMeRoute
   '/_auth/u/profile/': typeof AuthUProfileIndexRoute
+  '/_auth/u/studio/videos/$id': typeof AuthUStudioVideosIdRouteWithChildren
+  '/_auth/u/studio/videos/$id/clips': typeof AuthUStudioVideosIdClipsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -382,8 +410,11 @@ export interface FileRouteTypes {
     | '/u/profile/me'
     | '/u/profile/my-rallycasts'
     | '/u/recording-requests/me'
+    | '/u/studio/upload'
     | '/u/videos/me'
     | '/u/profile/'
+    | '/u/studio/videos/$id'
+    | '/u/studio/videos/$id/clips'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -415,8 +446,11 @@ export interface FileRouteTypes {
     | '/u/profile/me'
     | '/u/profile/my-rallycasts'
     | '/u/recording-requests/me'
+    | '/u/studio/upload'
     | '/u/videos/me'
     | '/u/profile'
+    | '/u/studio/videos/$id'
+    | '/u/studio/videos/$id/clips'
   id:
     | '__root__'
     | '/'
@@ -454,8 +488,11 @@ export interface FileRouteTypes {
     | '/_auth/u/profile/me'
     | '/_auth/u/profile/my-rallycasts'
     | '/_auth/u/recording-requests/me'
+    | '/_auth/u/studio/upload'
     | '/_auth/u/videos/me'
     | '/_auth/u/profile/'
+    | '/_auth/u/studio/videos/$id'
+    | '/_auth/u/studio/videos/$id/clips'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -699,6 +736,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthUVideosMeRouteImport
       parentRoute: typeof AuthURoute
     }
+    '/_auth/u/studio/upload': {
+      id: '/_auth/u/studio/upload'
+      path: '/studio/upload'
+      fullPath: '/u/studio/upload'
+      preLoaderRoute: typeof AuthUStudioUploadRouteImport
+      parentRoute: typeof AuthURoute
+    }
     '/_auth/u/recording-requests/me': {
       id: '/_auth/u/recording-requests/me'
       path: '/recording-requests/me'
@@ -734,8 +778,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthUProfileAnalyticsRouteImport
       parentRoute: typeof AuthURoute
     }
+    '/_auth/u/studio/videos/$id': {
+      id: '/_auth/u/studio/videos/$id'
+      path: '/studio/videos/$id'
+      fullPath: '/u/studio/videos/$id'
+      preLoaderRoute: typeof AuthUStudioVideosIdRouteImport
+      parentRoute: typeof AuthURoute
+    }
+    '/_auth/u/studio/videos/$id/clips': {
+      id: '/_auth/u/studio/videos/$id/clips'
+      path: '/clips'
+      fullPath: '/u/studio/videos/$id/clips'
+      preLoaderRoute: typeof AuthUStudioVideosIdClipsRouteImport
+      parentRoute: typeof AuthUStudioVideosIdRoute
+    }
   }
 }
+
+interface AuthUStudioVideosIdRouteChildren {
+  AuthUStudioVideosIdClipsRoute: typeof AuthUStudioVideosIdClipsRoute
+}
+
+const AuthUStudioVideosIdRouteChildren: AuthUStudioVideosIdRouteChildren = {
+  AuthUStudioVideosIdClipsRoute: AuthUStudioVideosIdClipsRoute,
+}
+
+const AuthUStudioVideosIdRouteWithChildren =
+  AuthUStudioVideosIdRoute._addFileChildren(AuthUStudioVideosIdRouteChildren)
 
 interface AuthURouteChildren {
   AuthUHistoryRoute: typeof AuthUHistoryRoute
@@ -748,8 +817,10 @@ interface AuthURouteChildren {
   AuthUProfileMeRoute: typeof AuthUProfileMeRoute
   AuthUProfileMyRallycastsRoute: typeof AuthUProfileMyRallycastsRoute
   AuthURecordingRequestsMeRoute: typeof AuthURecordingRequestsMeRoute
+  AuthUStudioUploadRoute: typeof AuthUStudioUploadRoute
   AuthUVideosMeRoute: typeof AuthUVideosMeRoute
   AuthUProfileIndexRoute: typeof AuthUProfileIndexRoute
+  AuthUStudioVideosIdRoute: typeof AuthUStudioVideosIdRouteWithChildren
 }
 
 const AuthURouteChildren: AuthURouteChildren = {
@@ -763,8 +834,10 @@ const AuthURouteChildren: AuthURouteChildren = {
   AuthUProfileMeRoute: AuthUProfileMeRoute,
   AuthUProfileMyRallycastsRoute: AuthUProfileMyRallycastsRoute,
   AuthURecordingRequestsMeRoute: AuthURecordingRequestsMeRoute,
+  AuthUStudioUploadRoute: AuthUStudioUploadRoute,
   AuthUVideosMeRoute: AuthUVideosMeRoute,
   AuthUProfileIndexRoute: AuthUProfileIndexRoute,
+  AuthUStudioVideosIdRoute: AuthUStudioVideosIdRouteWithChildren,
 }
 
 const AuthURouteWithChildren = AuthURoute._addFileChildren(AuthURouteChildren)

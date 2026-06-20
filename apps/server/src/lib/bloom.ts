@@ -13,7 +13,7 @@ export class BloomFilter {
   private hash(str: string, seed: number): number {
     let hash = seed;
     for (let i = 0; i < str.length; i++) {
-      hash = (hash ^ str.codePointAt(i)) * 0x01_00_01_93;
+      hash = (hash ^ (str.codePointAt(i) ?? 0)) * 0x01_00_01_93;
     }
     return Math.abs(hash) % this.size;
   }
@@ -23,7 +23,7 @@ export class BloomFilter {
       const idx = this.hash(str, i);
       const byteIdx = Math.floor(idx / 8);
       const bitIdx = idx % 8;
-      this.bits[byteIdx] |= 1 << bitIdx;
+      this.bits[byteIdx] = (this.bits[byteIdx] ?? 0) | (1 << bitIdx);
     }
   }
 
@@ -32,7 +32,7 @@ export class BloomFilter {
       const idx = this.hash(str, i);
       const byteIdx = Math.floor(idx / 8);
       const bitIdx = idx % 8;
-      if ((this.bits[byteIdx] & (1 << bitIdx)) === 0) {
+      if (((this.bits[byteIdx] ?? 0) & (1 << bitIdx)) === 0) {
         return false;
       }
     }

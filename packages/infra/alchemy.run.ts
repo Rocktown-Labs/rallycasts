@@ -74,6 +74,7 @@ const radarSecretKey = process.env.RADAR_SECRET_KEY ?? "";
 const radarPublishableKey = process.env.VITE_RADAR_PUBLISHABLE_KEY ?? "";
 const muxTokenSecret = process.env.MUX_TOKEN_SECRET ?? "";
 const muxTokenId = process.env.MUX_TOKEN_ID ?? "";
+const muxWebhookSecret = process.env.MUX_WEBHOOK_SECRET ?? "";
 const r2AccessKeyId = process.env.R2_ACCESS_KEY_ID ?? "";
 const r2SecretAccessKey = process.env.R2_SECRET_ACCESS_KEY ?? "";
 const r2BucketName = process.env.R2_BUCKET_NAME ?? "rallycasts-media";
@@ -155,6 +156,7 @@ export const server = await Worker("rallycasts-server", {
     MEDIA_BUCKET: mediaBucket,
     MUX_TOKEN_ID: muxTokenId,
     MUX_TOKEN_SECRET: muxTokenSecret,
+    MUX_WEBHOOK_SECRET: muxWebhookSecret,
     R2_ACCESS_KEY_ID: r2AccessKeyId,
     R2_ACCOUNT_ID: r2AccountId,
     R2_PUBLIC_URL: r2PublicUrl,
