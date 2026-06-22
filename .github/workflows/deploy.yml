@@ -59,6 +59,8 @@ jobs:
           PULL_REQUEST: ${{ github.event.number }}
           GITHUB_SHA: ${{ github.sha }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
 
   cleanup:
     runs-on: ubuntu-latest
