@@ -7,6 +7,7 @@ type Db = ReturnType<typeof createDb>;
 
 type NotificationType =
   | "casting_job"
+  | "challenge"
   | "comment"
   | "event"
   | "friend_accept"
@@ -18,6 +19,7 @@ type NotificationType =
 
 type EntityType =
   | "casting_job"
+  | "challenge"
   | "comment"
   | "event"
   | "friend_request"

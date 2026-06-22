@@ -25,6 +25,7 @@ import { Route as CastersIndexRouteImport } from './routes/casters.index'
 import { Route as VideosIdRouteImport } from './routes/videos.$id'
 import { Route as VenuesIdRouteImport } from './routes/venues.$id'
 import { Route as PlayersUsernameRouteImport } from './routes/players.$username'
+import { Route as OrganizersSlugRouteImport } from './routes/organizers.$slug'
 import { Route as EventsIdRouteImport } from './routes/events.$id'
 import { Route as CastersIdRouteImport } from './routes/casters.$id'
 import { Route as AuthURouteImport } from './routes/_auth/u'
@@ -39,6 +40,8 @@ import { Route as AuthUSettingsRouteImport } from './routes/_auth/u/settings'
 import { Route as AuthUMessagesRouteImport } from './routes/_auth/u/messages'
 import { Route as AuthUMeRouteImport } from './routes/_auth/u/me'
 import { Route as AuthUHistoryRouteImport } from './routes/_auth/u/history'
+import { Route as AuthUChallengesRouteImport } from './routes/_auth/u/challenges'
+import { Route as AuthOrganizersNewRouteImport } from './routes/_auth/organizers.new'
 import { Route as AuthUProfileIndexRouteImport } from './routes/_auth/u/profile/index'
 import { Route as AuthUVideosMeRouteImport } from './routes/_auth/u/videos/me'
 import { Route as AuthUStudioUploadRouteImport } from './routes/_auth/u/studio/upload'
@@ -47,6 +50,7 @@ import { Route as AuthUProfileMyRallycastsRouteImport } from './routes/_auth/u/p
 import { Route as AuthUProfileMeRouteImport } from './routes/_auth/u/profile/me'
 import { Route as AuthUProfileEarnRouteImport } from './routes/_auth/u/profile/earn'
 import { Route as AuthUProfileAnalyticsRouteImport } from './routes/_auth/u/profile/analytics'
+import { Route as AuthOrganizersSlugManageRouteImport } from './routes/_auth/organizers.$slug.manage'
 import { Route as AuthUStudioVideosIdRouteImport } from './routes/_auth/u/studio/videos.$id'
 import { Route as AuthUStudioVideosIdClipsRouteImport } from './routes/_auth/u/studio/videos.$id.clips'
 
@@ -129,6 +133,11 @@ const PlayersUsernameRoute = PlayersUsernameRouteImport.update({
   path: '/$username',
   getParentRoute: () => PlayersRoute,
 } as any)
+const OrganizersSlugRoute = OrganizersSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => OrganizersRoute,
+} as any)
 const EventsIdRoute = EventsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -199,6 +208,16 @@ const AuthUHistoryRoute = AuthUHistoryRouteImport.update({
   path: '/history',
   getParentRoute: () => AuthURoute,
 } as any)
+const AuthUChallengesRoute = AuthUChallengesRouteImport.update({
+  id: '/challenges',
+  path: '/challenges',
+  getParentRoute: () => AuthURoute,
+} as any)
+const AuthOrganizersNewRoute = AuthOrganizersNewRouteImport.update({
+  id: '/organizers/new',
+  path: '/organizers/new',
+  getParentRoute: () => AuthRouteRoute,
+} as any)
 const AuthUProfileIndexRoute = AuthUProfileIndexRouteImport.update({
   id: '/profile/',
   path: '/profile/',
@@ -241,6 +260,12 @@ const AuthUProfileAnalyticsRoute = AuthUProfileAnalyticsRouteImport.update({
   path: '/profile/analytics',
   getParentRoute: () => AuthURoute,
 } as any)
+const AuthOrganizersSlugManageRoute =
+  AuthOrganizersSlugManageRouteImport.update({
+    id: '/organizers/$slug/manage',
+    path: '/organizers/$slug/manage',
+    getParentRoute: () => AuthRouteRoute,
+  } as any)
 const AuthUStudioVideosIdRoute = AuthUStudioVideosIdRouteImport.update({
   id: '/studio/videos/$id',
   path: '/studio/videos/$id',
@@ -259,7 +284,7 @@ export interface FileRoutesByFullPath {
   '/casters': typeof CastersRouteWithChildren
   '/events': typeof EventsRouteWithChildren
   '/login': typeof LoginRoute
-  '/organizers': typeof OrganizersRoute
+  '/organizers': typeof OrganizersRouteWithChildren
   '/players': typeof PlayersRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/trending': typeof TrendingRoute
@@ -267,12 +292,15 @@ export interface FileRoutesByFullPath {
   '/u': typeof AuthURouteWithChildren
   '/casters/$id': typeof CastersIdRoute
   '/events/$id': typeof EventsIdRouteWithChildren
+  '/organizers/$slug': typeof OrganizersSlugRoute
   '/players/$username': typeof PlayersUsernameRoute
   '/venues/$id': typeof VenuesIdRoute
   '/videos/$id': typeof VideosIdRoute
   '/casters/': typeof CastersIndexRoute
   '/events/': typeof EventsIndexRoute
   '/players/': typeof PlayersIndexRoute
+  '/organizers/new': typeof AuthOrganizersNewRoute
+  '/u/challenges': typeof AuthUChallengesRoute
   '/u/history': typeof AuthUHistoryRoute
   '/u/me': typeof AuthUMeRoute
   '/u/messages': typeof AuthUMessagesRoute
@@ -283,6 +311,7 @@ export interface FileRoutesByFullPath {
   '/events/$id/players': typeof EventsIdPlayersRoute
   '/u/': typeof AuthUIndexRoute
   '/events/$id/': typeof EventsIdIndexRoute
+  '/organizers/$slug/manage': typeof AuthOrganizersSlugManageRoute
   '/u/profile/analytics': typeof AuthUProfileAnalyticsRoute
   '/u/profile/earn': typeof AuthUProfileEarnRoute
   '/u/profile/me': typeof AuthUProfileMeRoute
@@ -298,17 +327,20 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/ai': typeof AiRoute
   '/login': typeof LoginRoute
-  '/organizers': typeof OrganizersRoute
+  '/organizers': typeof OrganizersRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/trending': typeof TrendingRoute
   '/onboarding': typeof AuthOnboardingRoute
   '/casters/$id': typeof CastersIdRoute
+  '/organizers/$slug': typeof OrganizersSlugRoute
   '/players/$username': typeof PlayersUsernameRoute
   '/venues/$id': typeof VenuesIdRoute
   '/videos/$id': typeof VideosIdRoute
   '/casters': typeof CastersIndexRoute
   '/events': typeof EventsIndexRoute
   '/players': typeof PlayersIndexRoute
+  '/organizers/new': typeof AuthOrganizersNewRoute
+  '/u/challenges': typeof AuthUChallengesRoute
   '/u/history': typeof AuthUHistoryRoute
   '/u/me': typeof AuthUMeRoute
   '/u/messages': typeof AuthUMessagesRoute
@@ -319,6 +351,7 @@ export interface FileRoutesByTo {
   '/events/$id/players': typeof EventsIdPlayersRoute
   '/u': typeof AuthUIndexRoute
   '/events/$id': typeof EventsIdIndexRoute
+  '/organizers/$slug/manage': typeof AuthOrganizersSlugManageRoute
   '/u/profile/analytics': typeof AuthUProfileAnalyticsRoute
   '/u/profile/earn': typeof AuthUProfileEarnRoute
   '/u/profile/me': typeof AuthUProfileMeRoute
@@ -338,7 +371,7 @@ export interface FileRoutesById {
   '/casters': typeof CastersRouteWithChildren
   '/events': typeof EventsRouteWithChildren
   '/login': typeof LoginRoute
-  '/organizers': typeof OrganizersRoute
+  '/organizers': typeof OrganizersRouteWithChildren
   '/players': typeof PlayersRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/trending': typeof TrendingRoute
@@ -346,12 +379,15 @@ export interface FileRoutesById {
   '/_auth/u': typeof AuthURouteWithChildren
   '/casters/$id': typeof CastersIdRoute
   '/events/$id': typeof EventsIdRouteWithChildren
+  '/organizers/$slug': typeof OrganizersSlugRoute
   '/players/$username': typeof PlayersUsernameRoute
   '/venues/$id': typeof VenuesIdRoute
   '/videos/$id': typeof VideosIdRoute
   '/casters/': typeof CastersIndexRoute
   '/events/': typeof EventsIndexRoute
   '/players/': typeof PlayersIndexRoute
+  '/_auth/organizers/new': typeof AuthOrganizersNewRoute
+  '/_auth/u/challenges': typeof AuthUChallengesRoute
   '/_auth/u/history': typeof AuthUHistoryRoute
   '/_auth/u/me': typeof AuthUMeRoute
   '/_auth/u/messages': typeof AuthUMessagesRoute
@@ -362,6 +398,7 @@ export interface FileRoutesById {
   '/events/$id/players': typeof EventsIdPlayersRoute
   '/_auth/u/': typeof AuthUIndexRoute
   '/events/$id/': typeof EventsIdIndexRoute
+  '/_auth/organizers/$slug/manage': typeof AuthOrganizersSlugManageRoute
   '/_auth/u/profile/analytics': typeof AuthUProfileAnalyticsRoute
   '/_auth/u/profile/earn': typeof AuthUProfileEarnRoute
   '/_auth/u/profile/me': typeof AuthUProfileMeRoute
@@ -389,12 +426,15 @@ export interface FileRouteTypes {
     | '/u'
     | '/casters/$id'
     | '/events/$id'
+    | '/organizers/$slug'
     | '/players/$username'
     | '/venues/$id'
     | '/videos/$id'
     | '/casters/'
     | '/events/'
     | '/players/'
+    | '/organizers/new'
+    | '/u/challenges'
     | '/u/history'
     | '/u/me'
     | '/u/messages'
@@ -405,6 +445,7 @@ export interface FileRouteTypes {
     | '/events/$id/players'
     | '/u/'
     | '/events/$id/'
+    | '/organizers/$slug/manage'
     | '/u/profile/analytics'
     | '/u/profile/earn'
     | '/u/profile/me'
@@ -425,12 +466,15 @@ export interface FileRouteTypes {
     | '/trending'
     | '/onboarding'
     | '/casters/$id'
+    | '/organizers/$slug'
     | '/players/$username'
     | '/venues/$id'
     | '/videos/$id'
     | '/casters'
     | '/events'
     | '/players'
+    | '/organizers/new'
+    | '/u/challenges'
     | '/u/history'
     | '/u/me'
     | '/u/messages'
@@ -441,6 +485,7 @@ export interface FileRouteTypes {
     | '/events/$id/players'
     | '/u'
     | '/events/$id'
+    | '/organizers/$slug/manage'
     | '/u/profile/analytics'
     | '/u/profile/earn'
     | '/u/profile/me'
@@ -467,12 +512,15 @@ export interface FileRouteTypes {
     | '/_auth/u'
     | '/casters/$id'
     | '/events/$id'
+    | '/organizers/$slug'
     | '/players/$username'
     | '/venues/$id'
     | '/videos/$id'
     | '/casters/'
     | '/events/'
     | '/players/'
+    | '/_auth/organizers/new'
+    | '/_auth/u/challenges'
     | '/_auth/u/history'
     | '/_auth/u/me'
     | '/_auth/u/messages'
@@ -483,6 +531,7 @@ export interface FileRouteTypes {
     | '/events/$id/players'
     | '/_auth/u/'
     | '/events/$id/'
+    | '/_auth/organizers/$slug/manage'
     | '/_auth/u/profile/analytics'
     | '/_auth/u/profile/earn'
     | '/_auth/u/profile/me'
@@ -502,7 +551,7 @@ export interface RootRouteChildren {
   CastersRoute: typeof CastersRouteWithChildren
   EventsRoute: typeof EventsRouteWithChildren
   LoginRoute: typeof LoginRoute
-  OrganizersRoute: typeof OrganizersRoute
+  OrganizersRoute: typeof OrganizersRouteWithChildren
   PlayersRoute: typeof PlayersRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
   TrendingRoute: typeof TrendingRoute
@@ -624,6 +673,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlayersUsernameRouteImport
       parentRoute: typeof PlayersRoute
     }
+    '/organizers/$slug': {
+      id: '/organizers/$slug'
+      path: '/$slug'
+      fullPath: '/organizers/$slug'
+      preLoaderRoute: typeof OrganizersSlugRouteImport
+      parentRoute: typeof OrganizersRoute
+    }
     '/events/$id': {
       id: '/events/$id'
       path: '/$id'
@@ -722,6 +778,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthUHistoryRouteImport
       parentRoute: typeof AuthURoute
     }
+    '/_auth/u/challenges': {
+      id: '/_auth/u/challenges'
+      path: '/challenges'
+      fullPath: '/u/challenges'
+      preLoaderRoute: typeof AuthUChallengesRouteImport
+      parentRoute: typeof AuthURoute
+    }
+    '/_auth/organizers/new': {
+      id: '/_auth/organizers/new'
+      path: '/organizers/new'
+      fullPath: '/organizers/new'
+      preLoaderRoute: typeof AuthOrganizersNewRouteImport
+      parentRoute: typeof AuthRouteRoute
+    }
     '/_auth/u/profile/': {
       id: '/_auth/u/profile/'
       path: '/profile'
@@ -778,6 +848,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthUProfileAnalyticsRouteImport
       parentRoute: typeof AuthURoute
     }
+    '/_auth/organizers/$slug/manage': {
+      id: '/_auth/organizers/$slug/manage'
+      path: '/organizers/$slug/manage'
+      fullPath: '/organizers/$slug/manage'
+      preLoaderRoute: typeof AuthOrganizersSlugManageRouteImport
+      parentRoute: typeof AuthRouteRoute
+    }
     '/_auth/u/studio/videos/$id': {
       id: '/_auth/u/studio/videos/$id'
       path: '/studio/videos/$id'
@@ -807,6 +884,7 @@ const AuthUStudioVideosIdRouteWithChildren =
   AuthUStudioVideosIdRoute._addFileChildren(AuthUStudioVideosIdRouteChildren)
 
 interface AuthURouteChildren {
+  AuthUChallengesRoute: typeof AuthUChallengesRoute
   AuthUHistoryRoute: typeof AuthUHistoryRoute
   AuthUMeRoute: typeof AuthUMeRoute
   AuthUMessagesRoute: typeof AuthUMessagesRoute
@@ -824,6 +902,7 @@ interface AuthURouteChildren {
 }
 
 const AuthURouteChildren: AuthURouteChildren = {
+  AuthUChallengesRoute: AuthUChallengesRoute,
   AuthUHistoryRoute: AuthUHistoryRoute,
   AuthUMeRoute: AuthUMeRoute,
   AuthUMessagesRoute: AuthUMessagesRoute,
@@ -845,11 +924,15 @@ const AuthURouteWithChildren = AuthURoute._addFileChildren(AuthURouteChildren)
 interface AuthRouteRouteChildren {
   AuthOnboardingRoute: typeof AuthOnboardingRoute
   AuthURoute: typeof AuthURouteWithChildren
+  AuthOrganizersNewRoute: typeof AuthOrganizersNewRoute
+  AuthOrganizersSlugManageRoute: typeof AuthOrganizersSlugManageRoute
 }
 
 const AuthRouteRouteChildren: AuthRouteRouteChildren = {
   AuthOnboardingRoute: AuthOnboardingRoute,
   AuthURoute: AuthURouteWithChildren,
+  AuthOrganizersNewRoute: AuthOrganizersNewRoute,
+  AuthOrganizersSlugManageRoute: AuthOrganizersSlugManageRoute,
 }
 
 const AuthRouteRouteWithChildren = AuthRouteRoute._addFileChildren(
@@ -902,6 +985,18 @@ const EventsRouteChildren: EventsRouteChildren = {
 const EventsRouteWithChildren =
   EventsRoute._addFileChildren(EventsRouteChildren)
 
+interface OrganizersRouteChildren {
+  OrganizersSlugRoute: typeof OrganizersSlugRoute
+}
+
+const OrganizersRouteChildren: OrganizersRouteChildren = {
+  OrganizersSlugRoute: OrganizersSlugRoute,
+}
+
+const OrganizersRouteWithChildren = OrganizersRoute._addFileChildren(
+  OrganizersRouteChildren,
+)
+
 interface PlayersRouteChildren {
   PlayersUsernameRoute: typeof PlayersUsernameRoute
   PlayersIndexRoute: typeof PlayersIndexRoute
@@ -922,7 +1017,7 @@ const rootRouteChildren: RootRouteChildren = {
   CastersRoute: CastersRouteWithChildren,
   EventsRoute: EventsRouteWithChildren,
   LoginRoute: LoginRoute,
-  OrganizersRoute: OrganizersRoute,
+  OrganizersRoute: OrganizersRouteWithChildren,
   PlayersRoute: PlayersRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
   TrendingRoute: TrendingRoute,

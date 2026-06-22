@@ -7,6 +7,7 @@ import {
   MessageSquare,
   Settings,
   Trophy,
+  Swords,
   User,
   Users,
   Video,
@@ -36,6 +37,7 @@ export const accountNavItems = [
     to: "/u/recording-requests/me",
   },
   { icon: MessageSquare, label: "Messages", to: "/u/messages" },
+  { icon: Swords, label: "Challenges", to: "/u/challenges" },
   { icon: Clock, label: "History", to: "/u/history" },
   { icon: Settings, label: "Settings", to: "/u/settings" },
 ] as const;

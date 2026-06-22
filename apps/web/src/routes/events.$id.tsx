@@ -35,6 +35,11 @@ export interface EventData {
   capacity?: number;
   description?: string;
   venueId?: string;
+  entryFeeCents: number;
+  registrationDeadline?: string;
+  refundPolicy?: string;
+  courtLabelsJson?: string;
+  organizationId?: string;
 }
 
 export interface EventContextType {

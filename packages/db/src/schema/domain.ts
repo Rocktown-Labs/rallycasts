@@ -103,6 +103,61 @@ export const venue = sqliteTable(
   ]
 );
 
+export const organization = sqliteTable(
+  "organization",
+  {
+    bio: text("bio"),
+    city: text("city"),
+    createdAt: timestamp("created_at"),
+    createdByUserId: text("created_by_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    id: text("id").primaryKey(),
+    isOfficial: integer("is_official", { mode: "boolean" })
+      .default(false)
+      .notNull(),
+    logoUrl: text("logo_url"),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
+    state: text("state"),
+    stripeAccountId: text("stripe_account_id"),
+    stripeOnboardingStatus: text("stripe_onboarding_status", {
+      enum: ["not_started", "pending", "complete", "restricted"],
+    })
+      .default("not_started")
+      .notNull(),
+    updatedAt: timestamp("updated_at").$onUpdate(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("organization_slug_idx").on(table.slug),
+    uniqueIndex("organization_stripe_account_idx").on(table.stripeAccountId),
+    index("organization_location_idx").on(table.city, table.state),
+  ]
+);
+
+export const organizationMember = sqliteTable(
+  "organization_member",
+  {
+    createdAt: timestamp("created_at"),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    role: text("role", { enum: ["owner", "admin", "editor"] })
+      .default("editor")
+      .notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    uniqueIndex("organization_member_org_user_idx").on(
+      table.organizationId,
+      table.userId
+    ),
+    index("organization_member_user_idx").on(table.userId),
+  ]
+);
+
 export const video = sqliteTable(
   "video",
   {
@@ -119,6 +174,9 @@ export const video = sqliteTable(
     muxPlaybackId: text("mux_playback_id"),
     muxStatus: text("mux_status"),
     muxUploadId: text("mux_upload_id"),
+    organizationId: text("organization_id").references(() => organization.id, {
+      onDelete: "set null",
+    }),
     ownerUserId: text("owner_user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
@@ -143,6 +201,7 @@ export const video = sqliteTable(
   (table) => [
     index("video_owner_status_idx").on(table.ownerUserId, table.status),
     index("video_venue_idx").on(table.venueId),
+    index("video_organization_idx").on(table.organizationId),
     uniqueIndex("video_mux_asset_id_idx").on(table.muxAssetId),
   ]
 );
@@ -168,10 +227,19 @@ export const videoLike = sqliteTable(
 export const event = sqliteTable(
   "event",
   {
+    bracketType: text("bracket_type", {
+      enum: ["single_elimination", "round_robin"],
+    })
+      .default("single_elimination")
+      .notNull(),
     capacity: integer("capacity"),
+    checkInMinutes: integer("check_in_minutes").default(30).notNull(),
+    courtLabelsJson: text("court_labels_json"),
     createdAt: timestamp("created_at"),
+    currency: text("currency").default("usd").notNull(),
     description: text("description"),
     endsAt: integer("ends_at", { mode: "timestamp_ms" }),
+    entryFeeCents: integer("entry_fee_cents").default(0).notNull(),
     eventType: text("event_type", {
       enum: ["open_play", "tournament", "clinic", "league"],
     })
@@ -185,9 +253,20 @@ export const event = sqliteTable(
       .notNull(),
     id: text("id").primaryKey(),
     name: text("name").notNull(),
+    organizationId: text("organization_id").references(() => organization.id, {
+      onDelete: "set null",
+    }),
     organizerUserId: text("organizer_user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
+    refundPolicy: text("refund_policy")
+      .default(
+        "Full refund before registration closes; automatic refund if cancelled."
+      )
+      .notNull(),
+    registrationDeadline: integer("registration_deadline", {
+      mode: "timestamp_ms",
+    }),
     startsAt: integer("starts_at", { mode: "timestamp_ms" }).notNull(),
     status: text("status", {
       enum: ["draft", "published", "cancelled", "completed"],
@@ -203,6 +282,7 @@ export const event = sqliteTable(
     index("event_starts_at_idx").on(table.startsAt),
     index("event_venue_idx").on(table.venueId),
     index("event_organizer_idx").on(table.organizerUserId),
+    index("event_organization_idx").on(table.organizationId),
   ]
 );
 
@@ -215,12 +295,25 @@ export const eventRegistration = sqliteTable(
       .notNull()
       .references(() => event.id, { onDelete: "cascade" }),
     id: text("id").primaryKey(),
+    paidAmountCents: integer("paid_amount_cents").default(0).notNull(),
+    paymentStatus: text("payment_status", {
+      enum: ["not_required", "pending", "paid", "failed", "refunded"],
+    })
+      .default("not_required")
+      .notNull(),
     seed: integer("seed"),
     status: text("status", {
-      enum: ["registered", "waitlisted", "cancelled", "checked_in"],
+      enum: [
+        "pending_payment",
+        "registered",
+        "waitlisted",
+        "cancelled",
+        "checked_in",
+      ],
     })
       .default("registered")
       .notNull(),
+    stripeCheckoutSessionId: text("stripe_checkout_session_id"),
     updatedAt: timestamp("updated_at").$onUpdate(() => new Date()),
     userId: text("user_id")
       .notNull()
@@ -236,6 +329,44 @@ export const eventRegistration = sqliteTable(
       table.status
     ),
     index("event_registration_user_idx").on(table.userId),
+    uniqueIndex("event_registration_checkout_idx").on(
+      table.stripeCheckoutSessionId
+    ),
+  ]
+);
+
+export const eventPayment = sqliteTable(
+  "event_payment",
+  {
+    amountCents: integer("amount_cents").notNull(),
+    applicationFeeCents: integer("application_fee_cents").default(0).notNull(),
+    createdAt: timestamp("created_at"),
+    currency: text("currency").default("usd").notNull(),
+    eventId: text("event_id")
+      .notNull()
+      .references(() => event.id, { onDelete: "cascade" }),
+    id: text("id").primaryKey(),
+    registrationId: text("registration_id")
+      .notNull()
+      .references(() => eventRegistration.id, { onDelete: "cascade" }),
+    status: text("status", {
+      enum: ["pending", "succeeded", "failed", "refunded"],
+    })
+      .default("pending")
+      .notNull(),
+    stripeCheckoutSessionId: text("stripe_checkout_session_id"),
+    stripePaymentIntentId: text("stripe_payment_intent_id"),
+    stripeRefundId: text("stripe_refund_id"),
+    stripeTransferId: text("stripe_transfer_id"),
+    updatedAt: timestamp("updated_at").$onUpdate(() => new Date()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    uniqueIndex("event_payment_checkout_idx").on(table.stripeCheckoutSessionId),
+    index("event_payment_event_idx").on(table.eventId),
+    index("event_payment_registration_idx").on(table.registrationId),
   ]
 );
 
@@ -317,6 +448,11 @@ export const eventScoreSubmission = sqliteTable(
 export const challenge = sqliteTable(
   "challenge",
   {
+    casterFeeCents: integer("caster_fee_cents").default(0).notNull(),
+    casterTipCents: integer("caster_tip_cents").default(0).notNull(),
+    casterUserId: text("caster_user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
     castingSplitMode: text("casting_split_mode"),
     challengedUserId: text("challenged_user_id").references(() => user.id, {
       onDelete: "set null",
@@ -324,6 +460,7 @@ export const challenge = sqliteTable(
     challengerUserId: text("challenger_user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
+    courtLabel: text("court_label"),
     createdAt: timestamp("created_at"),
     id: text("id").primaryKey(),
     isCasted: integer("is_casted", { mode: "boolean" }).default(false),
@@ -332,6 +469,11 @@ export const challenge = sqliteTable(
     partnerUserId: text("partner_user_id").references(() => user.id, {
       onDelete: "set null",
     }),
+    paymentStatus: text("payment_status", {
+      enum: ["not_required", "pending", "paid", "refunded"],
+    })
+      .default("not_required")
+      .notNull(),
     result: text("result", { enum: ["won", "lost", "draw"] }),
     scheduledAt: integer("scheduled_at", { mode: "timestamp_ms" }),
     status: text("status", {
@@ -350,6 +492,7 @@ export const challenge = sqliteTable(
     venueId: text("venue_id").references(() => venue.id, {
       onDelete: "set null",
     }),
+    venueLabel: text("venue_label"),
     videoUrl: text("video_url"),
   },
   (table) => [
@@ -357,6 +500,7 @@ export const challenge = sqliteTable(
     index("challenge_challenged_idx").on(table.challengedUserId),
     index("challenge_status_idx").on(table.status),
     index("challenge_partner_idx").on(table.partnerUserId),
+    index("challenge_caster_idx").on(table.casterUserId),
   ]
 );
 
@@ -366,6 +510,9 @@ export const post = sqliteTable(
     content: text("content").notNull(),
     createdAt: timestamp("created_at"),
     id: text("id").primaryKey(),
+    organizationId: text("organization_id").references(() => organization.id, {
+      onDelete: "set null",
+    }),
     updatedAt: timestamp("updated_at").$onUpdate(() => new Date()),
     userId: text("user_id")
       .notNull()
@@ -374,6 +521,7 @@ export const post = sqliteTable(
   (table) => [
     index("post_user_idx").on(table.userId),
     index("post_created_idx").on(table.createdAt),
+    index("post_organization_idx").on(table.organizationId),
   ]
 );
 
@@ -483,6 +631,7 @@ export const notification = sqliteTable(
         "share",
         "event",
         "casting_job",
+        "challenge",
       ],
     }).notNull(),
     href: text("href").notNull(),
@@ -499,6 +648,7 @@ export const notification = sqliteTable(
         "share",
         "event",
         "casting_job",
+        "challenge",
         "system",
       ],
     }).notNull(),

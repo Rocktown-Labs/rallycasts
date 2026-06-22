@@ -8,7 +8,10 @@ This project was created with [Better-T-Stack](https://github.com/AmanVarshney01
 - **Location-aware Trending** - Nearby parks from RallyCasts venue data and Google Places, ranked by distance
 - **Video discovery** - Cursor-paginated RallyCasts, player tags, venue metadata, comments, and related videos
 - **Creator Studio** - Direct Mux uploads, processing status, publishing controls, and short clips
-- **Events** - Organizer-hosted events, registrations, brackets, match scoring, and live activity
+- **Organizations** - Independent organizer profiles, role-based teams, organization-authored posts/videos, and verified RallyCasts identity
+- **Tournaments** - Free or paid registration, seeded single-elimination or round-robin brackets, court assignments, match scoring, notifications, and refunds
+- **Match challenges** - Player-to-player challenges with park, court, schedule, optional caster, split-pay preference, and caster tip
+- **Stripe Connect** - Accounts v2 hosted organizer onboarding and Checkout destination charges with a configurable platform fee
 - **Guided onboarding** - Multi-step player, role, game, and home-court setup
 - **TypeScript** - For type safety and improved developer experience
 - **TanStack Start** - SSR framework with TanStack Router
@@ -91,6 +94,8 @@ If you want to add app-specific blocks instead of shared primitives, run the sha
 - Destroy: bun run destroy
 
 Production deployments provision the web app, Hono API, D1 migrations, queues, Durable Objects, and configured Google Places, Radar, Mux, and R2 bindings through `packages/infra/alchemy.run.ts`.
+
+Paid tournaments require `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`. Connect onboarding and payment confirmation remain unavailable when those bindings are absent; registrations are confirmed only by a verified webhook.
 
 For more details, see the guide on [Deploying to Cloudflare with Alchemy](https://www.better-t-stack.dev/docs/guides/cloudflare-alchemy).
 

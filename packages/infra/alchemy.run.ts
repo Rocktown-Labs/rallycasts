@@ -82,6 +82,8 @@ const r2AccountId = process.env.R2_ACCOUNT_ID ?? "";
 const r2PublicUrl = process.env.R2_PUBLIC_URL ?? "https://media.rallycasts.com";
 const resendApiKey = process.env.RESEND_API_KEY ?? "";
 const resendWebhookSecret = process.env.RESEND_WEBHOOK_SECRET ?? "";
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY ?? "";
+const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET ?? "";
 
 const mediaBucket = await R2Bucket("media", {
   adopt: true,
@@ -166,6 +168,8 @@ export const server = await Worker("rallycasts-server", {
     RESEND_API_KEY: resendApiKey,
     RESEND_WEBHOOK_SECRET: resendWebhookSecret,
     SEARCH_INDEX: searchIndex,
+    STRIPE_SECRET_KEY: stripeSecretKey,
+    STRIPE_WEBHOOK_SECRET: stripeWebhookSecret,
     VENUE_PRESENCE: venuePresence,
   },
   compatibility: "node",
