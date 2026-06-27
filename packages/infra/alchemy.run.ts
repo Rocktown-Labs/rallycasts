@@ -72,6 +72,8 @@ const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET ?? "";
 const googlePlacesApiKey = process.env.GOOGLE_PLACES_API_KEY ?? "";
 const radarSecretKey = process.env.RADAR_SECRET_KEY ?? "";
 const radarPublishableKey = process.env.VITE_RADAR_PUBLISHABLE_KEY ?? "";
+const fourthwallStorefrontUrl =
+  process.env.VITE_FOURTHWALL_STOREFRONT_URL ?? "";
 const muxTokenSecret = process.env.MUX_TOKEN_SECRET ?? "";
 const muxTokenId = process.env.MUX_TOKEN_ID ?? "";
 const muxWebhookSecret = process.env.MUX_WEBHOOK_SECRET ?? "";
@@ -197,6 +199,7 @@ export const web = await TanStackStart("rallycasts-web", {
     GOOGLE_GENERATIVE_AI_API_KEY: googleAiApiKey,
     GOOGLE_PLACES_API_KEY: googlePlacesApiKey,
     RADAR_SECRET_KEY: radarSecretKey,
+    VITE_FOURTHWALL_STOREFRONT_URL: fourthwallStorefrontUrl,
     VITE_RADAR_PUBLISHABLE_KEY: radarPublishableKey,
     VITE_SERVER_URL: productionServerUrl,
   },

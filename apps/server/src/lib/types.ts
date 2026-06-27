@@ -19,6 +19,7 @@ interface WorkersAiBinding {
 }
 
 interface VectorizeBinding {
+  deleteByIds?: (ids: string[]) => Promise<unknown>;
   query: (
     vector: number[],
     options: { topK: number }

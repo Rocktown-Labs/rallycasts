@@ -1,6 +1,6 @@
 import { Button } from "@rallycaststv/ui/components/button";
 import { useQuery } from "@tanstack/react-query";
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute, redirect } from "@tanstack/react-router";
 import { BadgeCheck, Building2, Calendar, MapPin, Users } from "lucide-react";
 
 import { apiClient } from "@/lib/api-client";
@@ -8,11 +8,15 @@ import { authClient } from "@/lib/auth-client";
 import { readApiJson } from "@/lib/hooks/api";
 
 export const Route = createFileRoute("/organizers/$slug")({
-  component: OrganizationProfilePage,
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      params: { slug: params.slug },
+      to: "/events/organizers/$slug",
+    });
+  },
 });
 
-function OrganizationProfilePage() {
-  const { slug } = Route.useParams();
+export function OrganizationProfilePage({ slug }: { slug: string }) {
   const { data: session } = authClient.useSession();
   const { data, isLoading } = useQuery({
     queryFn: () =>
@@ -66,7 +70,7 @@ function OrganizationProfilePage() {
             </div>
           </div>
           {canManage ? (
-            <Link params={{ slug }} to="/organizers/$slug/manage">
+            <Link params={{ slug }} to="/events/organizers/$slug/manage">
               <Button>Manage organization</Button>
             </Link>
           ) : null}

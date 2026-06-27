@@ -20,6 +20,11 @@ import { enqueueEventActivity } from "../lib/event-activity";
 import type { EventActivityMessage } from "../lib/event-activity";
 import { createId } from "../lib/ids";
 import { createNotification } from "../lib/notifications";
+import {
+  removeSearchDocument,
+  scheduleSearchDocumentIndex,
+  upsertSearchDocument,
+} from "../lib/search-index";
 import type { AppEnv } from "../lib/types";
 import { requireAuth } from "../middleware/auth";
 
@@ -335,9 +340,12 @@ export const eventsRouter = new Hono<AppEnv>()
       organizerUserId: user.id,
     };
 
-    await db.insert(event).values(record);
+    const [created] = await db.insert(event).values(record).returning();
     if (record.status === "published") {
       waitUntil(c, scheduleEventLifecycle(c.env.EVENT_ACTIVITY_QUEUE, record));
+    }
+    if (created) {
+      await syncEventSearch(c, db, created);
     }
 
     return c.json({ event: record }, HttpStatusCodes.CREATED);
@@ -780,7 +788,32 @@ export const eventsRouter = new Hono<AppEnv>()
           )
         );
       }
+      await syncEventSearch(c, db, updated);
 
       return c.json({ event: updated }, HttpStatusCodes.OK);
     }
   );
+
+const syncEventSearch = async (
+  c: Context<AppEnv>,
+  db: ReturnType<typeof createDb>,
+  record: typeof event.$inferSelect
+) => {
+  if (record.status !== "published") {
+    await removeSearchDocument(db, c.env, "event", record.id);
+    return;
+  }
+  const searchRecord = await upsertSearchDocument(db, {
+    content: [record.description, record.eventType, record.hostLabel]
+      .filter(Boolean)
+      .join(". "),
+    entityId: record.id,
+    entityType: "event",
+    metadata: {
+      organizationId: record.organizationId,
+      venueId: record.venueId,
+    },
+    title: record.name,
+  });
+  scheduleSearchDocumentIndex(() => c.executionCtx, db, c.env, searchRecord);
+};

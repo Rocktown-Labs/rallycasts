@@ -118,7 +118,7 @@ export const socialRouter = new Hono<AppEnv>()
       metadata: { authorUserId: authUser.id },
       title: `${authUser.name}'s rally note`,
     });
-    scheduleSearchDocumentIndex(() => c.executionCtx, c.env, searchRecord);
+    scheduleSearchDocumentIndex(() => c.executionCtx, db, c.env, searchRecord);
 
     return c.json({ post: record }, HttpStatusCodes.CREATED);
   })

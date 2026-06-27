@@ -5,6 +5,7 @@ import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 
 import { createGooglePlacesClient } from "../lib/google-places";
+import { syncVenueSearchDocument } from "../lib/search-index";
 import type { AppEnv } from "../lib/types";
 import { requireAuth } from "../middleware/auth";
 
@@ -160,6 +161,13 @@ export const placesRouter = new Hono<AppEnv>()
           HttpStatusCodes.CONFLICT
         );
       }
+
+      await syncVenueSearchDocument(
+        () => c.executionCtx,
+        db,
+        c.env,
+        newVenue[0]
+      );
 
       return c.json({ venue: newVenue[0] }, HttpStatusCodes.CREATED);
     } catch (error) {

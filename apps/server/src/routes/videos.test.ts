@@ -73,12 +73,144 @@ describe("videos API", () => {
     );
     expect(publicResponse.status).toBe(404);
 
+    const searchResponse = await app.request(
+      "/api/search?q=Private%20processing&type=videos",
+      {},
+      env
+    );
+    expect(searchResponse.status).toBe(200);
+    await expect(searchResponse.json()).resolves.toMatchObject({ videos: [] });
+
     const studioResponse = await app.request(
       `/api/videos/${privateVideoId}/studio`,
       { headers: { Cookie: owner.cookie } },
       env
     );
     expect(studioResponse.status).toBe(200);
+  });
+
+  it("removes a video search document when its visibility becomes private", async () => {
+    const owner = await signUp("Search Visibility Owner");
+    const createResponse = await jsonRequest("/api/videos", owner.cookie, {
+      status: "ready",
+      title: "Public semantic kitchen battle",
+      visibility: "public",
+    });
+    expect(createResponse.status).toBe(201);
+    const created = (await createResponse.json()) as { video: { id: string } };
+
+    const indexedBefore = await env.DB.prepare(
+      "select id from search_document where entity_type = 'video' and entity_id = ?"
+    )
+      .bind(created.video.id)
+      .first();
+    expect(indexedBefore).toBeTruthy();
+
+    const updateResponse = await jsonRequest(
+      `/api/videos/${created.video.id}`,
+      owner.cookie,
+      { visibility: "private" },
+      "PATCH"
+    );
+    expect(updateResponse.status).toBe(200);
+
+    const indexedAfter = await env.DB.prepare(
+      "select id from search_document where entity_type = 'video' and entity_id = ?"
+    )
+      .bind(created.video.id)
+      .first();
+    expect(indexedAfter).toBeNull();
+  });
+
+  it("returns semantic video matches when keywords do not match", async () => {
+    const owner = await signUp("Semantic Search Owner");
+    const videoId = `semantic-video-${crypto.randomUUID()}`;
+    const documentId = `semantic-document-${crypto.randomUUID()}`;
+    await env.DB.batch([
+      env.DB.prepare(
+        "insert into video (id, owner_user_id, title, status, visibility) values (?, ?, ?, 'ready', 'public')"
+      ).bind(videoId, owner.id, "Third shot reset masterclass"),
+      env.DB.prepare(
+        "insert into search_document (id, entity_id, entity_type, title, content, embedding_status) values (?, ?, 'video', ?, ?, 'ready')"
+      ).bind(
+        documentId,
+        videoId,
+        "Third shot reset masterclass",
+        "Advanced transition-zone strategy"
+      ),
+    ]);
+
+    const response = await app.request(
+      "/api/search?q=soft%20game%20strategy&type=videos",
+      {},
+      {
+        ...env,
+        AI: { run: () => Promise.resolve({ data: [[0.1, 0.2]] }) },
+        SEARCH_INDEX: {
+          query: () =>
+            Promise.resolve({
+              matches: [{ id: documentId, score: 0.92 }],
+            }),
+          upsert: () => Promise.resolve(),
+        },
+      }
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      ai: { mode: "semantic" },
+      videos: [{ id: videoId }],
+    });
+  });
+
+  it("builds an authenticated hybrid recommendation feed", async () => {
+    const owner = await signUp("Feed Video Owner");
+    const viewer = await signUp("Feed Viewer");
+    const videoId = `feed-video-${crypto.randomUUID()}`;
+    const documentId = `feed-document-${crypto.randomUUID()}`;
+    await env.DB.batch([
+      env.DB.prepare(
+        "insert into video (id, owner_user_id, title, status, visibility) values (?, ?, ?, 'ready', 'public')"
+      ).bind(videoId, owner.id, "Advanced doubles transition strategy"),
+      env.DB.prepare(
+        "insert into search_document (id, entity_id, entity_type, title, content, embedding_status) values (?, ?, 'video', ?, ?, 'ready')"
+      ).bind(
+        documentId,
+        videoId,
+        "Advanced doubles transition strategy",
+        "Competitive pickleball match analysis"
+      ),
+      env.DB.prepare(
+        "insert into user_profile (user_id, bio, skill_level, onboarding_status) values (?, ?, 'advanced', 'complete') on conflict(user_id) do update set bio = excluded.bio, skill_level = excluded.skill_level"
+      ).bind(viewer.id, "Competitive doubles and match analysis"),
+    ]);
+
+    const response = await app.request(
+      "/api/videos/feed",
+      { headers: { Cookie: viewer.cookie } },
+      {
+        ...env,
+        AI: { run: () => Promise.resolve({ data: [[0.1, 0.2]] }) },
+        SEARCH_INDEX: {
+          query: () =>
+            Promise.resolve({
+              matches: [{ id: documentId, score: 0.95 }],
+            }),
+          upsert: () => Promise.resolve(),
+        },
+      }
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      mode: "hybrid",
+      videos: [
+        {
+          id: videoId,
+          recommendationReason: "Matches your pickleball interests",
+        },
+      ],
+    });
   });
 
   it("creates an owner-linked private draft before direct Mux upload", async () => {

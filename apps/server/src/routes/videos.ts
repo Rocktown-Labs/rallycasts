@@ -2,6 +2,9 @@ import { zValidator } from "@hono/zod-validator";
 import { createDb } from "@rallycaststv/db";
 import { user } from "@rallycaststv/db/schema/auth";
 import {
+  friendship,
+  searchDocument,
+  userProfile,
   venue,
   video,
   videoComment,
@@ -16,6 +19,7 @@ import { createId } from "../lib/ids";
 import { createMuxClip } from "../lib/mux-client";
 import { createNotification } from "../lib/notifications";
 import {
+  removeSearchDocument,
   scheduleSearchDocumentIndex,
   upsertSearchDocument,
 } from "../lib/search-index";
@@ -73,6 +77,10 @@ const createClipSchema = z
 
 const DEFAULT_VIDEO_PAGE_SIZE = 12;
 const MAX_VIDEO_PAGE_SIZE = 50;
+const FEED_CANDIDATE_LIMIT = 50;
+const FEED_RESULT_LIMIT = 24;
+const FEED_LAZY_INDEX_LIMIT = 12;
+const EARTH_RADIUS_MILES = 3958.8;
 
 interface VideoCursor {
   id: string;
@@ -80,6 +88,60 @@ interface VideoCursor {
 }
 
 const videoSortTimestamp = sql<number>`coalesce(${video.publishedAt}, ${video.createdAt})`;
+
+const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
+
+const distanceMiles = (
+  fromLatitude: number,
+  fromLongitude: number,
+  toLatitude: number,
+  toLongitude: number
+) => {
+  const latitudeDelta = toRadians(toLatitude - fromLatitude);
+  const longitudeDelta = toRadians(toLongitude - fromLongitude);
+  const startLatitude = toRadians(fromLatitude);
+  const endLatitude = toRadians(toLatitude);
+  const haversine =
+    Math.sin(latitudeDelta / 2) ** 2 +
+    Math.cos(startLatitude) *
+      Math.cos(endLatitude) *
+      Math.sin(longitudeDelta / 2) ** 2;
+
+  return 2 * EARTH_RADIUS_MILES * Math.asin(Math.sqrt(haversine));
+};
+
+const buildFeedIntent = (profile: typeof userProfile.$inferSelect) =>
+  [
+    profile.skillLevel
+      ? `${profile.skillLevel} pickleball play and instruction`
+      : null,
+    profile.bio,
+    profile.homeCourtName ? `home court ${profile.homeCourtName}` : null,
+    profile.homeCity || profile.homeState
+      ? `pickleball near ${[profile.homeCity, profile.homeState]
+          .filter(Boolean)
+          .join(", ")}`
+      : null,
+    profile.isCaster ? "pickleball casting and match footage" : null,
+    profile.isOrganizer ? "pickleball tournaments and events" : null,
+  ]
+    .filter(Boolean)
+    .join(". ");
+
+const mergeUniqueVideos = (
+  primary: (typeof video.$inferSelect)[],
+  fallback: (typeof video.$inferSelect)[]
+) => {
+  const seen = new Set<string>();
+  const merged: (typeof video.$inferSelect)[] = [];
+  for (const candidate of [...primary, ...fallback]) {
+    if (!seen.has(candidate.id)) {
+      seen.add(candidate.id);
+      merged.push(candidate);
+    }
+  }
+  return merged;
+};
 
 const encodeVideoCursor = (record: typeof video.$inferSelect): string =>
   btoa(
@@ -257,6 +319,240 @@ export const videosRouter = new Hono<AppEnv>()
     const resolved = await resolveVideosRelations(db, videos);
     return c.json({ videos: resolved }, HttpStatusCodes.OK);
   })
+  .get("/feed", requireAuth, async (c) => {
+    const db = createDb(c.env.DB);
+    const { user: authUser } = c.var.authSession;
+    const [profile] = await db
+      .select()
+      .from(userProfile)
+      .where(eq(userProfile.userId, authUser.id))
+      .limit(1);
+    const fallbackVideos = await db
+      .select()
+      .from(video)
+      .where(and(eq(video.status, "ready"), eq(video.visibility, "public")))
+      .orderBy(desc(videoSortTimestamp), desc(video.id))
+      .limit(FEED_CANDIDATE_LIMIT);
+
+    if (c.env.AI && c.env.SEARCH_INDEX && fallbackVideos.length > 0) {
+      const existingDocuments = await db
+        .select({
+          embeddingStatus: searchDocument.embeddingStatus,
+          entityId: searchDocument.entityId,
+        })
+        .from(searchDocument)
+        .where(
+          and(
+            eq(searchDocument.entityType, "video"),
+            inArray(
+              searchDocument.entityId,
+              fallbackVideos.map((record) => record.id)
+            )
+          )
+        );
+      const readyEntityIds = new Set(
+        existingDocuments
+          .filter((document) => document.embeddingStatus === "ready")
+          .map((document) => document.entityId)
+      );
+      for (const record of fallbackVideos.slice(0, FEED_LAZY_INDEX_LIMIT)) {
+        if (readyEntityIds.has(record.id)) {
+          continue;
+        }
+        const searchRecord = await upsertSearchDocument(db, {
+          content: [record.title, record.description]
+            .filter(Boolean)
+            .join("\n"),
+          entityId: record.id,
+          entityType: "video",
+          metadata: {
+            mediaType: record.mediaType,
+            ownerUserId: record.ownerUserId,
+            venueId: record.venueId,
+          },
+          title: record.title,
+        });
+        scheduleSearchDocumentIndex(
+          () => c.executionCtx,
+          db,
+          c.env,
+          searchRecord
+        );
+      }
+    }
+
+    const semanticScores = new Map<string, number>();
+    let semanticVideos: (typeof video.$inferSelect)[] = [];
+    const intent = profile ? buildFeedIntent(profile) : "";
+    if (intent && c.env.AI && c.env.SEARCH_INDEX) {
+      const embeddings = await c.env.AI.run("@cf/baai/bge-base-en-v1.5", {
+        text: [intent],
+      });
+      const intentVector = embeddings.data?.[0];
+      if (intentVector) {
+        const matches = await c.env.SEARCH_INDEX.query(intentVector, {
+          topK: FEED_CANDIDATE_LIMIT,
+        });
+        const documentIds = matches.matches.map((match) => match.id);
+        if (documentIds.length > 0) {
+          const documents = await db
+            .select({
+              entityId: searchDocument.entityId,
+              id: searchDocument.id,
+            })
+            .from(searchDocument)
+            .where(
+              and(
+                inArray(searchDocument.id, documentIds),
+                eq(searchDocument.entityType, "video")
+              )
+            );
+          const documentById = new Map(
+            documents.map((document) => [document.id, document.entityId])
+          );
+          const semanticVideoIds: string[] = [];
+          for (const match of matches.matches) {
+            const videoId = documentById.get(match.id);
+            if (videoId) {
+              semanticVideoIds.push(videoId);
+              semanticScores.set(videoId, match.score ?? 0);
+            }
+          }
+          if (semanticVideoIds.length > 0) {
+            const rows = await db
+              .select()
+              .from(video)
+              .where(
+                and(
+                  inArray(video.id, semanticVideoIds),
+                  eq(video.status, "ready"),
+                  eq(video.visibility, "public")
+                )
+              );
+            const rowById = new Map(rows.map((row) => [row.id, row]));
+            semanticVideos = semanticVideoIds
+              .map((id) => rowById.get(id))
+              .filter((row): row is (typeof rows)[number] => row !== undefined);
+          }
+        }
+      }
+    }
+
+    const candidates = mergeUniqueVideos(semanticVideos, fallbackVideos);
+    const candidateIds = candidates.map((candidate) => candidate.id);
+    const [friendRows, likeRows] = await Promise.all([
+      db
+        .select({
+          requesterUserId: friendship.requesterUserId,
+          userId: friendship.userId,
+        })
+        .from(friendship)
+        .where(
+          or(
+            eq(friendship.userId, authUser.id),
+            eq(friendship.requesterUserId, authUser.id)
+          )
+        ),
+      candidateIds.length > 0
+        ? db
+            .select({
+              count: sql<number>`count(*)`,
+              videoId: videoLike.videoId,
+            })
+            .from(videoLike)
+            .where(inArray(videoLike.videoId, candidateIds))
+            .groupBy(videoLike.videoId)
+        : Promise.resolve([]),
+    ]);
+    const friendIds = new Set(
+      friendRows.map((friend) =>
+        friend.userId === authUser.id ? friend.requesterUserId : friend.userId
+      )
+    );
+    const likesByVideoId = new Map(
+      likeRows.map((row) => [row.videoId, Number(row.count)])
+    );
+    const resolved = await resolveVideosRelations(db, candidates);
+    const now = Date.now();
+    const ranked = resolved
+      // oxlint-disable-next-line complexity -- Ranking combines independent optional product signals.
+      .map((candidate) => {
+        const semanticScore = Math.max(
+          0,
+          Math.min(1, semanticScores.get(candidate.id) ?? 0)
+        );
+        const publishedAt = candidate.publishedAt ?? candidate.createdAt;
+        const ageDays = Math.max(
+          0,
+          (now - publishedAt.getTime()) / (24 * 60 * 60 * 1000)
+        );
+        const freshnessScore = Math.max(0, 1 - ageDays / 30);
+        const isFriendContent =
+          friendIds.has(candidate.ownerUserId) ||
+          candidate.taggedUserIds.some((userId) => friendIds.has(userId));
+        const socialScore = isFriendContent ? 1 : 0;
+        const candidateLatitude =
+          candidate.latitude ?? candidate.venue?.latitude;
+        const candidateLongitude =
+          candidate.longitude ?? candidate.venue?.longitude;
+        const distance =
+          profile?.homeLatitude !== null &&
+          profile?.homeLatitude !== undefined &&
+          profile.homeLongitude !== null &&
+          profile.homeLongitude !== undefined &&
+          candidateLatitude !== null &&
+          candidateLatitude !== undefined &&
+          candidateLongitude !== null &&
+          candidateLongitude !== undefined
+            ? distanceMiles(
+                profile.homeLatitude,
+                profile.homeLongitude,
+                candidateLatitude,
+                candidateLongitude
+              )
+            : null;
+        const locationScore =
+          distance === null ? 0 : Math.max(0, 1 - distance / 100);
+        const likeCount = likesByVideoId.get(candidate.id) ?? 0;
+        const engagementScore = Math.min(
+          1,
+          Math.log1p(likeCount) / Math.log(11)
+        );
+        const recommendationScore =
+          semanticScore * 0.4 +
+          locationScore * 0.2 +
+          socialScore * 0.15 +
+          freshnessScore * 0.15 +
+          engagementScore * 0.1;
+
+        let recommendationReason = "Fresh from RallyCasts";
+        if (isFriendContent) {
+          recommendationReason = "From a player you know";
+        } else if (distance !== null && distance <= 25) {
+          recommendationReason = "Near your home court";
+        } else if (semanticScore >= 0.65) {
+          recommendationReason = "Matches your pickleball interests";
+        }
+
+        return {
+          ...candidate,
+          recommendationReason,
+          recommendationScore,
+        };
+      })
+      .toSorted(
+        (left, right) =>
+          right.recommendationScore - left.recommendationScore ||
+          (right.publishedAt ?? right.createdAt).getTime() -
+            (left.publishedAt ?? left.createdAt).getTime()
+      )
+      .slice(0, FEED_RESULT_LIMIT);
+
+    return c.json({
+      mode: semanticScores.size > 0 ? "hybrid" : "fallback",
+      videos: ranked,
+    });
+  })
   .post("/", requireAuth, zValidator("json", createVideoSchema), async (c) => {
     const db = createDb(c.env.DB);
     const { user: authUser } = c.var.authSession;
@@ -271,18 +567,25 @@ export const videosRouter = new Hono<AppEnv>()
     };
 
     await db.insert(video).values(draft);
-    const searchRecord = await upsertSearchDocument(db, {
-      content: [data.title, data.description].filter(Boolean).join("\n"),
-      entityId: draft.id,
-      entityType: "video",
-      metadata: {
-        mediaType: data.mediaType,
-        ownerUserId: authUser.id,
-        venueId: data.venueId,
-      },
-      title: data.title,
-    });
-    scheduleSearchDocumentIndex(() => c.executionCtx, c.env, searchRecord);
+    if (draft.status === "ready" && draft.visibility === "public") {
+      const searchRecord = await upsertSearchDocument(db, {
+        content: [data.title, data.description].filter(Boolean).join("\n"),
+        entityId: draft.id,
+        entityType: "video",
+        metadata: {
+          mediaType: data.mediaType,
+          ownerUserId: authUser.id,
+          venueId: data.venueId,
+        },
+        title: data.title,
+      });
+      scheduleSearchDocumentIndex(
+        () => c.executionCtx,
+        db,
+        c.env,
+        searchRecord
+      );
+    }
 
     const returnedVideo = {
       ...draft,
@@ -490,7 +793,7 @@ export const videosRouter = new Hono<AppEnv>()
         .where(and(eq(video.id, id), eq(video.ownerUserId, authUser.id)))
         .limit(1);
 
-      if (updated) {
+      if (updated?.status === "ready" && updated.visibility === "public") {
         const searchRecord = await upsertSearchDocument(db, {
           content: [updated.title, updated.description]
             .filter(Boolean)
@@ -504,7 +807,14 @@ export const videosRouter = new Hono<AppEnv>()
           },
           title: updated.title,
         });
-        scheduleSearchDocumentIndex(() => c.executionCtx, c.env, searchRecord);
+        scheduleSearchDocumentIndex(
+          () => c.executionCtx,
+          db,
+          c.env,
+          searchRecord
+        );
+      } else if (updated) {
+        await removeSearchDocument(db, c.env, "video", updated.id);
       }
 
       const returnedVideo = updated

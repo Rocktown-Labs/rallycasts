@@ -314,8 +314,8 @@ export const stripeRouter = new Hono<AppEnv>()
           account_onboarding: {
             collection_options: { fields: "eventually_due" },
             configurations: ["recipient"],
-            refresh_url: `${appUrl}/organizers/${membership.organization.slug}/manage?stripe=refresh`,
-            return_url: `${appUrl}/organizers/${membership.organization.slug}/manage?stripe=return`,
+            refresh_url: `${appUrl}/events/organizers/${membership.organization.slug}/manage?stripe=refresh`,
+            return_url: `${appUrl}/events/organizers/${membership.organization.slug}/manage?stripe=return`,
           },
           type: "account_onboarding",
         },

@@ -28,6 +28,26 @@ export const useVideos = () =>
     select: (data) => withDemoList(data, "videos", demoVideos),
   });
 
+export const useRecommendedVideos = (enabled = true) =>
+  useQuery({
+    enabled,
+    queryFn: async () => {
+      try {
+        return await readApiJson(apiClient.api.videos.feed.$get());
+      } catch {
+        return {
+          mode: "fallback" as const,
+          videos: demoVideos.map((video) => ({
+            ...video,
+            recommendationReason: "Popular on RallyCasts",
+            recommendationScore: 0,
+          })),
+        };
+      }
+    },
+    queryKey: ["videos", "feed"],
+  });
+
 export const useInfiniteVideos = (limit = 12) =>
   useInfiniteQuery({
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,

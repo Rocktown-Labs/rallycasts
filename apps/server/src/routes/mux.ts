@@ -6,6 +6,11 @@ import * as HttpStatusCodes from "stoker/http-status-codes";
 
 import { createId } from "../lib/ids";
 import { readJsonPayload } from "../lib/json";
+import {
+  indexSearchDocumentVector,
+  removeSearchDocument,
+  upsertSearchDocument,
+} from "../lib/search-index";
 import type { AppEnv } from "../lib/types";
 
 const getRecord = (value: unknown, key: string) => {
@@ -101,7 +106,7 @@ const applyMuxVideoUpdate = async (
   } = update;
 
   if (muxUploadId && eventType === "video.upload.asset_created") {
-    await db
+    const [updated] = await db
       .update(video)
       .set({
         muxAssetId: muxAssetId ?? undefined,
@@ -109,19 +114,21 @@ const applyMuxVideoUpdate = async (
         status: "processing",
         updatedAt: new Date(),
       })
-      .where(eq(video.muxUploadId, muxUploadId));
-    return;
+      .where(eq(video.muxUploadId, muxUploadId))
+      .returning();
+    return updated;
   }
 
   if (
     muxUploadId &&
     ["video.upload.cancelled", "video.upload.errored"].includes(eventType)
   ) {
-    await db
+    const [updated] = await db
       .update(video)
       .set({ muxStatus: eventType, status: "failed", updatedAt: new Date() })
-      .where(eq(video.muxUploadId, muxUploadId));
-    return;
+      .where(eq(video.muxUploadId, muxUploadId))
+      .returning();
+    return updated;
   }
 
   if (!muxAssetId) {
@@ -129,7 +136,7 @@ const applyMuxVideoUpdate = async (
   }
 
   const status = getAssetVideoStatus(eventType);
-  await db
+  const [updated] = await db
     .update(video)
     .set({
       durationSeconds: duration === null ? undefined : Math.round(duration),
@@ -147,7 +154,10 @@ const applyMuxVideoUpdate = async (
       muxUploadId
         ? eq(video.muxUploadId, muxUploadId)
         : eq(video.muxAssetId, muxAssetId)
-    );
+    )
+    .returning();
+
+  return updated;
 };
 
 const verifyMuxSignature = async (
@@ -257,7 +267,7 @@ export const muxRouter = new Hono<AppEnv>()
       );
     }
 
-    await applyMuxVideoUpdate(db, {
+    const updatedVideo = await applyMuxVideoUpdate(db, {
       duration,
       eventType,
       muxAssetId,
@@ -265,6 +275,28 @@ export const muxRouter = new Hono<AppEnv>()
       muxStatus,
       muxUploadId,
     });
+
+    if (
+      updatedVideo?.status === "ready" &&
+      updatedVideo.visibility === "public"
+    ) {
+      const searchRecord = await upsertSearchDocument(db, {
+        content: [updatedVideo.title, updatedVideo.description]
+          .filter(Boolean)
+          .join("\n"),
+        entityId: updatedVideo.id,
+        entityType: "video",
+        metadata: {
+          mediaType: updatedVideo.mediaType,
+          ownerUserId: updatedVideo.ownerUserId,
+          venueId: updatedVideo.venueId,
+        },
+        title: updatedVideo.title,
+      });
+      await indexSearchDocumentVector(db, c.env, searchRecord);
+    } else if (updatedVideo) {
+      await removeSearchDocument(db, c.env, "video", updatedVideo.id);
+    }
 
     return c.json(
       { eventType, providerEventId, received: true },

@@ -6,13 +6,13 @@ import {
   Home,
   MessageSquare,
   Settings,
-  Trophy,
   Swords,
   User,
   Users,
   Video,
   ArrowLeft,
   LayoutDashboard,
+  ShoppingBag,
 } from "lucide-react";
 
 export const discoverNavItems = [
@@ -21,7 +21,7 @@ export const discoverNavItems = [
   { icon: Users, label: "Players", to: "/players" },
   { icon: Calendar, label: "Events", to: "/events" },
   { icon: Camera, label: "Casters", to: "/casters" },
-  { icon: Trophy, label: "Organizers", to: "/organizers" },
+  { icon: ShoppingBag, label: "Shop", to: "/shop" },
 ] as const;
 
 export const organizerNavItems = [

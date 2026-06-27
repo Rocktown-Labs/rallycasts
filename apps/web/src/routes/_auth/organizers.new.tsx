@@ -1,7 +1,7 @@
 import { Button } from "@rallycaststv/ui/components/button";
 import { Input } from "@rallycaststv/ui/components/input";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -10,7 +10,9 @@ import { apiClient } from "@/lib/api-client";
 import { readApiJson } from "@/lib/hooks/api";
 
 export const Route = createFileRoute("/_auth/organizers/new")({
-  component: CreateOrganizationPage,
+  beforeLoad: () => {
+    throw redirect({ to: "/events/organizers/new" });
+  },
 });
 
 const slugify = (value: string) =>
@@ -20,7 +22,7 @@ const slugify = (value: string) =>
     .replaceAll(/[^a-z0-9]+/gu, "-")
     .replaceAll(/(^-|-$)/gu, "");
 
-function CreateOrganizationPage() {
+export function CreateOrganizationPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
@@ -46,7 +48,7 @@ function CreateOrganizationPage() {
       toast.success("Organization created");
       await navigate({
         params: { slug: result.organization.slug },
-        to: "/organizers/$slug/manage",
+        to: "/events/organizers/$slug/manage",
       });
     },
   });
@@ -100,7 +102,7 @@ function CreateOrganizationPage() {
             value={slug}
           />
           <span className="text-xs text-muted-foreground">
-            rallycasts.com/organizers/{slug || "your-org"}
+            rallycasts.com/events/organizers/{slug || "your-org"}
           </span>
         </label>
         <div className="grid gap-4 sm:grid-cols-2">

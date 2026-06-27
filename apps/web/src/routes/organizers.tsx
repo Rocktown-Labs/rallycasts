@@ -1,7 +1,7 @@
 import { Button } from "@rallycaststv/ui/components/button";
 import { Input } from "@rallycaststv/ui/components/input";
 import { useQuery } from "@tanstack/react-query";
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute, redirect } from "@tanstack/react-router";
 import { BadgeCheck, Building2, MapPin, Plus } from "lucide-react";
 import { useState } from "react";
 
@@ -10,10 +10,12 @@ import { authClient } from "@/lib/auth-client";
 import { readApiJson } from "@/lib/hooks/api";
 
 export const Route = createFileRoute("/organizers")({
-  component: OrganizersPage,
+  beforeLoad: () => {
+    throw redirect({ to: "/events/organizers" });
+  },
 });
 
-function OrganizersPage() {
+export function OrganizersPage() {
   const [query, setQuery] = useState("");
   const { data: session } = authClient.useSession();
   const { data, isLoading } = useQuery({
@@ -42,7 +44,7 @@ function OrganizersPage() {
             </p>
           </div>
           {session?.user ? (
-            <Link to="/organizers/new">
+            <Link to="/events/organizers/new">
               <Button className="bg-[#bcdf21] text-black hover:bg-[#d3f34b]">
                 <Plus className="size-4" /> Create organization
               </Button>
@@ -68,7 +70,7 @@ function OrganizersPage() {
             className="group rounded-2xl border bg-card p-5 transition hover:border-primary/50 hover:shadow-lg"
             key={organization.id}
             params={{ slug: organization.slug }}
-            to="/organizers/$slug"
+            to="/events/organizers/$slug"
           >
             <div className="flex items-start gap-4">
               <div className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-xl bg-primary/10 text-primary">

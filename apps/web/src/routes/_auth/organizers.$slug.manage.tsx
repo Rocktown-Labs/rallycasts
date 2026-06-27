@@ -1,7 +1,7 @@
 import { Button } from "@rallycaststv/ui/components/button";
 import { Input } from "@rallycaststv/ui/components/input";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute, redirect } from "@tanstack/react-router";
 import {
   Calendar,
   CreditCard,
@@ -19,11 +19,15 @@ import { apiClient } from "@/lib/api-client";
 import { readApiJson } from "@/lib/hooks/api";
 
 export const Route = createFileRoute("/_auth/organizers/$slug/manage")({
-  component: ManageOrganizationPage,
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      params: { slug: params.slug },
+      to: "/events/organizers/$slug/manage",
+    });
+  },
 });
 
-function ManageOrganizationPage() {
-  const { slug } = Route.useParams();
+export function ManageOrganizationPage({ slug }: { slug: string }) {
   const queryClient = useQueryClient();
   const { data } = useQuery({
     queryFn: () =>
@@ -168,7 +172,7 @@ function ManageOrganizationPage() {
           </p>
           <h1 className="text-3xl font-black">Manage {organization.name}</h1>
         </div>
-        <Link params={{ slug }} to="/organizers/$slug">
+        <Link params={{ slug }} to="/events/organizers/$slug">
           <Button variant="outline">View public page</Button>
         </Link>
       </header>

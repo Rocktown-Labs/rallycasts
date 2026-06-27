@@ -4,11 +4,16 @@ import { user } from "@rallycaststv/db/schema/auth";
 import { userProfile } from "@rallycaststv/db/schema/domain";
 import { and, eq, ne } from "drizzle-orm";
 import { Hono } from "hono";
+import type { Context } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 import { z } from "zod";
 
 import { isPlatformAdminEmail } from "../lib/admin";
 import { BloomFilter } from "../lib/bloom";
+import {
+  scheduleSearchDocumentIndex,
+  upsertSearchDocument,
+} from "../lib/search-index";
 import type { AppEnv } from "../lib/types";
 import { requireAuth } from "../middleware/auth";
 
@@ -58,6 +63,37 @@ const adminProfilePatch = {
   isOrganizer: true,
   isPlayer: true,
   onboardingStatus: "complete" as const,
+};
+
+const indexProfile = async (
+  c: Context<AppEnv>,
+  db: ReturnType<typeof createDb>,
+  profile: typeof userProfile.$inferSelect,
+  userRecord: typeof user.$inferSelect
+) => {
+  if (profile.onboardingStatus !== "complete") {
+    return;
+  }
+  const searchRecord = await upsertSearchDocument(db, {
+    content: [
+      profile.bio,
+      profile.skillLevel ? `${profile.skillLevel} pickleball player` : null,
+      profile.homeCourtName,
+      profile.homeCity,
+      profile.homeState,
+    ]
+      .filter(Boolean)
+      .join(". "),
+    entityId: userRecord.id,
+    entityType: "profile",
+    metadata: {
+      homeCity: profile.homeCity,
+      homeState: profile.homeState,
+      skillLevel: profile.skillLevel,
+    },
+    title: userRecord.name,
+  });
+  scheduleSearchDocumentIndex(() => c.executionCtx, db, c.env, searchRecord);
 };
 
 const ensureAdminProfile = async (
@@ -235,6 +271,10 @@ export const profileRouter = new Hono<AppEnv>()
       .where(eq(user.id, authUser.id))
       .limit(1);
 
+    if (profile && userRecord) {
+      await indexProfile(c, db, profile, userRecord);
+    }
+
     return c.json(
       { profile, user: userRecord ?? authUser },
       HttpStatusCodes.OK
@@ -262,6 +302,15 @@ export const profileRouter = new Hono<AppEnv>()
       .from(userProfile)
       .where(eq(userProfile.userId, authUser.id))
       .limit(1);
+
+    const [userRecord] = await db
+      .select()
+      .from(user)
+      .where(eq(user.id, authUser.id))
+      .limit(1);
+    if (profile && userRecord) {
+      await indexProfile(c, db, profile, userRecord);
+    }
 
     return c.json({ profile }, HttpStatusCodes.OK);
   });
