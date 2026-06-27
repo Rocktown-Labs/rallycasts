@@ -64,10 +64,7 @@ const corsOrigin = `${webWorkerUrl},${productionWebUrl}`;
 const adminEmails = process.env.ADMIN_EMAILS ?? "camstewart7@gmail.com";
 const rallycastsAdminEmail =
   process.env.RALLYCASTS_ADMIN_EMAIL ?? "camstewart7@gmail.com";
-const googleAiApiKey = required(
-  alchemy.secret.env.GOOGLE_GENERATIVE_AI_API_KEY,
-  "GOOGLE_GENERATIVE_AI_API_KEY"
-);
+const googleAiApiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? "";
 const githubClientId = process.env.GITHUB_CLIENT_ID ?? "";
 const githubClientSecret = process.env.GITHUB_CLIENT_SECRET ?? "";
 const googleClientId = process.env.GOOGLE_CLIENT_ID ?? "";
