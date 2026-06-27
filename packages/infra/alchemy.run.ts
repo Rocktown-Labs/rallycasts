@@ -227,8 +227,8 @@ Built from commit ${process.env.GITHUB_SHA?.slice(0, 7)}
 ---
 <sub>🤖 This comment updates automatically with each push.</sub>`,
     issueNumber: Number(process.env.PULL_REQUEST),
-    owner: "RocktownLabs",
-    repository: "rallycaststv",
+    owner: "Rocktown-Labs",
+    repository: "rallycasts",
   });
 }
 
