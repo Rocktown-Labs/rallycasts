@@ -26,7 +26,10 @@ const required = <Value>(value: Value | undefined, name: string): Value => {
 };
 
 const app = await alchemy("rallycaststv", {
-  stateStore: (scope) => new CloudflareStateStore(scope),
+  stateStore: (scope) =>
+    new CloudflareStateStore(scope, {
+      forceUpdate: process.env.ALCHEMY_STATE_FORCE_UPDATE === "true",
+    }),
 });
 
 const stage = app.stage ?? "dev";
