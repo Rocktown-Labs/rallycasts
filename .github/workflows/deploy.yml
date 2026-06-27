@@ -49,7 +49,9 @@ jobs:
           RADAR_SECRET_KEY: test-radar-key
 
       - name: Deploy
-        run: cd packages/infra && bun x alchemy deploy --stage ${{ env.STAGE }}
+        run: |
+          printf "%s" "$ALCHEMY_STATE_TOKEN" | bun x wrangler secret put STATE_TOKEN --name alchemy-state-service
+          cd packages/infra && bun x alchemy deploy --stage ${{ env.STAGE }}
         env:
           ALCHEMY_PASSWORD: ${{ secrets.ALCHEMY_PASSWORD }}
           ALCHEMY_STATE_FORCE_UPDATE: "true"
@@ -87,7 +89,9 @@ jobs:
           fi
 
       - name: Destroy Preview Environment
-        run: cd packages/infra && bun x alchemy destroy --stage ${{ env.STAGE }}
+        run: |
+          printf "%s" "$ALCHEMY_STATE_TOKEN" | bun x wrangler secret put STATE_TOKEN --name alchemy-state-service
+          cd packages/infra && bun x alchemy destroy --stage ${{ env.STAGE }}
         env:
           ALCHEMY_PASSWORD: ${{ secrets.ALCHEMY_PASSWORD }}
           ALCHEMY_STATE_FORCE_UPDATE: "true"
