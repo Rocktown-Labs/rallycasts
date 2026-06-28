@@ -4,6 +4,15 @@ This project was created with [Better-T-Stack](https://github.com/AmanVarshney01
 
 ## Features
 
+- **Player discovery** - Profiles, nearby players, friendships, messaging, and notifications
+- **Location-aware Trending** - Nearby parks from RallyCasts venue data and Google Places, ranked by distance
+- **Video discovery** - Cursor-paginated RallyCasts, player tags, venue metadata, comments, and related videos
+- **Creator Studio** - Direct Mux uploads, processing status, publishing controls, and short clips
+- **Organizations** - Independent organizer profiles, role-based teams, organization-authored posts/videos, and verified RallyCasts identity
+- **Tournaments** - Free or paid registration, seeded single-elimination or round-robin brackets, court assignments, match scoring, notifications, and refunds
+- **Match challenges** - Player-to-player challenges with park, court, schedule, optional caster, split-pay preference, and caster tip
+- **Stripe Connect** - Accounts v2 hosted organizer onboarding and Checkout destination charges with a configurable platform fee
+- **Guided onboarding** - Multi-step player, role, game, and home-court setup
 - **TypeScript** - For type safety and improved developer experience
 - **TanStack Start** - SSR framework with TanStack Router
 - **React Native** - Build mobile apps using React
@@ -81,13 +90,22 @@ If you want to add app-specific blocks instead of shared primitives, run the sha
 - Target: web + server
 - Dev: bun run dev
 - Deploy: bun run deploy
+- Production deploy: bun run deploy:prod
 - Destroy: bun run destroy
+
+Production deployments provision the web app, Hono API, D1 migrations, queues, Durable Objects, and configured Google Places, Radar, Mux, and R2 bindings through `packages/infra/alchemy.run.ts`.
+
+Paid tournaments require `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`. Connect onboarding and payment confirmation remain unavailable when those bindings are absent; registrations are confirmed only by a verified webhook.
 
 For more details, see the guide on [Deploying to Cloudflare with Alchemy](https://www.better-t-stack.dev/docs/guides/cloudflare-alchemy).
 
-## Git Hooks and Formatting
+## Testing, Git Hooks, and Formatting
 
-- Format and lint fix: `bun run check`
+- Format code: `bun x ultracite fix`
+- Check formatting and lint: `bun run check`
+- Run all package tests: `bun run test`
+- Check TypeScript types: `bun run check-types`
+- Run the production build: `bun run build`
 
 ## Project Structure
 
@@ -107,9 +125,11 @@ rallycaststv/
 
 - `bun run dev`: Start all applications in development mode
 - `bun run build`: Build all applications
+- `bun run test`: Run all configured test suites
 - `bun run dev:web`: Start only the web application
 - `bun run dev:server`: Start only the server
 - `bun run check-types`: Check TypeScript types across all apps
 - `bun run dev:native`: Start the React Native/Expo development server
 - `bun run db:generate`: Generate database client/types
 - `bun run check`: Run Oxlint and Oxfmt
+- `bun run deploy:prod`: Deploy the production Cloudflare stack

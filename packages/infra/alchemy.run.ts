@@ -26,7 +26,10 @@ const required = <Value>(value: Value | undefined, name: string): Value => {
 };
 
 const app = await alchemy("rallycaststv", {
-  stateStore: (scope) => new CloudflareStateStore(scope),
+  stateStore: (scope) =>
+    new CloudflareStateStore(scope, {
+      forceUpdate: process.env.ALCHEMY_STATE_FORCE_UPDATE === "true",
+    }),
 });
 
 const stage = app.stage ?? "dev";
@@ -49,7 +52,7 @@ const searchIndex = await VectorizeIndex("search-index", {
   description: "RallyCasts semantic search index",
   dimensions: 768,
   metric: "cosine",
-  name: isProd ? "rallycasts-search" : `rallycasts-search-${stage}`,
+  name: isProd ? "rallycasts-search-v2" : `rallycasts-search-${stage}`,
 });
 
 const betterAuthSecret = required(
@@ -61,10 +64,7 @@ const corsOrigin = `${webWorkerUrl},${productionWebUrl}`;
 const adminEmails = process.env.ADMIN_EMAILS ?? "camstewart7@gmail.com";
 const rallycastsAdminEmail =
   process.env.RALLYCASTS_ADMIN_EMAIL ?? "camstewart7@gmail.com";
-const googleAiApiKey = required(
-  alchemy.secret.env.GOOGLE_GENERATIVE_AI_API_KEY,
-  "GOOGLE_GENERATIVE_AI_API_KEY"
-);
+const googleAiApiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? "";
 const githubClientId = process.env.GITHUB_CLIENT_ID ?? "";
 const githubClientSecret = process.env.GITHUB_CLIENT_SECRET ?? "";
 const googleClientId = process.env.GOOGLE_CLIENT_ID ?? "";
@@ -72,8 +72,11 @@ const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET ?? "";
 const googlePlacesApiKey = process.env.GOOGLE_PLACES_API_KEY ?? "";
 const radarSecretKey = process.env.RADAR_SECRET_KEY ?? "";
 const radarPublishableKey = process.env.VITE_RADAR_PUBLISHABLE_KEY ?? "";
+const fourthwallStorefrontUrl =
+  process.env.VITE_FOURTHWALL_STOREFRONT_URL ?? "";
 const muxTokenSecret = process.env.MUX_TOKEN_SECRET ?? "";
 const muxTokenId = process.env.MUX_TOKEN_ID ?? "";
+const muxWebhookSecret = process.env.MUX_WEBHOOK_SECRET ?? "";
 const r2AccessKeyId = process.env.R2_ACCESS_KEY_ID ?? "";
 const r2SecretAccessKey = process.env.R2_SECRET_ACCESS_KEY ?? "";
 const r2BucketName = process.env.R2_BUCKET_NAME ?? "rallycasts-media";
@@ -81,6 +84,8 @@ const r2AccountId = process.env.R2_ACCOUNT_ID ?? "";
 const r2PublicUrl = process.env.R2_PUBLIC_URL ?? "https://media.rallycasts.com";
 const resendApiKey = process.env.RESEND_API_KEY ?? "";
 const resendWebhookSecret = process.env.RESEND_WEBHOOK_SECRET ?? "";
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY ?? "";
+const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET ?? "";
 
 const mediaBucket = await R2Bucket("media", {
   adopt: true,
@@ -155,6 +160,7 @@ export const server = await Worker("rallycasts-server", {
     MEDIA_BUCKET: mediaBucket,
     MUX_TOKEN_ID: muxTokenId,
     MUX_TOKEN_SECRET: muxTokenSecret,
+    MUX_WEBHOOK_SECRET: muxWebhookSecret,
     R2_ACCESS_KEY_ID: r2AccessKeyId,
     R2_ACCOUNT_ID: r2AccountId,
     R2_PUBLIC_URL: r2PublicUrl,
@@ -164,6 +170,8 @@ export const server = await Worker("rallycasts-server", {
     RESEND_API_KEY: resendApiKey,
     RESEND_WEBHOOK_SECRET: resendWebhookSecret,
     SEARCH_INDEX: searchIndex,
+    STRIPE_SECRET_KEY: stripeSecretKey,
+    STRIPE_WEBHOOK_SECRET: stripeWebhookSecret,
     VENUE_PRESENCE: venuePresence,
   },
   compatibility: "node",
@@ -191,6 +199,7 @@ export const web = await TanStackStart("rallycasts-web", {
     GOOGLE_GENERATIVE_AI_API_KEY: googleAiApiKey,
     GOOGLE_PLACES_API_KEY: googlePlacesApiKey,
     RADAR_SECRET_KEY: radarSecretKey,
+    VITE_FOURTHWALL_STOREFRONT_URL: fourthwallStorefrontUrl,
     VITE_RADAR_PUBLISHABLE_KEY: radarPublishableKey,
     VITE_SERVER_URL: productionServerUrl,
   },
@@ -218,8 +227,8 @@ Built from commit ${process.env.GITHUB_SHA?.slice(0, 7)}
 ---
 <sub>🤖 This comment updates automatically with each push.</sub>`,
     issueNumber: Number(process.env.PULL_REQUEST),
-    owner: "RocktownLabs",
-    repository: "rallycaststv",
+    owner: "Rocktown-Labs",
+    repository: "rallycasts",
   });
 }
 

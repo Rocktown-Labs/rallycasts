@@ -121,8 +121,7 @@ const parseCityState = (address: string) => {
 const getGoogleDiscoveryVenues = async (
   c: Context<AppEnv>,
   lat: number,
-  lng: number,
-  existingVenues: DbVenue[]
+  lng: number
 ): Promise<GoogleDiscoveryVenue[]> => {
   if (!c.env.GOOGLE_PLACES_API_KEY) {
     return [];
@@ -136,14 +135,7 @@ const getGoogleDiscoveryVenues = async (
       Math.min(VENUE_RADIUS * 1609, 50_000),
       "pickleball courts"
     );
-    const existingPlaceIds = new Set(
-      existingVenues.flatMap((record) =>
-        record.googlePlaceId ? [record.googlePlaceId] : []
-      )
-    );
-
     return places
-      .filter((place) => !existingPlaceIds.has(place.placeId))
       .map((place) => {
         const distanceMiles = haversineDistance(
           lat,
@@ -186,6 +178,36 @@ const getGoogleDiscoveryVenues = async (
   }
 };
 
+const normalizeVenueName = (name: string) =>
+  name.toLowerCase().replaceAll(/[^a-z0-9]/gu, "");
+
+export const mergeTrendingVenues = (
+  databaseVenues: TrendingDbVenue[],
+  googleVenues: GoogleDiscoveryVenue[]
+): TrendingVenue[] => {
+  const databasePlaceIds = new Set(
+    databaseVenues.flatMap((record) =>
+      record.googlePlaceId ? [record.googlePlaceId] : []
+    )
+  );
+  const databaseNames = new Set(
+    databaseVenues.map((record) => normalizeVenueName(record.name))
+  );
+  const uniqueGoogleVenues = googleVenues.filter(
+    (record) =>
+      !databasePlaceIds.has(record.googlePlaceId) &&
+      !databaseNames.has(normalizeVenueName(record.name))
+  );
+
+  return [...databaseVenues, ...uniqueGoogleVenues]
+    .toSorted(
+      (left, right) =>
+        (left.distanceMiles ?? Number.POSITIVE_INFINITY) -
+        (right.distanceMiles ?? Number.POSITIVE_INFINITY)
+    )
+    .slice(0, TRENDING_VENUE_LIMIT);
+};
+
 export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
   const db = createDb(c.env.DB);
   const latParam = c.req.query("lat");
@@ -217,13 +239,22 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
 
   if (hasLocation) {
     // Nearby venues (strictly local, within 50 miles)
-    const nearbyVenueCandidates = await db
-      .select()
-      .from(venue)
-      .where(
-        locationBounds(lat, lng, VENUE_RADIUS, venue.latitude, venue.longitude)
-      )
-      .limit(MAX_LOCATION_CANDIDATES);
+    const [nearbyVenueCandidates, googleVenues] = await Promise.all([
+      db
+        .select()
+        .from(venue)
+        .where(
+          locationBounds(
+            lat,
+            lng,
+            VENUE_RADIUS,
+            venue.latitude,
+            venue.longitude
+          )
+        )
+        .limit(MAX_LOCATION_CANDIDATES),
+      getGoogleDiscoveryVenues(c, lat, lng),
+    ]);
 
     const dbVenues = nearbyVenueCandidates
       .filter((row) =>
@@ -242,12 +273,7 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
         source: "rallycasts" as const,
       }));
 
-    const googleVenues =
-      dbVenues.length < TRENDING_VENUE_LIMIT
-        ? await getGoogleDiscoveryVenues(c, lat, lng, dbVenues)
-        : [];
-
-    venues = [...dbVenues, ...googleVenues].slice(0, TRENDING_VENUE_LIMIT);
+    venues = mergeTrendingVenues(dbVenues, googleVenues);
 
     // Nearby videos (broader, within 500 miles - state/region level)
     const nearbyVideoCandidates = await db

@@ -17,6 +17,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { apiClient } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
 import {
   useEventLive,
@@ -25,6 +26,7 @@ import {
   useLeaveEvent,
   usePlayers,
 } from "@/lib/hooks";
+import { readApiJson } from "@/lib/hooks/api";
 
 import { useEventContext } from "./events.$id";
 
@@ -45,6 +47,7 @@ interface RegistrationModalProps {
     username?: string;
     displayUsername?: string;
   } | null;
+  entryFeeCents: number;
 }
 
 function RegistrationModal({
@@ -52,6 +55,7 @@ function RegistrationModal({
   onClose,
   onRegister,
   currentUser,
+  entryFeeCents,
 }: RegistrationModalProps) {
   const [regMode, setRegMode] = useState<"singles" | "doubles">("singles");
   const [searchQuery, setSearchQuery] = useState("");
@@ -110,7 +114,7 @@ function RegistrationModal({
                 }`}
               >
                 <User className="size-4" />
-                Singles ($25)
+                Singles
               </button>
               <button
                 onClick={() => setRegMode("doubles")}
@@ -121,7 +125,7 @@ function RegistrationModal({
                 }`}
               >
                 <Users className="size-4" />
-                Doubles ($40)
+                Doubles
               </button>
             </div>
           </div>
@@ -206,7 +210,6 @@ function RegistrationModal({
             </div>
           )}
 
-          {/* simulated payment details */}
           <div className="border-t border-border/50 pt-4 space-y-3">
             <span className="text-xs font-semibold text-muted-foreground block">
               Payment Details
@@ -214,16 +217,24 @@ function RegistrationModal({
             <div className="text-xs bg-muted/20 p-3 rounded-lg border border-border/30 space-y-1.5">
               <div className="flex justify-between">
                 <span>Registration Cost:</span>
-                <span>{regMode === "singles" ? "$25.00" : "$40.00"}</span>
+                <span>
+                  {entryFeeCents > 0
+                    ? `$${(entryFeeCents / 100).toFixed(2)}`
+                    : "Free"}
+                </span>
               </div>
               <div className="flex justify-between font-bold text-foreground">
                 <span>Total Charged:</span>
-                <span>{regMode === "singles" ? "$25.00" : "$40.00"}</span>
+                <span>
+                  {entryFeeCents > 0
+                    ? `$${(entryFeeCents / 100).toFixed(2)}`
+                    : "$0.00"}
+                </span>
               </div>
             </div>
             <p className="text-[10px] text-muted-foreground leading-normal">
-              Payments are securely processed. You can split costs later by
-              sending requests in the matches screen.
+              Paid entry opens Stripe-hosted Checkout. Your spot is confirmed
+              only after RallyCasts receives the signed payment webhook.
             </p>
           </div>
         </div>
@@ -240,7 +251,7 @@ function RegistrationModal({
             onClick={handlePayAndRegister}
             className="flex-1 rounded-lg text-xs font-semibold cursor-pointer"
           >
-            Pay & Register
+            {entryFeeCents > 0 ? "Continue to Checkout" : "Register"}
           </Button>
         </div>
       </div>
@@ -286,10 +297,23 @@ function EventOverviewTab() {
     minute: "2-digit",
   });
 
-  const handleRegister = (
+  const handleRegister = async (
     mode: "singles" | "doubles",
     partner: { id: string; name: string; username: string } | null
   ) => {
+    if (event.entryFeeCents > 0) {
+      try {
+        const result = await readApiJson(
+          apiClient.api.stripe.events[":eventId"].checkout.$post({
+            param: { eventId: event.id },
+          })
+        );
+        window.location.assign(result.checkoutUrl);
+      } catch {
+        toast.error("Could not start secure checkout.");
+      }
+      return;
+    }
     joinEvent.mutate(undefined, {
       onError: () => {
         toast.error("Could not register for this event. Please try again.");
@@ -309,7 +333,22 @@ function EventOverviewTab() {
     });
   };
 
-  const handleCancelRegistration = () => {
+  const handleCancelRegistration = async () => {
+    if (myRegistration?.paymentStatus === "paid") {
+      try {
+        await readApiJson(
+          apiClient.api.stripe.events[":eventId"].refund.$post({
+            param: { eventId: event.id },
+          })
+        );
+        toast.success("Your full refund was submitted.");
+      } catch {
+        toast.error(
+          "That registration is no longer eligible for self-service refund."
+        );
+      }
+      return;
+    }
     leaveEvent.mutate(undefined, {
       onError: () => {
         toast.error("Could not cancel registration.");
@@ -462,12 +501,12 @@ function EventOverviewTab() {
             </p>
             <div className="text-xs bg-muted/40 p-3 rounded-lg text-left border border-border/30 space-y-1">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Singles Cost:</span>
-                <span className="font-bold">$25</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Doubles Cost:</span>
-                <span className="font-bold">$40 / team</span>
+                <span className="text-muted-foreground">Entry fee:</span>
+                <span className="font-bold">
+                  {event.entryFeeCents > 0
+                    ? `$${(event.entryFeeCents / 100).toFixed(2)}`
+                    : "Free"}
+                </span>
               </div>
             </div>
             <Button
@@ -492,6 +531,7 @@ function EventOverviewTab() {
         onClose={() => setShowModal(false)}
         onRegister={handleRegister}
         currentUser={currentUser || null}
+        entryFeeCents={event.entryFeeCents}
       />
     </div>
   );

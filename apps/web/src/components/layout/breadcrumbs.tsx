@@ -8,12 +8,15 @@ const breadcrumbLabels = new Map<string, string>([
   ["/players", "players"],
   ["/events", "events"],
   ["/casters", "casters"],
-  ["/organizers", "organizers"],
+  ["/events/organizers", "organizers"],
+  ["/shop", "shop"],
   ["/videos", "videos"],
   ["/u/me", "me"],
   ["/u/profile", "profile"],
   ["/u/settings", "settings"],
   ["/u/videos/me", "my videos"],
+  ["/u/studio", "studio"],
+  ["/u/studio/upload", "upload"],
   ["/u/recording-requests/me", "recording requests"],
   ["/u/messages", "messages"],
   ["/u/history", "history"],
@@ -47,7 +50,7 @@ export default function Breadcrumbs() {
   return (
     <nav
       aria-label="Breadcrumb"
-      className="hidden min-w-0 items-center gap-2 md:flex"
+      className="hidden min-w-0 items-center gap-1.5 md:flex"
     >
       {visiblePathnames.map((pathname, index) => {
         const isLast = index === visiblePathnames.length - 1;
@@ -56,15 +59,15 @@ export default function Breadcrumbs() {
         const label = breadcrumbLabels.get(pathname) ?? humanize(lastSegment);
 
         return (
-          <div key={pathname} className="flex min-w-0 items-center gap-2">
+          <div key={pathname} className="flex min-w-0 items-center gap-1.5">
             {index > 0 ? (
-              <ChevronRight className="size-3.5 text-muted-foreground" />
+              <ChevronRight className="size-3 text-muted-foreground" />
             ) : null}
             <Link
               to={pathname}
               className={cn(
-                "inline-flex h-9.5 min-w-32 max-w-48 items-center justify-center rounded-full bg-primary px-5 text-lg font-logo text-primary-foreground transition-colors",
-                isLast && "bg-primary text-brand-yellow"
+                "inline-flex h-7 min-w-20 max-w-36 items-center justify-center rounded-full bg-primary px-3 text-sm font-logo text-primary-foreground lowercase transition-colors",
+                isLast && "bg-primary text-[#bcdf21]"
               )}
             >
               <span className="truncate">{label}</span>

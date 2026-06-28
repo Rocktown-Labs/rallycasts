@@ -1,8 +1,7 @@
 import { Button } from "@rallycaststv/ui/components/button";
-import { Card, CardContent } from "@rallycaststv/ui/components/card";
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useParams } from "@tanstack/react-router";
-import { Award, Swords, Video } from "lucide-react";
-import { useState } from "react";
+import { Award, CheckCircle2, Radio, Swords, Video } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -17,395 +16,247 @@ export const Route = createFileRoute("/events/$id/bracket")({
   component: EventBracketTab,
 });
 
-interface MatchNode {
-  id: string;
-  round: string;
-  p1: string;
-  p2: string;
-  s1?: number;
-  s2?: number;
-  winner?: 1 | 2;
-  court?: string;
-  time?: string;
-  status: "scheduled" | "live" | "completed";
-  casted?: boolean;
-}
-
-const mockMatches: MatchNode[] = [
-  // Round 1 (Quarterfinals)
+const demoRounds = [
   {
-    court: "Court 1",
-    id: "m1",
-    p1: "Sarah Johnson",
-    p2: "CG Stewart",
-    round: "Quarterfinals",
-    s1: 11,
-    s2: 9,
-    status: "completed",
-    time: "10:00 AM",
-    winner: 1,
+    matches: [
+      {
+        court: "Court 1",
+        id: "demo-q1",
+        one: "CG Stewart",
+        score: "11–7",
+        status: "completed",
+        two: "Jordan Lee",
+      },
+      {
+        court: "Court 2",
+        id: "demo-q2",
+        one: "Taylor Smith",
+        score: "11–9",
+        status: "completed",
+        two: "Alex Rivera",
+      },
+      {
+        court: "Court 3",
+        id: "demo-q3",
+        one: "Morgan Chen",
+        score: "Scheduled",
+        status: "scheduled",
+        two: "Sam Davis",
+      },
+      {
+        court: "Court 4",
+        id: "demo-q4",
+        one: "Jamie Wilson",
+        score: "Scheduled",
+        status: "scheduled",
+        two: "Casey Brown",
+      },
+    ],
+    round: 1,
   },
   {
-    court: "Court 2",
-    id: "m2",
-    p1: "Mike Rodriguez",
-    p2: "John Doe",
-    round: "Quarterfinals",
-    s1: 7,
-    s2: 11,
-    status: "completed",
-    time: "10:30 AM",
-    winner: 2,
+    matches: [
+      {
+        court: "Court 1",
+        id: "demo-s1",
+        one: "CG Stewart",
+        score: "Awaiting opponent",
+        status: "scheduled",
+        two: "TBD",
+      },
+      {
+        court: "Court 2",
+        id: "demo-s2",
+        one: "TBD",
+        score: "Awaiting results",
+        status: "scheduled",
+        two: "TBD",
+      },
+    ],
+    round: 2,
   },
   {
-    court: "Court 3",
-    id: "m3",
-    p1: "David Miller",
-    p2: "Emma Watson",
-    round: "Quarterfinals",
-    s1: 11,
-    s2: 13,
-    status: "completed",
-    time: "11:00 AM",
-    winner: 2,
-  },
-  {
-    court: "Court 4",
-    id: "m4",
-    p1: "Lucas Scott",
-    p2: "Nathan Hale",
-    round: "Quarterfinals",
-    s1: 11,
-    s2: 5,
-    status: "completed",
-    time: "11:30 AM",
-    winner: 1,
-  },
-
-  // Round 2 (Semifinals)
-  {
-    casted: true,
-    court: "Court 1",
-    id: "m5",
-    p1: "Sarah Johnson",
-    p2: "John Doe",
-    round: "Semifinals",
-    s1: 11,
-    s2: 8,
-    status: "completed",
-    time: "1:00 PM",
-    winner: 1,
-  },
-  {
-    court: "Court 2",
-    id: "m6",
-    p1: "Emma Watson",
-    p2: "Lucas Scott",
-    round: "Semifinals",
-    s1: 4,
-    s2: 11,
-    status: "completed",
-    time: "1:30 PM",
-    winner: 2,
-  },
-
-  // Round 3 (Finals)
-  {
-    court: "Court 1",
-    id: "m7",
-    p1: "Sarah Johnson",
-    p2: "Lucas Scott",
-    round: "Finals",
-    status: "scheduled",
-    time: "3:00 PM",
+    matches: [
+      {
+        court: "Championship Court",
+        id: "demo-f1",
+        one: "TBD",
+        score: "Final",
+        status: "scheduled",
+        two: "TBD",
+      },
+    ],
+    round: 3,
   },
 ];
+
+const getRoundLabel = (round: number, isLive: boolean) => {
+  if (isLive) {
+    return `Round ${round}`;
+  }
+  if (round === 3) {
+    return "Final";
+  }
+  return round === 2 ? "Semifinals" : "Quarterfinals";
+};
 
 function EventBracketTab() {
   const { id } = useParams({ from: "/events/$id/bracket" });
   const { event } = useEventContext();
-  const { data: bracketData } = useEventBracket(id);
+  const queryClient = useQueryClient();
+  const { data } = useEventBracket(id);
   const generateBracket = useGenerateEventBracket(id);
   const createCastingJob = useCreateCastingJob();
-  const [matches, setMatches] = useState<MatchNode[]>(mockMatches);
-  const [selectedMatch, setSelectedMatch] = useState<MatchNode | null>(null);
-  const backendMatchCount = bracketData?.matches?.length ?? 0;
+  const backendMatches = data?.matches ?? [];
+  const roundNumbers = [
+    ...new Set(backendMatches.map(({ match }) => match.round)),
+  ].toSorted((left, right) => left - right);
+  const hasRealBracket = backendMatches.length > 0;
 
-  const handleRequestCasting = (matchId: string) => {
-    createCastingJob.mutate(
+  const generate = () => {
+    generateBracket.mutate(
+      { force: hasRealBracket },
       {
-        notes: `Caster requested from bracket match ${matchId} for ${event.name}.`,
-        requestedHours: 1,
-        startsAt: event.startsAt,
-        venueId: event.venueId ?? undefined,
-      },
-      {
-        onError: () => {
-          toast.error("Could not request a caster. Please try again.");
-        },
-        onSuccess: () => {
-          setMatches((prev) =>
-            prev.map((m) => (m.id === matchId ? { ...m, casted: true } : m))
+        onError: () =>
+          toast.error(
+            "Add at least two registered players before generating a bracket."
+          ),
+        onSuccess: async () => {
+          await queryClient.invalidateQueries({
+            queryKey: ["events", id, "bracket"],
+          });
+          toast.success(
+            "Bracket generated from player seeds and court assignments."
           );
-          setSelectedMatch((prev) =>
-            prev && prev.id === matchId ? { ...prev, casted: true } : prev
-          );
-          toast.success("Casting request sent for this match.");
         },
       }
     );
   };
 
-  const getMatchByNodeId = (nodeId: string) =>
-    matches.find((match) => match.id === nodeId);
+  const requestCaster = (matchId: string) => {
+    createCastingJob.mutate(
+      {
+        notes: `Caster requested for ${event.name}, match ${matchId}. Tips can be added when the caster is booked.`,
+        requestedHours: 1,
+        startsAt: event.startsAt,
+        venueId: event.venueId ?? undefined,
+      },
+      {
+        onError: () => toast.error("Could not request a caster."),
+        onSuccess: () => toast.success("Caster request sent."),
+      }
+    );
+  };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300">
-      <div>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            <Award className="size-5 text-primary" /> Tournament Bracket
+    <div className="space-y-7 animate-in fade-in duration-300">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h2 className="flex items-center gap-2 text-xl font-bold">
+            <Award className="size-5 text-primary" /> Tournament bracket
           </h2>
-          <Button
-            onClick={() =>
-              generateBracket.mutate(
-                { force: backendMatchCount > 0 },
-                {
-                  onError: () => {
-                    toast.error("Could not generate bracket yet.");
-                  },
-                  onSuccess: () => {
-                    toast.success("Bracket generated from registrations.");
-                  },
-                }
-              )
-            }
-            disabled={generateBracket.isPending}
-            className="rounded-md text-xs"
-          >
-            {backendMatchCount > 0 ? "Regenerate bracket" : "Generate bracket"}
-          </Button>
-        </div>
-        <p className="text-xs text-muted-foreground mt-1">
-          Follow the paths of the tournament players. Click any match for more
-          info and to request caster recording.
-        </p>
-        {backendMatchCount > 0 && (
-          <p className="mt-2 text-xs font-medium text-primary">
-            {backendMatchCount} live bracket matches available in the Matches
-            tab.
+          <p className="mt-1 text-xs text-muted-foreground">
+            Seeds create round one. Confirmed winners automatically advance and
+            receive their next court assignment.
           </p>
-        )}
+        </div>
+        <Button disabled={generateBracket.isPending} onClick={generate}>
+          {hasRealBracket ? "Regenerate from seeds" : "Generate live bracket"}
+        </Button>
       </div>
 
-      {/* Bracket Tree Layout */}
-      <div className="flex flex-col lg:flex-row items-center justify-between gap-8 py-6 overflow-x-auto min-w-[700px]">
-        {/* Quarterfinals Column */}
-        <div className="flex flex-col justify-around h-[400px] flex-1 max-w-[240px]">
-          <h3 className="text-center text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">
-            Quarterfinals
-          </h3>
-          {["m1", "m2", "m3", "m4"].map((nodeId) => {
-            const m = getMatchByNodeId(nodeId);
-            if (!m) {
-              return null;
-            }
-            return (
-              <button
-                key={m.id}
-                onClick={() => setSelectedMatch(m)}
-                className={`p-3 rounded-lg border text-left text-xs transition-all w-full cursor-pointer relative ${
-                  selectedMatch?.id === m.id
-                    ? "border-primary bg-primary/10 shadow-lg ring-1 ring-primary"
-                    : "border-border hover:border-primary/50 bg-card hover:bg-muted/10"
-                }`}
-              >
-                {m.casted && (
-                  <span className="absolute top-1 right-1 bg-red-500/20 text-red-400 text-[8px] font-bold px-1 rounded flex items-center gap-0.5">
-                    <Video className="size-2" /> Live
-                  </span>
-                )}
-                <div className="space-y-1.5 font-medium">
-                  <div
-                    className={`flex justify-between ${m.winner === 1 ? "font-bold text-foreground" : "text-muted-foreground"}`}
-                  >
-                    <span className="truncate max-w-[140px]">{m.p1}</span>
-                    <span>{m.s1 ?? "-"}</span>
-                  </div>
-                  <div
-                    className={`flex justify-between ${m.winner === 2 ? "font-bold text-foreground" : "text-muted-foreground"}`}
-                  >
-                    <span className="truncate max-w-[140px]">{m.p2}</span>
-                    <span>{m.s2 ?? "-"}</span>
-                  </div>
-                </div>
-              </button>
-            );
-          })}
+      {hasRealBracket ? null : (
+        <div className="rounded-xl border border-dashed bg-muted/20 p-4 text-xs text-muted-foreground">
+          Preview mode: this sample shows how a seeded eight-player bracket
+          progresses. Generate the live bracket after players register.
         </div>
-
-        {/* Semifinals Column */}
-        <div className="flex flex-col justify-around h-[400px] flex-1 max-w-[240px]">
-          <h3 className="text-center text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">
-            Semifinals
-          </h3>
-          {["m5", "m6"].map((nodeId) => {
-            const m = getMatchByNodeId(nodeId);
-            if (!m) {
-              return null;
-            }
-            return (
-              <button
-                key={m.id}
-                onClick={() => setSelectedMatch(m)}
-                className={`p-3 rounded-lg border text-left text-xs transition-all w-full cursor-pointer relative ${
-                  selectedMatch?.id === m.id
-                    ? "border-primary bg-primary/10 shadow-lg ring-1 ring-primary"
-                    : "border-border hover:border-primary/50 bg-card hover:bg-muted/10"
-                }`}
-              >
-                {m.casted && (
-                  <span className="absolute top-1 right-1 bg-red-500/20 text-red-400 text-[8px] font-bold px-1 rounded flex items-center gap-0.5">
-                    <Video className="size-2" /> Live
-                  </span>
-                )}
-                <div className="space-y-1.5 font-medium">
-                  <div
-                    className={`flex justify-between ${m.winner === 1 ? "font-bold text-foreground" : "text-muted-foreground"}`}
-                  >
-                    <span className="truncate max-w-[140px]">{m.p1}</span>
-                    <span>{m.s1 ?? "-"}</span>
-                  </div>
-                  <div
-                    className={`flex justify-between ${m.winner === 2 ? "font-bold text-foreground" : "text-muted-foreground"}`}
-                  >
-                    <span className="truncate max-w-[140px]">{m.p2}</span>
-                    <span>{m.s2 ?? "-"}</span>
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Finals Column */}
-        <div className="flex flex-col justify-around h-[400px] flex-1 max-w-[240px]">
-          <h3 className="text-center text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">
-            Finals
-          </h3>
-          {["m7"].map((nodeId) => {
-            const m = getMatchByNodeId(nodeId);
-            if (!m) {
-              return null;
-            }
-            return (
-              <button
-                key={m.id}
-                onClick={() => setSelectedMatch(m)}
-                className={`p-4 rounded-xl border text-left text-xs transition-all w-full cursor-pointer relative ${
-                  selectedMatch?.id === m.id
-                    ? "border-primary bg-primary/10 shadow-lg ring-1 ring-primary"
-                    : "border-border hover:border-primary/50 bg-card hover:bg-muted/10"
-                }`}
-              >
-                {m.casted && (
-                  <span className="absolute top-1 right-1 bg-red-500/20 text-red-400 text-[8px] font-bold px-1 rounded flex items-center gap-0.5">
-                    <Video className="size-2" /> Live
-                  </span>
-                )}
-                <div className="space-y-2 font-medium">
-                  <div
-                    className={`flex justify-between ${m.winner === 1 ? "font-bold text-foreground" : "text-muted-foreground"}`}
-                  >
-                    <span className="truncate max-w-[130px]">{m.p1}</span>
-                    <span>{m.s1 ?? "-"}</span>
-                  </div>
-                  <div
-                    className={`flex justify-between ${m.winner === 2 ? "font-bold text-foreground" : "text-muted-foreground"}`}
-                  >
-                    <span className="truncate max-w-[130px]">{m.p2}</span>
-                    <span>{m.s2 ?? "-"}</span>
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Selected Match Panel */}
-      {selectedMatch ? (
-        <Card className="border border-primary/20 bg-primary/5 rounded-xl shadow-sm p-5 animate-in fade-in slide-in-from-bottom-2 duration-300 max-w-xl mx-auto">
-          <CardContent className="p-0 space-y-4">
-            <div className="flex justify-between items-center pb-3 border-b border-border/50">
-              <div>
-                <span className="text-[10px] bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full capitalize">
-                  {selectedMatch.round}
-                </span>
-                <h4 className="font-extrabold text-sm mt-1">
-                  {selectedMatch.p1} vs {selectedMatch.p2}
-                </h4>
-              </div>
-              <span
-                className={`text-xs font-bold ${selectedMatch.status === "completed" ? "text-muted-foreground" : "text-brand-yellow animate-pulse"}`}
-              >
-                {selectedMatch.status === "completed" ? "Final" : "Scheduled"}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-3 gap-4 text-xs">
-              <div>
-                <span className="text-muted-foreground block">Court</span>
-                <span className="font-semibold text-foreground mt-0.5 block">
-                  {selectedMatch.court}
-                </span>
-              </div>
-              <div>
-                <span className="text-muted-foreground block">Time</span>
-                <span className="font-semibold text-foreground mt-0.5 block">
-                  {selectedMatch.time}
-                </span>
-              </div>
-              <div>
-                <span className="text-muted-foreground block">
-                  Record status
-                </span>
-                <span className="font-semibold text-foreground mt-0.5 block">
-                  {selectedMatch.casted ? "Caster Requested" : "Unrecorded"}
-                </span>
-              </div>
-            </div>
-
-            <div className="pt-2 flex flex-col sm:flex-row gap-2">
-              {selectedMatch.casted ? (
-                <div className="flex-1 flex items-center justify-center gap-1.5 p-3.5 rounded-lg border border-red-500/20 bg-red-500/5 text-red-400 text-xs font-semibold">
-                  <Video className="size-4 shrink-0" /> Caster request pending
-                </div>
-              ) : (
-                <Button
-                  onClick={() => handleRequestCasting(selectedMatch.id)}
-                  className="flex-1 rounded-lg text-xs font-semibold py-4 flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <Video className="size-4" /> Request match casting
-                </Button>
-              )}
-              {selectedMatch.status === "completed" && (
-                <Button
-                  variant="outline"
-                  className="rounded-lg text-xs font-semibold py-4 flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <Swords className="size-4" /> View Match Clips
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <p className="text-center text-xs text-muted-foreground py-4">
-          Select any bracket matchup above to view details, court assignments,
-          and request a caster.
-        </p>
       )}
+
+      <div className="grid min-w-0 gap-5 overflow-x-auto lg:grid-flow-col lg:auto-cols-[minmax(17rem,1fr)]">
+        {(hasRealBracket
+          ? roundNumbers.map((round) => ({ round }))
+          : demoRounds
+        ).map((roundData) => {
+          const realMatches = backendMatches.filter(
+            ({ match }) => match.round === roundData.round
+          );
+          const previewMatches =
+            "matches" in roundData ? roundData.matches : [];
+          return (
+            <section className="min-w-64 space-y-3" key={roundData.round}>
+              <h3 className="text-center text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">
+                {getRoundLabel(roundData.round, hasRealBracket)}
+              </h3>
+              {hasRealBracket
+                ? realMatches.map(({ match, playerOne, playerTwo, winner }) => (
+                    <article
+                      className="rounded-xl border bg-card p-4"
+                      key={match.id}
+                    >
+                      <div className="mb-3 flex items-center justify-between text-[10px] text-muted-foreground">
+                        <span>{match.courtLabel ?? "Court TBD"}</span>
+                        <span className="capitalize">{match.status}</span>
+                      </div>
+                      <div className="space-y-2 text-sm">
+                        <p
+                          className={
+                            winner?.id === playerOne?.id
+                              ? "font-black text-primary"
+                              : "font-semibold"
+                          }
+                        >
+                          {playerOne?.name ?? "Bye"}{" "}
+                          <span className="float-right">
+                            {match.playerOneScore ?? "—"}
+                          </span>
+                        </p>
+                        <p
+                          className={
+                            winner?.id === playerTwo?.id
+                              ? "font-black text-primary"
+                              : "font-semibold"
+                          }
+                        >
+                          {playerTwo?.name ?? "Bye"}{" "}
+                          <span className="float-right">
+                            {match.playerTwoScore ?? "—"}
+                          </span>
+                        </p>
+                      </div>
+                      <Button
+                        className="mt-4 w-full"
+                        onClick={() => requestCaster(match.id)}
+                        size="sm"
+                        variant="outline"
+                      >
+                        <Video className="size-3.5" /> Request caster
+                      </Button>
+                    </article>
+                  ))
+                : previewMatches.map((match) => (
+                    <article
+                      className="rounded-xl border bg-card p-4"
+                      key={match.id}
+                    >
+                      <div className="mb-3 flex items-center justify-between text-[10px] text-muted-foreground">
+                        <span>{match.court}</span>
+                        {match.status === "completed" ? (
+                          <CheckCircle2 className="size-3 text-primary" />
+                        ) : (
+                          <Radio className="size-3" />
+                        )}
+                      </div>
+                      <p className="text-sm font-bold">{match.one}</p>
+                      <p className="my-1 flex items-center gap-1 text-[10px] text-muted-foreground">
+                        <Swords className="size-3" /> {match.score}
+                      </p>
+                      <p className="text-sm font-bold">{match.two}</p>
+                    </article>
+                  ))}
+            </section>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -19,6 +19,7 @@ interface WorkersAiBinding {
 }
 
 interface VectorizeBinding {
+  deleteByIds?: (ids: string[]) => Promise<unknown>;
   query: (
     vector: number[],
     options: { topK: number }
@@ -38,8 +39,11 @@ export interface AppEnv {
     AI?: WorkersAiBinding;
     EVENT_ACTIVITY_QUEUE?: Queue<EventActivityMessage>;
     EVENT_COORDINATOR: DurableObjectNamespace;
+    MUX_WEBHOOK_SECRET?: string;
     RALLYCASTS_ADMIN_EMAIL?: string;
     SEARCH_INDEX?: VectorizeBinding;
+    STRIPE_SECRET_KEY?: string;
+    STRIPE_WEBHOOK_SECRET?: string;
     VENUE_PRESENCE: DurableObjectNamespace;
   };
   Variables: {

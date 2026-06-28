@@ -73,24 +73,6 @@ function DrawerLayout() {
           headerTitle: "Tabs",
         }}
       />
-      <Drawer.Screen
-        name="ai"
-        options={{
-          drawerIcon: ({ size, color, focused }) => (
-            <Ionicons
-              name="chatbubble-ellipses-outline"
-              size={size}
-              color={focused ? color : themeColorForeground}
-            />
-          ),
-          drawerLabel: ({ color, focused }) => (
-            <Text style={{ color: focused ? color : themeColorForeground }}>
-              AI
-            </Text>
-          ),
-          headerTitle: "AI",
-        }}
-      />
     </Drawer>
   );
 }

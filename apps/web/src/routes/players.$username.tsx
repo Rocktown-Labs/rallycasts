@@ -3,7 +3,12 @@ import { Card, CardContent } from "@rallycaststv/ui/components/card";
 import { Input } from "@rallycaststv/ui/components/input";
 import { Label } from "@rallycaststv/ui/components/label";
 import { useQuery } from "@tanstack/react-query";
-import { useParams, Link, createFileRoute } from "@tanstack/react-router";
+import {
+  useParams,
+  Link,
+  createFileRoute,
+  redirect,
+} from "@tanstack/react-router";
 import {
   MapPin,
   Star,
@@ -36,6 +41,7 @@ import { apiClient } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
 import { demoPlayers } from "@/lib/demo-data";
 import { usePlayers } from "@/lib/hooks";
+import { readApiJson } from "@/lib/hooks/api";
 
 const duprRatings: Record<string, string> = {
   advanced: "4.5",
@@ -385,12 +391,16 @@ interface ChallengeModalProps {
   onSubmit: (challengeData: {
     mode: "singles" | "doubles";
     partner?: string;
+    partnerId?: string;
     venue: string;
+    venueId?: string;
+    courtLabel?: string;
     date: string;
     time: string;
     message: string;
     casted: boolean;
     splitMode: string;
+    tipCents: number;
   }) => void;
   playerName: string;
   currentUser: { id: string; name: string } | null;
@@ -407,8 +417,13 @@ function ChallengeModal({
     "singles"
   );
   const [challengeVenue, setChallengeVenue] = useState("demo-venue-1");
-  const [challengeDate, setChallengeDate] = useState("2026-06-11");
+  const [challengeDate, setChallengeDate] = useState(() => {
+    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    return tomorrow.toISOString().slice(0, 10);
+  });
   const [challengeTime, setChallengeTime] = useState("18:00");
+  const [courtLabel, setCourtLabel] = useState("Court 1");
+  const [tipDollars, setTipDollars] = useState("5");
   const [challengeMsg, setChallengeMsg] = useState("");
   const [requestCasting, setRequestCasting] = useState(false);
   const [castingSplit, setCastingSplit] = useState("split_2");
@@ -444,13 +459,17 @@ function ChallengeModal({
 
     onSubmit({
       casted: requestCasting,
+      courtLabel,
       date: challengeDate,
       message: challengeMsg,
       mode: challengeMode,
       partner: selectedPartner?.name,
+      partnerId: selectedPartner?.id,
       splitMode: castingSplit,
       time: challengeTime,
+      tipCents: requestCasting ? Math.round(Number(tipDollars) * 100) : 0,
       venue: venues[challengeVenue] || "Crestwood Pickleball Park",
+      venueId: challengeVenue.startsWith("demo-") ? undefined : challengeVenue,
     });
 
     setChallengeMsg("");
@@ -605,6 +624,16 @@ function ChallengeModal({
             </div>
 
             <div className="space-y-1">
+              <Label htmlFor="challengeCourtInput">Court number or label</Label>
+              <Input
+                id="challengeCourtInput"
+                onChange={(event) => setCourtLabel(event.target.value)}
+                placeholder="Court 4"
+                value={courtLabel}
+              />
+            </div>
+
+            <div className="space-y-1">
               <Label htmlFor="challengeMessageInput">Message</Label>
               <textarea
                 id="challengeMessageInput"
@@ -698,6 +727,17 @@ function ChallengeModal({
                         </Label>
                       </div>
                     )}
+                  </div>
+                  <div className="space-y-1 pt-2">
+                    <Label htmlFor="casterTipInput">Optional caster tip</Label>
+                    <Input
+                      id="casterTipInput"
+                      min="0"
+                      onChange={(event) => setTipDollars(event.target.value)}
+                      step="1"
+                      type="number"
+                      value={tipDollars}
+                    />
                   </div>
                 </div>
               )}
@@ -998,14 +1038,6 @@ function useFeedDetailModal() {
   };
 }
 
-function useChallenges() {
-  return {
-    addChallenge: (_challenge: Challenge) => {
-      // Challenges are now managed via API
-    },
-  };
-}
-
 interface RawPlayer {
   id: string;
   name: string | null;
@@ -1153,6 +1185,14 @@ function ProfileTabContent({
 }
 
 export const Route = createFileRoute("/players/$username")({
+  beforeLoad: async () => {
+    const session = await authClient.getSession().catch(() => null);
+    if (!session?.data) {
+      throw redirect({
+        to: "/login",
+      });
+    }
+  },
   component: PlayerProfilePage,
 });
 
@@ -1185,8 +1225,6 @@ function PlayerProfilePage() {
   } = useModals();
 
   const { chatLog, dmMessage, handleSendDM, setDmMessage } = useDMChat();
-
-  const { addChallenge } = useChallenges();
 
   const { feedItems, selectedFeedItem, setFeedItems, setSelectedFeedItem } =
     useFeedDetailModal();
@@ -1290,28 +1328,54 @@ function PlayerProfilePage() {
     apiPosts
   );
 
-  const handleSendChallenge = (challengeData: {
+  const handleSendChallenge = async (challengeData: {
     mode: "singles" | "doubles";
     partner?: string;
+    partnerId?: string;
     venue: string;
+    venueId?: string;
+    courtLabel?: string;
     date: string;
     time: string;
     message: string;
     casted: boolean;
     splitMode: string;
+    tipCents: number;
   }) => {
-    const newChallenge: Challenge = {
-      ...challengeData,
-      challenged: player.name,
-      challenger: currentUser?.name || "CG Stewart",
-      id: `ch-${Date.now()}`,
-      result: "upcoming",
-      status: "issued",
+    const splitModeMap: Record<
+      string,
+      "challenger" | "challenged" | "split_evenly"
+    > = {
+      split_1: "challenger",
+      split_2: "split_evenly",
+      split_4: "split_evenly",
     };
-
-    addChallenge(newChallenge);
-    setShowChallengeModal(false);
-    toast.success(`Challenge successfully issued to ${player.name}!`);
+    try {
+      await readApiJson(
+        apiClient.api.challenges.$post({
+          json: {
+            castingSplitMode:
+              splitModeMap[challengeData.splitMode] ?? "challenger",
+            challengedUserId: player.id,
+            courtLabel: challengeData.courtLabel,
+            isCasted: challengeData.casted,
+            matchMode: challengeData.mode,
+            message: challengeData.message || undefined,
+            partnerUserId: challengeData.partnerId,
+            scheduledAt: new Date(
+              `${challengeData.date}T${challengeData.time}`
+            ).toISOString(),
+            tipCents: challengeData.tipCents,
+            venueId: challengeData.venueId,
+            venueLabel: challengeData.venue,
+          },
+        })
+      );
+      setShowChallengeModal(false);
+      toast.success(`Challenge successfully issued to ${player.name}!`);
+    } catch {
+      toast.error("Could not issue that challenge.");
+    }
   };
 
   const tabItems = getFeedItemsForTab(activeTab, allFeedItems);

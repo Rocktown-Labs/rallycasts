@@ -23,12 +23,36 @@ import {
 import type { ReactNode } from "react";
 
 export interface VideoCardData {
+  description?: string | null;
   durationSeconds?: number | null;
   id: string;
   muxPlaybackId?: string | null;
   status?: string;
   thumbnailUrl?: string | null;
   title: string;
+  createdAt?: string | Date | null;
+  publishedAt?: string | Date | null;
+  viewsCount?: number | null;
+  owner?: {
+    id: string;
+    name: string;
+    image?: string | null;
+    username?: string | null;
+    displayUsername?: string | null;
+  } | null;
+  taggedUsers?: {
+    id: string;
+    name: string;
+    image?: string | null;
+    username?: string | null;
+    displayUsername?: string | null;
+  }[];
+  venue?: {
+    id: string;
+    name: string;
+    city?: string | null;
+    state?: string | null;
+  } | null;
 }
 
 export interface PlayerCardData {
@@ -174,6 +198,112 @@ export function StatCard({
   );
 }
 
+const formatViews = (count: number) => {
+  if (count >= 1000) {
+    return `${(count / 1000).toFixed(1).replace(/\.0$/u, "")}K views`;
+  }
+  return `${count} views`;
+};
+
+const getTimeAgo = (video: VideoCardData) => {
+  const date = video.publishedAt ?? video.createdAt;
+  if (date) {
+    const parsedDate = new Date(date);
+    const diffMs = Date.now() - parsedDate.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays <= 0) {
+      return "today";
+    }
+    if (diffDays === 1) {
+      return "1 day ago";
+    }
+    if (diffDays < 30) {
+      return `${diffDays} days ago`;
+    }
+    const diffMonths = Math.floor(diffDays / 30);
+    if (diffMonths === 1) {
+      return "1 month ago";
+    }
+    return `${diffMonths} months ago`;
+  }
+
+  // Deterministic fallback based on id
+  if (video.id === "demo-video-1") {
+    return "2 days ago";
+  }
+  if (video.id === "demo-video-2") {
+    return "5 days ago";
+  }
+  if (video.id === "demo-video-3") {
+    return "1 week ago";
+  }
+  if (video.id === "demo-video-4") {
+    return "2 weeks ago";
+  }
+  return "recently";
+};
+
+function VideoThumbnail({
+  video,
+  imageUrl,
+}: {
+  video: VideoCardData;
+  imageUrl: string | null;
+}) {
+  return (
+    <Link
+      to="/videos/$id"
+      params={{ id: video.id }}
+      className="relative aspect-video overflow-hidden rounded-xl border border-border bg-muted cursor-pointer block"
+    >
+      {imageUrl ? (
+        <img
+          alt={video.title}
+          className="size-full object-cover group-hover:scale-102 transition-transform duration-300"
+          src={imageUrl}
+        />
+      ) : (
+        <div className="flex size-full items-center justify-center bg-[linear-gradient(135deg,hsl(142_100%_18%/.35),hsl(78_100%_60%/.12))]">
+          <Video className="size-8 text-primary" />
+        </div>
+      )}
+      <div className="absolute inset-0 grid place-items-center bg-black/0 transition-colors group-hover:bg-black/25">
+        <div className="grid size-10 place-items-center rounded-full bg-background/90 text-primary opacity-0 transition-opacity group-hover:opacity-100 shadow-md">
+          <Play className="size-4 fill-current ml-0.5" />
+        </div>
+      </div>
+      <span className="absolute right-2 bottom-2 rounded bg-black/85 px-1.5 py-0.5 text-[10px] text-white font-semibold tracking-wide">
+        {formatDuration(video.durationSeconds)}
+      </span>
+    </Link>
+  );
+}
+
+function VideoAvatar({ owner }: { owner: VideoCardData["owner"] }) {
+  const username = owner?.username ?? owner?.displayUsername ?? "player";
+  return (
+    <Link
+      to="/players/$username"
+      params={{ username }}
+      className="shrink-0 cursor-pointer block"
+    >
+      <div className="size-9 rounded-full bg-primary/10 text-primary flex items-center justify-center overflow-hidden font-bold border border-border hover:opacity-85 transition-opacity">
+        {owner?.image ? (
+          <img
+            src={owner.image}
+            alt={owner.name}
+            className="size-full object-cover"
+          />
+        ) : (
+          <span className="text-xs">
+            {(owner?.name ?? "P").charAt(0).toUpperCase()}
+          </span>
+        )}
+      </div>
+    </Link>
+  );
+}
+
 export function VideoCard({ video }: { video: VideoCardData }) {
   const imageUrl =
     video.thumbnailUrl ??
@@ -181,40 +311,74 @@ export function VideoCard({ video }: { video: VideoCardData }) {
       ? `https://image.mux.com/${video.muxPlaybackId}/thumbnail.webp?time=1`
       : null);
 
+  const viewsCount =
+    video.viewsCount ??
+    (Math.abs(
+      [...video.id].reduce((acc, char) => acc + (char.codePointAt(0) ?? 0), 0)
+    ) %
+      880) +
+      120;
+
+  const viewsText = formatViews(viewsCount);
+  const timeAgoText = getTimeAgo(video);
+  const ownerUsername =
+    video.owner?.username ?? video.owner?.displayUsername ?? "player";
+
   return (
-    <Link
-      to="/videos/$id"
-      params={{ id: video.id }}
-      className="group min-w-0 block hover:no-underline cursor-pointer"
-    >
-      <div className="relative aspect-video overflow-hidden rounded-lg border border-border bg-muted">
-        {imageUrl ? (
-          <img
-            alt={video.title}
-            className="size-full object-cover group-hover:scale-105 transition-transform duration-300"
-            src={imageUrl}
-          />
-        ) : (
-          <div className="flex size-full items-center justify-center bg-[linear-gradient(135deg,hsl(142_100%_18%/.35),hsl(78_100%_60%/.12))]">
-            <Video className="size-8 text-primary" />
+    <div className="group flex flex-col min-w-0 w-full animate-in fade-in duration-300 relative">
+      {/* Thumbnail with Tagged Overlay */}
+      <div className="relative">
+        <VideoThumbnail video={video} imageUrl={imageUrl} />
+        {video.taggedUsers && video.taggedUsers.length > 0 && (
+          <div className="absolute left-2 top-2 flex flex-wrap gap-1 z-10">
+            {video.taggedUsers.map((u) => (
+              <Link
+                key={u.id}
+                to="/players/$username"
+                params={{
+                  username: u.username ?? u.displayUsername ?? "player",
+                }}
+                className="rounded-full bg-black/75 hover:bg-primary text-white px-2 py-0.5 text-[9px] font-semibold transition-colors flex items-center gap-1 backdrop-blur-xs shadow-sm border border-white/10"
+              >
+                <span className="inline-block size-1 rounded-full bg-[#bcdf21]" />
+                <span>{u.name}</span>
+              </Link>
+            ))}
           </div>
         )}
-        <div className="absolute inset-0 grid place-items-center bg-black/0 transition-colors group-hover:bg-black/25">
-          <div className="grid size-10 place-items-center rounded-full bg-background/90 text-primary opacity-0 transition-opacity group-hover:opacity-100 shadow-md">
-            <Play className="size-4 fill-current ml-0.5" />
+      </div>
+
+      {/* Content Area */}
+      <div className="mt-2.5 flex gap-3 px-1">
+        {/* Avatar */}
+        <VideoAvatar owner={video.owner} />
+
+        {/* Info Details */}
+        <div className="flex-1 min-w-0">
+          <Link
+            to="/videos/$id"
+            params={{ id: video.id }}
+            className="block text-sm font-semibold line-clamp-2 leading-snug group-hover:text-primary transition-colors hover:no-underline cursor-pointer"
+          >
+            {video.title}
+          </Link>
+
+          <div className="mt-1 text-xs text-muted-foreground flex flex-wrap items-center gap-1">
+            <Link
+              to="/players/$username"
+              params={{ username: ownerUsername }}
+              className="hover:text-primary transition-colors hover:underline truncate font-medium"
+            >
+              {video.owner?.name ?? "Anonymous Player"}
+            </Link>
+            <span className="text-muted-foreground/60">•</span>
+            <span>{viewsText}</span>
+            <span className="text-muted-foreground/60">•</span>
+            <span>{timeAgoText}</span>
           </div>
         </div>
-        <span className="absolute right-2 bottom-2 rounded bg-black/80 px-1.5 py-0.5 text-xs text-white font-medium">
-          {formatDuration(video.durationSeconds)}
-        </span>
       </div>
-      <h3 className="mt-3 line-clamp-2 text-sm font-semibold group-hover:text-primary transition-colors leading-snug">
-        {video.title}
-      </h3>
-      <p className="mt-1 text-xs text-muted-foreground">
-        {video.status === "ready" ? "Ready to watch" : "Processing"}
-      </p>
-    </Link>
+    </div>
   );
 }
 
@@ -508,11 +672,16 @@ export function EventCard({ event }: { event: EventCardData }) {
     },
   };
 
-  const itemDetails = fallbacks[event.id] || {
+  const itemDetails = {
     banner:
+      fallbacks[event.id]?.banner ||
       "linear-gradient(135deg, hsl(142 100% 18% / 0.65), hsl(78 100% 60% / 0.2))",
-    location: event.location || "Austin, TX",
-    tags: event.tags || [event.eventType ?? "open play", "pickleball"],
+    location: event.location || fallbacks[event.id]?.location || "Austin, TX",
+    tags: event.tags ||
+      fallbacks[event.id]?.tags || [
+        event.eventType ?? "open play",
+        "pickleball",
+      ],
   };
 
   return (
@@ -543,7 +712,7 @@ export function EventCard({ event }: { event: EventCardData }) {
         {/* Title text embedded in overlay bottom left */}
         <div className="absolute left-4 bottom-3 right-4 z-10 space-y-2">
           {isRallyCastsHosted ? (
-            <span className="inline-flex w-fit items-center rounded-full bg-brand-yellow px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-black shadow">
+            <span className="inline-flex w-fit items-center rounded-md bg-[#bcdf21] px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-black shadow">
               RallyCasts Hosted
             </span>
           ) : null}
@@ -583,7 +752,7 @@ export function EventCard({ event }: { event: EventCardData }) {
           {itemDetails.tags.map((tag) => (
             <span
               key={tag}
-              className="text-[10px] bg-muted hover:bg-muted/70 text-muted-foreground font-semibold px-2.5 py-0.5 rounded-full capitalize"
+              className="text-[10px] bg-muted hover:bg-muted/70 text-muted-foreground font-semibold px-2.5 py-0.5 rounded-md capitalize"
             >
               {tag}
             </span>

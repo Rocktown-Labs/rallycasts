@@ -6,6 +6,7 @@ import * as HttpStatusCodes from "stoker/http-status-codes";
 
 import { EARTH_RADIUS_MILES } from "../lib/geo";
 import { syncVenueGeofence } from "../lib/geofence-sync";
+import { syncVenueSearchDocument } from "../lib/search-index";
 import type { AppEnv } from "../lib/types";
 
 const searchPattern = (query: string | undefined) => `%${query ?? ""}%`;
@@ -29,6 +30,14 @@ export const venuesRouter = new Hono<AppEnv>()
       } catch (error) {
         console.error("Failed to sync venue to Radar:", error);
       }
+    }
+    if (newVenue[0]) {
+      await syncVenueSearchDocument(
+        () => c.executionCtx,
+        db,
+        c.env,
+        newVenue[0]
+      );
     }
 
     return c.json({ venue: newVenue[0] }, HttpStatusCodes.CREATED);

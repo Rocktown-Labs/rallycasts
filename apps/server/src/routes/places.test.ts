@@ -10,6 +10,40 @@ import app from "../index";
 const mockFetch = vi.fn();
 globalThis.fetch = mockFetch;
 
+const signUp = async (): Promise<string> => {
+  const username = `places${crypto.randomUUID().slice(0, 8)}`;
+  const response = await app.request(
+    "/api/auth/sign-up/email",
+    {
+      body: JSON.stringify({
+        email: `${username}@example.com`,
+        name: "Places Tester",
+        password: "password-12345678",
+        username,
+      }),
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
+    },
+    env
+  );
+
+  expect(response.status).toBe(200);
+  return response.headers.get("set-cookie") ?? "";
+};
+
+const createVenueRequest = async (placeId?: string) => {
+  const cookie = await signUp();
+  return app.request(
+    "/api/places/venues",
+    {
+      body: JSON.stringify(placeId ? { placeId } : {}),
+      headers: { "Content-Type": "application/json", Cookie: cookie },
+      method: "POST",
+    },
+    env
+  );
+};
+
 describe("places routes", () => {
   beforeEach(() => {
     mockFetch.mockClear();
@@ -197,6 +231,21 @@ describe("places routes", () => {
   });
 
   describe("POST /api/places/venues", () => {
+    it("requires authentication", async () => {
+      const response = await app.request(
+        "/api/places/venues",
+        {
+          body: JSON.stringify({ placeId: "place_private" }),
+          headers: { "Content-Type": "application/json" },
+          method: "POST",
+        },
+        env
+      );
+
+      expect(response.status).toBe(401);
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
     it("creates a venue from Google place", async () => {
       mockFetch.mockResolvedValueOnce({
         json: () => ({
@@ -227,15 +276,7 @@ describe("places routes", () => {
         ok: true,
       });
 
-      const response = await app.request(
-        "/api/places/venues",
-        {
-          body: JSON.stringify({ placeId: "place_new_123" }),
-          headers: { "Content-Type": "application/json" },
-          method: "POST",
-        },
-        env
-      );
+      const response = await createVenueRequest("place_new_123");
 
       expect(response.status).toBe(201);
       const data = await response.json();
@@ -290,15 +331,7 @@ describe("places routes", () => {
         ok: true,
       });
 
-      const response = await app.request(
-        "/api/places/venues",
-        {
-          body: JSON.stringify({ placeId: "place_existing_456" }),
-          headers: { "Content-Type": "application/json" },
-          method: "POST",
-        },
-        env
-      );
+      const response = await createVenueRequest("place_existing_456");
 
       expect(response.status).toBe(409);
       const data = await response.json();
@@ -306,15 +339,7 @@ describe("places routes", () => {
     });
 
     it("returns 400 for missing placeId", async () => {
-      const response = await app.request(
-        "/api/places/venues",
-        {
-          body: JSON.stringify({}),
-          headers: { "Content-Type": "application/json" },
-          method: "POST",
-        },
-        env
-      );
+      const response = await createVenueRequest();
 
       expect(response.status).toBe(400);
       const data = await response.json();

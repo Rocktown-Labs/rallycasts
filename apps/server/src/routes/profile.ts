@@ -4,10 +4,16 @@ import { user } from "@rallycaststv/db/schema/auth";
 import { userProfile } from "@rallycaststv/db/schema/domain";
 import { and, eq, ne } from "drizzle-orm";
 import { Hono } from "hono";
+import type { Context } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 import { z } from "zod";
 
 import { isPlatformAdminEmail } from "../lib/admin";
+import { BloomFilter } from "../lib/bloom";
+import {
+  scheduleSearchDocumentIndex,
+  upsertSearchDocument,
+} from "../lib/search-index";
 import type { AppEnv } from "../lib/types";
 import { requireAuth } from "../middleware/auth";
 
@@ -59,6 +65,37 @@ const adminProfilePatch = {
   onboardingStatus: "complete" as const,
 };
 
+const indexProfile = async (
+  c: Context<AppEnv>,
+  db: ReturnType<typeof createDb>,
+  profile: typeof userProfile.$inferSelect,
+  userRecord: typeof user.$inferSelect
+) => {
+  if (profile.onboardingStatus !== "complete") {
+    return;
+  }
+  const searchRecord = await upsertSearchDocument(db, {
+    content: [
+      profile.bio,
+      profile.skillLevel ? `${profile.skillLevel} pickleball player` : null,
+      profile.homeCourtName,
+      profile.homeCity,
+      profile.homeState,
+    ]
+      .filter(Boolean)
+      .join(". "),
+    entityId: userRecord.id,
+    entityType: "profile",
+    metadata: {
+      homeCity: profile.homeCity,
+      homeState: profile.homeState,
+      skillLevel: profile.skillLevel,
+    },
+    title: userRecord.name,
+  });
+  scheduleSearchDocumentIndex(() => c.executionCtx, db, c.env, searchRecord);
+};
+
 const ensureAdminProfile = async (
   db: ReturnType<typeof createDb>,
   userId: string
@@ -85,6 +122,42 @@ const ensureAdminProfile = async (
 
 export const profileRouter = new Hono<AppEnv>()
   .use(requireAuth)
+  .get("/check-username", async (c) => {
+    const usernameQuery = c.req.query("username")?.trim().toLowerCase();
+    if (!usernameQuery) {
+      return c.json({ available: false }, HttpStatusCodes.BAD_REQUEST);
+    }
+
+    const db = createDb(c.env.DB);
+    const allUsers = await db
+      .select({ username: user.username })
+      .from(user)
+      .all();
+    const bloom = new BloomFilter(1000, 3);
+    for (const u of allUsers) {
+      if (u.username) {
+        bloom.add(u.username.toLowerCase());
+      }
+    }
+
+    if (!bloom.has(usernameQuery)) {
+      return c.json(
+        { available: true, source: "bloom_filter" },
+        HttpStatusCodes.OK
+      );
+    }
+
+    const [existing] = await db
+      .select()
+      .from(user)
+      .where(eq(user.username, usernameQuery))
+      .limit(1);
+
+    return c.json(
+      { available: !existing, source: "database" },
+      HttpStatusCodes.OK
+    );
+  })
   .get("/me", async (c) => {
     const db = createDb(c.env.DB);
     const { user: authUser } = c.var.authSession;
@@ -198,6 +271,10 @@ export const profileRouter = new Hono<AppEnv>()
       .where(eq(user.id, authUser.id))
       .limit(1);
 
+    if (profile && userRecord) {
+      await indexProfile(c, db, profile, userRecord);
+    }
+
     return c.json(
       { profile, user: userRecord ?? authUser },
       HttpStatusCodes.OK
@@ -225,6 +302,15 @@ export const profileRouter = new Hono<AppEnv>()
       .from(userProfile)
       .where(eq(userProfile.userId, authUser.id))
       .limit(1);
+
+    const [userRecord] = await db
+      .select()
+      .from(user)
+      .where(eq(user.id, authUser.id))
+      .limit(1);
+    if (profile && userRecord) {
+      await indexProfile(c, db, profile, userRecord);
+    }
 
     return c.json({ profile }, HttpStatusCodes.OK);
   });

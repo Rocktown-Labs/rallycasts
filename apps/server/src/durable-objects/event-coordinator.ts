@@ -4,6 +4,7 @@ import {
   eventMatch,
   eventRegistration,
   eventScoreSubmission,
+  organizationMember,
 } from "@rallycaststv/db/schema/domain";
 import { DurableObject } from "cloudflare:workers";
 import { and, asc, eq, ne, sql } from "drizzle-orm";
@@ -45,6 +46,88 @@ const runBackground = async (promise: Promise<unknown>) => {
     await promise;
   } catch (error) {
     console.error("Event coordinator background task failed:", error);
+  }
+};
+
+const advanceSingleEliminationBracket = async (
+  db: ReturnType<typeof createDb>,
+  env: EventCoordinatorEnv,
+  record: typeof event.$inferSelect,
+  completedMatch: typeof eventMatch.$inferSelect
+) => {
+  if (record.bracketType !== "single_elimination") {
+    return;
+  }
+  const roundMatches = await db
+    .select()
+    .from(eventMatch)
+    .where(
+      and(
+        eq(eventMatch.eventId, record.id),
+        eq(eventMatch.round, completedMatch.round)
+      )
+    )
+    .orderBy(asc(eventMatch.createdAt));
+  if (
+    roundMatches.some(
+      (match) => match.status !== "completed" || !match.winnerUserId
+    )
+  ) {
+    return;
+  }
+  const winners = roundMatches.flatMap((match) =>
+    match.winnerUserId ? [match.winnerUserId] : []
+  );
+  if (winners.length <= 1) {
+    await db
+      .update(event)
+      .set({ status: "completed", updatedAt: new Date() })
+      .where(eq(event.id, record.id));
+    return;
+  }
+  const nextRound = completedMatch.round + 1;
+  const [existing] = await db
+    .select({ id: eventMatch.id })
+    .from(eventMatch)
+    .where(
+      and(eq(eventMatch.eventId, record.id), eq(eventMatch.round, nextRound))
+    )
+    .limit(1);
+  if (existing) {
+    return;
+  }
+  const courtLabels = JSON.parse(record.courtLabelsJson ?? "[]") as string[];
+  const nextMatches: (typeof eventMatch.$inferInsert)[] = [];
+  for (let index = 0; index < winners.length; index += 2) {
+    const playerOneUserId = winners[index];
+    if (!playerOneUserId) {
+      continue;
+    }
+    const playerTwoUserId = winners[index + 1];
+    nextMatches.push({
+      courtLabel:
+        courtLabels[Math.floor(index / 2) % courtLabels.length] ?? undefined,
+      eventId: record.id,
+      id: createId(),
+      playerOneUserId,
+      playerTwoUserId,
+      round: nextRound,
+      status: playerTwoUserId ? "scheduled" : "completed",
+      winnerUserId: playerTwoUserId ? undefined : playerOneUserId,
+    });
+  }
+  if (nextMatches.length === 0) {
+    return;
+  }
+  await db.insert(eventMatch).values(nextMatches);
+  for (const match of nextMatches) {
+    runBackground(
+      enqueueEventActivity(env.EVENT_ACTIVITY_QUEUE, {
+        eventId: record.id,
+        matchId: match.id,
+        type: "event.match.assigned",
+      })
+    );
   }
 };
 
@@ -172,7 +255,24 @@ export class EventCoordinator extends DurableObject<EventCoordinatorEnv> {
       .from(event)
       .where(eq(event.id, input.eventId))
       .limit(1);
-    const isOrganizer = record?.organizerUserId === input.submittedByUserId;
+    if (!record) {
+      return { error: "Event not found" as const };
+    }
+    const [organizationMembership] = record?.organizationId
+      ? await db
+          .select({ role: organizationMember.role })
+          .from(organizationMember)
+          .where(
+            and(
+              eq(organizationMember.organizationId, record.organizationId),
+              eq(organizationMember.userId, input.submittedByUserId)
+            )
+          )
+          .limit(1)
+      : [];
+    const isOrganizer =
+      record?.organizerUserId === input.submittedByUserId ||
+      Boolean(organizationMembership);
     const isMatchPlayer =
       match.playerOneUserId === input.submittedByUserId ||
       match.playerTwoUserId === input.submittedByUserId;
@@ -216,6 +316,11 @@ export class EventCoordinator extends DurableObject<EventCoordinatorEnv> {
         .update(eventScoreSubmission)
         .set({ status: "confirmed" })
         .where(eq(eventScoreSubmission.id, submission.id));
+      await advanceSingleEliminationBracket(db, this.env, record, {
+        ...match,
+        status: "completed",
+        winnerUserId: input.winnerUserId,
+      });
       runBackground(
         enqueueEventActivity(this.env.EVENT_ACTIVITY_QUEUE, {
           eventId: input.eventId,
@@ -258,6 +363,13 @@ export class EventCoordinator extends DurableObject<EventCoordinatorEnv> {
           winnerUserId: input.winnerUserId,
         })
         .where(eq(eventMatch.id, input.matchId));
+      if (record) {
+        await advanceSingleEliminationBracket(db, this.env, record, {
+          ...match,
+          status: "completed",
+          winnerUserId: input.winnerUserId,
+        });
+      }
       runBackground(
         enqueueEventActivity(this.env.EVENT_ACTIVITY_QUEUE, {
           eventId: input.eventId,

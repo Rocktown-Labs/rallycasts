@@ -4,22 +4,31 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { Flame, MapPin } from "lucide-react";
 
 import { EmptyState, VideoCard } from "@/components/rally/cards";
-import { useVideos } from "@/lib/hooks";
+import { authClient } from "@/lib/auth-client";
+import { useRecommendedVideos, useVideos } from "@/lib/hooks";
 
 export const Route = createFileRoute("/")({
   component: HomeComponent,
 });
 
 function HomeComponent() {
-  const { data, isLoading } = useVideos();
-  const videos = data?.videos ?? [];
+  const { data: session, isPending: sessionPending } = authClient.useSession();
+  const latestVideos = useVideos();
+  const recommendedVideos = useRecommendedVideos(Boolean(session?.user));
+  const feedData = session?.user ? recommendedVideos.data : latestVideos.data;
+  const isLoading =
+    sessionPending ||
+    (session?.user ? recommendedVideos.isLoading : latestVideos.isLoading);
+  const videos = feedData?.videos ?? [];
+  const isPersonalized =
+    session?.user && recommendedVideos.data?.mode === "hybrid";
 
   return (
     <div className="mx-auto max-w-7xl space-y-8">
       <section className="grid gap-4 rounded-lg border border-border bg-[linear-gradient(135deg,hsl(142_100%_18%/.2),transparent_52%,hsl(78_100%_60%/.08))] p-6 md:grid-cols-[1fr_auto] md:items-center">
         <div>
           <p className="text-sm font-semibold text-primary">
-            Recommended near your courts
+            Pickleball around your courts
           </p>
           <h1 className="mt-2 text-3xl font-bold tracking-normal md:text-4xl">
             Pickleball videos, players, and casters around you.
@@ -46,9 +55,18 @@ function HomeComponent() {
 
       <section>
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Recommended Videos</h2>
-          <Link to="/videos" className={buttonVariants({ variant: "ghost" })}>
-            View yours
+          <div>
+            <h2 className="text-2xl font-bold">
+              {isPersonalized ? "For You" : "Latest RallyCasts"}
+            </h2>
+            {isPersonalized ? (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Ranked from your game, home court, friends, and activity.
+              </p>
+            ) : null}
+          </div>
+          <Link to="/trending" className={buttonVariants({ variant: "ghost" })}>
+            Explore trending
           </Link>
         </div>
         {isLoading && (
@@ -64,7 +82,14 @@ function HomeComponent() {
         {!isLoading && videos.length > 0 && (
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
             {videos.map((video) => (
-              <VideoCard key={video.id} video={video} />
+              <div className="space-y-2" key={video.id}>
+                <VideoCard video={video} />
+                {"recommendationReason" in video ? (
+                  <p className="px-1 text-[11px] font-medium text-primary">
+                    {video.recommendationReason}
+                  </p>
+                ) : null}
+              </div>
             ))}
           </div>
         )}

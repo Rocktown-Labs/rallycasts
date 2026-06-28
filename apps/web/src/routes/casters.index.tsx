@@ -52,21 +52,32 @@ const tiers = [
 
 function CastersPage() {
   return (
-    <div className="mx-auto max-w-7xl space-y-12">
-      <section className="grid min-h-[34rem] items-center gap-8 border-b border-border py-10 lg:grid-cols-[1.05fr_.95fr]">
-        <div>
-          <p className="inline-flex items-center gap-2 rounded-full border border-border bg-muted px-3 py-1 text-xs text-muted-foreground">
-            <Sparkles className="size-3 text-primary" />
-            Premium caster onboarding is open
-          </p>
-          <h1 className="mt-6 max-w-4xl text-4xl font-bold tracking-normal md:text-6xl">
-            Get paid to record pickleball matches.
+    <div className="mx-auto max-w-7xl space-y-8 px-4 py-4 animate-in fade-in duration-300">
+      {/* Hero Section */}
+      <div className="relative overflow-hidden rounded-2xl bg-primary p-6 text-white shadow-xl sm:p-8">
+        <div className="relative z-10 max-w-2xl space-y-2">
+          <div className="inline-flex items-center gap-1.5 rounded-md bg-secondary/20 px-2.5 py-1 text-xs font-semibold text-[#bcdf21]">
+            <Sparkles className="size-3" />
+            <span>Premium Caster Onboarding Open</span>
+          </div>
+          <h1 className="text-3xl font-logo sm:text-4xl tracking-wide lowercase">
+            casters
           </h1>
-          <p className="mt-5 max-w-2xl text-lg text-muted-foreground">
-            RallyCasts is building the on-demand camera crew for local
-            pickleball. Casters do not get publicly browsed like profiles; they
-            are assigned to requests based on location, reliability, and match
-            needs.
+          <p className="text-sm text-gray-200 sm:text-base leading-relaxed">
+            Get paid to record local pickleball matches. RallyCasts is building
+            the on-demand camera crew for local pickleball.
+          </p>
+        </div>
+      </div>
+
+      <section className="grid min-h-[28rem] items-center gap-8 border-b border-border py-6 lg:grid-cols-[1.05fr_.95fr]">
+        <div>
+          <h2 className="text-3xl font-bold tracking-normal md:text-5xl">
+            Get paid to record pickleball matches.
+          </h2>
+          <p className="mt-5 max-w-2xl text-base text-muted-foreground">
+            Casters do not get publicly browsed like profiles; they are assigned
+            to requests based on location, reliability, and match needs.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link

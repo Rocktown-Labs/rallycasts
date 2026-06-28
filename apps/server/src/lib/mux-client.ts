@@ -24,14 +24,58 @@ interface MuxAssetResponse {
   };
 }
 
+export async function createMuxClip(
+  sourceAssetId: string,
+  startTime: number,
+  endTime: number,
+  tokenId: string,
+  tokenSecret: string,
+  videoId: string
+): Promise<{ assetId: string; playbackId: string | null; status: string }> {
+  const response = await fetch(`${MUX_API_BASE}/assets`, {
+    body: JSON.stringify({
+      inputs: [
+        {
+          end_time: endTime,
+          start_time: startTime,
+          url: `mux://assets/${sourceAssetId}`,
+        },
+      ],
+      passthrough: videoId,
+      playback_policies: ["public"],
+      video_quality: "basic",
+    }),
+    headers: {
+      Authorization: `Basic ${btoa(`${tokenId}:${tokenSecret}`)}`,
+      "Content-Type": "application/json",
+    },
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Mux clip creation failed: ${response.status} ${error}`);
+  }
+
+  const result = (await response.json()) as MuxAssetResponse;
+  return {
+    assetId: result.data.id,
+    playbackId: result.data.playback_ids[0]?.id ?? null,
+    status: result.data.status,
+  };
+}
+
 export async function createMuxUploadUrl(
   tokenId: string,
-  tokenSecret: string
+  tokenSecret: string,
+  videoId?: string,
+  corsOrigin = "*"
 ): Promise<{ uploadId: string; uploadUrl: string }> {
   const response = await fetch(`${MUX_API_BASE}/uploads`, {
     body: JSON.stringify({
-      cors_origin: "*",
+      cors_origin: corsOrigin,
       new_asset_settings: {
+        passthrough: videoId,
         playback_policy: ["public"],
       },
     }),

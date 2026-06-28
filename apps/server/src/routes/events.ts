@@ -4,7 +4,9 @@ import { user as userTable } from "@rallycaststv/db/schema/auth";
 import {
   event,
   eventMatch,
+  eventPayment,
   eventRegistration,
+  organizationMember,
 } from "@rallycaststv/db/schema/domain";
 import { and, asc, desc, eq, ne } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
@@ -17,17 +19,33 @@ import { isPlatformAdminEmail } from "../lib/admin";
 import { enqueueEventActivity } from "../lib/event-activity";
 import type { EventActivityMessage } from "../lib/event-activity";
 import { createId } from "../lib/ids";
+import { createNotification } from "../lib/notifications";
+import {
+  removeSearchDocument,
+  scheduleSearchDocumentIndex,
+  upsertSearchDocument,
+} from "../lib/search-index";
 import type { AppEnv } from "../lib/types";
 import { requireAuth } from "../middleware/auth";
 
 const eventFields = z.object({
+  bracketType: z
+    .enum(["single_elimination", "round_robin"])
+    .default("single_elimination"),
   capacity: z.number().int().positive().optional(),
+  checkInMinutes: z.number().int().min(0).max(240).default(30),
+  courtLabels: z.array(z.string().trim().min(1).max(40)).max(50).default([]),
+  currency: z.literal("usd").default("usd"),
   description: z.string().max(2000).optional(),
   endsAt: z.coerce.date().optional(),
+  entryFeeCents: z.number().int().min(0).max(1_000_000).default(0),
   eventType: z
     .enum(["open_play", "tournament", "clinic", "league"])
     .default("open_play"),
   name: z.string().min(1).max(160),
+  organizationId: z.string().min(1).optional(),
+  refundPolicy: z.string().max(1000).optional(),
+  registrationDeadline: z.coerce.date().optional(),
   startsAt: z.coerce.date(),
   status: z
     .enum(["draft", "published", "cancelled", "completed"])
@@ -55,6 +73,13 @@ const updateEventSchema = eventFields
 
 const generateBracketSchema = z.object({
   force: z.boolean().default(false),
+});
+
+const updateRegistrationSchema = z.object({
+  seed: z.number().int().positive().nullable().optional(),
+  status: z
+    .enum(["registered", "waitlisted", "cancelled", "checked_in"])
+    .optional(),
 });
 
 const updateMatchSchema = z
@@ -118,6 +143,38 @@ const getEventCoordinator = (
   return namespace.get(id) as unknown as EventCoordinatorStub;
 };
 
+const getManageableEvent = async (
+  db: ReturnType<typeof createDb>,
+  eventId: string,
+  userId: string
+) => {
+  const [record] = await db
+    .select()
+    .from(event)
+    .where(eq(event.id, eventId))
+    .limit(1);
+  if (!record) {
+    return null;
+  }
+  if (record.organizerUserId === userId) {
+    return record;
+  }
+  if (!record.organizationId) {
+    return null;
+  }
+  const [membership] = await db
+    .select({ role: organizationMember.role })
+    .from(organizationMember)
+    .where(
+      and(
+        eq(organizationMember.organizationId, record.organizationId),
+        eq(organizationMember.userId, userId)
+      )
+    )
+    .limit(1);
+  return membership ? record : null;
+};
+
 const scheduleEventLifecycle = (
   queue: Queue<EventActivityMessage> | undefined,
   record: { id: string; startsAt: Date | string }
@@ -160,6 +217,85 @@ const runBackgroundTask = async (promise: Promise<unknown>) => {
   }
 };
 
+const refundCancelledEventPayments = async (
+  db: ReturnType<typeof createDb>,
+  eventId: string,
+  eventName: string,
+  stripeSecretKey: string
+) => {
+  const payments = await db
+    .select({ payment: eventPayment, registration: eventRegistration })
+    .from(eventPayment)
+    .innerJoin(
+      eventRegistration,
+      eq(eventPayment.registrationId, eventRegistration.id)
+    )
+    .where(
+      and(
+        eq(eventPayment.eventId, eventId),
+        eq(eventPayment.status, "succeeded")
+      )
+    );
+  const refundErrors: string[] = [];
+  for (const { payment, registration } of payments) {
+    if (!payment.stripePaymentIntentId) {
+      continue;
+    }
+    let response: Response;
+    try {
+      response = await fetch("https://api.stripe.com/v1/refunds", {
+        body: new URLSearchParams({
+          payment_intent: payment.stripePaymentIntentId,
+        }),
+        headers: {
+          Authorization: `Bearer ${stripeSecretKey}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Stripe-Version": "2026-02-25.clover",
+        },
+        method: "POST",
+      });
+    } catch {
+      refundErrors.push(payment.id);
+      continue;
+    }
+    if (!response.ok) {
+      refundErrors.push(payment.id);
+      continue;
+    }
+    const refund = (await response.json()) as { id: string };
+    await db
+      .update(eventPayment)
+      .set({
+        status: "refunded",
+        stripeRefundId: refund.id,
+        updatedAt: new Date(),
+      })
+      .where(eq(eventPayment.id, payment.id));
+    await db
+      .update(eventRegistration)
+      .set({
+        paymentStatus: "refunded",
+        status: "cancelled",
+        updatedAt: new Date(),
+      })
+      .where(eq(eventRegistration.id, registration.id));
+    await createNotification(db, {
+      body: `${eventName} was cancelled, so your registration was refunded in full.`,
+      entityId: eventId,
+      entityType: "event",
+      href: `/events/${eventId}`,
+      title: "Tournament cancelled and refunded",
+      type: "event",
+      userId: registration.userId,
+    });
+  }
+  if (refundErrors.length > 0) {
+    throw new Error(
+      `Stripe refunds failed for ${refundErrors.length} registration(s)`
+    );
+  }
+};
+
 export const eventsRouter = new Hono<AppEnv>()
   .get("/", async (c) => {
     const db = createDb(c.env.DB);
@@ -176,20 +312,40 @@ export const eventsRouter = new Hono<AppEnv>()
     const db = createDb(c.env.DB);
     const { user } = c.var.authSession;
     const data = c.req.valid("json");
+    if (data.organizationId) {
+      const [membership] = await db
+        .select({ role: organizationMember.role })
+        .from(organizationMember)
+        .where(
+          and(
+            eq(organizationMember.organizationId, data.organizationId),
+            eq(organizationMember.userId, user.id)
+          )
+        )
+        .limit(1);
+      if (!membership) {
+        return c.json({ message: "Forbidden" }, HttpStatusCodes.FORBIDDEN);
+      }
+    }
     const isPlatformAdmin = isPlatformAdminEmail(user.email, c.env);
     const record = {
+      ...data,
+      courtLabels: undefined,
+      courtLabelsJson: JSON.stringify(data.courtLabels),
       hostLabel: isPlatformAdmin ? "RallyCasts" : undefined,
       hostType: isPlatformAdmin
         ? ("rallycasts" as const)
         : ("organizer" as const),
       id: createId(),
       organizerUserId: user.id,
-      ...data,
     };
 
-    await db.insert(event).values(record);
+    const [created] = await db.insert(event).values(record).returning();
     if (record.status === "published") {
       waitUntil(c, scheduleEventLifecycle(c.env.EVENT_ACTIVITY_QUEUE, record));
+    }
+    if (created) {
+      await syncEventSearch(c, db, created);
     }
 
     return c.json({ event: record }, HttpStatusCodes.CREATED);
@@ -209,8 +365,35 @@ export const eventsRouter = new Hono<AppEnv>()
     return c.json({ event: record }, HttpStatusCodes.OK);
   })
   .post("/:id/join", requireAuth, async (c) => {
+    const db = createDb(c.env.DB);
     const { user: authUser } = c.var.authSession;
     const id = c.req.param("id");
+    const [record] = await db
+      .select()
+      .from(event)
+      .where(eq(event.id, id))
+      .limit(1);
+    if (!record) {
+      return c.json({ message: "Event not found" }, HttpStatusCodes.NOT_FOUND);
+    }
+    if (
+      record.registrationDeadline &&
+      record.registrationDeadline.getTime() < Date.now()
+    ) {
+      return c.json(
+        { message: "Registration is closed" },
+        HttpStatusCodes.CONFLICT
+      );
+    }
+    if (record.entryFeeCents > 0) {
+      return c.json(
+        {
+          checkoutRequired: true,
+          message: "Paid events require Stripe Checkout",
+        },
+        HttpStatusCodes.PAYMENT_REQUIRED
+      );
+    }
     const result = await getEventCoordinator(
       c.env.EVENT_COORDINATOR,
       id
@@ -329,11 +512,7 @@ export const eventsRouter = new Hono<AppEnv>()
       const { user: authUser } = c.var.authSession;
       const id = c.req.param("id");
       const { force } = c.req.valid("json");
-      const [record] = await db
-        .select()
-        .from(event)
-        .where(and(eq(event.id, id), eq(event.organizerUserId, authUser.id)))
-        .limit(1);
+      const record = await getManageableEvent(db, id, authUser.id);
 
       if (!record) {
         return c.json(
@@ -369,7 +548,7 @@ export const eventsRouter = new Hono<AppEnv>()
             ne(eventRegistration.status, "waitlisted")
           )
         )
-        .orderBy(asc(eventRegistration.createdAt));
+        .orderBy(asc(eventRegistration.seed), asc(eventRegistration.createdAt));
 
       if (registrations.length < 2) {
         return c.json(
@@ -379,23 +558,49 @@ export const eventsRouter = new Hono<AppEnv>()
       }
 
       const matches: (typeof eventMatch.$inferInsert)[] = [];
-      for (let index = 0; index < registrations.length; index += 2) {
-        const playerOne = registrations[index];
-        const playerTwo = registrations[index + 1];
-
-        if (!playerOne) {
-          continue;
+      const courtLabels = JSON.parse(
+        record.courtLabelsJson ?? "[]"
+      ) as string[];
+      if (record.bracketType === "round_robin") {
+        for (let left = 0; left < registrations.length; left += 1) {
+          for (let right = left + 1; right < registrations.length; right += 1) {
+            const playerOne = registrations[left];
+            const playerTwo = registrations[right];
+            if (!(playerOne && playerTwo)) {
+              continue;
+            }
+            matches.push({
+              courtLabel:
+                courtLabels[matches.length % courtLabels.length] ?? undefined,
+              eventId: id,
+              id: createId(),
+              playerOneUserId: playerOne.userId,
+              playerTwoUserId: playerTwo.userId,
+              round: left + 1,
+              status: "scheduled",
+            });
+          }
         }
-
-        matches.push({
-          eventId: id,
-          id: createId(),
-          playerOneUserId: playerOne.userId,
-          playerTwoUserId: playerTwo?.userId,
-          round: 1,
-          status: playerTwo ? "scheduled" : "completed",
-          winnerUserId: playerTwo ? undefined : playerOne.userId,
-        });
+      } else {
+        for (let index = 0; index < registrations.length; index += 2) {
+          const playerOne = registrations[index];
+          const playerTwo = registrations[index + 1];
+          if (!playerOne) {
+            continue;
+          }
+          matches.push({
+            courtLabel:
+              courtLabels[Math.floor(index / 2) % courtLabels.length] ??
+              undefined,
+            eventId: id,
+            id: createId(),
+            playerOneUserId: playerOne.userId,
+            playerTwoUserId: playerTwo?.userId,
+            round: 1,
+            status: playerTwo ? "scheduled" : "completed",
+            winnerUserId: playerTwo ? undefined : playerOne.userId,
+          });
+        }
       }
 
       await db.insert(eventMatch).values(matches);
@@ -411,6 +616,40 @@ export const eventsRouter = new Hono<AppEnv>()
       }
 
       return c.json({ matches }, HttpStatusCodes.CREATED);
+    }
+  )
+  .patch(
+    "/:id/registrations/:registrationId",
+    requireAuth,
+    zValidator("json", updateRegistrationSchema),
+    async (c) => {
+      const db = createDb(c.env.DB);
+      const { user: authUser } = c.var.authSession;
+      const id = c.req.param("id");
+      const record = await getManageableEvent(db, id, authUser.id);
+      if (!record) {
+        return c.json(
+          { message: "Event not found" },
+          HttpStatusCodes.NOT_FOUND
+        );
+      }
+      const [registration] = await db
+        .update(eventRegistration)
+        .set({ ...c.req.valid("json"), updatedAt: new Date() })
+        .where(
+          and(
+            eq(eventRegistration.id, c.req.param("registrationId")),
+            eq(eventRegistration.eventId, id)
+          )
+        )
+        .returning();
+      if (!registration) {
+        return c.json(
+          { message: "Registration not found" },
+          HttpStatusCodes.NOT_FOUND
+        );
+      }
+      return c.json({ registration }, HttpStatusCodes.OK);
     }
   )
   .post(
@@ -454,11 +693,7 @@ export const eventsRouter = new Hono<AppEnv>()
       const id = c.req.param("id");
       const matchId = c.req.param("matchId");
       const data = c.req.valid("json");
-      const [record] = await db
-        .select()
-        .from(event)
-        .where(and(eq(event.id, id), eq(event.organizerUserId, authUser.id)))
-        .limit(1);
+      const record = await getManageableEvent(db, id, authUser.id);
 
       if (!record) {
         return c.json(
@@ -509,17 +744,24 @@ export const eventsRouter = new Hono<AppEnv>()
       const id = c.req.param("id");
       const data = c.req.valid("json");
 
+      const manageableEvent = await getManageableEvent(db, id, user.id);
+      if (!manageableEvent) {
+        return c.json(
+          { message: "Event not found" },
+          HttpStatusCodes.NOT_FOUND
+        );
+      }
       await db
         .update(event)
         .set({
           ...data,
           updatedAt: new Date(),
         })
-        .where(and(eq(event.id, id), eq(event.organizerUserId, user.id)));
+        .where(eq(event.id, id));
       const [updated] = await db
         .select()
         .from(event)
-        .where(and(eq(event.id, id), eq(event.organizerUserId, user.id)))
+        .where(eq(event.id, id))
         .limit(1);
 
       if (!updated) {
@@ -535,7 +777,43 @@ export const eventsRouter = new Hono<AppEnv>()
           scheduleEventLifecycle(c.env.EVENT_ACTIVITY_QUEUE, updated)
         );
       }
+      if (data.status === "cancelled" && c.env.STRIPE_SECRET_KEY) {
+        waitUntil(
+          c,
+          refundCancelledEventPayments(
+            db,
+            updated.id,
+            updated.name,
+            c.env.STRIPE_SECRET_KEY
+          )
+        );
+      }
+      await syncEventSearch(c, db, updated);
 
       return c.json({ event: updated }, HttpStatusCodes.OK);
     }
   );
+
+const syncEventSearch = async (
+  c: Context<AppEnv>,
+  db: ReturnType<typeof createDb>,
+  record: typeof event.$inferSelect
+) => {
+  if (record.status !== "published") {
+    await removeSearchDocument(db, c.env, "event", record.id);
+    return;
+  }
+  const searchRecord = await upsertSearchDocument(db, {
+    content: [record.description, record.eventType, record.hostLabel]
+      .filter(Boolean)
+      .join(". "),
+    entityId: record.id,
+    entityType: "event",
+    metadata: {
+      organizationId: record.organizationId,
+      venueId: record.venueId,
+    },
+    title: record.name,
+  });
+  scheduleSearchDocumentIndex(() => c.executionCtx, db, c.env, searchRecord);
+};

@@ -1,7 +1,17 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 import { apiClient } from "@/lib/api-client";
-import { demoVideos, withDemoList } from "@/lib/demo-data";
+import {
+  demoVideos,
+  getDemoVideoDetail,
+  getDemoVideoPage,
+  withDemoList,
+} from "@/lib/demo-data";
 
 import { readApiJson } from "./api";
 
@@ -18,6 +28,55 @@ export const useVideos = () =>
     select: (data) => withDemoList(data, "videos", demoVideos),
   });
 
+export const useRecommendedVideos = (enabled = true) =>
+  useQuery({
+    enabled,
+    queryFn: async () => {
+      try {
+        return await readApiJson(apiClient.api.videos.feed.$get());
+      } catch {
+        return {
+          mode: "fallback" as const,
+          videos: demoVideos.map((video) => ({
+            ...video,
+            recommendationReason: "Popular on RallyCasts",
+            recommendationScore: 0,
+          })),
+        };
+      }
+    },
+    queryKey: ["videos", "feed"],
+  });
+
+export const useInfiniteVideos = (limit = 12) =>
+  useInfiniteQuery({
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    initialPageParam: undefined as string | undefined,
+    queryFn: async ({ pageParam }) => {
+      if (pageParam?.startsWith("demo:")) {
+        return getDemoVideoPage(pageParam, limit);
+      }
+
+      try {
+        const result = await readApiJson(
+          apiClient.api.videos.$get({
+            query: {
+              ...(pageParam ? { cursor: pageParam } : {}),
+              limit: String(limit),
+            },
+          })
+        );
+
+        return result.videos.length > 0 || pageParam
+          ? result
+          : getDemoVideoPage(undefined, limit);
+      } catch {
+        return getDemoVideoPage(pageParam, limit);
+      }
+    },
+    queryKey: ["videos", "infinite", limit],
+  });
+
 export const useMyVideos = () =>
   useQuery({
     queryFn: () => readApiJson(apiClient.api.videos.me.$get()),
@@ -27,12 +86,16 @@ export const useMyVideos = () =>
 export const useVideo = (id: string) =>
   useQuery({
     enabled: id.length > 0,
-    queryFn: () =>
-      readApiJson(
-        apiClient.api.videos[":id"].$get({
-          param: { id },
-        })
-      ),
+    queryFn: async () => {
+      const demoVideo = getDemoVideoDetail(id);
+      if (demoVideo) {
+        return demoVideo;
+      }
+
+      return await readApiJson(
+        apiClient.api.videos[":id"].$get({ param: { id } })
+      );
+    },
     queryKey: ["videos", id],
   });
 
@@ -58,9 +121,9 @@ export const useCreateVideo = () => {
   });
 };
 
-export const useVideoComments = (videoId: string) =>
+export const useVideoComments = (videoId: string, enabled = true) =>
   useQuery({
-    enabled: videoId.length > 0,
+    enabled: enabled && videoId.length > 0,
     queryFn: () =>
       readApiJson(
         apiClient.api.videos[":id"].comments.$get({

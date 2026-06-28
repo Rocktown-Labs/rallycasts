@@ -1,11 +1,8 @@
-import { devToolsMiddleware } from "@ai-sdk/devtools";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createAuth } from "@rallycaststv/auth";
 import {
   renderResetPasswordEmail,
   renderWelcomeEmail,
 } from "@rallycaststv/email";
-import { streamText, convertToModelMessages, wrapLanguageModel } from "ai";
 import { Hono } from "hono";
 import type { Context } from "hono";
 import { cors } from "hono/cors";
@@ -20,9 +17,11 @@ import onError from "stoker/middlewares/on-error";
 import type { AppEnv } from "./lib/types";
 import { castersRouter } from "./routes/casters";
 import { castingJobsRouter } from "./routes/casting-jobs";
+import { challengesRouter } from "./routes/challenges";
 import { emailsRouter } from "./routes/emails";
 import { eventsRouter } from "./routes/events";
 import { muxRouter } from "./routes/mux";
+import { organizationsRouter } from "./routes/organizations";
 import { placesRouter } from "./routes/places";
 import { playersRouter } from "./routes/players";
 import { profileRouter } from "./routes/profile";
@@ -148,25 +147,9 @@ const routes = app
 
     return auth.handler(c.req.raw);
   })
-  .post("/ai", async (c) => {
-    const body = await c.req.json();
-    const uiMessages = body.messages || [];
-    const google = createGoogleGenerativeAI({
-      apiKey: c.env.GOOGLE_GENERATIVE_AI_API_KEY,
-    });
-    const model = wrapLanguageModel({
-      middleware: devToolsMiddleware(),
-      model: google("gemini-2.5-flash"),
-    });
-    const result = streamText({
-      messages: await convertToModelMessages(uiMessages),
-      model,
-    });
-
-    return result.toUIMessageStreamResponse();
-  })
   .route("/api/casters", castersRouter)
   .route("/api/casting-jobs", castingJobsRouter)
+  .route("/api/challenges", challengesRouter)
   .route("/api/videos", videosRouter)
   .route("/api/events", eventsRouter)
   .route("/api/profile", profileRouter)
@@ -179,6 +162,7 @@ const routes = app
   .route("/api/trending", trendingRouter)
   .route("/api/stripe", stripeRouter)
   .route("/api/mux", muxRouter)
+  .route("/api/organizations", organizationsRouter)
   .route("/api/upload", uploadRouter)
   .route("/api/emails", emailsRouter)
   .route("/webhooks", webhooksRouter);

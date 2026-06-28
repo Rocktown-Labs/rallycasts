@@ -21,7 +21,6 @@ import {
   useVideoComments,
   useAddVideoComment,
   usePinVideoComment,
-  useVideos,
 } from "@/lib/hooks";
 
 interface CommentUser {
@@ -141,6 +140,7 @@ interface VideoMetaHeaderProps {
   hasLiked: boolean;
   handleSubscribeToggle: () => void;
   handleLikeToggle: () => void;
+  isDemo: boolean;
   venue?: {
     id: string;
     name: string;
@@ -166,6 +166,7 @@ function VideoMetaHeader({
   hasLiked,
   handleSubscribeToggle,
   handleLikeToggle,
+  isDemo,
   venue,
   taggedUsers,
 }: VideoMetaHeaderProps) {
@@ -176,6 +177,12 @@ function VideoMetaHeader({
   const initialLetter = ownerName.at(0) || "P";
   const videoDescription =
     video.description || "No description provided for this video.";
+  let subscriptionLabel = "Subscribe";
+  if (isDemo) {
+    subscriptionLabel = "Demo creator";
+  } else if (isSubscribed) {
+    subscriptionLabel = "Subscribed";
+  }
 
   return (
     <div className="space-y-4">
@@ -230,16 +237,18 @@ function VideoMetaHeader({
             </div>
           </div>
           <Button
+            disabled={isDemo}
             onClick={handleSubscribeToggle}
             variant={isSubscribed ? "secondary" : "default"}
             className="rounded-full text-xs font-bold px-5 h-9 ml-4"
           >
-            {isSubscribed ? "Subscribed" : "Subscribe"}
+            {subscriptionLabel}
           </Button>
         </div>
 
         <div className="flex items-center gap-2">
           <Button
+            disabled={isDemo}
             onClick={handleLikeToggle}
             variant={hasLiked ? "secondary" : "outline"}
             className={`rounded-full gap-2 text-xs font-bold h-9 px-4 ${
@@ -340,6 +349,7 @@ interface CommentsSectionProps {
   isPending: boolean;
   isPinPending: boolean;
   canPinComments: boolean;
+  isReadOnly: boolean;
 }
 
 function CommentsSection({
@@ -353,6 +363,7 @@ function CommentsSection({
   isPending,
   isPinPending,
   canPinComments,
+  isReadOnly,
 }: CommentsSectionProps) {
   const renderCommentsContent = () => {
     if (commentsLoading) {
@@ -480,56 +491,20 @@ function CommentsSection({
     );
   };
 
-  return (
-    <div className="space-y-6 pt-4">
-      <div className="flex items-center gap-2">
-        <h2 className="text-lg font-extrabold tracking-tight">
-          {commentsList.length} Comments
-        </h2>
-      </div>
+  const renderCommentComposer = () => {
+    if (isReadOnly) {
+      return (
+        <div className="rounded-xl border border-border/40 bg-muted/20 p-4 text-center">
+          <p className="text-xs text-muted-foreground">
+            Demo comments are read-only. Publish a real video to try likes,
+            comments, and creator tools.
+          </p>
+        </div>
+      );
+    }
 
-      {currentUser ? (
-        <form onSubmit={handleAddComment} className="flex gap-3 items-start">
-          <div className="size-10 rounded-full border border-primary/20 bg-muted overflow-hidden flex items-center justify-center font-bold text-sm shrink-0">
-            {currentUser.image ? (
-              <img
-                src={currentUser.image}
-                alt={currentUser.name}
-                className="size-full object-cover"
-              />
-            ) : (
-              currentUser.name?.at(0) || "U"
-            )}
-          </div>
-          <div className="flex-1 space-y-2">
-            <Input
-              placeholder="Add a public comment..."
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              className="border-b border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:border-primary px-0 text-xs pb-2 bg-transparent"
-            />
-            {commentText.trim() && (
-              <div className="flex justify-end gap-2 animate-in fade-in duration-200">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setCommentText("")}
-                  className="rounded-full text-xs font-semibold px-4 h-8"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={isPending}
-                  className="rounded-full text-xs font-semibold px-4 h-8 bg-primary text-primary-foreground"
-                >
-                  Comment
-                </Button>
-              </div>
-            )}
-          </div>
-        </form>
-      ) : (
+    if (!currentUser) {
+      return (
         <div className="p-4 rounded-xl border border-border/40 bg-muted/20 text-center space-y-3">
           <p className="text-xs text-muted-foreground">
             Log in to join the conversation and comment on this video.
@@ -540,7 +515,62 @@ function CommentsSection({
             </Button>
           </Link>
         </div>
-      )}
+      );
+    }
+
+    return (
+      <form onSubmit={handleAddComment} className="flex gap-3 items-start">
+        <div className="size-10 rounded-full border border-primary/20 bg-muted overflow-hidden flex items-center justify-center font-bold text-sm shrink-0">
+          {currentUser.image ? (
+            <img
+              src={currentUser.image}
+              alt={currentUser.name}
+              className="size-full object-cover"
+            />
+          ) : (
+            currentUser.name?.at(0) || "U"
+          )}
+        </div>
+        <div className="flex-1 space-y-2">
+          <Input
+            placeholder="Add a public comment..."
+            value={commentText}
+            onChange={(event) => setCommentText(event.target.value)}
+            className="border-b border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:border-primary px-0 text-xs pb-2 bg-transparent"
+          />
+          {commentText.trim() ? (
+            <div className="flex justify-end gap-2 animate-in fade-in duration-200">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setCommentText("")}
+                className="rounded-full text-xs font-semibold px-4 h-8"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isPending}
+                className="rounded-full text-xs font-semibold px-4 h-8 bg-primary text-primary-foreground"
+              >
+                Comment
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      </form>
+    );
+  };
+
+  return (
+    <div className="space-y-6 pt-4">
+      <div className="flex items-center gap-2">
+        <h2 className="text-lg font-extrabold tracking-tight">
+          {commentsList.length} Comments
+        </h2>
+      </div>
+
+      {renderCommentComposer()}
 
       {renderCommentsContent()}
     </div>
@@ -615,6 +645,7 @@ function VideoSidebar({ otherVideos }: VideoSidebarProps) {
 // oxlint-disable-next-line complexity
 function VideoDetailPage() {
   const { id } = useParams({ from: "/videos/$id" });
+  const isDemoVideo = id.startsWith("demo-video-");
   const { data: session } = authClient.useSession();
   const currentUser = session?.user;
 
@@ -623,12 +654,12 @@ function VideoDetailPage() {
     isLoading: videoLoading,
     error: videoError,
   } = useVideo(id);
-  const { data: commentsData, isLoading: commentsLoading } =
-    useVideoComments(id);
+  const { data: commentsData, isLoading: commentsLoading } = useVideoComments(
+    id,
+    !isDemoVideo
+  );
   const addCommentMutation = useAddVideoComment(id);
   const pinCommentMutation = usePinVideoComment(id);
-  const { data: recommendedData } = useVideos();
-
   const [commentText, setCommentText] = useState("");
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [likesCount, setLikesCount] = useState(42);
@@ -645,14 +676,10 @@ function VideoDetailPage() {
     return <VideoNotFound />;
   }
 
-  const { video, owner, venue, taggedUsers } = videoData;
+  const { video, owner, venue, taggedUsers, relatedVideos } = videoData;
   const commentsList = commentsData?.comments ?? [];
   const canPinComments = Boolean(
     currentUser?.id && owner?.id && currentUser.id === owner.id
-  );
-
-  const otherVideos = (recommendedData?.videos ?? []).filter(
-    (v: { id: string }) => v.id !== video.id
   );
 
   const handleSubscribeToggle = () => {
@@ -677,6 +704,10 @@ function VideoDetailPage() {
 
   const handleAddComment = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isDemoVideo) {
+      toast.info("Demo comments are read-only.");
+      return;
+    }
     if (!currentUser) {
       toast.error("You must be logged in to comment.");
       return;
@@ -714,6 +745,9 @@ function VideoDetailPage() {
   };
 
   const handlePlayVideo = async () => {
+    if (!video.muxPlaybackId) {
+      return;
+    }
     if (videoRef.current) {
       if (isPlaying) {
         videoRef.current.pause();
@@ -764,20 +798,19 @@ function VideoDetailPage() {
                 <track kind="captions" />
               </video>
             ) : (
-              <video
-                ref={videoRef}
-                className="size-full object-contain cursor-pointer"
-                src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
-                poster={posterUrl}
-                controls={isPlaying}
-                onClick={handlePlayVideo}
-                aria-label={video.title}
-              >
-                <track kind="captions" />
-              </video>
+              <div className="flex size-full flex-col items-center justify-center gap-3 bg-[radial-gradient(circle_at_top,hsl(142_100%_18%/.45),transparent_65%)] px-6 text-center text-white">
+                <VideoIcon className="size-12 text-[#bcdf21]" />
+                <div>
+                  <p className="font-bold">Demo video preview</p>
+                  <p className="mt-1 max-w-md text-xs text-white/65">
+                    This card exercises the real detail layout. Playback appears
+                    here after a Mux-backed video is published.
+                  </p>
+                </div>
+              </div>
             )}
 
-            {!isPlaying && (
+            {video.muxPlaybackId && !isPlaying && (
               <button
                 type="button"
                 onClick={handlePlayVideo}
@@ -805,6 +838,7 @@ function VideoDetailPage() {
             hasLiked={hasLiked}
             handleSubscribeToggle={handleSubscribeToggle}
             handleLikeToggle={handleLikeToggle}
+            isDemo={isDemoVideo}
             venue={venue}
             taggedUsers={taggedUsers}
           />
@@ -820,10 +854,11 @@ function VideoDetailPage() {
             isPending={addCommentMutation.isPending}
             isPinPending={pinCommentMutation.isPending}
             canPinComments={canPinComments}
+            isReadOnly={isDemoVideo}
           />
         </div>
 
-        <VideoSidebar otherVideos={otherVideos} />
+        <VideoSidebar otherVideos={relatedVideos ?? []} />
       </div>
     </div>
   );

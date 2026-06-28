@@ -27,7 +27,7 @@ describe("RallyCasts API", () => {
     await expect(response.json()).resolves.toEqual({ message: "Unauthorized" });
   });
 
-  it("persists Stripe webhook stubs through the D1 binding", async () => {
+  it("rejects unsigned Stripe webhooks", async () => {
     const response = await app.request(
       "/api/stripe/webhook",
       {
@@ -41,19 +41,7 @@ describe("RallyCasts API", () => {
       env
     );
 
-    expect(response.status).toBe(202);
-
-    const event = await env.DB.prepare(
-      "select provider, provider_event_id, event_type from webhook_event where provider_event_id = ?"
-    )
-      .bind("evt_test_1")
-      .first();
-
-    expect(event).toEqual({
-      event_type: "payment_intent.succeeded",
-      provider: "stripe",
-      provider_event_id: "evt_test_1",
-    });
+    expect(response.status).toBe(401);
   });
 
   it("exposes Better Auth health through the mounted auth route", async () => {

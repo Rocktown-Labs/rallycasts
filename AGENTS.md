@@ -5,10 +5,64 @@
 Before substantial work:
 
 - Skill check: run `bunx @tanstack/intent@latest list`, or use skills already listed in context.
+- Dynamic skill scan: run a directory search of `.agents/skills/` and read the `SKILL.md` for any clearly relevant concern domain before changing code.
 - Skill guidance: if one local skill clearly matches the task, run `bunx @tanstack/intent@latest load <package>#<skill>` and follow the returned `SKILL.md`.
 - Monorepos: when working across packages, run the skill check from the workspace root and prefer the local skill for the package being changed.
 - Multiple matches: prefer the most specific local skill for the package or concern you are changing; load additional skills only when the task spans multiple packages or concerns.
 <!-- intent-skills:end -->
+
+# Agent Workflow and Skill Routing Guidelines
+
+This repository ships through a GitHub-driven Plan → Branch → Implement → Test → PR → Merge → Ship workflow.
+
+## Planning and Issue Traceability
+
+- Every code change should trace back to a GitHub issue when possible.
+- Before writing code for new work, state the issue context, acceptance criteria, intended file paths, testing strategy, and branch name.
+- If the user is continuing already-started emergency or release work without an issue, preserve the current branch and document the release scope in the PR body.
+
+## Branching and Pull Requests
+
+- Do not push directly to `master` or `main`.
+- Branches should be created from the latest default branch and use lowercase kebab-case names, preferably with one of these prefixes: `feat/`, `fix/`, `chore/`, or `codex/`.
+- Existing Codex release branches may continue using the `codex/` prefix.
+- Open pull requests against the repository default branch. This project currently uses `master` as the production branch.
+- PR titles should match the linked issue title when a single issue owns the work. For multi-issue release branches, use a concise release title and list all issues or release items in the body.
+
+## Project Status Mapping
+
+- Issue created: Backlog
+- Branch created or coding started: In Progress
+- Pull request opened: In Review
+- Pull request merged: Done
+
+## Quality Gates
+
+Before requesting review or merging, run the checks that apply to the changed packages:
+
+- `bun run check`
+- `bun run check-types`
+- `bun run test`
+- package-specific production builds when deploy code changed
+
+If formatting or lint issues are found, run `bun run fix`, then rerun the failing gate.
+
+## Pull Request Body
+
+PR bodies should include:
+
+- Summary
+- Implementation notes
+- Testing notes
+- Deployment or secret requirements
+- `Closes #<issueNumber>` when an issue exists
+
+## Merge and Release Handoff
+
+- Merge only after CI and preview/deployment checks pass.
+- After merging, verify production health endpoints and key user flows.
+- Return the workspace to a clean, updated `master` checkout.
+- Delete the local feature branch only after production is healthy and the remote branch is no longer needed.
 
 # Ultracite Code Standards
 
