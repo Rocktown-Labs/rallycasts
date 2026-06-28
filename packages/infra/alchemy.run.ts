@@ -179,9 +179,11 @@ export const server = await Worker("rallycasts-server", {
   dev: {
     port: 3000,
   },
-  domains: isProd ? ["api.rallycasts.com"] : undefined,
   entrypoint: "src/index.ts",
   name: isProd ? "rallycasts-server" : `rallycasts-server-${stage}`,
+  routes: isProd
+    ? [{ adopt: true, pattern: "api.rallycasts.com/*" }]
+    : undefined,
   url: true,
 });
 
@@ -204,8 +206,8 @@ export const web = await TanStackStart("rallycasts-web", {
     VITE_SERVER_URL: productionServerUrl,
   },
   cwd: "../../apps/web",
-  domains: isProd ? ["rallycasts.com"] : undefined,
   name: isProd ? "rallycasts-web" : `rallycasts-web-${stage}`,
+  routes: isProd ? [{ adopt: true, pattern: "rallycasts.com/*" }] : undefined,
   url: true,
 });
 
