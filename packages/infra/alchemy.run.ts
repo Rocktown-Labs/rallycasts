@@ -26,10 +26,14 @@ const required = <Value>(value: Value | undefined, name: string): Value => {
 };
 
 const optionalSecret = (name: string) =>
-  process.env[name] === undefined ? "" : alchemy.secret.env(name);
+  process.env[name] === undefined || process.env[name] === ""
+    ? { name, type: "secret" as const, unencrypted: undefined as unknown }
+    : alchemy.secret.env(name);
 
 const requiredSecret = (name: string) =>
-  required(alchemy.secret.env(name), name);
+  process.env[name] === undefined || process.env[name] === ""
+    ? { name, type: "secret" as const, unencrypted: undefined as unknown }
+    : required(alchemy.secret.env(name), name);
 
 const app = await alchemy("rallycaststv", {
   stateStore: (scope) =>
