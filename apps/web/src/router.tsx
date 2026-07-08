@@ -1,4 +1,3 @@
-import { env } from "@rallycaststv/env/web";
 import * as Sentry from "@sentry/tanstackstart-react";
 import { createRouter as createTanStackRouter } from "@tanstack/react-router";
 
@@ -16,20 +15,9 @@ export const getRouter = () => {
   });
 
   if (!router.isServer) {
-    Sentry.init({
-      dsn: env.VITE_SENTRY_DSN,
-      enableLogs: true,
-      integrations: [
-        Sentry.tanstackRouterBrowserTracingIntegration(router),
-        Sentry.replayIntegration(),
-        Sentry.feedbackIntegration({
-          colorScheme: "system",
-        }),
-      ],
-      replaysOnErrorSampleRate: 1,
-      replaysSessionSampleRate: 0.1,
-      tracesSampleRate: 1,
-    });
+    Sentry.addIntegration(
+      Sentry.tanstackRouterBrowserTracingIntegration(router)
+    );
   }
 
   return router;

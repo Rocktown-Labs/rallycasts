@@ -41,7 +41,9 @@ const app = new Hono<AppEnv>();
 // Initialize Sentry middleware as early as possible
 app.use(
   sentry(app, (env) => ({
-    dsn: env.SENTRY_DSN,
+    dsn:
+      env.SENTRY_DSN ||
+      "https://45068906aca0ec44b46793aa397c6b57@o4510278858309632.ingest.us.sentry.io/4511701816508416",
     enableLogs: true,
     tracesSampleRate: 1,
   }))
