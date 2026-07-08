@@ -91,7 +91,6 @@ const stripeSecretKey = optionalSecret("STRIPE_SECRET_KEY");
 const stripeWebhookSecret = optionalSecret("STRIPE_WEBHOOK_SECRET");
 
 const mediaBucket = await R2Bucket("media", {
-  adopt: true,
   name: r2BucketName,
 });
 
