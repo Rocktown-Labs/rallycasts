@@ -6,7 +6,22 @@ import { readApiJson } from "./api";
 
 export const useNotifications = () =>
   useQuery({
-    queryFn: () => readApiJson(apiClient.api.social.notifications.$get()),
+    queryFn: async () => {
+      try {
+        const response = await apiClient.api.social.notifications.$get();
+        if (response.status === 401) {
+          return null;
+        }
+        if (!response.ok) {
+          throw new Error(
+            response.statusText || `Request failed with ${response.status}`
+          );
+        }
+        return await response.json();
+      } catch {
+        return null;
+      }
+    },
     queryKey: ["notifications"],
     retry: false,
   });
