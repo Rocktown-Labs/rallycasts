@@ -25,6 +25,12 @@ const required = <Value>(value: Value | undefined, name: string): Value => {
   return value;
 };
 
+const optionalSecret = (name: string) =>
+  process.env[name] === undefined ? "" : alchemy.secret.env(name);
+
+const requiredSecret = (name: string) =>
+  required(alchemy.secret.env(name), name);
+
 const app = await alchemy("rallycaststv", {
   stateStore: (scope) =>
     new CloudflareStateStore(scope, {
@@ -32,7 +38,7 @@ const app = await alchemy("rallycaststv", {
     }),
 });
 
-const stage = app.stage ?? "dev";
+const stage = app.stage === "ubuntu" ? "prod" : (app.stage ?? "dev");
 const isProd = stage === "prod";
 
 const productionServerUrl = "https://api.rallycasts.com";
@@ -55,37 +61,34 @@ const searchIndex = await VectorizeIndex("search-index", {
   name: isProd ? "rallycasts-search-v2" : `rallycasts-search-${stage}`,
 });
 
-const betterAuthSecret = required(
-  alchemy.secret.env.BETTER_AUTH_SECRET,
-  "BETTER_AUTH_SECRET"
-);
+const betterAuthSecret = requiredSecret("BETTER_AUTH_SECRET");
 const betterAuthUrl = productionServerUrl;
 const corsOrigin = `${webWorkerUrl},${productionWebUrl}`;
 const adminEmails = process.env.ADMIN_EMAILS ?? "camstewart7@gmail.com";
 const rallycastsAdminEmail =
   process.env.RALLYCASTS_ADMIN_EMAIL ?? "camstewart7@gmail.com";
-const googleAiApiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? "";
+const googleAiApiKey = requiredSecret("GOOGLE_GENERATIVE_AI_API_KEY");
 const githubClientId = process.env.GITHUB_CLIENT_ID ?? "";
-const githubClientSecret = process.env.GITHUB_CLIENT_SECRET ?? "";
+const githubClientSecret = optionalSecret("GITHUB_CLIENT_SECRET");
 const googleClientId = process.env.GOOGLE_CLIENT_ID ?? "";
-const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET ?? "";
-const googlePlacesApiKey = process.env.GOOGLE_PLACES_API_KEY ?? "";
-const radarSecretKey = process.env.RADAR_SECRET_KEY ?? "";
+const googleClientSecret = optionalSecret("GOOGLE_CLIENT_SECRET");
+const googlePlacesApiKey = optionalSecret("GOOGLE_PLACES_API_KEY");
+const radarSecretKey = optionalSecret("RADAR_SECRET_KEY");
 const radarPublishableKey = process.env.VITE_RADAR_PUBLISHABLE_KEY ?? "";
 const fourthwallStorefrontUrl =
   process.env.VITE_FOURTHWALL_STOREFRONT_URL ?? "";
-const muxTokenSecret = process.env.MUX_TOKEN_SECRET ?? "";
-const muxTokenId = process.env.MUX_TOKEN_ID ?? "";
-const muxWebhookSecret = process.env.MUX_WEBHOOK_SECRET ?? "";
-const r2AccessKeyId = process.env.R2_ACCESS_KEY_ID ?? "";
-const r2SecretAccessKey = process.env.R2_SECRET_ACCESS_KEY ?? "";
+const muxTokenSecret = optionalSecret("MUX_TOKEN_SECRET");
+const muxTokenId = optionalSecret("MUX_TOKEN_ID");
+const muxWebhookSecret = optionalSecret("MUX_WEBHOOK_SECRET");
+const r2AccessKeyId = optionalSecret("R2_ACCESS_KEY_ID");
+const r2SecretAccessKey = optionalSecret("R2_SECRET_ACCESS_KEY");
 const r2BucketName = process.env.R2_BUCKET_NAME ?? "rallycasts-media";
 const r2AccountId = process.env.R2_ACCOUNT_ID ?? "";
 const r2PublicUrl = process.env.R2_PUBLIC_URL ?? "https://media.rallycasts.com";
-const resendApiKey = process.env.RESEND_API_KEY ?? "";
-const resendWebhookSecret = process.env.RESEND_WEBHOOK_SECRET ?? "";
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY ?? "";
-const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET ?? "";
+const resendApiKey = optionalSecret("RESEND_API_KEY");
+const resendWebhookSecret = optionalSecret("RESEND_WEBHOOK_SECRET");
+const stripeSecretKey = optionalSecret("STRIPE_SECRET_KEY");
+const stripeWebhookSecret = optionalSecret("STRIPE_WEBHOOK_SECRET");
 
 const mediaBucket = await R2Bucket("media", {
   adopt: true,
