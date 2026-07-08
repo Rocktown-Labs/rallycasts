@@ -25,19 +25,15 @@ export const Route = createFileRoute("/_auth")({
     }
 
     const onboardingStatus = profileData?.profile?.onboardingStatus;
-    if (
-      onboardingStatus !== "complete" &&
-      location.pathname !== "/onboarding"
-    ) {
+    const needsOnboarding =
+      profileData?.needsOnboarding ?? onboardingStatus !== "complete";
+    if (needsOnboarding && location.pathname !== "/onboarding") {
       throw redirect({
         to: "/onboarding",
       });
     }
 
-    if (
-      onboardingStatus === "complete" &&
-      location.pathname === "/onboarding"
-    ) {
+    if (!needsOnboarding && location.pathname === "/onboarding") {
       throw redirect({
         to: "/u/me",
       });

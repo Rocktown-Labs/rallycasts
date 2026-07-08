@@ -25,7 +25,8 @@ export const discoverNavItems = [
 ] as const;
 
 export const organizerNavItems = [
-  { icon: Calendar, label: "Manage Events", to: "/events" },
+  { icon: Trophy, label: "Dashboard", to: "/u/organizer" },
+  { icon: Calendar, label: "Manage Events", to: "/u/organizer/events" },
 ] as const;
 
 export const accountNavItems = [

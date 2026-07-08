@@ -52,6 +52,16 @@ const jsonRequest = (
     env
   );
 
+const activateOrganizer = (cookie: string) =>
+  jsonRequest(
+    "/api/profile/me",
+    cookie,
+    {
+      isOrganizer: true,
+    },
+    "PATCH"
+  );
+
 describe("events API", () => {
   it("promotes configured RallyCasts admins to organizers and labels hosted events", async () => {
     const admin = await signUp("RallyCasts Admin", "camstewart7@gmail.com");
@@ -98,6 +108,9 @@ describe("events API", () => {
     const playerOne = await signUp("Parker Player");
     const playerTwo = await signUp("Taylor Thirdshot");
     const startsAt = new Date("2027-04-10T15:00:00.000Z").toISOString();
+
+    const organizerProfileResponse = await activateOrganizer(organizer.cookie);
+    expect(organizerProfileResponse.status).toBe(200);
 
     const eventResponse = await jsonRequest("/api/events", organizer.cookie, {
       capacity: 2,
@@ -230,6 +243,22 @@ describe("events API", () => {
     );
 
     expect(matchUpdate.status).toBe(200);
+  });
+
+  it("rejects event creation until the user has organizer tools enabled", async () => {
+    const player = await signUp("Plain Player");
+    const response = await jsonRequest("/api/events", player.cookie, {
+      capacity: 12,
+      eventType: "open_play",
+      name: "Unauthorized Open Play",
+      startsAt: new Date("2027-06-01T18:00:00.000Z").toISOString(),
+      status: "published",
+    });
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({
+      message: "Organizer profile required",
+    });
   });
 
   it("rejects unsupported image uploads before writing to R2", async () => {

@@ -18,6 +18,12 @@ export const useEvents = () =>
     select: (data) => withDemoList(data, "events", demoEvents),
   });
 
+export const useMyEvents = () =>
+  useQuery({
+    queryFn: () => readApiJson(apiClient.api.events.mine.$get()),
+    queryKey: ["events", "mine"],
+  });
+
 export const useEvent = (id: string) =>
   useQuery({
     enabled: id.length > 0,
@@ -46,6 +52,7 @@ export const useCreateEvent = () => {
     }) => readApiJson(apiClient.api.events.$post({ json })),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["events", "mine"] });
     },
   });
 };

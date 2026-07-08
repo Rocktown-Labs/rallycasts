@@ -24,7 +24,7 @@ export const useTrending = (location?: GeoLocation) =>
   useQuery({
     queryFn: async () => {
       try {
-        return await readApiJson(
+        const data = await readApiJson(
           apiClient.api.trending.$get({
             query: location
               ? {
@@ -35,8 +35,9 @@ export const useTrending = (location?: GeoLocation) =>
               : {},
           })
         );
+        return { ...data, isApiFallback: false };
       } catch {
-        return demoTrending;
+        return { ...demoTrending, isApiFallback: true };
       }
     },
     queryKey: ["trending", location?.lat, location?.lng],

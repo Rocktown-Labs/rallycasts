@@ -7,6 +7,7 @@ import {
   eventPayment,
   eventRegistration,
   organizationMember,
+  userProfile,
 } from "@rallycaststv/db/schema/domain";
 import { and, asc, desc, eq, ne } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
@@ -296,6 +297,25 @@ const refundCancelledEventPayments = async (
   }
 };
 
+const isOrganizerUser = async (
+  db: ReturnType<typeof createDb>,
+  userId: string,
+  email: string,
+  c: Context<AppEnv>
+) => {
+  if (isPlatformAdminEmail(email, c.env)) {
+    return true;
+  }
+
+  const [profile] = await db
+    .select({ isOrganizer: userProfile.isOrganizer })
+    .from(userProfile)
+    .where(eq(userProfile.userId, userId))
+    .limit(1);
+
+  return profile?.isOrganizer === true;
+};
+
 export const eventsRouter = new Hono<AppEnv>()
   .get("/", async (c) => {
     const db = createDb(c.env.DB);
@@ -305,6 +325,18 @@ export const eventsRouter = new Hono<AppEnv>()
       .where(eq(event.status, "published"))
       .orderBy(desc(event.startsAt))
       .limit(50);
+
+    return c.json({ events }, HttpStatusCodes.OK);
+  })
+  .get("/mine", requireAuth, async (c) => {
+    const db = createDb(c.env.DB);
+    const { user } = c.var.authSession;
+    const events = await db
+      .select()
+      .from(event)
+      .where(eq(event.organizerUserId, user.id))
+      .orderBy(desc(event.startsAt))
+      .limit(100);
 
     return c.json({ events }, HttpStatusCodes.OK);
   })
@@ -328,6 +360,14 @@ export const eventsRouter = new Hono<AppEnv>()
       }
     }
     const isPlatformAdmin = isPlatformAdminEmail(user.email, c.env);
+
+    if (!(await isOrganizerUser(db, user.id, user.email, c))) {
+      return c.json(
+        { message: "Organizer profile required" },
+        HttpStatusCodes.FORBIDDEN
+      );
+    }
+
     const record = {
       ...data,
       courtLabels: undefined,

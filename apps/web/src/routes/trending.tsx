@@ -111,11 +111,13 @@ function SectionHeader({
 
 function LocationStatus({
   error,
+  isApiFallback,
   isLoading,
   location,
   requestLocation,
 }: {
   error: string | null;
+  isApiFallback?: boolean;
   isLoading: boolean;
   location?: { isFallback?: boolean; lat: number; lng: number };
   requestLocation: () => void;
@@ -142,19 +144,97 @@ function LocationStatus({
   }
 
   if (location) {
+    const locationLabel = location.isFallback
+      ? "Arkansas fallback"
+      : `${location.lat.toFixed(3)}, ${location.lng.toFixed(3)}`;
+
     return (
       <button
         type="button"
         onClick={requestLocation}
-        className="text-xs text-emerald-500 font-medium flex items-center gap-1 hover:text-emerald-400"
+        className="flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80"
       >
-        <MapPin className="size-3" />{" "}
-        {location.isFallback ? "Arkansas fallback" : "Location active"}
+        <MapPin className="size-3" />
+        {isApiFallback ? "Demo fallback" : locationLabel}
       </button>
     );
   }
 
   return null;
+}
+
+function HeroStatusMessages({
+  isApiFallback,
+  isLocationFallback,
+}: {
+  isApiFallback: boolean;
+  isLocationFallback?: boolean;
+}) {
+  return (
+    <>
+      {isLocationFallback && (
+        <p className="text-xs font-medium text-[#bcdf21] pt-1">
+          Showing Northwest Arkansas while we wait for exact location.
+        </p>
+      )}
+      {isApiFallback && (
+        <p className="text-xs font-medium text-rose-200 pt-1">
+          Trending API is unavailable, so this page is showing demo data instead
+          of live nearby parks.
+        </p>
+      )}
+    </>
+  );
+}
+
+function ParksNearYouSection({
+  location,
+  requestLocation,
+  venues,
+}: {
+  location?: { lat: number; lng: number };
+  requestLocation: () => void;
+  venues: VenueCardData[];
+}) {
+  const emptyMessage = location
+    ? "Location is available, but no RallyCasts or Google Places pickleball parks were returned nearby."
+    : "Allow location to search Google Places and RallyCasts venues near you.";
+
+  return (
+    <section className="space-y-4">
+      <SectionHeader
+        icon={<Flame className="size-5 text-primary" />}
+        title="Parks Near You"
+        to="/trending"
+        search={{ section: "venues" }}
+        count={venues.length}
+        scope="Within 50 mi"
+      />
+      {venues.length > 0 ? (
+        <HorizontalScroll>
+          {venues.map((venue) => (
+            <ParkHeatCard key={venue.id} venue={venue} />
+          ))}
+        </HorizontalScroll>
+      ) : (
+        <EmptyState
+          icon={<MapPin className="size-5" />}
+          message={emptyMessage}
+          title="No nearby park heat yet"
+          action={
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={requestLocation}
+              className="rounded-md"
+            >
+              Refresh Location
+            </Button>
+          }
+        />
+      )}
+    </section>
+  );
 }
 
 function VenuesViewSection({ venues }: { venues: VenueCardData[] }) {
@@ -314,6 +394,7 @@ function TrendingDashboardView({
   playerCount,
   isLoading,
   isAuthenticated,
+  isApiFallback,
 }: {
   geoError: string | null;
   geoLoading: boolean;
@@ -326,6 +407,7 @@ function TrendingDashboardView({
   playerCount: number;
   isLoading: boolean;
   isAuthenticated: boolean;
+  isApiFallback: boolean;
 }) {
   return (
     <div className="mx-auto max-w-7xl space-y-10">
@@ -345,11 +427,10 @@ function TrendingDashboardView({
                 Spot active parks, nearby players, local clips, and events worth
                 playing in.
               </p>
-              {location?.isFallback && (
-                <p className="text-xs font-medium text-[#bcdf21] pt-1">
-                  Showing Northwest Arkansas while we wait for exact location.
-                </p>
-              )}
+              <HeroStatusMessages
+                isApiFallback={isApiFallback}
+                isLocationFallback={location?.isFallback}
+              />
             </div>
           </div>
 
@@ -378,6 +459,7 @@ function TrendingDashboardView({
                 {isAuthenticated ? (
                   <LocationStatus
                     error={geoError}
+                    isApiFallback={isApiFallback}
                     isLoading={geoLoading}
                     location={location || undefined}
                     requestLocation={requestLocation}
@@ -398,30 +480,11 @@ function TrendingDashboardView({
         <div className="h-72 animate-pulse rounded-lg bg-muted" />
       ) : null}
 
-      {/* Parks Near You */}
-      <section className="space-y-4">
-        <SectionHeader
-          icon={<Flame className="size-5 text-primary" />}
-          title="Parks Near You"
-          to="/trending"
-          search={{ section: "venues" }}
-          count={venues.length}
-          scope="Within 50 mi"
-        />
-        {venues.length > 0 ? (
-          <HorizontalScroll>
-            {venues.map((venue) => (
-              <ParkHeatCard key={venue.id} venue={venue} />
-            ))}
-          </HorizontalScroll>
-        ) : (
-          <EmptyState
-            icon={<MapPin className="size-5" />}
-            message="Allow location or add venues to reveal nearby courts with active play."
-            title="No nearby park heat yet"
-          />
-        )}
-      </section>
+      <ParksNearYouSection
+        location={location || undefined}
+        requestLocation={requestLocation}
+        venues={venues}
+      />
 
       {/* Trending Videos */}
       <section className="space-y-4">
@@ -555,6 +618,7 @@ function TrendingPage() {
   } = useGeolocation(Boolean(session?.user));
   const { data, isLoading } = useTrending(session?.user ? location : undefined);
   useRadarTracking(session?.user?.id);
+  const isApiFallback = data?.isApiFallback ?? false;
   const videos = data?.videos ?? [];
   const venues = data?.venues ?? [];
   const players = data?.players ?? [];
@@ -590,6 +654,7 @@ function TrendingPage() {
       playerCount={playerCount}
       isLoading={isLoading}
       isAuthenticated={Boolean(session?.user)}
+      isApiFallback={isApiFallback}
     />
   );
 }

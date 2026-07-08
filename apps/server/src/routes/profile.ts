@@ -96,6 +96,101 @@ const indexProfile = async (
   scheduleSearchDocumentIndex(() => c.executionCtx, db, c.env, searchRecord);
 };
 
+const hasRequiredString = (value: string | null | undefined) =>
+  typeof value === "string" && value.trim().length > 0;
+
+const isPlaceholderUsername = (value: string | null | undefined) => {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return true;
+  }
+
+  return value.trim().toLowerCase() === "player";
+};
+
+const getMissingOnboardingFields = (
+  profile: Partial<typeof userProfile.$inferSelect> | null | undefined,
+  userRecord: Partial<typeof user.$inferSelect> | null | undefined
+) => {
+  const missing: string[] = [];
+
+  if (isPlaceholderUsername(userRecord?.username)) {
+    missing.push("username");
+  }
+
+  if (!hasRequiredString(userRecord?.name)) {
+    missing.push("name");
+  }
+
+  if (!profile) {
+    return [
+      ...missing,
+      "role",
+      "homeCourtName",
+      "homeCity",
+      "homeState",
+      "age",
+      "skillLevel",
+    ];
+  }
+
+  if (!(profile.isPlayer || profile.isOrganizer || profile.isCaster)) {
+    missing.push("role");
+  }
+
+  if (!hasRequiredString(profile.homeCourtName)) {
+    missing.push("homeCourtName");
+  }
+
+  if (!hasRequiredString(profile.homeCity)) {
+    missing.push("homeCity");
+  }
+
+  if (!hasRequiredString(profile.homeState)) {
+    missing.push("homeState");
+  }
+
+  if (profile.isPlayer) {
+    if (typeof profile.age !== "number") {
+      missing.push("age");
+    }
+
+    if (!hasRequiredString(profile.skillLevel)) {
+      missing.push("skillLevel");
+    }
+  }
+
+  return missing;
+};
+
+const getOnboardingState = ({
+  isPlatformAdmin,
+  profile,
+  userRecord,
+}: {
+  isPlatformAdmin: boolean;
+  profile: Partial<typeof userProfile.$inferSelect> | null | undefined;
+  userRecord: Partial<typeof user.$inferSelect> | null | undefined;
+}) => {
+  if (isPlatformAdmin) {
+    return {
+      missingOnboardingFields: [],
+      needsOnboarding: false,
+    };
+  }
+
+  const missingOnboardingFields = getMissingOnboardingFields(
+    profile,
+    userRecord
+  );
+
+  return {
+    missingOnboardingFields,
+    needsOnboarding:
+      profile?.onboardingStatus !== "complete" ||
+      missingOnboardingFields.length > 0,
+  };
+};
+
 const ensureAdminProfile = async (
   db: ReturnType<typeof createDb>,
   userId: string
@@ -166,7 +261,16 @@ export const profileRouter = new Hono<AppEnv>()
       const profile = await ensureAdminProfile(db, authUser.id);
 
       return c.json(
-        { isPlatformAdmin, profile, user: authUser },
+        {
+          isPlatformAdmin,
+          profile,
+          user: authUser,
+          ...getOnboardingState({
+            isPlatformAdmin,
+            profile,
+            userRecord: authUser,
+          }),
+        },
         HttpStatusCodes.OK
       );
     }
@@ -186,25 +290,40 @@ export const profileRouter = new Hono<AppEnv>()
     if (!profile) {
       const draft = defaultProfile(authUser.id);
       await db.insert(userProfile).values(draft).onConflictDoNothing();
+      const draftProfile = {
+        ...draft,
+        accountTier: "free" as const,
+        isCaster: false,
+        isOrganizer: false,
+        isPlayer: true,
+      };
 
       return c.json(
         {
           isPlatformAdmin,
-          profile: {
-            ...draft,
-            accountTier: "free",
-            isCaster: false,
-            isOrganizer: false,
-            isPlayer: true,
-          },
+          profile: draftProfile,
           user: userRecord ?? authUser,
+          ...getOnboardingState({
+            isPlatformAdmin,
+            profile: draftProfile,
+            userRecord: userRecord ?? authUser,
+          }),
         },
         HttpStatusCodes.OK
       );
     }
 
     return c.json(
-      { isPlatformAdmin, profile, user: userRecord ?? authUser },
+      {
+        isPlatformAdmin,
+        profile,
+        user: userRecord ?? authUser,
+        ...getOnboardingState({
+          isPlatformAdmin,
+          profile,
+          userRecord: userRecord ?? authUser,
+        }),
+      },
       HttpStatusCodes.OK
     );
   })
@@ -276,7 +395,15 @@ export const profileRouter = new Hono<AppEnv>()
     }
 
     return c.json(
-      { profile, user: userRecord ?? authUser },
+      {
+        profile,
+        user: userRecord ?? authUser,
+        ...getOnboardingState({
+          isPlatformAdmin,
+          profile,
+          userRecord: userRecord ?? authUser,
+        }),
+      },
       HttpStatusCodes.OK
     );
   })
