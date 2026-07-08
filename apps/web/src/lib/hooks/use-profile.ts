@@ -27,7 +27,22 @@ export interface ProfilePayload {
 
 export const useProfile = () =>
   useQuery({
-    queryFn: () => readApiJson(apiClient.api.profile.me.$get()),
+    queryFn: async () => {
+      try {
+        const response = await apiClient.api.profile.me.$get();
+        if (response.status === 401) {
+          return null;
+        }
+        if (!response.ok) {
+          throw new Error(
+            response.statusText || `Request failed with ${response.status}`
+          );
+        }
+        return await response.json();
+      } catch {
+        return null;
+      }
+    },
     queryKey: ["profile", "me"],
   });
 
