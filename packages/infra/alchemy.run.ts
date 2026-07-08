@@ -52,6 +52,13 @@ const requiredSecret = (name: string) =>
     ? new InheritedSecret(name)
     : required(alchemy.secret.env(name), name);
 
+const filterMissingBindings = (bindings: Record<string, unknown>) =>
+  Object.fromEntries(
+    Object.entries(bindings).filter(
+      ([_, value]) => !(value instanceof InheritedSecret)
+    )
+  );
+
 const app = await alchemy("rallycaststv", {
   stateStore: (scope) =>
     new CloudflareStateStore(scope, {
@@ -167,7 +174,7 @@ await Worker("rallycasts-event-activity", {
 
 export const server = await Worker("rallycasts-server", {
   adopt: true,
-  bindings: {
+  bindings: filterMissingBindings({
     ADMIN_EMAILS: adminEmails,
     AI: ai,
     BETTER_AUTH_SECRET: betterAuthSecret,
@@ -200,7 +207,7 @@ export const server = await Worker("rallycasts-server", {
     STRIPE_SECRET_KEY: stripeSecretKey,
     STRIPE_WEBHOOK_SECRET: stripeWebhookSecret,
     VENUE_PRESENCE: venuePresence,
-  },
+  }),
   compatibility: "node",
   cwd: "../../apps/server",
   dev: {
@@ -213,7 +220,7 @@ export const server = await Worker("rallycasts-server", {
 
 export const web = await TanStackStart("rallycasts-web", {
   adopt: true,
-  bindings: {
+  bindings: filterMissingBindings({
     BETTER_AUTH_SECRET: betterAuthSecret,
     BETTER_AUTH_URL: betterAuthUrl,
     CORS_ORIGIN: corsOrigin,
@@ -230,7 +237,7 @@ export const web = await TanStackStart("rallycasts-web", {
     VITE_RADAR_PUBLISHABLE_KEY: radarPublishableKey,
     VITE_SENTRY_DSN: sentryDsn,
     VITE_SERVER_URL: productionServerUrl,
-  },
+  }),
   compatibility: "node",
   cwd: "../../apps/web",
   name: isProd ? "rallycasts-web" : `rallycasts-web-${stage}`,
