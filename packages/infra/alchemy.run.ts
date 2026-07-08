@@ -27,12 +27,12 @@ const required = <Value>(value: Value | undefined, name: string): Value => {
 
 const optionalSecret = (name: string) =>
   process.env[name] === undefined || process.env[name] === ""
-    ? new Secret(undefined as unknown, name)
+    ? new Secret(undefined as unknown as string, name)
     : alchemy.secret.env(name);
 
 const requiredSecret = (name: string) =>
   process.env[name] === undefined || process.env[name] === ""
-    ? new Secret(undefined as unknown, name)
+    ? new Secret(undefined as unknown as string, name)
     : required(alchemy.secret.env(name), name);
 
 const app = await alchemy("rallycaststv", {
@@ -93,6 +93,7 @@ const resendApiKey = optionalSecret("RESEND_API_KEY");
 const resendWebhookSecret = optionalSecret("RESEND_WEBHOOK_SECRET");
 const stripeSecretKey = optionalSecret("STRIPE_SECRET_KEY");
 const stripeWebhookSecret = optionalSecret("STRIPE_WEBHOOK_SECRET");
+const sentryDsn = optionalSecret("SENTRY_DSN");
 
 const mediaBucket = await R2Bucket("media-v3", {
   adopt: true,
@@ -178,6 +179,7 @@ export const server = await Worker("rallycasts-server", {
     RESEND_API_KEY: resendApiKey,
     RESEND_WEBHOOK_SECRET: resendWebhookSecret,
     SEARCH_INDEX: searchIndex,
+    SENTRY_DSN: sentryDsn,
     STRIPE_SECRET_KEY: stripeSecretKey,
     STRIPE_WEBHOOK_SECRET: stripeWebhookSecret,
     VENUE_PRESENCE: venuePresence,
@@ -206,10 +208,13 @@ export const web = await TanStackStart("rallycasts-web", {
     GOOGLE_GENERATIVE_AI_API_KEY: googleAiApiKey,
     GOOGLE_PLACES_API_KEY: googlePlacesApiKey,
     RADAR_SECRET_KEY: radarSecretKey,
+    SENTRY_DSN: sentryDsn,
     VITE_FOURTHWALL_STOREFRONT_URL: fourthwallStorefrontUrl,
     VITE_RADAR_PUBLISHABLE_KEY: radarPublishableKey,
+    VITE_SENTRY_DSN: sentryDsn,
     VITE_SERVER_URL: productionServerUrl,
   },
+  compatibility: "node",
   cwd: "../../apps/web",
   name: isProd ? "rallycasts-web" : `rallycasts-web-${stage}`,
   url: true,

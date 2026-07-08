@@ -3,6 +3,7 @@ import {
   renderResetPasswordEmail,
   renderWelcomeEmail,
 } from "@rallycaststv/email";
+import { sentry } from "@sentry/hono/cloudflare";
 import { Hono } from "hono";
 import type { Context } from "hono";
 import { cors } from "hono/cors";
@@ -36,6 +37,16 @@ import { videosRouter } from "./routes/videos";
 import { webhooksRouter } from "./routes/webhooks";
 
 const app = new Hono<AppEnv>();
+
+// Initialize Sentry middleware as early as possible
+app.use(
+  sentry(app, (env) => ({
+    dsn: env.SENTRY_DSN,
+    enableLogs: true,
+    tracesSampleRate: 1,
+  }))
+);
+
 const localDevOrigins = new Set([
   "http://localhost:3001",
   "http://127.0.0.1:3001",
