@@ -99,7 +99,7 @@ export const createAuth = (
     socialProviders: getSocialProviders(),
     trustedOrigins: [
       ...(env.CORS_ORIGIN
-        ? env.CORS_ORIGIN.split(",").map((origin) => origin.trim())
+        ? env.CORS_ORIGIN.split(",").map((origin: string) => origin.trim())
         : []),
       "rallycaststv://",
       "exp://",

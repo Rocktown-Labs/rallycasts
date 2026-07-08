@@ -1,4 +1,4 @@
-import alchemy from "alchemy";
+import alchemy, { Secret } from "alchemy";
 import {
   Ai,
   D1Database,
@@ -27,12 +27,12 @@ const required = <Value>(value: Value | undefined, name: string): Value => {
 
 const optionalSecret = (name: string) =>
   process.env[name] === undefined || process.env[name] === ""
-    ? { name, type: "secret" as const, unencrypted: undefined as unknown }
+    ? new Secret(undefined as unknown, name)
     : alchemy.secret.env(name);
 
 const requiredSecret = (name: string) =>
   process.env[name] === undefined || process.env[name] === ""
-    ? { name, type: "secret" as const, unencrypted: undefined as unknown }
+    ? new Secret(undefined as unknown, name)
     : required(alchemy.secret.env(name), name);
 
 const app = await alchemy("rallycaststv", {
