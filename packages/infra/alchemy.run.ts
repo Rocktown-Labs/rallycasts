@@ -90,7 +90,7 @@ const resendWebhookSecret = optionalSecret("RESEND_WEBHOOK_SECRET");
 const stripeSecretKey = optionalSecret("STRIPE_SECRET_KEY");
 const stripeWebhookSecret = optionalSecret("STRIPE_WEBHOOK_SECRET");
 
-const mediaBucket = await R2Bucket("media-v2", {
+const mediaBucket = await R2Bucket("media-v3", {
   adopt: true,
   domains: isProd ? ["media.rallycasts.com"] : undefined,
   name: r2BucketName,
