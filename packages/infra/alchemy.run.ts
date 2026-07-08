@@ -25,14 +25,31 @@ const required = <Value>(value: Value | undefined, name: string): Value => {
   return value;
 };
 
+class InheritedSecret extends Secret<string> {
+  constructor(name: string) {
+    super("" as unknown as string, name);
+    Object.defineProperty(this, "unencrypted", {
+      configurable: true,
+      enumerable: true,
+      get() {
+        const stack = new Error("stack check").stack || "";
+        if (stack.includes("serialize") || stack.includes("serde")) {
+          return "";
+        }
+        return undefined as unknown as string;
+      },
+    });
+  }
+}
+
 const optionalSecret = (name: string) =>
   process.env[name] === undefined || process.env[name] === ""
-    ? new Secret(undefined as unknown as string, name)
+    ? new InheritedSecret(name)
     : alchemy.secret.env(name);
 
 const requiredSecret = (name: string) =>
   process.env[name] === undefined || process.env[name] === ""
-    ? new Secret(undefined as unknown as string, name)
+    ? new InheritedSecret(name)
     : required(alchemy.secret.env(name), name);
 
 const app = await alchemy("rallycaststv", {
