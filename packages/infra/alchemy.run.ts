@@ -9,6 +9,7 @@ import {
   VectorizeIndex,
   Worker,
 } from "alchemy/cloudflare";
+import type { Bindings } from "alchemy/cloudflare";
 import { GitHubComment } from "alchemy/github";
 import { CloudflareStateStore } from "alchemy/state";
 import { config } from "dotenv";
@@ -52,12 +53,12 @@ const requiredSecret = (name: string) =>
     ? new InheritedSecret(name)
     : required(alchemy.secret.env(name), name);
 
-const filterMissingBindings = (bindings: Record<string, unknown>) =>
+const filterMissingBindings = (bindings: Bindings): Bindings =>
   Object.fromEntries(
     Object.entries(bindings).filter(
       ([_, value]) => !(value instanceof InheritedSecret)
     )
-  );
+  ) as Bindings;
 
 const app = await alchemy("rallycaststv", {
   stateStore: (scope) =>
