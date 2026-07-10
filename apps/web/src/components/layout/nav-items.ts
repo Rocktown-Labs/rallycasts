@@ -7,6 +7,7 @@ import {
   MessageSquare,
   Settings,
   Swords,
+  Trophy,
   User,
   Users,
   Video,

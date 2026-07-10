@@ -1,6 +1,15 @@
 import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
 
+const viteEnv = (
+  import.meta as ImportMeta & {
+    env: Record<string, string | boolean | undefined>;
+  }
+).env;
+
+const defaultServerUrl =
+  viteEnv.DEV === true ? "http://localhost:3000" : "https://api.rallycasts.com";
+
 export const env = createEnv({
   client: {
     VITE_FOURTHWALL_STOREFRONT_URL: z.url().optional(),
@@ -10,9 +19,11 @@ export const env = createEnv({
   },
   clientPrefix: "VITE_",
   emptyStringAsUndefined: true,
-  runtimeEnv: (
-    import.meta as ImportMeta & {
-      env: Record<string, string | undefined>;
-    }
-  ).env,
+  runtimeEnv: {
+    ...viteEnv,
+    VITE_SERVER_URL:
+      typeof viteEnv.VITE_SERVER_URL === "string"
+        ? viteEnv.VITE_SERVER_URL
+        : defaultServerUrl,
+  },
 });
