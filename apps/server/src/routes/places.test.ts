@@ -297,7 +297,7 @@ describe("places routes", () => {
       expect(venues).toHaveLength(1);
     });
 
-    it("returns 409 for existing venue", async () => {
+    it("returns an existing venue for an already validated place", async () => {
       const db = createDb(env.DB);
       const venueId = crypto.randomUUID();
 
@@ -311,31 +311,13 @@ describe("places routes", () => {
         name: "Existing Venue",
       });
 
-      mockFetch.mockResolvedValueOnce({
-        json: () => ({
-          html_attributions: [],
-          result: {
-            formatted_address: "456 Park Ave, New York, NY",
-            geometry: {
-              location: {
-                lat: 40.7128,
-                lng: -74.006,
-              },
-            },
-            name: "Existing Venue",
-            place_id: "place_existing_456",
-            user_ratings_total: 42,
-          },
-          status: "OK",
-        }),
-        ok: true,
-      });
-
       const response = await createVenueRequest("place_existing_456");
 
-      expect(response.status).toBe(409);
+      expect(response.status).toBe(201);
       const data = await response.json();
-      expect(data.error).toBe("Venue already exists");
+      expect(data.venue.id).toBe(venueId);
+      expect(data.venue.name).toBe("Existing Venue");
+      expect(mockFetch).not.toHaveBeenCalled();
     });
 
     it("returns 400 for missing placeId", async () => {

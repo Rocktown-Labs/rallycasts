@@ -3,6 +3,7 @@ import {
   Camera,
   Clock,
   Flame,
+  Building2,
   Home,
   MessageSquare,
   Settings,
@@ -27,6 +28,7 @@ export const discoverNavItems = [
 
 export const organizerNavItems = [
   { icon: Trophy, label: "Dashboard", to: "/u/organizer" },
+  { icon: Building2, label: "Organizations", to: "/u/organizer/organizations" },
   { icon: Calendar, label: "Manage Events", to: "/u/organizer/events" },
 ] as const;
 

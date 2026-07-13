@@ -1,7 +1,32 @@
 import { env } from "cloudflare:workers";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import app from "../index";
+
+const mockFetch = vi.fn();
+globalThis.fetch = mockFetch;
+
+const mockGooglePlaceDetails = () => {
+  mockFetch.mockResolvedValueOnce({
+    json: () => ({
+      html_attributions: [],
+      result: {
+        formatted_address: "456 Club Court, Austin, TX 78701",
+        geometry: {
+          location: {
+            lat: 30.2672,
+            lng: -97.7431,
+          },
+        },
+        name: "Club Court",
+        place_id: "organization_event_place",
+        types: ["sports_complex"],
+      },
+      status: "OK",
+    }),
+    ok: true,
+  });
+};
 
 const signUp = async (name: string) => {
   const username = `org${crypto.randomUUID().slice(0, 8)}`;
@@ -44,6 +69,10 @@ const jsonRequest = (
   );
 
 describe("organizations API", () => {
+  beforeEach(() => {
+    mockFetch.mockReset();
+  });
+
   it("keeps player identity separate while owners manage an organization", async () => {
     const owner = await signUp("Organization Owner");
     const editor = await signUp("Organization Editor");
@@ -81,5 +110,71 @@ describe("organizations API", () => {
       ]),
       organization: { name: "Test Pickleball Club", slug },
     });
+  });
+
+  it("includes organization-hosted events in member event workspaces", async () => {
+    const owner = await signUp("Tournament Owner");
+    const editor = await signUp("Tournament Editor");
+    const slug = `event-club-${crypto.randomUUID().slice(0, 6)}`;
+    await jsonRequest(
+      "/api/profile/me",
+      owner.cookie,
+      { isOrganizer: true },
+      "PATCH"
+    );
+    const createOrganizationResponse = await jsonRequest(
+      "/api/organizations",
+      owner.cookie,
+      {
+        city: "Austin",
+        name: "Event Host Club",
+        slug,
+        state: "TX",
+      }
+    );
+    const organizationBody = (await createOrganizationResponse.json()) as {
+      organization: { id: string };
+    };
+    await jsonRequest(`/api/organizations/${slug}/members`, owner.cookie, {
+      role: "editor",
+      username: editor.username,
+    });
+
+    mockGooglePlaceDetails();
+    const createEventResponse = await jsonRequest("/api/events", owner.cookie, {
+      eventType: "tournament",
+      googlePlaceId: "organization_event_place",
+      name: "Member Managed Open",
+      organizationId: organizationBody.organization.id,
+      startsAt: new Date(Date.now() + 86_400_000).toISOString(),
+      status: "published",
+    });
+    expect(createEventResponse.status).toBe(201);
+    const eventBody = (await createEventResponse.json()) as {
+      event: { id: string };
+    };
+
+    const mineResponse = await app.request(
+      "/api/events/mine",
+      { headers: { Cookie: editor.cookie } },
+      env
+    );
+    expect(mineResponse.status).toBe(200);
+    await expect(mineResponse.json()).resolves.toMatchObject({
+      events: expect.arrayContaining([
+        expect.objectContaining({
+          id: eventBody.event.id,
+          organizationId: organizationBody.organization.id,
+        }),
+      ]),
+    });
+
+    const updateResponse = await jsonRequest(
+      `/api/events/${eventBody.event.id}`,
+      editor.cookie,
+      { status: "draft" },
+      "PATCH"
+    );
+    expect(updateResponse.status).toBe(200);
   });
 });

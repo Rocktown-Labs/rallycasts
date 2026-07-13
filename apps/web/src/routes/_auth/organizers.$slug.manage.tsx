@@ -1,8 +1,14 @@
 import { Button } from "@rallycaststv/ui/components/button";
 import { Input } from "@rallycaststv/ui/components/input";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, createFileRoute, redirect } from "@tanstack/react-router";
 import {
+  Link,
+  createFileRoute,
+  redirect,
+  useNavigate,
+} from "@tanstack/react-router";
+import {
+  ArrowRight,
   Calendar,
   CreditCard,
   FileVideo,
@@ -15,6 +21,8 @@ import type { FormEvent } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { PlaceSearchPicker } from "@/components/places/place-search-picker";
+import type { SelectedPlace } from "@/components/places/place-search-picker";
 import { apiClient } from "@/lib/api-client";
 import { readApiJson } from "@/lib/hooks/api";
 
@@ -29,6 +37,7 @@ export const Route = createFileRoute("/_auth/organizers/$slug/manage")({
 
 export function ManageOrganizationPage({ slug }: { slug: string }) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { data } = useQuery({
     queryFn: () =>
       readApiJson(
@@ -38,6 +47,9 @@ export function ManageOrganizationPage({ slug }: { slug: string }) {
   });
   const organization = data?.organization;
   const [name, setName] = useState("");
+  const [city, setCity] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
+  const [state, setState] = useState("");
   const [bio, setBio] = useState("");
   const [memberUsername, setMemberUsername] = useState("");
   const [eventName, setEventName] = useState("");
@@ -46,6 +58,10 @@ export function ManageOrganizationPage({ slug }: { slug: string }) {
   const [capacity, setCapacity] = useState("16");
   const [entryFee, setEntryFee] = useState("0");
   const [courts, setCourts] = useState("Court 1, Court 2, Court 3, Court 4");
+  const [locationQuery, setLocationQuery] = useState("");
+  const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(
+    null
+  );
   const [organizationPost, setOrganizationPost] = useState("");
   const { data: myVideosData } = useQuery({
     queryFn: () => readApiJson(apiClient.api.videos.me.$get()),
@@ -58,7 +74,10 @@ export function ManageOrganizationPage({ slug }: { slug: string }) {
         apiClient.api.organizations[":slug"].$patch({
           json: {
             bio: bio || organization?.bio || undefined,
+            city: city || organization?.city || undefined,
+            logoUrl: logoUrl || organization?.logoUrl || undefined,
             name: name || organization?.name,
+            state: state || organization?.state || undefined,
           },
           param: { slug },
         })
@@ -95,6 +114,7 @@ export function ManageOrganizationPage({ slug }: { slug: string }) {
               .filter(Boolean),
             entryFeeCents: Math.round(Number(entryFee) * 100),
             eventType: "tournament",
+            googlePlaceId: selectedPlace?.placeId,
             name: eventName,
             organizationId: organization?.id,
             registrationDeadline: registrationDeadline
@@ -105,10 +125,17 @@ export function ManageOrganizationPage({ slug }: { slug: string }) {
           },
         })
       ),
-    onSuccess: async () => {
+    onSuccess: async (result) => {
       setEventName("");
+      setLocationQuery("");
+      setSelectedPlace(null);
       await queryClient.invalidateQueries({ queryKey: ["organization", slug] });
+      await queryClient.invalidateQueries({ queryKey: ["events", "mine"] });
       toast.success("Tournament published");
+      await navigate({
+        params: { id: result.event.id },
+        to: "/events/$id",
+      });
     },
   });
   const startStripe = useMutation({
@@ -160,6 +187,10 @@ export function ManageOrganizationPage({ slug }: { slug: string }) {
       toast.error("Tournament name and start time are required.");
       return;
     }
+    if (!selectedPlace) {
+      toast.error("Select a validated location before publishing.");
+      return;
+    }
     createTournament.mutate();
   };
 
@@ -184,9 +215,30 @@ export function ManageOrganizationPage({ slug }: { slug: string }) {
           </h2>
           <div className="mt-4 space-y-3">
             <Input
+              aria-label="Organization name"
               onChange={(event) => setName(event.target.value)}
               placeholder={organization.name}
               value={name}
+            />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Input
+                aria-label="Organization city"
+                onChange={(event) => setCity(event.target.value)}
+                placeholder={organization.city ?? "City"}
+                value={city}
+              />
+              <Input
+                aria-label="Organization state"
+                onChange={(event) => setState(event.target.value)}
+                placeholder={organization.state ?? "State"}
+                value={state}
+              />
+            </div>
+            <Input
+              aria-label="Organization logo URL"
+              onChange={(event) => setLogoUrl(event.target.value)}
+              placeholder={organization.logoUrl ?? "Logo URL"}
+              value={logoUrl}
             />
             <textarea
               aria-label="Organization bio"
@@ -254,6 +306,16 @@ export function ManageOrganizationPage({ slug }: { slug: string }) {
             type="datetime-local"
             value={registrationDeadline}
           />
+          <div className="md:col-span-2">
+            <PlaceSearchPicker
+              id="tournamentLocationInput"
+              label="Tournament location"
+              onPlaceChange={setSelectedPlace}
+              onQueryChange={setLocationQuery}
+              query={locationQuery}
+              selectedPlace={selectedPlace}
+            />
+          </div>
           <Input
             aria-label="Capacity"
             min="2"
@@ -282,6 +344,74 @@ export function ManageOrganizationPage({ slug }: { slug: string }) {
             <Plus className="size-4" /> Publish tournament
           </Button>
         </form>
+      </section>
+
+      <section className="rounded-2xl border bg-card p-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className="flex items-center gap-2 text-xl font-bold">
+              <Calendar className="size-5 text-primary" /> Tournaments
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Review the events attached to this organization and jump into the
+              operational views.
+            </p>
+          </div>
+          <Link to="/u/organizer/events">
+            <Button className="rounded-md" variant="outline">
+              All events
+              <ArrowRight className="size-4" />
+            </Button>
+          </Link>
+        </div>
+        <div className="mt-5 grid gap-3">
+          {data.events.map((item) => (
+            <div className="rounded-lg border p-4" key={item.id}>
+              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <h3 className="font-bold">{item.name}</h3>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {new Date(item.startsAt).toLocaleString()} ·{" "}
+                    {item.eventType.replaceAll("_", " ")} · {item.status}
+                  </p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {item.capacity ?? "Open"} capacity ·{" "}
+                    {item.entryFeeCents > 0
+                      ? `$${(item.entryFeeCents / 100).toFixed(2)} entry`
+                      : "Free entry"}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Link params={{ id: item.id }} to="/events/$id">
+                    <Button className="rounded-md" size="sm" variant="outline">
+                      View
+                    </Button>
+                  </Link>
+                  <Link params={{ id: item.id }} to="/events/$id/players">
+                    <Button className="rounded-md" size="sm" variant="outline">
+                      Players
+                    </Button>
+                  </Link>
+                  <Link params={{ id: item.id }} to="/events/$id/bracket">
+                    <Button className="rounded-md" size="sm" variant="outline">
+                      Bracket
+                    </Button>
+                  </Link>
+                  <Link params={{ id: item.id }} to="/events/$id/matches">
+                    <Button className="rounded-md" size="sm" variant="outline">
+                      Matches
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          ))}
+          {data.events.length === 0 ? (
+            <p className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
+              No tournaments are attached to this organization yet.
+            </p>
+          ) : null}
+        </div>
       </section>
 
       <section className="grid gap-5 md:grid-cols-2">

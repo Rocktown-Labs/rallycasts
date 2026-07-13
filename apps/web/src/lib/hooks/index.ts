@@ -3,6 +3,8 @@ export * from "./use-casting-jobs";
 export * from "./use-discovery";
 export * from "./use-events";
 export * from "./use-geolocation";
+export * from "./use-organizations";
+export * from "./use-places";
 export * from "./use-profile";
 export * from "./use-radar-tracking";
 export * from "./use-social";

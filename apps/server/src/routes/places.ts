@@ -1,32 +1,11 @@
 import { createDb } from "@rallycaststv/db";
-import { venue } from "@rallycaststv/db/schema/domain";
-import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 
 import { createGooglePlacesClient } from "../lib/google-places";
-import { syncVenueSearchDocument } from "../lib/search-index";
 import type { AppEnv } from "../lib/types";
+import { findOrCreateVenueFromGooglePlace } from "../lib/venues";
 import { requireAuth } from "../middleware/auth";
-
-function parseAddress(address: string): {
-  city: string;
-  postalCode: string;
-  state: string;
-} {
-  const parts = address.split(",").map((p) => p.trim());
-  const stateZip = parts.at(-2) || "";
-
-  // Try to extract state and zip from "State ZIP" pattern
-  const stateZipMatch = stateZip.match(/([A-Za-z\s]+)\s+(\d{5}(-\d{4})?)/u);
-  const state = stateZipMatch?.[1]?.trim() ?? stateZip;
-  const postalCode = stateZipMatch?.[2] ?? "";
-
-  // City is usually the part before state/zip
-  const city = parts.length > 2 ? parts.at(-3) || "" : "";
-
-  return { city, postalCode, state };
-}
 
 export const placesRouter = new Hono<AppEnv>()
   .get("/search", async (c) => {
@@ -123,53 +102,22 @@ export const placesRouter = new Hono<AppEnv>()
     }
 
     try {
-      const client = createGooglePlacesClient(c.env.GOOGLE_PLACES_API_KEY);
-      const place = await client.getPlaceDetails(placeId);
       const db = createDb(c.env.DB);
-
-      const { city, state, postalCode } = parseAddress(place.address);
-
-      const newVenue = await db
-        .insert(venue)
-        .values({
-          addressLine1: place.address,
-          city,
-          country: "US",
-          googlePlaceId: placeId,
-          id: crypto.randomUUID(),
-          latitude: place.latitude,
-          longitude: place.longitude,
-          name: place.name,
-          photoUrl: place.photoUrl,
-          postalCode,
-          rating: place.rating,
-          state,
-          userRatingsTotal: place.userRatingsTotal,
-        })
-        .onConflictDoNothing({ target: venue.googlePlaceId })
-        .returning();
-
-      if (!newVenue[0]) {
-        const existing = await db
-          .select()
-          .from(venue)
-          .where(eq(venue.googlePlaceId, placeId))
-          .limit(1);
-
-        return c.json(
-          { error: "Venue already exists", venue: existing[0] },
-          HttpStatusCodes.CONFLICT
-        );
-      }
-
-      await syncVenueSearchDocument(
-        () => c.executionCtx,
+      const createdVenue = await findOrCreateVenueFromGooglePlace({
         db,
-        c.env,
-        newVenue[0]
-      );
+        env: c.env,
+        getExecutionContext: () => {
+          try {
+            return c.executionCtx;
+          } catch {
+            // Hono app.request tests may not provide an ExecutionContext.
+          }
+        },
+        placeId,
+        userId: c.var.authSession.user.id,
+      });
 
-      return c.json({ venue: newVenue[0] }, HttpStatusCodes.CREATED);
+      return c.json({ venue: createdVenue }, HttpStatusCodes.CREATED);
     } catch (error) {
       console.error("Create venue error:", error);
       return c.json(

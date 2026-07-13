@@ -9,15 +9,22 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import {
   ArrowRight,
   Braces,
+  Building2,
   Calendar,
   Clock,
   ListChecks,
   Trophy,
   Users,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { EmptyState } from "@/components/rally/cards";
-import { useMyEvents, useProfile } from "@/lib/hooks";
+import {
+  useMyEvents,
+  useMyOrganizations,
+  useProfile,
+  useUpdateEvent,
+} from "@/lib/hooks";
 
 export const Route = createFileRoute("/_auth/u/organizer/events")({
   component: OrganizerEventsPage,
@@ -33,16 +40,20 @@ const formatEventDate = (value: Date | string) =>
 function OrganizerEventList({
   events,
   isLoading,
+  organizationNames,
 }: {
   events: {
     capacity?: number | null;
+    entryFeeCents?: number;
     eventType: string;
     id: string;
     name: string;
+    organizationId?: null | string;
     startsAt: Date | string;
     status: string;
   }[];
   isLoading: boolean;
+  organizationNames: Map<string, string>;
 }) {
   if (isLoading) {
     return <div className="h-80 animate-pulse rounded-lg bg-muted" />;
@@ -83,11 +94,25 @@ function OrganizerEventList({
                   <Users className="size-3.5 text-primary" />
                   {event.capacity ?? "Open"} capacity
                 </span>
+                <span className="inline-flex items-center gap-1">
+                  <Building2 className="size-3.5 text-primary" />
+                  {event.organizationId
+                    ? (organizationNames.get(event.organizationId) ??
+                      "Organization")
+                    : "Organizer profile"}
+                </span>
               </div>
             </div>
-            <span className="w-fit rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold capitalize text-primary">
-              {event.status}
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="w-fit rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold capitalize text-primary">
+                {event.status}
+              </span>
+              <span className="w-fit rounded-full border px-3 py-1 text-xs font-semibold">
+                {(event.entryFeeCents ?? 0) > 0
+                  ? `$${((event.entryFeeCents ?? 0) / 100).toFixed(2)}`
+                  : "Free"}
+              </span>
+            </div>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
             <Link to="/events/$id" params={{ id: event.id }}>
@@ -114,6 +139,7 @@ function OrganizerEventList({
                 Matches
               </Button>
             </Link>
+            <EventStatusActions eventId={event.id} status={event.status} />
           </CardContent>
         </Card>
       ))}
@@ -121,11 +147,66 @@ function OrganizerEventList({
   );
 }
 
+function EventStatusActions({
+  eventId,
+  status,
+}: {
+  eventId: string;
+  status: string;
+}) {
+  const updateEvent = useUpdateEvent(eventId);
+
+  const updateStatus = async (
+    nextStatus: "cancelled" | "draft" | "published"
+  ) => {
+    try {
+      await updateEvent.mutateAsync({ status: nextStatus });
+      toast.success(`Event marked ${nextStatus.replaceAll("_", " ")}`);
+    } catch {
+      toast.error("Unable to update event status.");
+    }
+  };
+
+  if (status === "cancelled" || status === "completed") {
+    return null;
+  }
+
+  return (
+    <>
+      {status === "draft" ? (
+        <Button
+          className="rounded-md"
+          disabled={updateEvent.isPending}
+          onClick={() => updateStatus("published")}
+          variant="outline"
+        >
+          Publish
+        </Button>
+      ) : null}
+      <Button
+        className="rounded-md"
+        disabled={updateEvent.isPending}
+        onClick={() => updateStatus("cancelled")}
+        variant="destructive"
+      >
+        Cancel
+      </Button>
+    </>
+  );
+}
+
 function OrganizerEventsPage() {
   const { data: profileData } = useProfile();
   const { data, isLoading } = useMyEvents();
+  const { data: organizationsData } = useMyOrganizations();
   const profile = profileData?.profile;
   const events = data?.events ?? [];
+  const organizationNames = new Map(
+    (organizationsData?.organizations ?? []).map(({ organization }) => [
+      organization.id,
+      organization.name,
+    ])
+  );
 
   if (!profile?.isOrganizer) {
     return (
@@ -165,7 +246,11 @@ function OrganizerEventsPage() {
         </Link>
       </section>
 
-      <OrganizerEventList events={events} isLoading={isLoading} />
+      <OrganizerEventList
+        events={events}
+        isLoading={isLoading}
+        organizationNames={organizationNames}
+      />
     </div>
   );
 }
