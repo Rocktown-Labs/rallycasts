@@ -1,7 +1,34 @@
 import { env } from "cloudflare:workers";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import app from "../index";
+
+const mockFetch = vi.fn();
+globalThis.fetch = mockFetch;
+
+const mockGooglePlaceDetails = () => {
+  mockFetch.mockResolvedValueOnce({
+    json: () => ({
+      html_attributions: [],
+      result: {
+        formatted_address: "123 Tournament Way, Austin, TX 78701",
+        geometry: {
+          location: {
+            lat: 30.2672,
+            lng: -97.7431,
+          },
+        },
+        name: "Tournament Park",
+        place_id: "event_place",
+        rating: 4.8,
+        types: ["park"],
+        user_ratings_total: 120,
+      },
+      status: "OK",
+    }),
+    ok: true,
+  });
+};
 
 const signUp = async (name: string, email?: string) => {
   const username = `${name.toLowerCase().replaceAll(" ", "")}${crypto.randomUUID().slice(0, 8)}`;
@@ -63,6 +90,10 @@ const activateOrganizer = (cookie: string) =>
   );
 
 describe("events API", () => {
+  beforeEach(() => {
+    mockFetch.mockReset();
+  });
+
   it("promotes configured RallyCasts admins to organizers and labels hosted events", async () => {
     const admin = await signUp("RallyCasts Admin", "camstewart7@gmail.com");
     const profileResponse = await app.request(
@@ -85,9 +116,11 @@ describe("events API", () => {
       },
     });
 
+    mockGooglePlaceDetails();
     const eventResponse = await jsonRequest("/api/events", admin.cookie, {
       capacity: 16,
       eventType: "tournament",
+      googlePlaceId: "event_place_admin",
       name: "RallyCasts Friday Night Bracket",
       startsAt: new Date("2027-05-01T23:00:00.000Z").toISOString(),
       status: "published",
@@ -112,9 +145,11 @@ describe("events API", () => {
     const organizerProfileResponse = await activateOrganizer(organizer.cookie);
     expect(organizerProfileResponse.status).toBe(200);
 
+    mockGooglePlaceDetails();
     const eventResponse = await jsonRequest("/api/events", organizer.cookie, {
       capacity: 2,
       eventType: "tournament",
+      googlePlaceId: "event_place_ladder",
       name: "Spring Ladder",
       startsAt,
       status: "published",
@@ -250,6 +285,7 @@ describe("events API", () => {
     const response = await jsonRequest("/api/events", player.cookie, {
       capacity: 12,
       eventType: "open_play",
+      googlePlaceId: "event_place_rejected",
       name: "Unauthorized Open Play",
       startsAt: new Date("2027-06-01T18:00:00.000Z").toISOString(),
       status: "published",

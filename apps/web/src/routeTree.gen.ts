@@ -54,6 +54,7 @@ import { Route as AuthUProfileMyRallycastsRouteImport } from './routes/_auth/u/p
 import { Route as AuthUProfileMeRouteImport } from './routes/_auth/u/profile/me'
 import { Route as AuthUProfileEarnRouteImport } from './routes/_auth/u/profile/earn'
 import { Route as AuthUProfileAnalyticsRouteImport } from './routes/_auth/u/profile/analytics'
+import { Route as AuthUOrganizerOrganizationsRouteImport } from './routes/_auth/u/organizer/organizations'
 import { Route as AuthUOrganizerEventsRouteImport } from './routes/_auth/u/organizer/events'
 import { Route as AuthOrganizersSlugManageRouteImport } from './routes/_auth/organizers.$slug.manage'
 import { Route as AuthEventsOrganizersNewRouteImport } from './routes/_auth/events.organizers.new'
@@ -287,6 +288,12 @@ const AuthUProfileAnalyticsRoute = AuthUProfileAnalyticsRouteImport.update({
   path: '/profile/analytics',
   getParentRoute: () => AuthURoute,
 } as any)
+const AuthUOrganizerOrganizationsRoute =
+  AuthUOrganizerOrganizationsRouteImport.update({
+    id: '/organizations',
+    path: '/organizations',
+    getParentRoute: () => AuthUOrganizerRoute,
+  } as any)
 const AuthUOrganizerEventsRoute = AuthUOrganizerEventsRouteImport.update({
   id: '/events',
   path: '/events',
@@ -360,6 +367,7 @@ export interface FileRoutesByFullPath {
   '/events/organizers/new': typeof AuthEventsOrganizersNewRoute
   '/organizers/$slug/manage': typeof AuthOrganizersSlugManageRoute
   '/u/organizer/events': typeof AuthUOrganizerEventsRoute
+  '/u/organizer/organizations': typeof AuthUOrganizerOrganizationsRoute
   '/u/profile/analytics': typeof AuthUProfileAnalyticsRoute
   '/u/profile/earn': typeof AuthUProfileEarnRoute
   '/u/profile/me': typeof AuthUProfileMeRoute
@@ -406,6 +414,7 @@ export interface FileRoutesByTo {
   '/events/organizers/new': typeof AuthEventsOrganizersNewRoute
   '/organizers/$slug/manage': typeof AuthOrganizersSlugManageRoute
   '/u/organizer/events': typeof AuthUOrganizerEventsRoute
+  '/u/organizer/organizations': typeof AuthUOrganizerOrganizationsRoute
   '/u/profile/analytics': typeof AuthUProfileAnalyticsRoute
   '/u/profile/earn': typeof AuthUProfileEarnRoute
   '/u/profile/me': typeof AuthUProfileMeRoute
@@ -460,6 +469,7 @@ export interface FileRoutesById {
   '/_auth/events/organizers/new': typeof AuthEventsOrganizersNewRoute
   '/_auth/organizers/$slug/manage': typeof AuthOrganizersSlugManageRoute
   '/_auth/u/organizer/events': typeof AuthUOrganizerEventsRoute
+  '/_auth/u/organizer/organizations': typeof AuthUOrganizerOrganizationsRoute
   '/_auth/u/profile/analytics': typeof AuthUProfileAnalyticsRoute
   '/_auth/u/profile/earn': typeof AuthUProfileEarnRoute
   '/_auth/u/profile/me': typeof AuthUProfileMeRoute
@@ -514,6 +524,7 @@ export interface FileRouteTypes {
     | '/events/organizers/new'
     | '/organizers/$slug/manage'
     | '/u/organizer/events'
+    | '/u/organizer/organizations'
     | '/u/profile/analytics'
     | '/u/profile/earn'
     | '/u/profile/me'
@@ -560,6 +571,7 @@ export interface FileRouteTypes {
     | '/events/organizers/new'
     | '/organizers/$slug/manage'
     | '/u/organizer/events'
+    | '/u/organizer/organizations'
     | '/u/profile/analytics'
     | '/u/profile/earn'
     | '/u/profile/me'
@@ -613,6 +625,7 @@ export interface FileRouteTypes {
     | '/_auth/events/organizers/new'
     | '/_auth/organizers/$slug/manage'
     | '/_auth/u/organizer/events'
+    | '/_auth/u/organizer/organizations'
     | '/_auth/u/profile/analytics'
     | '/_auth/u/profile/earn'
     | '/_auth/u/profile/me'
@@ -959,6 +972,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthUProfileAnalyticsRouteImport
       parentRoute: typeof AuthURoute
     }
+    '/_auth/u/organizer/organizations': {
+      id: '/_auth/u/organizer/organizations'
+      path: '/organizations'
+      fullPath: '/u/organizer/organizations'
+      preLoaderRoute: typeof AuthUOrganizerOrganizationsRouteImport
+      parentRoute: typeof AuthUOrganizerRoute
+    }
     '/_auth/u/organizer/events': {
       id: '/_auth/u/organizer/events'
       path: '/events'
@@ -1006,11 +1026,13 @@ declare module '@tanstack/react-router' {
 
 interface AuthUOrganizerRouteChildren {
   AuthUOrganizerEventsRoute: typeof AuthUOrganizerEventsRoute
+  AuthUOrganizerOrganizationsRoute: typeof AuthUOrganizerOrganizationsRoute
   AuthUOrganizerIndexRoute: typeof AuthUOrganizerIndexRoute
 }
 
 const AuthUOrganizerRouteChildren: AuthUOrganizerRouteChildren = {
   AuthUOrganizerEventsRoute: AuthUOrganizerEventsRoute,
+  AuthUOrganizerOrganizationsRoute: AuthUOrganizerOrganizationsRoute,
   AuthUOrganizerIndexRoute: AuthUOrganizerIndexRoute,
 }
 

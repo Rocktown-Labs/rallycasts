@@ -9,7 +9,7 @@ import {
   organizationMember,
   userProfile,
 } from "@rallycaststv/db/schema/domain";
-import { and, asc, desc, eq, ne } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, ne, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
 import { Hono } from "hono";
 import type { Context } from "hono";
@@ -27,6 +27,7 @@ import {
   upsertSearchDocument,
 } from "../lib/search-index";
 import type { AppEnv } from "../lib/types";
+import { findOrCreateVenueFromGooglePlace } from "../lib/venues";
 import { requireAuth } from "../middleware/auth";
 
 const eventFields = z.object({
@@ -43,6 +44,7 @@ const eventFields = z.object({
   eventType: z
     .enum(["open_play", "tournament", "clinic", "league"])
     .default("open_play"),
+  googlePlaceId: z.string().min(1).optional(),
   name: z.string().min(1).max(160),
   organizationId: z.string().min(1).optional(),
   refundPolicy: z.string().max(1000).optional(),
@@ -54,15 +56,23 @@ const eventFields = z.object({
   venueId: z.string().min(1).optional(),
 });
 
-const eventSchema = eventFields.refine(
-  (data) => !data.endsAt || data.endsAt > data.startsAt,
-  {
+const eventSchema = eventFields
+  .refine((data) => !data.endsAt || data.endsAt > data.startsAt, {
     message: "Event must end after it starts.",
     path: ["endsAt"],
-  }
-);
+  })
+  .refine(
+    (data) =>
+      data.status !== "published" ||
+      Boolean(data.venueId || data.googlePlaceId),
+    {
+      message: "Published events require a validated location.",
+      path: ["googlePlaceId"],
+    }
+  );
 
 const updateEventSchema = eventFields
+  .omit({ googlePlaceId: true })
   .partial()
   .refine(
     (data) => !data.endsAt || !data.startsAt || data.endsAt > data.startsAt,
@@ -331,10 +341,24 @@ export const eventsRouter = new Hono<AppEnv>()
   .get("/mine", requireAuth, async (c) => {
     const db = createDb(c.env.DB);
     const { user } = c.var.authSession;
+    const memberships = await db
+      .select({ organizationId: organizationMember.organizationId })
+      .from(organizationMember)
+      .where(eq(organizationMember.userId, user.id));
+    const organizationIds = memberships.map(
+      (membership) => membership.organizationId
+    );
+    const manageableEventsWhere =
+      organizationIds.length > 0
+        ? or(
+            eq(event.organizerUserId, user.id),
+            inArray(event.organizationId, organizationIds)
+          )
+        : eq(event.organizerUserId, user.id);
     const events = await db
       .select()
       .from(event)
-      .where(eq(event.organizerUserId, user.id))
+      .where(manageableEventsWhere)
       .orderBy(desc(event.startsAt))
       .limit(100);
 
@@ -344,6 +368,7 @@ export const eventsRouter = new Hono<AppEnv>()
     const db = createDb(c.env.DB);
     const { user } = c.var.authSession;
     const data = c.req.valid("json");
+    const { googlePlaceId, ...eventData } = data;
     if (data.organizationId) {
       const [membership] = await db
         .select({ role: organizationMember.role })
@@ -367,9 +392,34 @@ export const eventsRouter = new Hono<AppEnv>()
         HttpStatusCodes.FORBIDDEN
       );
     }
+    let { venueId } = eventData;
+    if (googlePlaceId) {
+      try {
+        const validatedVenue = await findOrCreateVenueFromGooglePlace({
+          db,
+          env: c.env,
+          getExecutionContext: () => {
+            try {
+              return c.executionCtx;
+            } catch {
+              // Hono app.request tests may not provide an ExecutionContext.
+            }
+          },
+          placeId: googlePlaceId,
+          userId: user.id,
+        });
+        venueId = validatedVenue.id;
+      } catch (error) {
+        console.error("Event location validation failed:", error);
+        return c.json(
+          { message: "Unable to validate event location" },
+          HttpStatusCodes.BAD_REQUEST
+        );
+      }
+    }
 
     const record = {
-      ...data,
+      ...eventData,
       courtLabels: undefined,
       courtLabelsJson: JSON.stringify(data.courtLabels),
       hostLabel: isPlatformAdmin ? "RallyCasts" : undefined,
@@ -378,6 +428,7 @@ export const eventsRouter = new Hono<AppEnv>()
         : ("organizer" as const),
       id: createId(),
       organizerUserId: user.id,
+      venueId,
     };
 
     const [created] = await db.insert(event).values(record).returning();

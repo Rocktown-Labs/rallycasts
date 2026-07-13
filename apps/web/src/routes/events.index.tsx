@@ -15,10 +15,13 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { PlaceSearchPicker } from "@/components/places/place-search-picker";
+import type { SelectedPlace } from "@/components/places/place-search-picker";
 import { EmptyState, EventCard } from "@/components/rally/cards";
 import {
   useCreateEvent,
   useEvents,
+  useMyOrganizations,
   useProfile,
   useUpdateProfile,
   useGeolocation,
@@ -57,6 +60,7 @@ function EventsPage() {
   const { data: profileData } = useProfile();
   const updateProfileMutation = useUpdateProfile();
   const createEventMutation = useCreateEvent();
+  const { data: organizationsData } = useMyOrganizations();
   const { location } = useGeolocation();
 
   const userState = location?.stateCode || "AR";
@@ -83,8 +87,14 @@ function EventsPage() {
   const [startsAt, setStartsAt] = useState("2026-06-20T15:00");
   const [capacity, setCapacity] = useState("96");
   const [description, setDescription] = useState("");
+  const [selectedOrganizationId, setSelectedOrganizationId] = useState("");
+  const [locationQuery, setLocationQuery] = useState("");
+  const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(
+    null
+  );
 
   const allEvents = eventsData?.events ?? [];
+  const myOrganizations = organizationsData?.organizations ?? [];
 
   // Group events based on state and distance:
   // 1. Near You (Within 1 Mile): distanceMiles <= 1.0
@@ -147,6 +157,10 @@ function EventsPage() {
       toast.error("Event name is required.");
       return;
     }
+    if (!selectedPlace) {
+      toast.error("Select a validated location before publishing.");
+      return;
+    }
 
     try {
       await createEventMutation.mutateAsync({
@@ -157,7 +171,9 @@ function EventsPage() {
           | "league"
           | "open_play"
           | "tournament",
+        googlePlaceId: selectedPlace.placeId,
         name: eventName,
+        organizationId: selectedOrganizationId || undefined,
         startsAt: new Date(startsAt).toISOString(),
         status: "published",
       });
@@ -167,6 +183,9 @@ function EventsPage() {
       setEventType("tournament");
       setCapacity("96");
       setDescription("");
+      setSelectedOrganizationId("");
+      setLocationQuery("");
+      setSelectedPlace(null);
 
       toast.success(
         isPlatformAdmin
@@ -501,12 +520,38 @@ function EventsPage() {
                     </select>
                   </div>
 
-                  <p className="rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
-                    Venue selection is optional for now. Add location details in
-                    the description, then attach a saved venue once the venue
-                    picker is wired in.
-                  </p>
+                  <div className="space-y-1">
+                    <label
+                      htmlFor="organizationSelect"
+                      className="text-xs font-semibold text-muted-foreground block"
+                    >
+                      Host Organization
+                    </label>
+                    <select
+                      id="organizationSelect"
+                      value={selectedOrganizationId}
+                      onChange={(e) =>
+                        setSelectedOrganizationId(e.target.value)
+                      }
+                      className="w-full p-2.5 bg-card border border-border rounded-md text-xs focus:ring-1 focus:ring-primary focus:outline-none"
+                    >
+                      <option value="">My organizer profile</option>
+                      {myOrganizations.map(({ organization }) => (
+                        <option key={organization.id} value={organization.id}>
+                          {organization.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
+
+                <PlaceSearchPicker
+                  id="eventLocationInput"
+                  onPlaceChange={setSelectedPlace}
+                  onQueryChange={setLocationQuery}
+                  query={locationQuery}
+                  selectedPlace={selectedPlace}
+                />
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">

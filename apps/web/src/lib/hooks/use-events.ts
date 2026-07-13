@@ -45,7 +45,9 @@ export const useCreateEvent = () => {
       description?: string;
       endsAt?: string;
       eventType?: "clinic" | "league" | "open_play" | "tournament";
+      googlePlaceId?: string;
       name: string;
+      organizationId?: string;
       startsAt: string;
       status?: "cancelled" | "completed" | "draft" | "published";
       venueId?: string;
@@ -53,6 +55,35 @@ export const useCreateEvent = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["events", "mine"] });
+    },
+  });
+};
+
+export const useUpdateEvent = (id: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (json: {
+      capacity?: number;
+      description?: string;
+      endsAt?: string;
+      eventType?: "clinic" | "league" | "open_play" | "tournament";
+      name?: string;
+      organizationId?: string;
+      startsAt?: string;
+      status?: "cancelled" | "completed" | "draft" | "published";
+      venueId?: string;
+    }) =>
+      readApiJson(
+        apiClient.api.events[":id"].$patch({
+          json,
+          param: { id },
+        })
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["events", "mine"] });
+      queryClient.invalidateQueries({ queryKey: ["events", id] });
     },
   });
 };

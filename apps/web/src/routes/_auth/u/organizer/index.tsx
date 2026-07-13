@@ -8,16 +8,16 @@ import {
 import { Link, createFileRoute } from "@tanstack/react-router";
 import {
   ArrowRight,
+  Building2,
   Calendar,
   ClipboardList,
   MapPin,
-  Radio,
   Trophy,
   Users,
 } from "lucide-react";
 
 import { EmptyState, EventCard, StatCard } from "@/components/rally/cards";
-import { useMyEvents, useProfile } from "@/lib/hooks";
+import { useMyEvents, useMyOrganizations, useProfile } from "@/lib/hooks";
 
 export const Route = createFileRoute("/_auth/u/organizer/")({
   component: OrganizerDashboardPage,
@@ -90,8 +90,10 @@ function OrganizerEventPreview({
 function OrganizerDashboardPage() {
   const { data: profileData } = useProfile();
   const { data: eventsData, isLoading } = useMyEvents();
+  const { data: organizationsData } = useMyOrganizations();
   const profile = profileData?.profile;
   const events = eventsData?.events ?? [];
+  const organizations = organizationsData?.organizations ?? [];
   const publishedEvents = events.filter(
     (event) => event.status === "published"
   );
@@ -131,6 +133,12 @@ function OrganizerDashboardPage() {
               <Button variant="outline" className="rounded-md">
                 <ClipboardList className="size-4" />
                 Manage Events
+              </Button>
+            </Link>
+            <Link to="/u/organizer/organizations">
+              <Button variant="outline" className="rounded-md">
+                <Building2 className="size-4" />
+                Organizations
               </Button>
             </Link>
           </div>
@@ -178,10 +186,10 @@ function OrganizerDashboardPage() {
           trend="Across your events"
         />
         <StatCard
-          icon={<Radio className="size-5" />}
-          label="Caster Requests"
-          value="0"
-          trend="Ready for event coverage"
+          icon={<Building2 className="size-5" />}
+          label="Organizations"
+          value={`${organizations.length}`}
+          trend="Host profiles you manage"
         />
       </div>
 
@@ -209,6 +217,15 @@ function OrganizerDashboardPage() {
                 <span className="inline-flex items-center gap-2">
                   <ClipboardList className="size-4 text-primary" />
                   Manage tournaments
+                </span>
+                <ArrowRight className="size-4" />
+              </Button>
+            </Link>
+            <Link to="/u/organizer/organizations">
+              <Button variant="outline" className="w-full justify-between">
+                <span className="inline-flex items-center gap-2">
+                  <Building2 className="size-4 text-primary" />
+                  Manage organizations
                 </span>
                 <ArrowRight className="size-4" />
               </Button>
