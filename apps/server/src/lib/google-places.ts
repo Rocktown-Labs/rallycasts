@@ -14,72 +14,65 @@ export interface GooglePlaceResult {
 }
 
 export interface GooglePlaceSearchResponse {
-  html_attributions: string[];
-  results: {
-    place_id: string;
-    name: string;
-    formatted_address?: string;
-    vicinity?: string;
-    geometry: {
-      location: {
-        lat: number;
-        lng: number;
-      };
-    };
-    photos?: {
-      photo_reference: string;
-      height: number;
-      width: number;
-      html_attributions: string[];
-    }[];
-    rating?: number;
-    user_ratings_total?: number;
-    types?: string[];
-    opening_hours?: {
-      open_now?: boolean;
-    };
-  }[];
-  status: string;
-  next_page_token?: string;
-  error_message?: string;
+  places?: GooglePlace[];
+  nextPageToken?: string;
 }
 
-export interface GooglePlaceDetailsResponse {
-  html_attributions: string[];
-  result: {
-    place_id: string;
-    name: string;
-    formatted_address?: string;
-    geometry: {
-      location: {
-        lat: number;
-        lng: number;
-      };
-    };
-    photos?: {
-      photo_reference: string;
-      height: number;
-      width: number;
-      html_attributions: string[];
-    }[];
-    rating?: number;
-    user_ratings_total?: number;
-    types?: string[];
-    formatted_phone_number?: string;
-    website?: string;
-    opening_hours?: {
-      open_now?: boolean;
-      weekday_text?: string[];
-    };
-    editorial_summary?: {
-      overview?: string;
-    };
+export interface GooglePlace {
+  id: string;
+  displayName?: {
+    text?: string;
   };
-  status: string;
-  error_message?: string;
+  formattedAddress?: string;
+  location?: {
+    latitude?: number;
+    longitude?: number;
+  };
+  photos?: {
+    name: string;
+    heightPx?: number;
+    widthPx?: number;
+  }[];
+  rating?: number;
+  regularOpeningHours?: {
+    openNow?: boolean;
+  };
+  types?: string[];
+  userRatingCount?: number;
 }
 
-const GOOGLE_PLACES_BASE_URL = "https://maps.googleapis.com/maps/api/place";
+const GOOGLE_PLACES_BASE_URL = "https://places.googleapis.com/v1";
+const SEARCH_FIELD_MASK = [
+  "places.id",
+  "places.displayName",
+  "places.formattedAddress",
+  "places.location",
+  "places.photos",
+  "places.rating",
+  "places.regularOpeningHours",
+  "places.types",
+  "places.userRatingCount",
+].join(",");
+const DETAILS_FIELD_MASK = [
+  "id",
+  "displayName",
+  "formattedAddress",
+  "location",
+  "photos",
+  "rating",
+  "regularOpeningHours",
+  "types",
+  "userRatingCount",
+].join(",");
+const EVENT_LOCATION_TYPES = [
+  "athletic_field",
+  "fitness_center",
+  "park",
+  "sports_activity_location",
+  "sports_club",
+  "sports_complex",
+  "sports_school",
+] as const;
 
 export class GooglePlacesClient {
   private apiKey: string;
@@ -97,27 +90,27 @@ export class GooglePlacesClient {
     radius = 50_000,
     keyword = "pickleball"
   ): Promise<GooglePlaceResult[]> {
-    const url = new URL(`${GOOGLE_PLACES_BASE_URL}/nearbysearch/json`);
-    url.searchParams.set("location", `${latitude},${longitude}`);
-    url.searchParams.set("radius", String(radius));
-    url.searchParams.set("keyword", keyword);
-    url.searchParams.set("type", "park");
-    url.searchParams.set("key", this.apiKey);
-
-    const response = await fetch(url.toString());
-    if (!response.ok) {
-      throw new Error(`Google Places API error: ${response.status}`);
+    if (keyword !== "pickleball") {
+      return this.searchText(keyword, latitude, longitude);
     }
 
-    const data = (await response.json()) as GooglePlaceSearchResponse;
+    const data = await this.postSearch(
+      "/places:searchNearby",
+      SEARCH_FIELD_MASK,
+      {
+        includedTypes: [...EVENT_LOCATION_TYPES],
+        locationRestriction: {
+          circle: {
+            center: { latitude, longitude },
+            radius,
+          },
+        },
+        maxResultCount: 12,
+        rankPreference: "POPULARITY",
+      }
+    );
 
-    if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
-      throw new Error(
-        `Google Places API error: ${data.status} - ${data.error_message || ""}`
-      );
-    }
-
-    return (data.results || []).map((place) => this.mapPlaceResult(place));
+    return (data.places ?? []).map((place) => this.mapPlaceResult(place));
   }
 
   async searchText(
@@ -125,102 +118,120 @@ export class GooglePlacesClient {
     latitude?: number,
     longitude?: number
   ): Promise<GooglePlaceResult[]> {
-    const url = new URL(`${GOOGLE_PLACES_BASE_URL}/textsearch/json`);
-    url.searchParams.set("query", query);
-    if (latitude && longitude) {
-      url.searchParams.set("location", `${latitude},${longitude}`);
-      url.searchParams.set("radius", "50000");
-    }
-    url.searchParams.set("key", this.apiKey);
+    const body: Record<string, unknown> = {
+      maxResultCount: 8,
+      textQuery: query,
+    };
 
-    const response = await fetch(url.toString());
-    if (!response.ok) {
-      throw new Error(`Google Places API error: ${response.status}`);
-    }
-
-    const data = (await response.json()) as GooglePlaceSearchResponse;
-
-    if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
-      throw new Error(
-        `Google Places API error: ${data.status} - ${data.error_message || ""}`
-      );
+    if (latitude !== undefined && longitude !== undefined) {
+      body.locationBias = {
+        circle: {
+          center: { latitude, longitude },
+          radius: 50_000,
+        },
+      };
     }
 
-    return (data.results || []).map((place) => this.mapPlaceResult(place));
+    const data = await this.postSearch(
+      "/places:searchText",
+      SEARCH_FIELD_MASK,
+      body
+    );
+
+    return (data.places ?? []).map((place) => this.mapPlaceResult(place));
   }
 
   async getPlaceDetails(placeId: string): Promise<GooglePlaceResult> {
-    const url = new URL(`${GOOGLE_PLACES_BASE_URL}/details/json`);
-    url.searchParams.set("place_id", placeId);
-    url.searchParams.set(
-      "fields",
-      "place_id,name,formatted_address,geometry,photos,rating,user_ratings_total,types,formatted_phone_number,website,opening_hours,editorial_summary"
+    const url = new URL(
+      `${GOOGLE_PLACES_BASE_URL}/places/${encodeURIComponent(placeId)}`
     );
-    url.searchParams.set("key", this.apiKey);
 
-    const response = await fetch(url.toString());
-    if (!response.ok) {
-      throw new Error(`Google Places API error: ${response.status}`);
-    }
+    const response = await fetch(url.toString(), {
+      headers: this.createHeaders(DETAILS_FIELD_MASK),
+    });
 
-    const data = (await response.json()) as GooglePlaceDetailsResponse;
+    await GooglePlacesClient.ensureOk(response);
+    const data = (await response.json()) as GooglePlace;
 
-    if (data.status !== "OK") {
-      throw new Error(
-        `Google Places API error: ${data.status} - ${data.error_message || ""}`
-      );
-    }
-
-    return this.mapPlaceDetailsResult(data.result);
+    return this.mapPlaceResult(data);
   }
 
-  getPhotoUrl(photoReference: string, maxWidth = 400): string {
-    const url = new URL(`${GOOGLE_PLACES_BASE_URL}/photo`);
-    url.searchParams.set("photoreference", photoReference);
-    url.searchParams.set("maxwidth", String(maxWidth));
+  getPhotoUrl(photoName: string, maxWidth = 400): string {
+    const url = new URL(`${GOOGLE_PLACES_BASE_URL}/${photoName}/media`);
+    url.searchParams.set("maxWidthPx", String(maxWidth));
     url.searchParams.set("key", this.apiKey);
     return url.toString();
   }
 
-  private mapPlaceResult(
-    place: GooglePlaceSearchResponse["results"][0]
-  ): GooglePlaceResult {
-    const photoUrl = place.photos?.[0]?.photo_reference
-      ? this.getPhotoUrl(place.photos[0].photo_reference)
-      : undefined;
-
+  private createHeaders(fieldMask: string): HeadersInit {
     return {
-      address: place.formatted_address || place.vicinity || "",
-      latitude: place.geometry.location.lat,
-      longitude: place.geometry.location.lng,
-      name: place.name,
-      openNow: place.opening_hours?.open_now,
-      photoUrl,
-      placeId: place.place_id,
-      rating: place.rating,
-      types: place.types || [],
-      userRatingsTotal: place.user_ratings_total,
+      "Content-Type": "application/json",
+      "X-Goog-Api-Key": this.apiKey,
+      "X-Goog-FieldMask": fieldMask,
     };
   }
 
-  private mapPlaceDetailsResult(
-    place: GooglePlaceDetailsResponse["result"]
-  ): GooglePlaceResult {
-    const photoUrl = place.photos?.[0]?.photo_reference
-      ? this.getPhotoUrl(place.photos[0].photo_reference)
+  private static async ensureOk(response: Response): Promise<void> {
+    if (response.ok) {
+      return;
+    }
+
+    const errorBody = await GooglePlacesClient.parseErrorBody(response);
+    const detail = errorBody.error?.message || errorBody.error?.status || "";
+    throw new Error(
+      `Google Places API error: ${response.status}${detail ? ` - ${detail}` : ""}`
+    );
+  }
+
+  private static async parseErrorBody(response: Response): Promise<{
+    error?: { message?: string; status?: string };
+  }> {
+    try {
+      return (await Promise.resolve(response.json())) as {
+        error?: { message?: string; status?: string };
+      };
+    } catch {
+      return { error: { message: "" } };
+    }
+  }
+
+  private async postSearch(
+    path: "/places:searchNearby" | "/places:searchText",
+    fieldMask: string,
+    body: Record<string, unknown>
+  ): Promise<GooglePlaceSearchResponse> {
+    const response = await fetch(`${GOOGLE_PLACES_BASE_URL}${path}`, {
+      body: JSON.stringify(body),
+      headers: this.createHeaders(fieldMask),
+      method: "POST",
+    });
+
+    await GooglePlacesClient.ensureOk(response);
+    return (await response.json()) as GooglePlaceSearchResponse;
+  }
+
+  private mapPlaceResult(place: GooglePlace): GooglePlaceResult {
+    const photoUrl = place.photos?.[0]?.name
+      ? this.getPhotoUrl(place.photos[0].name)
       : undefined;
+    const latitude = place.location?.latitude;
+    const longitude = place.location?.longitude;
+
+    if (latitude === undefined || longitude === undefined) {
+      throw new Error(`Google Places API result missing location: ${place.id}`);
+    }
 
     return {
-      address: place.formatted_address || "",
-      latitude: place.geometry.location.lat,
-      longitude: place.geometry.location.lng,
-      name: place.name,
-      openNow: place.opening_hours?.open_now,
+      address: place.formattedAddress || "",
+      latitude,
+      longitude,
+      name: place.displayName?.text || place.id,
+      openNow: place.regularOpeningHours?.openNow,
       photoUrl,
-      placeId: place.place_id,
+      placeId: place.id,
       rating: place.rating,
       types: place.types || [],
-      userRatingsTotal: place.user_ratings_total,
+      userRatingsTotal: place.userRatingCount,
     };
   }
 }

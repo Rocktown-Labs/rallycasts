@@ -31,18 +31,27 @@ export function CreateOrganizationPage() {
   const [state, setState] = useState("");
   const [bio, setBio] = useState("");
   const createOrganization = useMutation({
-    mutationFn: () =>
-      readApiJson(
+    mutationFn: () => {
+      const trimmedName = name.trim();
+      const trimmedSlug = slug.trim();
+
+      return readApiJson(
         apiClient.api.organizations.$post({
           json: {
-            bio: bio || undefined,
-            city: city || undefined,
-            name,
-            slug,
-            state: state || undefined,
+            bio: bio.trim() || undefined,
+            city: city.trim() || undefined,
+            name: trimmedName,
+            slug: trimmedSlug,
+            state: state.trim() || undefined,
           },
         })
-      ),
+      );
+    },
+    onError: (error) => {
+      toast.error(
+        error instanceof Error ? error.message : "Unable to create organization"
+      );
+    },
     onSuccess: async (result) => {
       await queryClient.invalidateQueries({ queryKey: ["organizations"] });
       toast.success("Organization created");
