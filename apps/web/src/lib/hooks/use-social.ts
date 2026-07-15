@@ -82,6 +82,13 @@ export const useStartConversation = () => {
   });
 };
 
+export const useFriends = () =>
+  useQuery({
+    queryFn: () => readApiJson(apiClient.api.social.friends.$get()),
+    queryKey: ["friends"],
+    retry: false,
+  });
+
 export const useConversations = () =>
   useQuery({
     queryFn: () => readApiJson(apiClient.api.social.conversations.$get()),
