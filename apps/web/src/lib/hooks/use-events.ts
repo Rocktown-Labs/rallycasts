@@ -41,13 +41,20 @@ export const useCreateEvent = () => {
 
   return useMutation({
     mutationFn: (json: {
+      bracketType?: "round_robin" | "single_elimination";
       capacity?: number;
+      checkInMinutes?: number;
+      courtLabels?: string[];
+      currency?: "usd";
       description?: string;
       endsAt?: string;
       eventType?: "clinic" | "league" | "open_play" | "tournament";
+      entryFeeCents?: number;
       googlePlaceId?: string;
       name: string;
       organizationId?: string;
+      refundPolicy?: string;
+      registrationDeadline?: string;
       startsAt: string;
       status?: "cancelled" | "completed" | "draft" | "published";
       venueId?: string;
@@ -64,12 +71,19 @@ export const useUpdateEvent = (id: string) => {
 
   return useMutation({
     mutationFn: (json: {
+      bracketType?: "round_robin" | "single_elimination";
       capacity?: number;
+      checkInMinutes?: number;
+      courtLabels?: string[];
+      currency?: "usd";
       description?: string;
       endsAt?: string;
       eventType?: "clinic" | "league" | "open_play" | "tournament";
+      entryFeeCents?: number;
       name?: string;
       organizationId?: string;
+      refundPolicy?: string;
+      registrationDeadline?: string;
       startsAt?: string;
       status?: "cancelled" | "completed" | "draft" | "published";
       venueId?: string;
