@@ -26,29 +26,13 @@ import { toast } from "sonner";
 
 import { apiClient } from "@/lib/api-client";
 import { mapGooglePlaceToCourtSuggestion } from "@/lib/google-places";
-import type {
-  CourtSuggestion,
-  GooglePlaceSuggestion,
-} from "@/lib/google-places";
-import { useProfile, useUpdateProfile } from "@/lib/hooks";
+import type { CourtSuggestion } from "@/lib/google-places";
+import { usePlaceSearch, useProfile, useUpdateProfile } from "@/lib/hooks";
 import type { ProfilePayload } from "@/lib/hooks";
-import { readApiJson } from "@/lib/hooks/api";
 
 export const Route = createFileRoute("/_auth/u/settings")({
   component: SettingsPage,
 });
-
-// Simple debounce hook
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-    return () => clearTimeout(handler);
-  }, [value, delay]);
-  return debouncedValue;
-}
 
 interface ProfileData {
   profile?: {
@@ -136,12 +120,16 @@ function SettingsPage() {
   });
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [suggestions, setSuggestions] = useState<CourtSuggestion[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [isSearchingPlaces, setIsSearchingPlaces] = useState(false);
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [usernameSuccess, setUsernameSuccess] = useState(false);
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const { data: placeSearchData, isFetching: isSearchingPlaces } =
+    usePlaceSearch(searchQuery);
+  const suggestions = useMemo(
+    () => (placeSearchData?.places ?? []).map(mapGooglePlaceToCourtSuggestion),
+    [placeSearchData?.places]
+  );
 
   // Debounced username check using TanStack Pacer
   const debouncedCheck = useMemo(
@@ -196,57 +184,12 @@ function SettingsPage() {
     debouncedCheck(cleanUsername);
   }, [form.username, user?.username, user?.displayUsername, debouncedCheck]);
 
-  const debouncedQuery = useDebounce(searchQuery, 400);
-
   // Initialize form when profileData loads
   useEffect(() => {
     if (profileData) {
       setForm(getProfileFormDefaults(profileData));
     }
   }, [profileData]);
-
-  // Load Google Places suggestions
-  useEffect(() => {
-    if (debouncedQuery.length < 3) {
-      setSuggestions([]);
-      return;
-    }
-
-    let active = true;
-    setIsSearchingPlaces(true);
-
-    const fetchGoogleSuggestions = async () => {
-      try {
-        const result = await readApiJson<{ places: GooglePlaceSuggestion[] }>(
-          apiClient.api.places.search.$get({
-            query: {
-              q: debouncedQuery,
-            },
-          }) as Promise<{
-            json: () => Promise<{ places: GooglePlaceSuggestion[] }>;
-            ok: boolean;
-            status: number;
-            statusText: string;
-          }>
-        );
-        if (active) {
-          setSuggestions(result.places.map(mapGooglePlaceToCourtSuggestion));
-        }
-      } catch (error) {
-        console.error("Error fetching places suggestions", error);
-      } finally {
-        if (active) {
-          setIsSearchingPlaces(false);
-        }
-      }
-    };
-
-    fetchGoogleSuggestions();
-
-    return () => {
-      active = false;
-    };
-  }, [debouncedQuery]);
 
   const selectAddress = (addr: CourtSuggestion) => {
     setForm((prev) => ({
