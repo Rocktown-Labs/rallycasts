@@ -50,6 +50,32 @@ jobs:
 
       - name: Deploy
         run: |
+          if [ -z "$R2_BUCKET_NAME" ] || [ -z "$R2_ACCOUNT_ID" ] || [ -z "$R2_PUBLIC_URL" ]; then
+            SETTINGS_FILE="$(mktemp)"
+            if curl -fsS \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/rallycasts-server/settings" \
+              > "$SETTINGS_FILE"; then
+              if [ -z "$R2_BUCKET_NAME" ]; then
+                R2_BUCKET_NAME="$(jq -r '.result.bindings[]? | select(.name == "MEDIA_BUCKET" and .type == "r2_bucket") | .bucket_name // empty' "$SETTINGS_FILE")"
+                export R2_BUCKET_NAME
+              fi
+              if [ -z "$R2_ACCOUNT_ID" ]; then
+                R2_ACCOUNT_ID="$(jq -r '.result.bindings[]? | select(.name == "R2_ACCOUNT_ID" and .type == "plain_text") | .text // empty' "$SETTINGS_FILE")"
+                export R2_ACCOUNT_ID
+              fi
+              if [ -z "$R2_PUBLIC_URL" ]; then
+                R2_PUBLIC_URL="$(jq -r '.result.bindings[]? | select(.name == "R2_PUBLIC_URL" and .type == "plain_text") | .text // empty' "$SETTINGS_FILE")"
+                export R2_PUBLIC_URL
+              fi
+            fi
+            rm -f "$SETTINGS_FILE"
+          fi
+          if [ "${{ env.STAGE }}" = "prod" ] && [ -z "$R2_BUCKET_NAME" ]; then
+            echo "ERROR: R2_BUCKET_NAME is not set and MEDIA_BUCKET could not be inherited from rallycasts-server."
+            exit 1
+          fi
           printf "%s" "$ALCHEMY_STATE_TOKEN" | bun x wrangler secret put STATE_TOKEN --name alchemy-state-service
           cd packages/infra && bun x alchemy deploy --stage ${{ env.STAGE }}
         env:
@@ -62,6 +88,11 @@ jobs:
           GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
           GOOGLE_PLACES_API_KEY: ${{ secrets.GOOGLE_PLACES_API_KEY }}
           PULL_REQUEST: ${{ github.event.number }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+          R2_PUBLIC_URL: ${{ secrets.R2_PUBLIC_URL }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           RADAR_SECRET_KEY: ${{ secrets.RADAR_SECRET_KEY }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           GITHUB_SHA: ${{ github.sha }}
@@ -105,3 +136,8 @@ jobs:
           CLOUDFLARE_EMAIL: ${{ secrets.CLOUDFLARE_EMAIL }}
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
           PULL_REQUEST: ${{ github.event.number }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+          R2_PUBLIC_URL: ${{ secrets.R2_PUBLIC_URL }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
