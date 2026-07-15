@@ -9,7 +9,7 @@ import {
   VectorizeIndex,
   Worker,
 } from "alchemy/cloudflare";
-import type { Bindings } from "alchemy/cloudflare";
+import type { Binding, Bindings } from "alchemy/cloudflare";
 import { GitHubComment } from "alchemy/github";
 import { CloudflareStateStore } from "alchemy/state";
 import { config } from "dotenv";
@@ -48,15 +48,20 @@ const optionalSecret = (name: string) =>
     ? new InheritedSecret(name)
     : alchemy.secret.env(name);
 
+const optionalPlainEnv = (name: string) =>
+  process.env[name]?.trim() || undefined;
+
 const requiredSecret = (name: string) =>
   process.env[name] === undefined || process.env[name] === ""
     ? new InheritedSecret(name)
     : required(alchemy.secret.env(name), name);
 
-const filterMissingBindings = (bindings: Bindings): Bindings =>
+const filterMissingBindings = (
+  bindings: Record<string, Binding | undefined>
+): Bindings =>
   Object.fromEntries(
     Object.entries(bindings).filter(
-      ([_, value]) => !(value instanceof InheritedSecret)
+      ([_, value]) => value !== undefined && !(value instanceof InheritedSecret)
     )
   ) as Bindings;
 
@@ -111,20 +116,22 @@ const muxTokenId = optionalSecret("MUX_TOKEN_ID");
 const muxWebhookSecret = optionalSecret("MUX_WEBHOOK_SECRET");
 const r2AccessKeyId = optionalSecret("R2_ACCESS_KEY_ID");
 const r2SecretAccessKey = optionalSecret("R2_SECRET_ACCESS_KEY");
-const r2BucketName = process.env.R2_BUCKET_NAME ?? "rallycasts-media";
-const r2AccountId = process.env.R2_ACCOUNT_ID ?? "";
-const r2PublicUrl = process.env.R2_PUBLIC_URL ?? "https://media.rallycasts.com";
+const r2BucketName = optionalPlainEnv("R2_BUCKET_NAME");
+const r2AccountId = optionalPlainEnv("R2_ACCOUNT_ID");
+const r2PublicUrl = optionalPlainEnv("R2_PUBLIC_URL");
 const resendApiKey = optionalSecret("RESEND_API_KEY");
 const resendWebhookSecret = optionalSecret("RESEND_WEBHOOK_SECRET");
 const stripeSecretKey = optionalSecret("STRIPE_SECRET_KEY");
 const stripeWebhookSecret = optionalSecret("STRIPE_WEBHOOK_SECRET");
 const sentryDsn = optionalSecret("SENTRY_DSN");
 
-const mediaBucket = await R2Bucket("media-v3", {
-  adopt: true,
-  domains: isProd ? ["media.rallycasts.com"] : undefined,
-  name: r2BucketName,
-});
+const mediaBucket = r2BucketName
+  ? await R2Bucket("media-v3", {
+      adopt: true,
+      domains: isProd ? ["media.rallycasts.com"] : undefined,
+      name: r2BucketName,
+    })
+  : undefined;
 
 const venuePresence = DurableObjectNamespace("venue-presence", {
   className: "VenuePresence",
