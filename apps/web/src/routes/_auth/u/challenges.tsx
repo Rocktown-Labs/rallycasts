@@ -38,6 +38,25 @@ function ChallengesPage() {
       toast.success("Challenge updated");
     },
   });
+  const reportResult = useMutation({
+    mutationFn: ({
+      id,
+      result,
+    }: {
+      id: string;
+      result: "draw" | "lost" | "won";
+    }) =>
+      readApiJson(
+        apiClient.api.challenges[":id"].result.$patch({
+          json: { result },
+          param: { id },
+        })
+      ),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["challenges", "me"] });
+      toast.success("Match result saved");
+    },
+  });
   const challenges = data?.challenges ?? [];
 
   return (
@@ -89,7 +108,9 @@ function ChallengesPage() {
                   ) : null}
                 </div>
                 <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold capitalize text-primary">
-                  {challenge.status}
+                  {challenge.result
+                    ? `${challenge.status} · ${challenge.result}`
+                    : challenge.status}
                 </span>
               </div>
               {challenge.message ? (
@@ -126,6 +147,49 @@ function ChallengesPage() {
                 >
                   Cancel challenge
                 </Button>
+              ) : null}
+              {challenge.status === "accepted" ? (
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-semibold text-muted-foreground">
+                    Report result:
+                  </span>
+                  <Button
+                    className="rounded-lg"
+                    onClick={() =>
+                      reportResult.mutate({
+                        id: challenge.id,
+                        result: incoming ? "lost" : "won",
+                      })
+                    }
+                    size="sm"
+                    variant="outline"
+                  >
+                    I won
+                  </Button>
+                  <Button
+                    className="rounded-lg"
+                    onClick={() =>
+                      reportResult.mutate({
+                        id: challenge.id,
+                        result: incoming ? "won" : "lost",
+                      })
+                    }
+                    size="sm"
+                    variant="outline"
+                  >
+                    I lost
+                  </Button>
+                  <Button
+                    className="rounded-lg"
+                    onClick={() =>
+                      reportResult.mutate({ id: challenge.id, result: "draw" })
+                    }
+                    size="sm"
+                    variant="outline"
+                  >
+                    Draw
+                  </Button>
+                </div>
               ) : null}
             </article>
           );

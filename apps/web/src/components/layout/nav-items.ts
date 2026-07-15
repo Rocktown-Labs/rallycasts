@@ -7,6 +7,7 @@ import {
   Home,
   MessageSquare,
   Settings,
+  UploadCloud,
   Swords,
   Trophy,
   User,
@@ -34,6 +35,7 @@ export const organizerNavItems = [
 
 export const accountNavItems = [
   { icon: Video, label: "Your Videos", to: "/u/videos/me" },
+  { icon: UploadCloud, label: "Studio", to: "/u/studio" },
   { icon: User, label: "Profile", to: "/u/profile" },
   {
     icon: Calendar,

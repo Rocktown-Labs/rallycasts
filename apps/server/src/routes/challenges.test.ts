@@ -20,7 +20,11 @@ const signUp = async (name: string) => {
     env
   );
   const body = (await response.json()) as { user: { id: string } };
-  return { cookie: response.headers.get("set-cookie") ?? "", id: body.user.id };
+  return {
+    cookie: response.headers.get("set-cookie") ?? "",
+    id: body.user.id,
+    username,
+  };
 };
 
 const jsonRequest = (
@@ -97,6 +101,34 @@ describe("challenges API", () => {
           notification: expect.objectContaining({ type: "challenge" }),
         }),
       ]),
+    });
+
+    const resultResponse = await jsonRequest(
+      `/api/challenges/${body.challenge.id}/result`,
+      challenger.cookie,
+      { result: "won" },
+      "PATCH"
+    );
+    expect(resultResponse.status).toBe(200);
+    await expect(resultResponse.json()).resolves.toMatchObject({
+      challenge: {
+        result: "won",
+        status: "completed",
+      },
+    });
+
+    const challengerProfile = await app.request(
+      `/api/players/${challenger.username}`,
+      {},
+      env
+    );
+    expect(challengerProfile.status).toBe(200);
+    await expect(challengerProfile.json()).resolves.toMatchObject({
+      stats: {
+        losses: 0,
+        matchCount: 1,
+        wins: 1,
+      },
     });
   });
 });

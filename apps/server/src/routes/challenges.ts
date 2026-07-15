@@ -32,6 +32,10 @@ const responseSchema = z.object({
   response: z.enum(["accepted", "declined", "cancelled"]),
 });
 
+const resultSchema = z.object({
+  result: z.enum(["won", "lost", "draw"]),
+});
+
 export const challengesRouter = new Hono<AppEnv>()
   .get("/me", requireAuth, async (c) => {
     const db = createDb(c.env.DB);
@@ -166,6 +170,62 @@ export const challengesRouter = new Hono<AppEnv>()
           entityType: "challenge",
           href: `/u/challenges/${id}`,
           title: `Challenge ${response}`,
+          type: "challenge",
+          userId: notificationUserId,
+        });
+      }
+      return c.json({ challenge: updated }, HttpStatusCodes.OK);
+    }
+  )
+  .patch(
+    "/:id/result",
+    requireAuth,
+    zValidator("json", resultSchema),
+    async (c) => {
+      const db = createDb(c.env.DB);
+      const { user: authUser } = c.var.authSession;
+      const id = c.req.param("id");
+      const { result } = c.req.valid("json");
+      const [record] = await db
+        .select()
+        .from(challenge)
+        .where(eq(challenge.id, id))
+        .limit(1);
+      if (!record) {
+        return c.json(
+          { message: "Challenge not found" },
+          HttpStatusCodes.NOT_FOUND
+        );
+      }
+      const canReport =
+        record.challengerUserId === authUser.id ||
+        record.challengedUserId === authUser.id;
+      if (!canReport) {
+        return c.json({ message: "Forbidden" }, HttpStatusCodes.FORBIDDEN);
+      }
+      if (!["accepted", "completed"].includes(record.status)) {
+        return c.json(
+          { message: "Only accepted challenges can be scored" },
+          HttpStatusCodes.CONFLICT
+        );
+      }
+      const [updated] = await db
+        .update(challenge)
+        .set({ result, status: "completed", updatedAt: new Date() })
+        .where(eq(challenge.id, id))
+        .returning();
+      const notificationUserId =
+        authUser.id === record.challengerUserId
+          ? record.challengedUserId
+          : record.challengerUserId;
+      if (notificationUserId) {
+        await createNotification(db, {
+          actorUserId: authUser.id,
+          body: `${authUser.name} reported a ${result} result for your match challenge.`,
+          entityId: id,
+          entityType: "challenge",
+          href: `/u/challenges`,
+          title: "Challenge result posted",
           type: "challenge",
           userId: notificationUserId,
         });

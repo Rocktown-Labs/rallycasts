@@ -46,6 +46,7 @@ interface ProfileData {
     isOrganizer?: boolean;
     isPlayer?: boolean;
     radarPlaceId?: string | null;
+    skillLevel?: "advanced" | "beginner" | "intermediate" | "pro" | null;
   } | null;
   user?: {
     displayUsername?: string | null;
@@ -67,6 +68,7 @@ const getProfileFormDefaults = (data: ProfileData | undefined) => {
     isPlayer: true,
     name: "",
     radarPlaceId: "",
+    skillLevel: "intermediate" as const,
     username: "",
   };
 
@@ -93,12 +95,19 @@ const getProfileFormDefaults = (data: ProfileData | undefined) => {
     defaults.isOrganizer = !!p.isOrganizer;
     defaults.isPlayer = p.isPlayer !== false;
     defaults.radarPlaceId = p.radarPlaceId || "";
+    defaults.skillLevel = p.skillLevel || "intermediate";
   }
 
   return defaults;
 };
 
-function SettingsPage() {
+export function ProfileEditorPage({
+  title = "Settings",
+  subtitle = "Configure your personal details, public profile, home court, and roles.",
+}: {
+  subtitle?: string;
+  title?: string;
+}) {
   const { data: profileData, refetch } = useProfile();
   const updateProfile = useUpdateProfile();
 
@@ -116,6 +125,11 @@ function SettingsPage() {
     isPlayer: true,
     name: "",
     radarPlaceId: "",
+    skillLevel: "intermediate" as
+      | "advanced"
+      | "beginner"
+      | "intermediate"
+      | "pro",
     username: "",
   });
 
@@ -249,6 +263,7 @@ function SettingsPage() {
       isPlayer: form.isPlayer,
       name: form.name.trim(),
       radarPlaceId: form.radarPlaceId || undefined,
+      skillLevel: form.skillLevel,
     };
 
     if (form.username.trim()) {
@@ -319,11 +334,8 @@ function SettingsPage() {
       <div className="flex items-center gap-3 border-b border-border/60 pb-5">
         <Settings className="size-8 text-primary" />
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight">Settings</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Configure your personal details, public profile, home court, and
-            roles.
-          </p>
+          <h1 className="text-3xl font-extrabold tracking-tight">{title}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
         </div>
       </div>
 
@@ -514,6 +526,53 @@ function SettingsPage() {
           </CardContent>
         </Card>
 
+        <Card className="border border-border bg-card/40 backdrop-blur-sm rounded-xl overflow-hidden shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-lg font-bold flex items-center gap-2">
+              <Sparkles className="size-5 text-primary" /> Rating
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Pick the closest DUPR-style range for matchmaking and challenge
+              context.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {[
+                ["beginner", "Beginner", "2.5 and below"],
+                ["intermediate", "Intermediate", "3.0 - 3.5"],
+                ["advanced", "Advanced", "4.0 - 4.5"],
+                ["pro", "Pro", "5.0+"],
+              ].map(([value, label, description]) => (
+                <button
+                  className={`rounded-lg border p-4 text-left transition-colors ${
+                    form.skillLevel === value
+                      ? "border-primary bg-primary/10"
+                      : "border-border bg-muted/5 hover:border-primary/40"
+                  }`}
+                  key={value}
+                  onClick={() =>
+                    setForm((prev) => ({
+                      ...prev,
+                      skillLevel: value as
+                        | "advanced"
+                        | "beginner"
+                        | "intermediate"
+                        | "pro",
+                    }))
+                  }
+                  type="button"
+                >
+                  <span className="block text-sm font-bold">{label}</span>
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    {description}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* 3. Community Roles Card */}
         <Card className="border border-border bg-card/40 backdrop-blur-sm rounded-xl overflow-hidden shadow-sm">
           <CardHeader>
@@ -610,4 +669,8 @@ function SettingsPage() {
       </form>
     </div>
   );
+}
+
+function SettingsPage() {
+  return <ProfileEditorPage />;
 }

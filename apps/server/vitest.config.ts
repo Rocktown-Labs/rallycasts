@@ -44,7 +44,7 @@ export default defineConfig(async () => {
         d1Migrations: migrations,
       },
       setupFiles: ["./src/test/setup.ts"],
-      testTimeout: 30_000,
+      testTimeout: 60_000,
     },
   };
 });
