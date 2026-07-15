@@ -1342,6 +1342,11 @@ function PlayerProfilePage() {
     splitMode: string;
     tipCents: number;
   }) => {
+    if (currentUser?.id === player.id) {
+      toast.error("You cannot challenge yourself.");
+      setShowChallengeModal(false);
+      return;
+    }
     const splitModeMap: Record<
       string,
       "challenger" | "challenged" | "split_evenly"
@@ -1412,6 +1417,10 @@ function PlayerProfilePage() {
         onOpenChallenge={() => {
           if (!currentUser) {
             toast.error("Please log in to challenge this player.");
+            return;
+          }
+          if (isOwnProfile) {
+            toast.error("You cannot challenge yourself.");
             return;
           }
           setShowChallengeModal(true);

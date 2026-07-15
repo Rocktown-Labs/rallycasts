@@ -9,7 +9,10 @@ import {
   Users,
   Info,
   CheckCircle2,
+  ListChecks,
   Search,
+  Settings,
+  Trophy,
   User,
   PlusCircle,
   XCircle,
@@ -261,7 +264,7 @@ function RegistrationModal({
 
 // oxlint-disable-next-line complexity
 function EventOverviewTab() {
-  const { event } = useEventContext();
+  const { canManageEvent, event } = useEventContext();
   const { data: sessionData } = authClient.useSession();
   const currentUser = sessionData?.user;
   const { data: playersData } = useEventPlayers(event.id);
@@ -435,6 +438,53 @@ function EventOverviewTab() {
       </div>
 
       <div className="space-y-4">
+        {canManageEvent ? (
+          <Card className="rounded-xl border border-primary/30 bg-primary/5 p-5 shadow-sm">
+            <div className="space-y-4">
+              <div>
+                <h3 className="flex items-center gap-2 text-sm font-bold text-primary">
+                  <Settings className="size-4" /> Organizer Tools
+                </h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Manage registrations, generate brackets, update match flow,
+                  and change event status from the organizer console.
+                </p>
+              </div>
+              <div className="grid gap-2">
+                <Link params={{ id: event.id }} to="/events/$id/players">
+                  <Button
+                    className="w-full justify-start rounded-md"
+                    variant="outline"
+                  >
+                    <Users className="size-4" /> Player pool
+                  </Button>
+                </Link>
+                <Link params={{ id: event.id }} to="/events/$id/bracket">
+                  <Button
+                    className="w-full justify-start rounded-md"
+                    variant="outline"
+                  >
+                    <Trophy className="size-4" /> Bracket desk
+                  </Button>
+                </Link>
+                <Link params={{ id: event.id }} to="/events/$id/matches">
+                  <Button
+                    className="w-full justify-start rounded-md"
+                    variant="outline"
+                  >
+                    <ListChecks className="size-4" /> Match flow
+                  </Button>
+                </Link>
+                <Link to="/u/organizer/events">
+                  <Button className="w-full justify-start rounded-md">
+                    <Calendar className="size-4" /> Manage all events
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </Card>
+        ) : null}
+
         {isRegistered ? (
           <Card className="border border-green-500/30 bg-green-500/5 rounded-xl shadow-sm p-5 space-y-4">
             <div className="flex items-start gap-3">

@@ -40,6 +40,20 @@ const jsonRequest = (
   );
 
 describe("challenges API", () => {
+  it("rejects challenges issued to yourself", async () => {
+    const player = await signUp("Solo Player");
+    const response = await jsonRequest("/api/challenges", player.cookie, {
+      challengedUserId: player.id,
+      scheduledAt: new Date(Date.now() + 86_400_000).toISOString(),
+      venueLabel: "Crestwood Pickleball Park",
+    });
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      message: "You cannot challenge yourself",
+    });
+  });
+
   it("issues actionable match challenges with casting and tips", async () => {
     const challenger = await signUp("Challenger");
     const opponent = await signUp("Opponent");

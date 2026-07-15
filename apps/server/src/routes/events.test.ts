@@ -9,22 +9,18 @@ globalThis.fetch = mockFetch;
 const mockGooglePlaceDetails = () => {
   mockFetch.mockResolvedValueOnce({
     json: () => ({
-      html_attributions: [],
-      result: {
-        formatted_address: "123 Tournament Way, Austin, TX 78701",
-        geometry: {
-          location: {
-            lat: 30.2672,
-            lng: -97.7431,
-          },
-        },
-        name: "Tournament Park",
-        place_id: "event_place",
-        rating: 4.8,
-        types: ["park"],
-        user_ratings_total: 120,
+      displayName: {
+        text: "Tournament Park",
       },
-      status: "OK",
+      formattedAddress: "123 Tournament Way, Austin, TX 78701",
+      id: "event_place",
+      location: {
+        latitude: 30.2672,
+        longitude: -97.7431,
+      },
+      rating: 4.8,
+      types: ["park"],
+      userRatingCount: 120,
     }),
     ok: true,
   });

@@ -1,6 +1,12 @@
+/* eslint-disable complexity */
 import { Button, buttonVariants } from "@rallycaststv/ui/components/button";
 import { cn } from "@rallycaststv/ui/lib/utils";
-import { Link, createFileRoute, useSearch } from "@tanstack/react-router";
+import {
+  Link,
+  createFileRoute,
+  useNavigate,
+  useSearch,
+} from "@tanstack/react-router";
 import {
   Calendar,
   Flame,
@@ -37,8 +43,39 @@ import {
 } from "@/lib/hooks";
 
 const trendingSearchSchema = z.object({
+  radius: z.coerce.number().optional(),
   section: z.string().optional(),
 });
+
+const VENUE_RADIUS_OPTIONS = [10, 25, 50, 100] as const;
+const DEFAULT_VENUE_RADIUS = 50;
+const VIEW_ALL_VENUE_LIMIT = 48;
+
+const normalizeVenueRadius = (radius?: number) => {
+  if (!radius || !Number.isFinite(radius)) {
+    return DEFAULT_VENUE_RADIUS;
+  }
+
+  let closest = DEFAULT_VENUE_RADIUS;
+  for (const option of VENUE_RADIUS_OPTIONS) {
+    if (Math.abs(option - radius) < Math.abs(closest - radius)) {
+      closest = option;
+    }
+  }
+
+  return closest;
+};
+
+const getTrendingViewSection = (section: unknown) =>
+  typeof section === "string" ? section : null;
+
+const getActivePlayerCount = (venues: unknown[]) => {
+  let total = 0;
+  for (const venue of venues) {
+    total += (venue as VenueCardData).activePlayers ?? 0;
+  }
+  return total;
+};
 
 export const Route = createFileRoute("/trending")({
   component: TrendingPage,
@@ -69,43 +106,79 @@ function SectionHeader({
   title,
   to,
   search,
+  actions,
   count,
   scope,
 }: {
   icon: React.ReactNode;
   title: string;
   to: string;
-  search?: Record<string, string>;
+  search?: Record<string, number | string | undefined>;
+  actions?: ReactNode;
   count?: number;
   scope?: string;
 }) {
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        {icon}
-        <h2 className="text-xl font-bold">{title}</h2>
-        {scope && (
-          <span className="text-[10px] bg-muted text-muted-foreground font-semibold px-2 py-0.5 rounded-md">
-            {scope}
-          </span>
-        )}
-        {count !== undefined && count > 0 && (
-          <span className="text-[10px] bg-primary/10 text-primary font-semibold px-2 py-0.5 rounded-md">
-            {count}
-          </span>
-        )}
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2">
+          {icon}
+          <h2 className="text-xl font-bold">{title}</h2>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {scope && (
+            <span className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+              {scope}
+            </span>
+          )}
+          {count !== undefined && count > 0 && (
+            <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+              {count}
+            </span>
+          )}
+        </div>
       </div>
-      <Link
-        to={to as unknown as never}
-        search={search as unknown as never}
-        className={cn(
-          buttonVariants({ variant: "ghost" }),
-          "rounded-md text-xs font-semibold"
-        )}
-      >
-        View all
-      </Link>
+      <div className="flex items-center gap-2">
+        {actions}
+        <Link
+          to={to as unknown as never}
+          search={search as unknown as never}
+          className={cn(
+            buttonVariants({ variant: "ghost" }),
+            "rounded-md text-xs font-semibold"
+          )}
+        >
+          View all
+        </Link>
+      </div>
     </div>
+  );
+}
+
+function VenueRadiusSelect({
+  onRadiusChange,
+  radius,
+}: {
+  onRadiusChange: (radius: number) => void;
+  radius: number;
+}) {
+  return (
+    <label className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-card px-2.5 text-xs font-semibold text-muted-foreground shadow-sm">
+      <MapPin className="size-3.5 text-primary" />
+      <span className="sr-only">Park search radius</span>
+      <select
+        aria-label="Park search radius"
+        className="bg-transparent text-foreground outline-none"
+        onChange={(event) => onRadiusChange(Number(event.target.value))}
+        value={radius}
+      >
+        {VENUE_RADIUS_OPTIONS.map((option) => (
+          <option key={option} value={option}>
+            {option} mi
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 
@@ -189,10 +262,14 @@ function HeroStatusMessages({
 
 function ParksNearYouSection({
   location,
+  onRadiusChange,
+  radius,
   requestLocation,
   venues,
 }: {
   location?: { lat: number; lng: number };
+  onRadiusChange: (radius: number) => void;
+  radius: number;
   requestLocation: () => void;
   venues: VenueCardData[];
 }) {
@@ -206,9 +283,12 @@ function ParksNearYouSection({
         icon={<Flame className="size-5 text-primary" />}
         title="Parks Near You"
         to="/trending"
-        search={{ section: "venues" }}
+        search={{ radius, section: "venues" }}
+        actions={
+          <VenueRadiusSelect onRadiusChange={onRadiusChange} radius={radius} />
+        }
         count={venues.length}
-        scope="Within 50 mi"
+        scope={`Within ${radius} mi`}
       />
       {venues.length > 0 ? (
         <HorizontalScroll>
@@ -237,7 +317,23 @@ function ParksNearYouSection({
   );
 }
 
-function VenuesViewSection({ venues }: { venues: VenueCardData[] }) {
+function VenuesViewSection({
+  location,
+  onRadiusChange,
+  radius,
+  requestLocation,
+  venues,
+}: {
+  location?: { lat: number; lng: number };
+  onRadiusChange: (radius: number) => void;
+  radius: number;
+  requestLocation: () => void;
+  venues: VenueCardData[];
+}) {
+  const emptyMessage = location
+    ? `No Google Places or RallyCasts parks found within ${radius} miles.`
+    : "Allow location to search Google Places and RallyCasts parks near you.";
+
   return (
     <div className="mx-auto max-w-7xl space-y-8 px-4 py-4 animate-in fade-in duration-300">
       {/* Banner */}
@@ -257,19 +353,28 @@ function VenuesViewSection({ venues }: { venues: VenueCardData[] }) {
         </div>
       </div>
 
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold">
-          All Nearby Venues ({venues.length})
-        </h2>
-        <Link
-          to="/trending"
-          className={cn(
-            buttonVariants({ variant: "outline" }),
-            "rounded-md text-xs"
-          )}
-        >
-          ← Back to Trending
-        </Link>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-bold">
+            Nearby Pickleball Parks ({venues.length})
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            Showing places within {radius} miles.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <VenueRadiusSelect onRadiusChange={onRadiusChange} radius={radius} />
+          <Link
+            to="/trending"
+            search={{ radius }}
+            className={cn(
+              buttonVariants({ variant: "outline" }),
+              "rounded-md text-xs"
+            )}
+          >
+            ← Back to Trending
+          </Link>
+        </div>
       </div>
 
       {venues.length > 0 ? (
@@ -281,8 +386,18 @@ function VenuesViewSection({ venues }: { venues: VenueCardData[] }) {
       ) : (
         <EmptyState
           icon={<MapPin className="size-5" />}
-          message="No nearby courts with active play found."
+          message={emptyMessage}
           title="No venues found"
+          action={
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={requestLocation}
+              className="rounded-md"
+            >
+              Use My Location
+            </Button>
+          }
         />
       )}
     </div>
@@ -386,7 +501,9 @@ function TrendingDashboardView({
   geoError,
   geoLoading,
   location,
+  onVenueRadiusChange,
   requestLocation,
+  venueRadius,
   venues,
   videos,
   players,
@@ -399,7 +516,9 @@ function TrendingDashboardView({
   geoError: string | null;
   geoLoading: boolean;
   location?: { isFallback?: boolean; lat: number; lng: number } | null;
+  onVenueRadiusChange: (radius: number) => void;
   requestLocation: () => void;
+  venueRadius: number;
   venues: VenueCardData[];
   videos: VideoCardData[];
   players: PlayerCardData[];
@@ -440,7 +559,9 @@ function TrendingDashboardView({
                 <Flame className="size-4 text-[#bcdf21]" /> Parks heating up
               </div>
               <p className="mt-2 text-2xl font-black">{venues.length}</p>
-              <p className="text-[11px] text-white/60">Within 50 miles</p>
+              <p className="text-[11px] text-white/60">
+                Within {venueRadius} miles
+              </p>
             </div>
             <div className="rounded-lg border border-white/15 bg-black/15 p-4 backdrop-blur-sm">
               <div className="flex items-center gap-2 text-xs text-white/75">
@@ -482,6 +603,8 @@ function TrendingDashboardView({
 
       <ParksNearYouSection
         location={location || undefined}
+        onRadiusChange={onVenueRadiusChange}
+        radius={venueRadius}
         requestLocation={requestLocation}
         venues={venues}
       />
@@ -568,7 +691,7 @@ function TrendingDashboardView({
       <section className="grid gap-4 sm:grid-cols-3">
         <Link
           to="/trending"
-          search={{ section: "venues" }}
+          search={{ radius: venueRadius, section: "venues" }}
           className="group rounded-xl border border-border bg-card p-5 hover:border-primary/40 transition-all"
         >
           <MapPin className="size-5 text-primary mb-3" />
@@ -609,32 +732,55 @@ function TrendingDashboardView({
 }
 
 function TrendingPage() {
+  const navigate = useNavigate({ from: "/trending" });
   const { data: session } = authClient.useSession();
+  const search = useSearch({ strict: false });
+  const viewSection = getTrendingViewSection(search.section);
+  const venueRadius = normalizeVenueRadius(
+    typeof search.radius === "number" ? search.radius : undefined
+  );
+  const venueLimit =
+    viewSection === "venues" ? VIEW_ALL_VENUE_LIMIT : undefined;
   const {
     error: geoError,
     isLoading: geoLoading,
     location,
     requestLocation,
   } = useGeolocation(Boolean(session?.user));
-  const { data, isLoading } = useTrending(session?.user ? location : undefined);
+  const { data, isLoading } = useTrending(
+    session?.user ? location : undefined,
+    {
+      venueLimit,
+      venueRadius,
+    }
+  );
   useRadarTracking(session?.user?.id);
   const isApiFallback = data?.isApiFallback ?? false;
   const videos = data?.videos ?? [];
   const venues = data?.venues ?? [];
   const players = data?.players ?? [];
   const events = data?.events ?? [];
-  const playerCount = venues.reduce(
-    (total, venue) =>
-      total + ((venue as unknown as VenueCardData).activePlayers ?? 0),
-    0
-  );
+  const playerCount = getActivePlayerCount(venues);
 
-  const search = useSearch({ strict: false });
-  const viewSection =
-    typeof search.section === "string" ? search.section : null;
+  const handleVenueRadiusChange = (radius: number) => {
+    navigate({
+      search: (previous) => ({
+        ...previous,
+        radius,
+      }),
+    });
+  };
 
   if (viewSection === "venues") {
-    return <VenuesViewSection venues={venues as unknown as VenueCardData[]} />;
+    return (
+      <VenuesViewSection
+        location={location || undefined}
+        onRadiusChange={handleVenueRadiusChange}
+        radius={venueRadius}
+        requestLocation={requestLocation}
+        venues={venues as unknown as VenueCardData[]}
+      />
+    );
   }
 
   if (viewSection === "videos") {
@@ -646,7 +792,9 @@ function TrendingPage() {
       geoError={geoError}
       geoLoading={geoLoading}
       location={location}
+      onVenueRadiusChange={handleVenueRadiusChange}
       requestLocation={requestLocation}
+      venueRadius={venueRadius}
       venues={venues as unknown as VenueCardData[]}
       videos={videos as unknown as VideoCardData[]}
       players={players as unknown as PlayerCardData[]}

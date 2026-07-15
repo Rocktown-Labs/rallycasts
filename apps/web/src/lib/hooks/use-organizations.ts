@@ -10,8 +10,9 @@ export const useOrganizations = () =>
     queryKey: ["organizations"],
   });
 
-export const useMyOrganizations = () =>
+export const useMyOrganizations = (enabled = true) =>
   useQuery({
+    enabled,
     queryFn: () => readApiJson(apiClient.api.organizations.me.$get()),
     queryKey: ["organizations", "me"],
   });

@@ -1,15 +1,10 @@
-import { debounce } from "@tanstack/pacer";
 import { CheckCircle, MapPin, Search } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
-import { apiClient } from "@/lib/api-client";
 import { mapGooglePlaceToCourtSuggestion } from "@/lib/google-places";
-import type {
-  CourtSuggestion,
-  GooglePlaceSuggestion,
-} from "@/lib/google-places";
-import { readApiJson } from "@/lib/hooks/api";
+import type { CourtSuggestion } from "@/lib/google-places";
+import { usePlaceSearch } from "@/lib/hooks";
 import { withForm } from "@/lib/hooks/onboarding-form";
 
 import { wizardFormOpts } from "./shared-form";
@@ -22,54 +17,14 @@ export const StepLocation = withForm({
   },
   render: function render({ form, setStep }) {
     const [searchQuery, setSearchQuery] = useState("");
-    const [suggestions, setSuggestions] = useState<CourtSuggestion[]>([]);
     const [showDropdown, setShowDropdown] = useState(false);
-    const [isSearching, setIsSearching] = useState(false);
+    const { data, isFetching } = usePlaceSearch(searchQuery);
 
     const homeCourtName = form.getFieldValue("location.homeCourtName");
-
-    // Debounced Google Places search using TanStack Pacer
-    const debouncedSearch = debounce(
-      async (query: string) => {
-        if (query.length < 3) {
-          setSuggestions([]);
-          setIsSearching(false);
-          return;
-        }
-        try {
-          const result = await readApiJson<{
-            places: GooglePlaceSuggestion[];
-          }>(
-            apiClient.api.places.search.$get({
-              query: { q: query },
-            }) as Promise<{
-              json: () => Promise<{ places: GooglePlaceSuggestion[] }>;
-              ok: boolean;
-              status: number;
-              statusText: string;
-            }>
-          );
-          setSuggestions(result.places.map(mapGooglePlaceToCourtSuggestion));
-        } catch (error) {
-          console.error("Places search error:", error);
-          setSuggestions([]);
-        } finally {
-          setIsSearching(false);
-        }
-      },
-      { wait: 400 }
+    const suggestions = useMemo(
+      () => (data?.places ?? []).map(mapGooglePlaceToCourtSuggestion),
+      [data?.places]
     );
-
-    useEffect(() => {
-      if (searchQuery.length >= 3) {
-        setIsSearching(true);
-        debouncedSearch(searchQuery);
-      } else {
-        setSuggestions([]);
-        setIsSearching(false);
-      }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [searchQuery]);
 
     const selectCourt = (addr: CourtSuggestion) => {
       form.setFieldValue("location.homeCourtName", addr.addressLabel);
@@ -84,7 +39,7 @@ export const StepLocation = withForm({
     };
 
     let dropdownContent: React.ReactNode;
-    if (isSearching) {
+    if (isFetching) {
       dropdownContent = (
         <div className="p-4 text-xs text-muted-foreground text-center animate-pulse">
           Searching venues...
@@ -99,10 +54,10 @@ export const StepLocation = withForm({
     } else {
       dropdownContent = (
         <div className="py-1">
-          {suggestions.map((addr, idx) => (
+          {suggestions.map((addr) => (
             <button
               className="w-full text-left px-4 py-2.5 text-sm hover:bg-muted flex items-center gap-2 border-b border-border/50 last:border-0"
-              key={idx}
+              key={addr.placeId ?? addr.formattedAddress}
               onClick={() => selectCourt(addr)}
               type="button"
             >

@@ -1,10 +1,13 @@
+/* eslint-disable complexity */
 import { Button } from "@rallycaststv/ui/components/button";
 import { Input } from "@rallycaststv/ui/components/input";
 import { cn } from "@rallycaststv/ui/lib/utils";
-import { createFileRoute, useSearch } from "@tanstack/react-router";
+import { Link, createFileRoute, useSearch } from "@tanstack/react-router";
 import {
   Trophy,
   ArrowRight,
+  BadgeCheck,
+  Building2,
   Plus,
   XCircle,
   Sparkles,
@@ -22,6 +25,7 @@ import {
   useCreateEvent,
   useEvents,
   useMyOrganizations,
+  useOrganizations,
   useProfile,
   useUpdateProfile,
   useGeolocation,
@@ -55,15 +59,124 @@ function HorizontalScroll({
   );
 }
 
+interface OrganizationSummary {
+  bio?: string | null;
+  city?: string | null;
+  id: string;
+  isOfficial?: boolean | null;
+  logoUrl?: string | null;
+  name: string;
+  slug: string;
+  state?: string | null;
+}
+
+const getOrganizerPreview = (
+  organizations: OrganizationSummary[],
+  userCity: string | undefined,
+  userState: string
+) => {
+  const localOrganizations = organizations.filter((organization) => {
+    const sameState = organization.state === userState;
+    const sameCity =
+      Boolean(userCity) && organization.city?.toLowerCase() === userCity;
+    return sameCity || sameState;
+  });
+
+  return (
+    localOrganizations.length > 0 ? localOrganizations : organizations
+  ).slice(0, 6);
+};
+
+function LocalOrganizersSection({
+  organizations,
+  userState,
+}: {
+  organizations: OrganizationSummary[];
+  userState: string;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="flex items-center gap-2 text-xl font-bold tracking-tight text-foreground">
+            <Building2 className="size-5 text-primary" /> Local Organizers
+          </h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Clubs, leagues, and hosts creating events near {userState}.
+          </p>
+        </div>
+        <Link
+          to="/events/organizers"
+          className="rounded-md px-3 py-2 text-xs font-semibold text-primary hover:bg-muted hover:text-primary/80"
+        >
+          View All
+        </Link>
+      </div>
+      {organizations.length > 0 ? (
+        <HorizontalScroll>
+          {organizations.map((organization) => (
+            <Link
+              className="group w-72 shrink-0 rounded-lg border border-border bg-card p-4 shadow-sm transition-colors hover:border-primary/40"
+              key={organization.id}
+              params={{ slug: organization.slug }}
+              to="/events/organizers/$slug"
+            >
+              <div className="flex items-start gap-3">
+                <div className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-lg bg-primary/10 text-primary">
+                  {organization.logoUrl ? (
+                    <img
+                      alt={`${organization.name} logo`}
+                      className="size-full object-cover"
+                      src={organization.logoUrl}
+                    />
+                  ) : (
+                    <Building2 className="size-5" />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <h3 className="flex items-center gap-1.5 truncate text-sm font-bold group-hover:text-primary">
+                    {organization.name}
+                    {organization.isOfficial ? (
+                      <BadgeCheck className="size-4 shrink-0 text-[#bcdf21]" />
+                    ) : null}
+                  </h3>
+                  <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                    <MapPin className="size-3" />
+                    {[organization.city, organization.state]
+                      .filter(Boolean)
+                      .join(", ") || "Location coming soon"}
+                  </p>
+                </div>
+              </div>
+              <p className="mt-3 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                {organization.bio ??
+                  "Tournament and pickleball community organizer."}
+              </p>
+            </Link>
+          ))}
+        </HorizontalScroll>
+      ) : (
+        <EmptyState
+          icon={<Building2 className="size-5" />}
+          message="Organizations will appear here as local hosts create their profiles."
+          title="No organizers yet"
+        />
+      )}
+    </div>
+  );
+}
+
 function EventsPage() {
   const { data: eventsData, isLoading: eventsLoading } = useEvents();
   const { data: profileData } = useProfile();
   const updateProfileMutation = useUpdateProfile();
   const createEventMutation = useCreateEvent();
   const { data: organizationsData } = useMyOrganizations();
+  const { data: publicOrganizationsData } = useOrganizations();
   const { location } = useGeolocation();
 
   const userState = location?.stateCode || "AR";
+  const userCity = location?.city?.toLowerCase();
 
   const profile = profileData?.profile;
   const isOrganizer = profile?.isOrganizer ?? false;
@@ -95,6 +208,7 @@ function EventsPage() {
 
   const allEvents = eventsData?.events ?? [];
   const myOrganizations = organizationsData?.organizations ?? [];
+  const publicOrganizations = publicOrganizationsData?.organizations ?? [];
 
   // Group events based on state and distance:
   // 1. Near You (Within 1 Mile): distanceMiles <= 1.0
@@ -139,6 +253,11 @@ function EventsPage() {
     (e) => e.state === userState && e.distanceMiles > 1
   );
   const globalEvents = parsedEvents.filter((e) => e.state !== userState);
+  const organizerPreview = getOrganizerPreview(
+    publicOrganizations,
+    userCity,
+    userState
+  );
 
   const handleUpgrade = async () => {
     try {
@@ -363,7 +482,13 @@ function EventsPage() {
           )}
         </div>
 
-        {/* Section 3: Nationwide & Global */}
+        {/* Section 3: Local Organizers */}
+        <LocalOrganizersSection
+          organizations={organizerPreview}
+          userState={userState}
+        />
+
+        {/* Section 4: Nationwide & Global */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">

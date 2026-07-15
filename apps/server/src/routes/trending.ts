@@ -16,13 +16,18 @@ import { haversineDistance } from "../lib/geo";
 import { GooglePlacesClient } from "../lib/google-places";
 import type { AppEnv } from "../lib/types";
 
-const VENUE_RADIUS = 50;
+const DEFAULT_VENUE_RADIUS = 50;
 const EVENT_RADIUS = 200;
 const VIDEO_RADIUS = 500;
 const PLAYER_RADIUS = 100;
 const MILES_PER_LATITUDE_DEGREE = 69;
 const MAX_LOCATION_CANDIDATES = 100;
 const TRENDING_VENUE_LIMIT = 8;
+const TRENDING_VENUE_VIEW_ALL_LIMIT = 48;
+const MIN_VENUE_RADIUS = 5;
+const MAX_VENUE_RADIUS = 100;
+const GOOGLE_NEARBY_RADIUS_CAP_METERS = 50_000;
+const METERS_PER_MILE = 1609;
 
 type DbVenue = typeof venue.$inferSelect;
 type TrendingDbVenue = DbVenue & {
@@ -121,7 +126,9 @@ const parseCityState = (address: string) => {
 const getGoogleDiscoveryVenues = async (
   c: Context<AppEnv>,
   lat: number,
-  lng: number
+  lng: number,
+  radiusMiles: number,
+  limit: number
 ): Promise<GoogleDiscoveryVenue[]> => {
   if (!c.env.GOOGLE_PLACES_API_KEY) {
     return [];
@@ -132,8 +139,7 @@ const getGoogleDiscoveryVenues = async (
     const places = await client.searchNearby(
       lat,
       lng,
-      Math.min(VENUE_RADIUS * 1609, 50_000),
-      "pickleball courts"
+      Math.min(radiusMiles * METERS_PER_MILE, GOOGLE_NEARBY_RADIUS_CAP_METERS)
     );
     return places
       .map((place) => {
@@ -169,9 +175,9 @@ const getGoogleDiscoveryVenues = async (
           venueType: "park" as const,
         };
       })
-      .filter((place) => place.distanceMiles <= VENUE_RADIUS)
+      .filter((place) => place.distanceMiles <= radiusMiles)
       .toSorted((left, right) => left.distanceMiles - right.distanceMiles)
-      .slice(0, TRENDING_VENUE_LIMIT);
+      .slice(0, limit);
   } catch (error) {
     console.error("Google Places trending parks error:", error);
     return [];
@@ -183,7 +189,8 @@ const normalizeVenueName = (name: string) =>
 
 export const mergeTrendingVenues = (
   databaseVenues: TrendingDbVenue[],
-  googleVenues: GoogleDiscoveryVenue[]
+  googleVenues: GoogleDiscoveryVenue[],
+  limit = TRENDING_VENUE_LIMIT
 ): TrendingVenue[] => {
   const databasePlaceIds = new Set(
     databaseVenues.flatMap((record) =>
@@ -205,16 +212,42 @@ export const mergeTrendingVenues = (
         (left.distanceMiles ?? Number.POSITIVE_INFINITY) -
         (right.distanceMiles ?? Number.POSITIVE_INFINITY)
     )
-    .slice(0, TRENDING_VENUE_LIMIT);
+    .slice(0, limit);
 };
 
 export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
   const db = createDb(c.env.DB);
   const latParam = c.req.query("lat");
   const lngParam = c.req.query("lng");
+  const radiusParam = c.req.query("radius");
+  const venueLimitParam = c.req.query("venueLimit");
 
   const lat = latParam ? Number.parseFloat(latParam) : undefined;
   const lng = lngParam ? Number.parseFloat(lngParam) : undefined;
+  const parsedVenueRadius = radiusParam
+    ? Number.parseFloat(radiusParam)
+    : DEFAULT_VENUE_RADIUS;
+  const venueRadius = Math.min(
+    Math.max(
+      Number.isFinite(parsedVenueRadius)
+        ? parsedVenueRadius
+        : DEFAULT_VENUE_RADIUS,
+      MIN_VENUE_RADIUS
+    ),
+    MAX_VENUE_RADIUS
+  );
+  const parsedVenueLimit = venueLimitParam
+    ? Number.parseInt(venueLimitParam, 10)
+    : TRENDING_VENUE_LIMIT;
+  const venueLimit = Math.min(
+    Math.max(
+      Number.isFinite(parsedVenueLimit)
+        ? parsedVenueLimit
+        : TRENDING_VENUE_LIMIT,
+      TRENDING_VENUE_LIMIT
+    ),
+    TRENDING_VENUE_VIEW_ALL_LIMIT
+  );
 
   const hasLocation =
     lat !== undefined &&
@@ -238,30 +271,24 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
   }[];
 
   if (hasLocation) {
-    // Nearby venues (strictly local, within 50 miles)
+    // Nearby venues use the user-selected radius, mixing RallyCasts venues and Google Places parks.
     const [nearbyVenueCandidates, googleVenues] = await Promise.all([
       db
         .select()
         .from(venue)
         .where(
-          locationBounds(
-            lat,
-            lng,
-            VENUE_RADIUS,
-            venue.latitude,
-            venue.longitude
-          )
+          locationBounds(lat, lng, venueRadius, venue.latitude, venue.longitude)
         )
         .limit(MAX_LOCATION_CANDIDATES),
-      getGoogleDiscoveryVenues(c, lat, lng),
+      getGoogleDiscoveryVenues(c, lat, lng, venueRadius, venueLimit),
     ]);
 
     const dbVenues = nearbyVenueCandidates
       .filter((row) =>
-        withinRadius(lat, lng, row.latitude, row.longitude, VENUE_RADIUS)
+        withinRadius(lat, lng, row.latitude, row.longitude, venueRadius)
       )
       .toSorted(byDistance(lat, lng))
-      .slice(0, TRENDING_VENUE_LIMIT)
+      .slice(0, venueLimit)
       .map((record) => ({
         ...record,
         distanceMiles: haversineDistance(
@@ -273,7 +300,7 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
         source: "rallycasts" as const,
       }));
 
-    venues = mergeTrendingVenues(dbVenues, googleVenues);
+    venues = mergeTrendingVenues(dbVenues, googleVenues, venueLimit);
 
     // Nearby videos (broader, within 500 miles - state/region level)
     const nearbyVideoCandidates = await db
@@ -458,7 +485,7 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
       .orderBy(desc(event.startsAt))
       .limit(6);
 
-    venues = await db.select().from(venue).limit(TRENDING_VENUE_LIMIT);
+    venues = await db.select().from(venue).limit(venueLimit);
 
     players = await db
       .select({
@@ -482,6 +509,7 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
     {
       events,
       players,
+      venueRadius,
       venues,
       videos,
     },

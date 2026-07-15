@@ -53,22 +53,20 @@ describe("places routes", () => {
     it("returns places for valid search query", async () => {
       mockFetch.mockResolvedValueOnce({
         json: () => ({
-          html_attributions: [],
-          results: [
+          places: [
             {
-              formatted_address: "123 Park Ave, New York, NY",
-              geometry: {
-                location: {
-                  lat: 40.7128,
-                  lng: -74.006,
-                },
+              displayName: {
+                text: "NYC Pickleball Courts",
               },
-              name: "NYC Pickleball Courts",
-              place_id: "place_123",
+              formattedAddress: "123 Park Ave, New York, NY",
+              id: "place_123",
+              location: {
+                latitude: 40.7128,
+                longitude: -74.006,
+              },
               types: ["park"],
             },
           ],
-          status: "OK",
         }),
         ok: true,
       });
@@ -121,30 +119,27 @@ describe("places routes", () => {
     it("returns nearby pickleball places", async () => {
       mockFetch.mockResolvedValueOnce({
         json: () => ({
-          html_attributions: [],
-          results: [
+          places: [
             {
-              geometry: {
-                location: {
-                  lat: 40.7128,
-                  lng: -74.006,
-                },
+              displayName: {
+                text: "Nearby Park",
               },
-              name: "Nearby Park",
+              formattedAddress: "123 Park Ave",
+              id: "place_456",
+              location: {
+                latitude: 40.7128,
+                longitude: -74.006,
+              },
               photos: [
                 {
-                  height: 400,
-                  html_attributions: [],
-                  photo_reference: "photo_123",
-                  width: 600,
+                  heightPx: 400,
+                  name: "places/place_456/photos/photo_123",
+                  widthPx: 600,
                 },
               ],
-              place_id: "place_456",
               rating: 4.5,
-              vicinity: "123 Park Ave",
             },
           ],
-          status: "OK",
         }),
         ok: true,
       });
@@ -184,30 +179,25 @@ describe("places routes", () => {
     it("returns place details", async () => {
       mockFetch.mockResolvedValueOnce({
         json: () => ({
-          html_attributions: [],
-          result: {
-            formatted_address: "789 Park Blvd, Queens, NY",
-            geometry: {
-              location: {
-                lat: 40.7282,
-                lng: -73.7949,
-              },
-            },
-            name: "Queens Pickleball",
-            photos: [
-              {
-                height: 800,
-                html_attributions: [],
-                photo_reference: "photo_789",
-                width: 1200,
-              },
-            ],
-            place_id: "place_789",
-            rating: 4.8,
-            types: ["park", "sports_complex"],
-            user_ratings_total: 156,
+          displayName: {
+            text: "Queens Pickleball",
           },
-          status: "OK",
+          formattedAddress: "789 Park Blvd, Queens, NY",
+          id: "place_789",
+          location: {
+            latitude: 40.7282,
+            longitude: -73.7949,
+          },
+          photos: [
+            {
+              heightPx: 800,
+              name: "places/place_789/photos/photo_789",
+              widthPx: 1200,
+            },
+          ],
+          rating: 4.8,
+          types: ["park", "sports_complex"],
+          userRatingCount: 156,
         }),
         ok: true,
       });
@@ -249,29 +239,24 @@ describe("places routes", () => {
     it("creates a venue from Google place", async () => {
       mockFetch.mockResolvedValueOnce({
         json: () => ({
-          html_attributions: [],
-          result: {
-            formatted_address: "123 Park Ave, New York, NY 10001",
-            geometry: {
-              location: {
-                lat: 40.7128,
-                lng: -74.006,
-              },
-            },
-            name: "NYC Pickleball Park",
-            photos: [
-              {
-                height: 800,
-                html_attributions: [],
-                photo_reference: "photo_123",
-                width: 1200,
-              },
-            ],
-            place_id: "place_new_123",
-            rating: 4.5,
-            user_ratings_total: 42,
+          displayName: {
+            text: "NYC Pickleball Park",
           },
-          status: "OK",
+          formattedAddress: "123 Park Ave, New York, NY 10001",
+          id: "place_new_123",
+          location: {
+            latitude: 40.7128,
+            longitude: -74.006,
+          },
+          photos: [
+            {
+              heightPx: 800,
+              name: "places/place_new_123/photos/photo_123",
+              widthPx: 1200,
+            },
+          ],
+          rating: 4.5,
+          userRatingCount: 42,
         }),
         ok: true,
       });

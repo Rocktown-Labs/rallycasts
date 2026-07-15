@@ -18,7 +18,7 @@ import {
   Users,
 } from "lucide-react";
 import type { FormEvent } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { PlaceSearchPicker } from "@/components/places/place-search-picker";
@@ -69,19 +69,32 @@ export function ManageOrganizationPage({ slug }: { slug: string }) {
   });
 
   const updateOrganization = useMutation({
-    mutationFn: () =>
-      readApiJson(
+    mutationFn: () => {
+      const trimmedName = name.trim();
+      if (!trimmedName) {
+        throw new Error("Organization name is required.");
+      }
+
+      return readApiJson(
         apiClient.api.organizations[":slug"].$patch({
           json: {
-            bio: bio || organization?.bio || undefined,
-            city: city || organization?.city || undefined,
-            logoUrl: logoUrl || organization?.logoUrl || undefined,
-            name: name || organization?.name,
-            state: state || organization?.state || undefined,
+            bio: bio.trim() || undefined,
+            city: city.trim() || undefined,
+            logoUrl: logoUrl.trim() || undefined,
+            name: trimmedName,
+            state: state.trim() || undefined,
           },
           param: { slug },
         })
-      ),
+      );
+    },
+    onError: (error) => {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Unable to save organization profile"
+      );
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["organization", slug] });
       toast.success("Organization profile saved");
@@ -177,6 +190,18 @@ export function ManageOrganizationPage({ slug }: { slug: string }) {
     },
   });
 
+  useEffect(() => {
+    if (!organization) {
+      return;
+    }
+
+    setName(organization.name);
+    setCity(organization.city ?? "");
+    setLogoUrl(organization.logoUrl ?? "");
+    setState(organization.state ?? "");
+    setBio(organization.bio ?? "");
+  }, [organization]);
+
   if (!organization) {
     return <div className="h-64 animate-pulse rounded-xl bg-muted" />;
   }
@@ -217,34 +242,34 @@ export function ManageOrganizationPage({ slug }: { slug: string }) {
             <Input
               aria-label="Organization name"
               onChange={(event) => setName(event.target.value)}
-              placeholder={organization.name}
+              placeholder="Organization name"
               value={name}
             />
             <div className="grid gap-3 sm:grid-cols-2">
               <Input
                 aria-label="Organization city"
                 onChange={(event) => setCity(event.target.value)}
-                placeholder={organization.city ?? "City"}
+                placeholder="City"
                 value={city}
               />
               <Input
                 aria-label="Organization state"
                 onChange={(event) => setState(event.target.value)}
-                placeholder={organization.state ?? "State"}
+                placeholder="State"
                 value={state}
               />
             </div>
             <Input
               aria-label="Organization logo URL"
               onChange={(event) => setLogoUrl(event.target.value)}
-              placeholder={organization.logoUrl ?? "Logo URL"}
+              placeholder="Logo URL"
               value={logoUrl}
             />
             <textarea
               aria-label="Organization bio"
               className="min-h-28 w-full rounded-lg border bg-background p-3 text-sm"
               onChange={(event) => setBio(event.target.value)}
-              placeholder={organization.bio ?? "Organization bio"}
+              placeholder="Organization bio"
               value={bio}
             />
             <Button onClick={() => updateOrganization.mutate()}>

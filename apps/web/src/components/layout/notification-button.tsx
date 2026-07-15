@@ -5,30 +5,6 @@ import { useState } from "react";
 
 import { useMarkNotificationsRead, useNotifications } from "@/lib/hooks";
 
-const fallbackNotifications = [
-  {
-    href: "/u/recording-requests/me",
-    icon: Video,
-    id: "request-ready",
-    message: "Your next recording request can be scheduled now.",
-    title: "Book a match recording",
-  },
-  {
-    href: "/events",
-    icon: Calendar,
-    id: "league-night",
-    message: "Friday Night Ladder League is heating up near you.",
-    title: "Local event nearby",
-  },
-  {
-    href: "/u/messages",
-    icon: MessageSquare,
-    id: "new-message",
-    message: "A player replied about open play this weekend.",
-    title: "New message",
-  },
-] as const;
-
 const iconForType = (type: string) => {
   if (type === "friend_request" || type === "friend_accept") {
     return UserPlus;
@@ -49,20 +25,15 @@ export default function NotificationButton() {
   const [open, setOpen] = useState(false);
   const { data } = useNotifications();
   const markRead = useMarkNotificationsRead();
-  const liveNotifications = data?.notifications.map(
-    ({ notification: item }) => ({
+  const notifications =
+    data?.notifications.map(({ notification: item }) => ({
       href: item.href,
       icon: iconForType(item.type),
       id: item.id,
       message: item.body ?? "",
       title: item.title,
-    })
-  );
-  const notifications =
-    liveNotifications && liveNotifications.length > 0
-      ? liveNotifications
-      : fallbackNotifications;
-  const unread = data?.unreadCount ?? fallbackNotifications.length;
+    })) ?? [];
+  const unread = data?.unreadCount ?? 0;
 
   const toggleOpen = () => {
     setOpen((value) => !value);
@@ -89,27 +60,42 @@ export default function NotificationButton() {
       {open ? (
         <div className="absolute top-11 right-0 z-50 w-80 overflow-hidden rounded-lg border border-border bg-popover shadow-xl">
           <div className="border-b border-border px-4 py-3">
-            <p className="text-sm font-semibold">Notifications</p>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-semibold">Notifications</p>
+              <Link
+                className="text-primary text-xs font-semibold"
+                onClick={() => setOpen(false)}
+                to="/u/notifications"
+              >
+                View all
+              </Link>
+            </div>
           </div>
           <div className="grid">
-            {notifications.map(({ href, icon: Icon, id, message, title }) => (
-              <Link
-                key={id}
-                to={href}
-                className="grid grid-cols-[auto_1fr] gap-3 border-b border-border px-4 py-3 text-sm last:border-b-0 hover:bg-muted"
-                onClick={() => setOpen(false)}
-              >
-                <span className="grid size-9 place-items-center rounded-md bg-primary/15 text-primary">
-                  <Icon className="size-4" />
-                </span>
-                <span>
-                  <span className="block font-medium">{title}</span>
-                  <span className="mt-1 block text-muted-foreground">
-                    {message}
+            {notifications.length > 0 ? (
+              notifications.map(({ href, icon: Icon, id, message, title }) => (
+                <Link
+                  className="grid grid-cols-[auto_1fr] gap-3 border-b border-border px-4 py-3 text-sm last:border-b-0 hover:bg-muted"
+                  key={id}
+                  onClick={() => setOpen(false)}
+                  to={href}
+                >
+                  <span className="grid size-9 place-items-center rounded-md bg-primary/15 text-primary">
+                    <Icon className="size-4" />
                   </span>
-                </span>
-              </Link>
-            ))}
+                  <span>
+                    <span className="block font-medium">{title}</span>
+                    <span className="mt-1 block text-muted-foreground">
+                      {message}
+                    </span>
+                  </span>
+                </Link>
+              ))
+            ) : (
+              <p className="px-4 py-8 text-center text-muted-foreground text-sm">
+                No notifications yet.
+              </p>
+            )}
           </div>
         </div>
       ) : null}

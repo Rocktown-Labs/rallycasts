@@ -38,11 +38,11 @@ export const accountNavItems = [
   {
     icon: Calendar,
     label: "Recording Requests",
-    to: "/u/recording-requests/me",
+    to: "/u/recording-requests/all",
   },
   { icon: MessageSquare, label: "Messages", to: "/u/messages" },
   { icon: Swords, label: "Challenges", to: "/u/challenges" },
-  { icon: Clock, label: "History", to: "/u/history" },
+  { icon: Clock, label: "History", to: "/u/history/videos" },
   { icon: Settings, label: "Settings", to: "/u/settings" },
 ] as const;
 
@@ -57,7 +57,7 @@ export const mobileDiscoverItems = [
 export const mobileAccountItems = [
   { icon: LayoutDashboard, label: "Dashboard", to: "/u/me" },
   { icon: Video, label: "Videos", to: "/u/videos/me" },
-  { icon: Camera, label: "Requests", to: "/u/recording-requests/me" },
+  { icon: Camera, label: "Requests", to: "/u/recording-requests/all" },
   { icon: MessageSquare, label: "Messages", to: "/u/messages" },
   { icon: ArrowLeft, label: "Back", to: "/" },
 ] as const;

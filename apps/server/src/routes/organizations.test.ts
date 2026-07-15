@@ -9,20 +9,16 @@ globalThis.fetch = mockFetch;
 const mockGooglePlaceDetails = () => {
   mockFetch.mockResolvedValueOnce({
     json: () => ({
-      html_attributions: [],
-      result: {
-        formatted_address: "456 Club Court, Austin, TX 78701",
-        geometry: {
-          location: {
-            lat: 30.2672,
-            lng: -97.7431,
-          },
-        },
-        name: "Club Court",
-        place_id: "organization_event_place",
-        types: ["sports_complex"],
+      displayName: {
+        text: "Club Court",
       },
-      status: "OK",
+      formattedAddress: "456 Club Court, Austin, TX 78701",
+      id: "organization_event_place",
+      location: {
+        latitude: 30.2672,
+        longitude: -97.7431,
+      },
+      types: ["sports_complex"],
     }),
     ok: true,
   });

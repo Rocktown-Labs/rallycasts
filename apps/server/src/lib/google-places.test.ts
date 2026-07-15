@@ -24,32 +24,29 @@ describe("GooglePlacesClient", () => {
   describe("searchNearby", () => {
     it("searches for nearby pickleball venues", async () => {
       const mockResponse = {
-        html_attributions: [],
-        results: [
+        places: [
           {
-            geometry: {
-              location: {
-                lat: 40.7128,
-                lng: -74.006,
-              },
+            displayName: {
+              text: "Pickleball Court NYC",
             },
-            name: "Pickleball Court NYC",
+            formattedAddress: "123 Park Ave, New York",
+            id: "place_123",
+            location: {
+              latitude: 40.7128,
+              longitude: -74.006,
+            },
             photos: [
               {
-                height: 400,
-                html_attributions: [],
-                photo_reference: "photo_ref_123",
-                width: 600,
+                heightPx: 400,
+                name: "places/place_123/photos/photo_ref_123",
+                widthPx: 600,
               },
             ],
-            place_id: "place_123",
             rating: 4.5,
             types: ["park", "sports_complex"],
-            user_ratings_total: 42,
-            vicinity: "123 Park Ave, New York",
+            userRatingCount: 42,
           },
         ],
-        status: "OK",
       };
       mockFetch.mockResolvedValueOnce({
         json: () => mockResponse,
@@ -78,23 +75,32 @@ describe("GooglePlacesClient", () => {
         })
       );
 
-      const [[calledUrl]] = mockFetch.mock.calls;
-      expect(calledUrl).toContain(
-        "maps.googleapis.com/maps/api/place/nearbysearch/json"
+      const [[calledUrl, requestInit]] = mockFetch.mock.calls;
+      expect(calledUrl).toBe(
+        "https://places.googleapis.com/v1/places:searchNearby"
       );
-      expect(calledUrl).toContain("location=40.7128%2C-74.006");
-      expect(calledUrl).toContain("radius=50000");
-      expect(calledUrl).toContain("keyword=pickleball");
-      expect(calledUrl).toContain("type=park");
-      expect(calledUrl).toContain("key=test_google_places_api_key");
+      expect(requestInit).toMatchObject({
+        headers: expect.objectContaining({
+          "X-Goog-Api-Key": "test_google_places_api_key",
+          "X-Goog-FieldMask": expect.stringContaining("places.displayName"),
+        }),
+        method: "POST",
+      });
+      expect(JSON.parse(requestInit.body as string)).toMatchObject({
+        includedTypes: expect.arrayContaining(["park", "sports_complex"]),
+        locationRestriction: {
+          circle: {
+            center: { latitude: 40.7128, longitude: -74.006 },
+            radius: 50_000,
+          },
+        },
+      });
     });
 
     it("returns empty array for zero results", async () => {
       mockFetch.mockResolvedValueOnce({
         json: () => ({
-          html_attributions: [],
-          results: [],
-          status: "ZERO_RESULTS",
+          places: [],
         }),
         ok: true,
       });
@@ -117,14 +123,17 @@ describe("GooglePlacesClient", () => {
     it("throws error for non-OK status", async () => {
       mockFetch.mockResolvedValueOnce({
         json: () => ({
-          error_message: "Invalid request",
-          status: "INVALID_REQUEST",
+          error: {
+            message: "Invalid request",
+            status: "INVALID_REQUEST",
+          },
         }),
-        ok: true,
+        ok: false,
+        status: 400,
       });
 
       await expect(client.searchNearby(40.7128, -74.006)).rejects.toThrow(
-        "INVALID_REQUEST"
+        "Invalid request"
       );
     });
   });
@@ -132,22 +141,20 @@ describe("GooglePlacesClient", () => {
   describe("searchText", () => {
     it("searches for places by text query", async () => {
       const mockResponse = {
-        html_attributions: [],
-        results: [
+        places: [
           {
-            formatted_address: "456 Court St, Brooklyn, NY",
-            geometry: {
-              location: {
-                lat: 40.6782,
-                lng: -73.9442,
-              },
+            displayName: {
+              text: "Brooklyn Pickleball Courts",
             },
-            name: "Brooklyn Pickleball Courts",
-            place_id: "place_456",
+            formattedAddress: "456 Court St, Brooklyn, NY",
+            id: "place_456",
+            location: {
+              latitude: 40.6782,
+              longitude: -73.9442,
+            },
             types: ["park"],
           },
         ],
-        status: "OK",
       };
       mockFetch.mockResolvedValueOnce({
         json: () => mockResponse,
@@ -160,58 +167,62 @@ describe("GooglePlacesClient", () => {
       expect(results[0].name).toBe("Brooklyn Pickleball Courts");
       expect(results[0].address).toBe("456 Court St, Brooklyn, NY");
 
-      const [[calledUrl]] = mockFetch.mock.calls;
-      expect(calledUrl).toContain("query=pickleball+courts+brooklyn");
+      const [[calledUrl, requestInit]] = mockFetch.mock.calls;
+      expect(calledUrl).toBe(
+        "https://places.googleapis.com/v1/places:searchText"
+      );
+      expect(JSON.parse(requestInit.body as string)).toMatchObject({
+        textQuery: "pickleball courts brooklyn",
+      });
     });
 
     it("includes location bias when provided", async () => {
       mockFetch.mockResolvedValueOnce({
         json: () => ({
-          html_attributions: [],
-          results: [],
-          status: "ZERO_RESULTS",
+          places: [],
         }),
         ok: true,
       });
 
       await client.searchText("pickleball", 40.7128, -74.006);
 
-      const [[calledUrl]] = mockFetch.mock.calls;
-      expect(calledUrl).toContain("location=40.7128%2C-74.006");
-      expect(calledUrl).toContain("radius=50000");
+      const [[, requestInit]] = mockFetch.mock.calls;
+      expect(JSON.parse(requestInit.body as string)).toMatchObject({
+        locationBias: {
+          circle: {
+            center: { latitude: 40.7128, longitude: -74.006 },
+            radius: 50_000,
+          },
+        },
+      });
     });
   });
 
   describe("getPlaceDetails", () => {
     it("fetches detailed place information", async () => {
       const mockResponse = {
-        html_attributions: [],
-        result: {
-          formatted_address: "789 Park Blvd, Queens, NY 11101",
-          geometry: {
-            location: {
-              lat: 40.7282,
-              lng: -73.7949,
-            },
-          },
-          name: "Queens Pickleball Park",
-          opening_hours: {
-            open_now: true,
-          },
-          photos: [
-            {
-              height: 800,
-              html_attributions: [],
-              photo_reference: "photo_ref_789",
-              width: 1200,
-            },
-          ],
-          place_id: "place_789",
-          rating: 4.8,
-          types: ["park", "sports_complex"],
-          user_ratings_total: 156,
+        displayName: {
+          text: "Queens Pickleball Park",
         },
-        status: "OK",
+        formattedAddress: "789 Park Blvd, Queens, NY 11101",
+        id: "place_789",
+        location: {
+          latitude: 40.7282,
+          longitude: -73.7949,
+        },
+        photos: [
+          {
+            heightPx: 800,
+            name: "places/place_789/photos/photo_ref_789",
+            widthPx: 1200,
+          },
+        ],
+        rating: 4.8,
+        regularOpeningHours: {
+          openNow: true,
+        },
+        types: ["park", "sports_complex"],
+        userRatingCount: 156,
       };
       mockFetch.mockResolvedValueOnce({
         json: () => mockResponse,
@@ -234,39 +245,53 @@ describe("GooglePlacesClient", () => {
         })
       );
 
-      const [[calledUrl]] = mockFetch.mock.calls;
-      expect(calledUrl).toContain("place_id=place_789");
-      expect(calledUrl).toContain("fields=");
+      const [[calledUrl, requestInit]] = mockFetch.mock.calls;
+      expect(calledUrl).toBe(
+        "https://places.googleapis.com/v1/places/place_789"
+      );
+      expect(requestInit).toMatchObject({
+        headers: expect.objectContaining({
+          "X-Goog-Api-Key": "test_google_places_api_key",
+          "X-Goog-FieldMask": expect.stringContaining("displayName"),
+        }),
+      });
     });
 
     it("throws error for invalid place ID", async () => {
       mockFetch.mockResolvedValueOnce({
         json: () => ({
-          error_message: "Place not found",
-          status: "NOT_FOUND",
+          error: {
+            message: "Place not found",
+            status: "NOT_FOUND",
+          },
         }),
-        ok: true,
+        ok: false,
+        status: 404,
       });
 
       await expect(client.getPlaceDetails("invalid_place")).rejects.toThrow(
-        "NOT_FOUND"
+        "Place not found"
       );
     });
   });
 
   describe("getPhotoUrl", () => {
     it("generates photo URL with correct parameters", () => {
-      const url = client.getPhotoUrl("photo_ref_123", 400);
+      const url = client.getPhotoUrl(
+        "places/place_123/photos/photo_ref_123",
+        400
+      );
 
-      expect(url).toContain("maps.googleapis.com/maps/api/place/photo");
-      expect(url).toContain("photoreference=photo_ref_123");
-      expect(url).toContain("maxwidth=400");
+      expect(url).toContain(
+        "places.googleapis.com/v1/places/place_123/photos/photo_ref_123/media"
+      );
+      expect(url).toContain("maxWidthPx=400");
       expect(url).toContain("key=test_google_places_api_key");
     });
 
     it("uses default maxWidth when not specified", () => {
-      const url = client.getPhotoUrl("photo_ref_123");
-      expect(url).toContain("maxwidth=400");
+      const url = client.getPhotoUrl("places/place_123/photos/photo_ref_123");
+      expect(url).toContain("maxWidthPx=400");
     });
   });
 });

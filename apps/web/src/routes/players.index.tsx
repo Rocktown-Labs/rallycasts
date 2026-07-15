@@ -4,10 +4,10 @@ import { cn } from "@rallycaststv/ui/lib/utils";
 import { Link, createFileRoute, useSearch } from "@tanstack/react-router";
 import { MapPin, Sparkles, Users } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 import { z } from "zod";
 
 import { EmptyState } from "@/components/rally/cards";
+import { authClient } from "@/lib/auth-client";
 import { useGeolocation, usePlayers } from "@/lib/hooks";
 
 const playersSearchSchema = z.object({
@@ -77,10 +77,6 @@ const getDuprRating = (skill: string | null | undefined): string => {
   return score.toFixed(1);
 };
 
-const handleChallenge = (playerName: string) => {
-  toast.success(`Challenge request sent to ${playerName}!`);
-};
-
 const stateNames: Record<string, string> = {
   AR: "Arkansas",
   AZ: "Arizona",
@@ -93,23 +89,66 @@ const stateNames: Record<string, string> = {
 
 const getStateName = (code: string) => stateNames[code.toUpperCase()] || code;
 
+type PlayerSection = "global" | "near-you" | "state";
+
+const playerSections = new Set<PlayerSection>(["global", "near-you", "state"]);
+
+const getInitialPlayersSection = (section: unknown): PlayerSection | null => {
+  if (typeof section !== "string") {
+    return null;
+  }
+  if (!playerSections.has(section as PlayerSection)) {
+    return null;
+  }
+  return section as PlayerSection;
+};
+
+function PlayerCardChallengeAction({
+  isCurrentUser,
+  playerUsername,
+}: {
+  isCurrentUser: boolean;
+  playerUsername: string;
+}) {
+  if (isCurrentUser) {
+    return (
+      <Button
+        className="h-8 rounded-md border-primary/20 text-xs"
+        disabled
+        size="sm"
+        variant="outline"
+      >
+        You
+      </Button>
+    );
+  }
+
+  return (
+    <Link
+      className="inline-flex h-8 items-center rounded-md border border-primary/20 px-3 font-medium text-xs transition-all duration-200 hover:bg-primary/5 hover:text-primary"
+      params={{ username: playerUsername }}
+      to="/players/$username"
+    >
+      Challenge
+    </Link>
+  );
+}
+
 function PlayersPage() {
   const search = useSearch({ strict: false });
-  const initialSection =
-    typeof search.section === "string" &&
-    ["near-you", "state", "global"].includes(search.section)
-      ? (search.section as "near-you" | "state" | "global")
-      : null;
+  const initialSection = getInitialPlayersSection(search.section);
 
   const [query, setQuery] = useState("");
   const [selectedState, setSelectedState] = useState("");
   const [selectedSkill, setSelectedSkill] = useState("");
-  const [viewAllSection, setViewAllSection] = useState<
-    "near-you" | "state" | "global" | null
-  >(initialSection);
+  const [viewAllSection, setViewAllSection] = useState<PlayerSection | null>(
+    initialSection
+  );
 
   const { location } = useGeolocation();
   const userState = location?.stateCode || "AR";
+  const { data: session } = authClient.useSession();
+  const currentUserId = session?.user?.id;
 
   const { data, isLoading } = usePlayers(query);
   const players = data?.players ?? [];
@@ -149,6 +188,8 @@ function PlayersPage() {
 
   const renderPlayerCard = (player: PlayerWithStreak, rank?: number) => {
     const rating = getDuprRating(player.skillLevel);
+    const isCurrentUser = currentUserId === player.id;
+    const playerUsername = player.username || player.displayUsername || "";
     return (
       <div
         key={player.id}
@@ -187,7 +228,7 @@ function PlayersPage() {
                 <Link
                   to="/players/$username"
                   params={{
-                    username: player.username || player.displayUsername || "",
+                    username: playerUsername,
                   }}
                   className="font-bold hover:underline text-foreground block text-sm"
                 >
@@ -234,21 +275,17 @@ function PlayersPage() {
           <Link
             to="/players/$username"
             params={{
-              username: player.username || player.displayUsername || "",
+              username: playerUsername,
             }}
             className="text-xs text-primary hover:underline font-semibold"
           >
             View profile
           </Link>
 
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleChallenge(player.name || "Player")}
-            className="h-8 rounded-md text-xs border-primary/20 hover:bg-primary/5 hover:text-primary transition-all duration-200"
-          >
-            Challenge
-          </Button>
+          <PlayerCardChallengeAction
+            isCurrentUser={isCurrentUser}
+            playerUsername={playerUsername}
+          />
         </div>
       </div>
     );

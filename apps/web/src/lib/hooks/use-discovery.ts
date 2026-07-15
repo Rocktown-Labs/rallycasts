@@ -20,7 +20,10 @@ export type SearchEntity =
   | "posts"
   | "videos";
 
-export const useTrending = (location?: GeoLocation) =>
+export const useTrending = (
+  location?: GeoLocation,
+  options?: { venueLimit?: number; venueRadius?: number }
+) =>
   useQuery({
     queryFn: async () => {
       try {
@@ -30,7 +33,10 @@ export const useTrending = (location?: GeoLocation) =>
               ? {
                   lat: String(location.lat),
                   lng: String(location.lng),
-                  radius: "50",
+                  radius: String(options?.venueRadius ?? 50),
+                  ...(options?.venueLimit
+                    ? { venueLimit: String(options.venueLimit) }
+                    : {}),
                 }
               : {},
           })
@@ -40,7 +46,13 @@ export const useTrending = (location?: GeoLocation) =>
         return { ...demoTrending, isApiFallback: true };
       }
     },
-    queryKey: ["trending", location?.lat, location?.lng],
+    queryKey: [
+      "trending",
+      location?.lat,
+      location?.lng,
+      options?.venueRadius,
+      options?.venueLimit,
+    ],
   });
 
 export const usePlayers = (

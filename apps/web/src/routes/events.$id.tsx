@@ -9,6 +9,7 @@ import {
 import {
   Calendar,
   ChevronLeft,
+  ListChecks,
   Trophy,
   Users,
   Swords,
@@ -18,6 +19,8 @@ import {
 import { createContext, useContext } from "react";
 
 import { apiClient } from "@/lib/api-client";
+import { authClient } from "@/lib/auth-client";
+import { useMyOrganizations } from "@/lib/hooks";
 
 export interface EventDetails {
   location: string;
@@ -36,6 +39,7 @@ export interface EventData {
   description?: string;
   venueId?: string;
   entryFeeCents: number;
+  organizerUserId?: string;
   registrationDeadline?: string;
   refundPolicy?: string;
   courtLabelsJson?: string;
@@ -43,6 +47,7 @@ export interface EventData {
 }
 
 export interface EventContextType {
+  canManageEvent: boolean;
   event: EventData;
   details: EventDetails;
 }
@@ -61,8 +66,27 @@ export const Route = createFileRoute("/events/$id")({
   component: EventLayout,
 });
 
+const canUserManageEvent = ({
+  eventData,
+  organizationIds,
+  userId,
+}: {
+  eventData: EventData;
+  organizationIds: Set<string>;
+  userId?: string;
+}) =>
+  Boolean(userId) &&
+  (eventData.organizerUserId === userId ||
+    Boolean(
+      eventData.organizationId && organizationIds.has(eventData.organizationId)
+    ));
+
 function EventLayout() {
   const { id } = useParams({ from: "/events/$id" });
+  const { data: sessionData } = authClient.useSession();
+  const { data: organizationsData } = useMyOrganizations(
+    Boolean(sessionData?.user)
+  );
 
   const { data, isLoading, error } = useQuery({
     queryFn: async () => {
@@ -143,6 +167,16 @@ function EventLayout() {
     location: "Austin, TX",
     tags: [eventData.eventType, "pickleball"],
   };
+  const manageableOrganizationIds = new Set(
+    (organizationsData?.organizations ?? []).map(
+      ({ organization }) => organization.id
+    )
+  );
+  const canManageEvent = canUserManageEvent({
+    eventData,
+    organizationIds: manageableOrganizationIds,
+    userId: sessionData?.user?.id,
+  });
 
   const activeLinkClass = "border-primary text-primary font-bold";
   const inactiveLinkClass =
@@ -153,10 +187,11 @@ function EventLayout() {
       {/* Back button */}
       <div>
         <Link
-          to="/events"
+          to={canManageEvent ? "/u/organizer/events" : "/events"}
           className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mb-4"
         >
-          <ChevronLeft className="size-3.5" /> Back to Events
+          <ChevronLeft className="size-3.5" />{" "}
+          {canManageEvent ? "Back to Organizer Events" : "Back to Events"}
         </Link>
       </div>
 
@@ -175,6 +210,11 @@ function EventLayout() {
             <span className="text-[10px] bg-yellow-500/20 text-yellow-400 font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
               {eventData.status}
             </span>
+            {canManageEvent ? (
+              <span className="text-[10px] bg-black/40 text-white font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                Organizer view
+              </span>
+            ) : null}
           </div>
 
           <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white max-w-4xl">
@@ -193,6 +233,25 @@ function EventLayout() {
               {eventData.capacity ? `${eventData.capacity} Cap` : "Open Entry"}
             </span>
           </div>
+          {canManageEvent ? (
+            <div className="flex flex-wrap gap-2 pt-2">
+              <Link params={{ id: eventData.id }} to="/events/$id/players">
+                <Button className="rounded-md text-xs" size="sm">
+                  <Users className="size-3.5" /> Player Pool
+                </Button>
+              </Link>
+              <Link params={{ id: eventData.id }} to="/events/$id/bracket">
+                <Button className="rounded-md text-xs" size="sm">
+                  <Trophy className="size-3.5" /> Bracket
+                </Button>
+              </Link>
+              <Link params={{ id: eventData.id }} to="/events/$id/matches">
+                <Button className="rounded-md text-xs" size="sm">
+                  <ListChecks className="size-3.5" /> Match Desk
+                </Button>
+              </Link>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -248,7 +307,9 @@ function EventLayout() {
 
       {/* Tab content */}
       <div className="pt-2">
-        <EventContext.Provider value={{ details, event: eventData }}>
+        <EventContext.Provider
+          value={{ canManageEvent, details, event: eventData }}
+        >
           <Outlet />
         </EventContext.Provider>
       </div>
