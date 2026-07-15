@@ -24,6 +24,7 @@ const MILES_PER_LATITUDE_DEGREE = 69;
 const MAX_LOCATION_CANDIDATES = 100;
 const TRENDING_VENUE_LIMIT = 8;
 const TRENDING_VENUE_VIEW_ALL_LIMIT = 48;
+const TRENDING_VENUE_MAX_FETCH_LIMIT = 96;
 const MIN_VENUE_RADIUS = 5;
 const MAX_VENUE_RADIUS = 100;
 const GOOGLE_NEARBY_RADIUS_CAP_METERS = 50_000;
@@ -221,6 +222,8 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
   const lngParam = c.req.query("lng");
   const radiusParam = c.req.query("radius");
   const venueLimitParam = c.req.query("venueLimit");
+  const venuePageParam = c.req.query("venuePage");
+  const venuePageSizeParam = c.req.query("venuePageSize");
 
   const lat = latParam ? Number.parseFloat(latParam) : undefined;
   const lng = lngParam ? Number.parseFloat(lngParam) : undefined;
@@ -239,7 +242,7 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
   const parsedVenueLimit = venueLimitParam
     ? Number.parseInt(venueLimitParam, 10)
     : TRENDING_VENUE_LIMIT;
-  const venueLimit = Math.min(
+  const requestedVenueLimit = Math.min(
     Math.max(
       Number.isFinite(parsedVenueLimit)
         ? parsedVenueLimit
@@ -247,6 +250,30 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
       TRENDING_VENUE_LIMIT
     ),
     TRENDING_VENUE_VIEW_ALL_LIMIT
+  );
+  const parsedVenuePage = venuePageParam
+    ? Number.parseInt(venuePageParam, 10)
+    : 1;
+  const venuePage = Math.max(
+    Number.isFinite(parsedVenuePage) ? parsedVenuePage : 1,
+    1
+  );
+  const parsedVenuePageSize = venuePageSizeParam
+    ? Number.parseInt(venuePageSizeParam, 10)
+    : requestedVenueLimit;
+  const venuePageSize = Math.min(
+    Math.max(
+      Number.isFinite(parsedVenuePageSize)
+        ? parsedVenuePageSize
+        : requestedVenueLimit,
+      TRENDING_VENUE_LIMIT
+    ),
+    TRENDING_VENUE_VIEW_ALL_LIMIT
+  );
+  const venueOffset = (venuePage - 1) * venuePageSize;
+  const venueFetchLimit = Math.min(
+    Math.max(requestedVenueLimit, venueOffset + venuePageSize + 1),
+    TRENDING_VENUE_MAX_FETCH_LIMIT
   );
 
   const hasLocation =
@@ -280,7 +307,7 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
           locationBounds(lat, lng, venueRadius, venue.latitude, venue.longitude)
         )
         .limit(MAX_LOCATION_CANDIDATES),
-      getGoogleDiscoveryVenues(c, lat, lng, venueRadius, venueLimit),
+      getGoogleDiscoveryVenues(c, lat, lng, venueRadius, venueFetchLimit),
     ]);
 
     const dbVenues = nearbyVenueCandidates
@@ -288,7 +315,7 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
         withinRadius(lat, lng, row.latitude, row.longitude, venueRadius)
       )
       .toSorted(byDistance(lat, lng))
-      .slice(0, venueLimit)
+      .slice(0, venueFetchLimit)
       .map((record) => ({
         ...record,
         distanceMiles: haversineDistance(
@@ -300,7 +327,7 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
         source: "rallycasts" as const,
       }));
 
-    venues = mergeTrendingVenues(dbVenues, googleVenues, venueLimit);
+    venues = mergeTrendingVenues(dbVenues, googleVenues, venueFetchLimit);
 
     // Nearby videos (broader, within 500 miles - state/region level)
     const nearbyVideoCandidates = await db
@@ -485,7 +512,7 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
       .orderBy(desc(event.startsAt))
       .limit(6);
 
-    venues = await db.select().from(venue).limit(venueLimit);
+    venues = await db.select().from(venue).limit(venueFetchLimit);
 
     players = await db
       .select({
@@ -505,12 +532,25 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
       .limit(6);
   }
 
+  const venueTotalCount = venues.length;
+  const paginatedVenues = venues.slice(
+    venueOffset,
+    venueOffset + venuePageSize
+  );
+
   return c.json(
     {
       events,
       players,
+      venuePagination: {
+        hasNextPage: venueOffset + venuePageSize < venueTotalCount,
+        hasPreviousPage: venuePage > 1,
+        page: venuePage,
+        pageSize: venuePageSize,
+        totalCount: venueTotalCount,
+      },
       venueRadius,
-      venues,
+      venues: paginatedVenues,
       videos,
     },
     HttpStatusCodes.OK

@@ -1,4 +1,5 @@
 import { Button } from "@rallycaststv/ui/components/button";
+import { Skeleton } from "@rallycaststv/ui/components/skeleton";
 import { Link } from "@tanstack/react-router";
 import { Calendar, Eye, User, Video } from "lucide-react";
 
@@ -23,12 +24,41 @@ const historyTabs = [
   },
 ] as const;
 
+function HistoryRowsSkeleton() {
+  return (
+    <div className="divide-y divide-border">
+      {Array.from({ length: 3 }).map((_, index) => (
+        <div
+          className="grid gap-4 py-5 md:grid-cols-[9rem_1fr_auto] md:items-center"
+          key={`history-skeleton-${index.toString()}`}
+        >
+          <Skeleton className="aspect-video rounded-md" />
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-4 w-48 rounded-md" />
+            <Skeleton className="h-3 w-32 rounded-md" />
+          </div>
+          <Skeleton className="h-9 w-24 rounded-md" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function VideosHistory() {
-  const { data, isLoading } = useMyVideos();
+  const { data, isError, isLoading } = useMyVideos();
   const videos = data?.videos ?? [];
 
   if (isLoading) {
-    return <div className="h-48 animate-pulse rounded-lg bg-muted" />;
+    return <HistoryRowsSkeleton />;
+  }
+
+  if (isError) {
+    return (
+      <EmptyState
+        message="We could not load your video history. Refresh the page or try again in a moment."
+        title="Video history unavailable"
+      />
+    );
   }
 
   if (videos.length === 0) {
@@ -77,11 +107,20 @@ function VideosHistory() {
 }
 
 function ProfilesHistory() {
-  const { data, isLoading } = useFriends();
+  const { data, isError, isLoading } = useFriends();
   const friends = data?.friends ?? [];
 
   if (isLoading) {
-    return <div className="h-48 animate-pulse rounded-lg bg-muted" />;
+    return <HistoryRowsSkeleton />;
+  }
+
+  if (isError) {
+    return (
+      <EmptyState
+        message="We could not load your profile history. Refresh the page or try again in a moment."
+        title="Profile history unavailable"
+      />
+    );
   }
 
   if (friends.length === 0) {
@@ -123,11 +162,20 @@ function ProfilesHistory() {
 }
 
 function EventsHistory() {
-  const { data, isLoading } = useEvents();
+  const { data, isError, isLoading } = useEvents();
   const events = data?.events ?? [];
 
   if (isLoading) {
-    return <div className="h-48 animate-pulse rounded-lg bg-muted" />;
+    return <HistoryRowsSkeleton />;
+  }
+
+  if (isError) {
+    return (
+      <EmptyState
+        message="We could not load your event history. Refresh the page or try again in a moment."
+        title="Event history unavailable"
+      />
+    );
   }
 
   if (events.length === 0) {

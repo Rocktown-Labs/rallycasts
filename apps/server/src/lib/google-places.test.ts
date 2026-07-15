@@ -11,7 +11,7 @@ describe("GooglePlacesClient", () => {
   const client = new GooglePlacesClient(apiKey);
 
   beforeEach(() => {
-    mockFetch.mockClear();
+    mockFetch.mockReset();
   });
 
   describe("createGooglePlacesClient", () => {
@@ -48,7 +48,7 @@ describe("GooglePlacesClient", () => {
           },
         ],
       };
-      mockFetch.mockResolvedValueOnce({
+      mockFetch.mockResolvedValue({
         json: () => mockResponse,
         ok: true,
       });
@@ -75,9 +75,11 @@ describe("GooglePlacesClient", () => {
         })
       );
 
-      const [[calledUrl, requestInit]] = mockFetch.mock.calls;
+      expect(mockFetch).toHaveBeenCalledTimes(6);
+      const [[calledUrl, requestInit], ...remainingCalls] =
+        mockFetch.mock.calls;
       expect(calledUrl).toBe(
-        "https://places.googleapis.com/v1/places:searchNearby"
+        "https://places.googleapis.com/v1/places:searchText"
       );
       expect(requestInit).toMatchObject({
         headers: expect.objectContaining({
@@ -87,6 +89,17 @@ describe("GooglePlacesClient", () => {
         method: "POST",
       });
       expect(JSON.parse(requestInit.body as string)).toMatchObject({
+        includedType: "park",
+        locationRestriction: {
+          circle: {
+            center: { latitude: 40.7128, longitude: -74.006 },
+            radius: 50_000,
+          },
+        },
+        textQuery: "pickleball courts",
+      });
+      const [, nearbyRequestInit] = remainingCalls.at(-1) ?? [];
+      expect(JSON.parse(nearbyRequestInit.body as string)).toMatchObject({
         includedTypes: expect.arrayContaining(["park", "sports_complex"]),
         locationRestriction: {
           circle: {
@@ -94,11 +107,12 @@ describe("GooglePlacesClient", () => {
             radius: 50_000,
           },
         },
+        rankPreference: "DISTANCE",
       });
     });
 
     it("returns empty array for zero results", async () => {
-      mockFetch.mockResolvedValueOnce({
+      mockFetch.mockResolvedValue({
         json: () => ({
           places: [],
         }),
@@ -109,8 +123,34 @@ describe("GooglePlacesClient", () => {
       expect(results).toEqual([]);
     });
 
+    it("filters lodging results out of pickleball discovery", async () => {
+      mockFetch.mockResolvedValue({
+        json: () => ({
+          places: [
+            {
+              displayName: {
+                text: "Downtown Hotel Pickleball Courts",
+              },
+              formattedAddress: "1 Hotel Way, Searcy, AR",
+              id: "hotel_place",
+              location: {
+                latitude: 35.2468,
+                longitude: -91.735,
+              },
+              types: ["hotel", "lodging"],
+            },
+          ],
+        }),
+        ok: true,
+      });
+
+      const results = await client.searchNearby(35.2468, -91.735);
+
+      expect(results).toEqual([]);
+    });
+
     it("throws error on API failure", async () => {
-      mockFetch.mockResolvedValueOnce({
+      mockFetch.mockResolvedValue({
         ok: false,
         status: 403,
       });
@@ -121,7 +161,7 @@ describe("GooglePlacesClient", () => {
     });
 
     it("throws error for non-OK status", async () => {
-      mockFetch.mockResolvedValueOnce({
+      mockFetch.mockResolvedValue({
         json: () => ({
           error: {
             message: "Invalid request",

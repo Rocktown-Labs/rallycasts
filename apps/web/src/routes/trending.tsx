@@ -43,6 +43,7 @@ import {
 } from "@/lib/hooks";
 
 const trendingSearchSchema = z.object({
+  page: z.coerce.number().optional(),
   radius: z.coerce.number().optional(),
   section: z.string().optional(),
 });
@@ -50,6 +51,7 @@ const trendingSearchSchema = z.object({
 const VENUE_RADIUS_OPTIONS = [10, 25, 50, 100] as const;
 const DEFAULT_VENUE_RADIUS = 50;
 const VIEW_ALL_VENUE_LIMIT = 48;
+const VIEW_ALL_VENUE_PAGE_SIZE = 24;
 
 const normalizeVenueRadius = (radius?: number) => {
   if (!radius || !Number.isFinite(radius)) {
@@ -320,12 +322,22 @@ function ParksNearYouSection({
 function VenuesViewSection({
   location,
   onRadiusChange,
+  page,
+  pagination,
   radius,
   requestLocation,
   venues,
 }: {
   location?: { lat: number; lng: number };
   onRadiusChange: (radius: number) => void;
+  page: number;
+  pagination?: {
+    hasNextPage?: boolean;
+    hasPreviousPage?: boolean;
+    page?: number;
+    pageSize?: number;
+    totalCount?: number;
+  };
   radius: number;
   requestLocation: () => void;
   venues: VenueCardData[];
@@ -378,11 +390,57 @@ function VenuesViewSection({
       </div>
 
       {venues.length > 0 ? (
-        <div className="grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-3">
-          {venues.map((venue) => (
-            <ParkHeatCard key={venue.id} venue={venue} />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-3">
+            {venues.map((venue) => (
+              <ParkHeatCard key={venue.id} venue={venue} />
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+            <p className="text-xs text-muted-foreground">
+              Page {pagination?.page ?? page}
+              {pagination?.totalCount
+                ? ` of ${Math.max(
+                    1,
+                    Math.ceil(
+                      pagination.totalCount /
+                        (pagination.pageSize ?? VIEW_ALL_VENUE_PAGE_SIZE)
+                    )
+                  )}`
+                : ""}
+            </p>
+            <div className="flex items-center gap-2">
+              <Link
+                to="/trending"
+                search={{
+                  page: Math.max(page - 1, 1),
+                  radius,
+                  section: "venues",
+                }}
+                className={cn(
+                  buttonVariants({ variant: "outline" }),
+                  "rounded-md text-xs",
+                  pagination?.hasPreviousPage === false &&
+                    "pointer-events-none opacity-50"
+                )}
+              >
+                Previous
+              </Link>
+              <Link
+                to="/trending"
+                search={{ page: page + 1, radius, section: "venues" }}
+                className={cn(
+                  buttonVariants({ variant: "outline" }),
+                  "rounded-md text-xs",
+                  pagination?.hasNextPage === false &&
+                    "pointer-events-none opacity-50"
+                )}
+              >
+                Next
+              </Link>
+            </div>
+          </div>
+        </>
       ) : (
         <EmptyState
           icon={<MapPin className="size-5" />}
@@ -736,6 +794,10 @@ function TrendingPage() {
   const { data: session } = authClient.useSession();
   const search = useSearch({ strict: false });
   const viewSection = getTrendingViewSection(search.section);
+  const venuePage =
+    typeof search.page === "number" && Number.isFinite(search.page)
+      ? Math.max(1, Math.floor(search.page))
+      : 1;
   const venueRadius = normalizeVenueRadius(
     typeof search.radius === "number" ? search.radius : undefined
   );
@@ -751,6 +813,7 @@ function TrendingPage() {
     session?.user ? location : undefined,
     {
       venueLimit,
+      venuePage: viewSection === "venues" ? venuePage : undefined,
       venueRadius,
     }
   );
@@ -766,6 +829,7 @@ function TrendingPage() {
     navigate({
       search: (previous) => ({
         ...previous,
+        page: undefined,
         radius,
       }),
     });
@@ -776,6 +840,8 @@ function TrendingPage() {
       <VenuesViewSection
         location={location || undefined}
         onRadiusChange={handleVenueRadiusChange}
+        page={venuePage}
+        pagination={data?.venuePagination}
         radius={venueRadius}
         requestLocation={requestLocation}
         venues={venues as unknown as VenueCardData[]}
