@@ -13,6 +13,8 @@ import {
   organizerNavItems,
 } from "./nav-items";
 
+const exactActivePaths = new Set(["/", "/u/organizer"]);
+
 const NavSection = ({
   collapsed,
   items,
@@ -37,7 +39,7 @@ const NavSection = ({
           key={to}
           to={to}
           title={collapsed ? itemLabel : undefined}
-          activeOptions={{ exact: to === "/" }}
+          activeOptions={{ exact: exactActivePaths.has(to) }}
           className={cn(
             "flex h-9 items-center gap-2 rounded-md px-2 text-sm text-sidebar-foreground/86 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
             collapsed && "justify-center px-0"
