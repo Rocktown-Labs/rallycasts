@@ -8,6 +8,7 @@ import { useGeolocation } from "./use-geolocation";
 vi.mock("@/lib/radar", () => ({
   Radar: {
     ipGeocode: vi.fn(),
+    reverseGeocode: vi.fn(),
   },
   initializeRadar: vi.fn(),
 }));
@@ -32,6 +33,27 @@ const rejectBrowserLocation = () => {
   });
 };
 
+const allowBrowserLocation = () => {
+  Object.defineProperty(navigator, "geolocation", {
+    configurable: true,
+    value: {
+      getCurrentPosition: (success: PositionCallback) =>
+        success({
+          coords: {
+            accuracy: 10,
+            altitude: null,
+            altitudeAccuracy: null,
+            heading: null,
+            latitude: 35.2468,
+            longitude: -91.735,
+            speed: null,
+          },
+          timestamp: Date.now(),
+        }),
+    },
+  });
+};
+
 describe("useGeolocation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -41,6 +63,7 @@ describe("useGeolocation", () => {
   it("falls back to Radar IP geolocation when browser permission is denied", async () => {
     vi.mocked(Radar.ipGeocode).mockResolvedValue({
       address: {
+        city: "Searcy",
         latitude: 36.37,
         longitude: -94.21,
         stateCode: "AR",
@@ -51,11 +74,46 @@ describe("useGeolocation", () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.location).toEqual({
+      city: "Searcy",
+      label: "Searcy, AR",
       lat: 36.37,
       lng: -94.21,
       stateCode: "AR",
     });
     expect(result.current.error).toBeNull();
+  });
+
+  it("reverse geocodes browser coordinates into a readable location label", async () => {
+    allowBrowserLocation();
+    vi.mocked(Radar.reverseGeocode).mockResolvedValue({
+      addresses: [
+        {
+          city: "Searcy",
+          geometry: {
+            coordinates: [-91.735, 35.2468],
+            type: "Point",
+          },
+          latitude: 35.2468,
+          longitude: -91.735,
+          stateCode: "AR",
+        },
+      ],
+    } as Awaited<ReturnType<typeof Radar.reverseGeocode>>);
+
+    const { result } = renderHook(() => useGeolocation());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(Radar.reverseGeocode).toHaveBeenCalledWith({
+      latitude: 35.2468,
+      longitude: -91.735,
+    });
+    expect(result.current.location).toMatchObject({
+      city: "Searcy",
+      label: "Searcy, AR",
+      lat: 35.2468,
+      lng: -91.735,
+      stateCode: "AR",
+    });
   });
 
   it("uses the explicit Arkansas demo fallback when both providers fail", async () => {
