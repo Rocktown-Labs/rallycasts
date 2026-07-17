@@ -61,12 +61,12 @@ export default function Breadcrumbs() {
         return (
           <div key={pathname} className="flex min-w-0 items-center gap-1.5">
             {index > 0 ? (
-              <ChevronRight className="size-3 text-muted-foreground" />
+              <ChevronRight className="size-4 text-muted-foreground" />
             ) : null}
             <Link
               to={pathname}
               className={cn(
-                "inline-flex h-7 min-w-20 max-w-36 items-center justify-center rounded-full bg-primary px-3 text-sm font-logo text-primary-foreground lowercase transition-colors",
+                "inline-flex h-7 min-w-20 max-w-36 items-center justify-center rounded-full bg-primary px-3 text-base font-logo text-primary-foreground lowercase transition-colors",
                 isLast && "bg-primary text-[#bcdf21]"
               )}
             >
