@@ -56,7 +56,7 @@ export const StepGame = withForm({
               {/* Skill Level */}
               <div className="space-y-3">
                 <label className="text-sm font-medium" htmlFor="skill-level">
-                  Skill Level
+                  Rating / skill level
                 </label>
                 <div className="grid gap-3 sm:grid-cols-2">
                   {SKILL_OPTIONS.map((option) => {
@@ -95,6 +95,10 @@ export const StepGame = withForm({
                     );
                   })}
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  Pick the closest DUPR-style range. You can update this later
+                  from your profile.
+                </p>
               </div>
 
               {/* Bio */}

@@ -1,5 +1,7 @@
 import { env } from "cloudflare:workers";
 
+import { haversineDistance } from "./geo";
+
 export interface GooglePlaceResult {
   placeId: string;
   name: string;
@@ -73,6 +75,31 @@ const EVENT_LOCATION_TYPES = [
   "sports_complex",
   "sports_school",
 ] as const;
+const PICKLEBALL_PARK_SEARCH_TYPES = [
+  "park",
+  "city_park",
+  "sports_complex",
+  "sports_activity_location",
+  "tennis_court",
+] as const;
+const LODGING_PLACE_TYPES = new Set([
+  "bed_and_breakfast",
+  "campground",
+  "camping_cabin",
+  "cottage",
+  "extended_stay_hotel",
+  "farmstay",
+  "guest_house",
+  "hostel",
+  "hotel",
+  "lodging",
+  "motel",
+  "private_guest_room",
+  "resort_hotel",
+  "rv_park",
+]);
+const PICKLEBALL_QUERY = "pickleball courts";
+const PICKLEBALL_SEARCH_RESULT_LIMIT = 20;
 
 export class GooglePlacesClient {
   private apiKey: string;
@@ -84,7 +111,7 @@ export class GooglePlacesClient {
       "";
   }
 
-  async searchNearby(
+  searchNearby(
     latitude: number,
     longitude: number,
     radius = 50_000,
@@ -93,6 +120,25 @@ export class GooglePlacesClient {
     if (keyword !== "pickleball") {
       return this.searchText(keyword, latitude, longitude);
     }
+
+    return this.searchPickleballParks(latitude, longitude, radius);
+  }
+
+  async searchPickleballParks(
+    latitude: number,
+    longitude: number,
+    radius = 50_000
+  ): Promise<GooglePlaceResult[]> {
+    const textSearchResults = await Promise.all(
+      PICKLEBALL_PARK_SEARCH_TYPES.map((includedType) =>
+        this.searchText(PICKLEBALL_QUERY, latitude, longitude, {
+          includedType,
+          maxResultCount: PICKLEBALL_SEARCH_RESULT_LIMIT,
+          radius,
+          useLocationRestriction: true,
+        })
+      )
+    );
 
     const data = await this.postSearch(
       "/places:searchNearby",
@@ -105,31 +151,63 @@ export class GooglePlacesClient {
             radius,
           },
         },
-        maxResultCount: 12,
-        rankPreference: "POPULARITY",
+        maxResultCount: PICKLEBALL_SEARCH_RESULT_LIMIT,
+        rankPreference: "DISTANCE",
       }
     );
 
-    return (data.places ?? []).map((place) => this.mapPlaceResult(place));
+    return GooglePlacesClient.dedupePlaces([
+      ...textSearchResults.flat(),
+      ...(data.places ?? []).map((place) => this.mapPlaceResult(place)),
+    ])
+      .filter((place) => GooglePlacesClient.isPickleballParkResult(place))
+      .toSorted(
+        (left, right) =>
+          haversineDistance(
+            latitude,
+            longitude,
+            left.latitude,
+            left.longitude
+          ) -
+          haversineDistance(
+            latitude,
+            longitude,
+            right.latitude,
+            right.longitude
+          )
+      );
   }
 
   async searchText(
     query: string,
     latitude?: number,
-    longitude?: number
+    longitude?: number,
+    options?: {
+      includedType?: (typeof PICKLEBALL_PARK_SEARCH_TYPES)[number];
+      maxResultCount?: number;
+      radius?: number;
+      useLocationRestriction?: boolean;
+    }
   ): Promise<GooglePlaceResult[]> {
     const body: Record<string, unknown> = {
-      maxResultCount: 8,
+      maxResultCount: options?.maxResultCount ?? 8,
       textQuery: query,
     };
 
+    if (options?.includedType) {
+      body.includedType = options.includedType;
+    }
+
     if (latitude !== undefined && longitude !== undefined) {
-      body.locationBias = {
+      const locationCircle = {
         circle: {
           center: { latitude, longitude },
-          radius: 50_000,
+          radius: options?.radius ?? 50_000,
         },
       };
+      body[
+        options?.useLocationRestriction ? "locationRestriction" : "locationBias"
+      ] = locationCircle;
     }
 
     const data = await this.postSearch(
@@ -193,6 +271,37 @@ export class GooglePlacesClient {
     } catch {
       return { error: { message: "" } };
     }
+  }
+
+  private static dedupePlaces(
+    places: GooglePlaceResult[]
+  ): GooglePlaceResult[] {
+    const seen = new Set<string>();
+    const deduped: GooglePlaceResult[] = [];
+
+    for (const place of places) {
+      if (seen.has(place.placeId)) {
+        continue;
+      }
+      seen.add(place.placeId);
+      deduped.push(place);
+    }
+
+    return deduped;
+  }
+
+  private static isPickleballParkResult(place: GooglePlaceResult): boolean {
+    if (place.types.some((type) => LODGING_PLACE_TYPES.has(type))) {
+      return false;
+    }
+
+    const hasAllowedType = place.types.some((type) =>
+      (PICKLEBALL_PARK_SEARCH_TYPES as readonly string[]).includes(type)
+    );
+    const searchableText = `${place.name} ${place.address}`.toLowerCase();
+    const hasPickleballSignal = searchableText.includes("pickleball");
+
+    return hasAllowedType || hasPickleballSignal;
   }
 
   private async postSearch(

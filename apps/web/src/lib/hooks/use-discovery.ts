@@ -22,23 +22,34 @@ export type SearchEntity =
 
 export const useTrending = (
   location?: GeoLocation,
-  options?: { venueLimit?: number; venueRadius?: number }
+  options?: { venueLimit?: number; venuePage?: number; venueRadius?: number }
 ) =>
   useQuery({
     queryFn: async () => {
       try {
+        const query = {
+          ...(location
+            ? {
+                lat: String(location.lat),
+                lng: String(location.lng),
+              }
+            : {}),
+          ...(options?.venueRadius
+            ? { radius: String(options.venueRadius) }
+            : {}),
+          ...(options?.venueLimit
+            ? { venueLimit: String(options.venueLimit) }
+            : {}),
+          ...(options?.venuePage
+            ? {
+                venuePage: String(options.venuePage),
+                venuePageSize: String(options.venueLimit ?? 24),
+              }
+            : {}),
+        };
         const data = await readApiJson(
           apiClient.api.trending.$get({
-            query: location
-              ? {
-                  lat: String(location.lat),
-                  lng: String(location.lng),
-                  radius: String(options?.venueRadius ?? 50),
-                  ...(options?.venueLimit
-                    ? { venueLimit: String(options.venueLimit) }
-                    : {}),
-                }
-              : {},
+            query,
           })
         );
         return { ...data, isApiFallback: false };
@@ -52,6 +63,7 @@ export const useTrending = (
       location?.lng,
       options?.venueRadius,
       options?.venueLimit,
+      options?.venuePage,
     ],
   });
 

@@ -2,17 +2,23 @@ import { createDb } from "@rallycaststv/db";
 import { user } from "@rallycaststv/db/schema/auth";
 import {
   challenge,
+  friendship,
   post,
   userProfile,
+  venue,
   video,
 } from "@rallycaststv/db/schema/domain";
-import { and, desc, eq, like, or } from "drizzle-orm";
+import { and, desc, eq, like, or, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/sqlite-core";
 import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 
 import type { AppEnv } from "../lib/types";
 
 const searchPattern = (query: string | undefined) => `%${query ?? ""}%`;
+const challengerTable = alias(user, "challenger");
+const challengedTable = alias(user, "challenged");
+const partnerTable = alias(user, "partner");
 
 export const playersRouter = new Hono<AppEnv>()
   .get("/", async (c) => {
@@ -110,21 +116,35 @@ export const playersRouter = new Hono<AppEnv>()
       .select({
         casted: challenge.isCasted,
         castingSplitMode: challenge.castingSplitMode,
+        challengedName: challengedTable.name,
         challengedUserId: challenge.challengedUserId,
+        challengerName: challengerTable.name,
         challengerUserId: challenge.challengerUserId,
         createdAt: challenge.createdAt,
         id: challenge.id,
         matchMode: challenge.matchMode,
         message: challenge.message,
+        partnerName: partnerTable.name,
         partnerUserId: challenge.partnerUserId,
         result: challenge.result,
         scheduledAt: challenge.scheduledAt,
         status: challenge.status,
         updatedAt: challenge.updatedAt,
         venueId: challenge.venueId,
+        venueName: venue.name,
         videoUrl: challenge.videoUrl,
       })
       .from(challenge)
+      .leftJoin(
+        challengerTable,
+        eq(challenge.challengerUserId, challengerTable.id)
+      )
+      .leftJoin(
+        challengedTable,
+        eq(challenge.challengedUserId, challengedTable.id)
+      )
+      .leftJoin(partnerTable, eq(challenge.partnerUserId, partnerTable.id))
+      .leftJoin(venue, eq(challenge.venueId, venue.id))
       .where(
         or(
           eq(challenge.challengerUserId, player.id),
@@ -133,6 +153,32 @@ export const playersRouter = new Hono<AppEnv>()
       )
       .orderBy(desc(challenge.createdAt))
       .limit(20);
+
+    const [friendStats] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(friendship)
+      .where(eq(friendship.userId, player.id));
+    const matchCount = playerChallenges.filter(
+      (record) => record.status === "completed" || record.result
+    ).length;
+    let wins = 0;
+    let losses = 0;
+    for (const record of playerChallenges) {
+      if (record.result === "won") {
+        if (record.challengerUserId === player.id) {
+          wins += 1;
+        } else {
+          losses += 1;
+        }
+      }
+      if (record.result === "lost") {
+        if (record.challengerUserId === player.id) {
+          losses += 1;
+        } else {
+          wins += 1;
+        }
+      }
+    }
 
     const playerPosts = await db
       .select()
@@ -147,6 +193,12 @@ export const playersRouter = new Hono<AppEnv>()
         photos: playerPhotos,
         player,
         posts: playerPosts,
+        stats: {
+          followersCount: friendStats?.count ?? 0,
+          losses,
+          matchCount,
+          wins,
+        },
         videos: playerVideos,
       },
       HttpStatusCodes.OK

@@ -2,9 +2,10 @@ import { createDb } from "@rallycaststv/db";
 import { venue } from "@rallycaststv/db/schema/domain";
 import { env } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import app from "../index";
+import { GooglePlacesClient } from "../lib/google-places";
 
 // Mock the Google Places API
 const mockFetch = vi.fn();
@@ -46,12 +47,16 @@ const createVenueRequest = async (placeId?: string) => {
 
 describe("places routes", () => {
   beforeEach(() => {
-    mockFetch.mockClear();
+    mockFetch.mockReset();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   describe("GET /api/places/search", () => {
     it("returns places for valid search query", async () => {
-      mockFetch.mockResolvedValueOnce({
+      mockFetch.mockResolvedValue({
         json: () => ({
           places: [
             {
@@ -117,32 +122,17 @@ describe("places routes", () => {
 
   describe("GET /api/places/nearby", () => {
     it("returns nearby pickleball places", async () => {
-      mockFetch.mockResolvedValueOnce({
-        json: () => ({
-          places: [
-            {
-              displayName: {
-                text: "Nearby Park",
-              },
-              formattedAddress: "123 Park Ave",
-              id: "place_456",
-              location: {
-                latitude: 40.7128,
-                longitude: -74.006,
-              },
-              photos: [
-                {
-                  heightPx: 400,
-                  name: "places/place_456/photos/photo_123",
-                  widthPx: 600,
-                },
-              ],
-              rating: 4.5,
-            },
-          ],
-        }),
-        ok: true,
-      });
+      vi.spyOn(GooglePlacesClient.prototype, "searchNearby").mockResolvedValue([
+        {
+          address: "123 Park Ave",
+          latitude: 40.7128,
+          longitude: -74.006,
+          name: "Nearby Park",
+          placeId: "place_456",
+          rating: 4.5,
+          types: ["park", "sports_complex"],
+        },
+      ]);
 
       const response = await app.request(
         "/api/places/nearby?lat=40.7128&lng=-74.006&radius=25000",

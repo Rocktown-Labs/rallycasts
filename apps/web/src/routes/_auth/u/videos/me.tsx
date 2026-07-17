@@ -129,7 +129,10 @@ function VideosPage() {
             title="Your channel is ready for its first RallyCast"
           />
           <div className="mt-5 flex justify-center">
-            <Link className={buttonVariants()} to="/u/studio/upload">
+            <Link
+              className={cn(buttonVariants(), "rounded-lg")}
+              to="/u/studio/upload"
+            >
               Upload a video
             </Link>
           </div>

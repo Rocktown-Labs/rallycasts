@@ -1,15 +1,16 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 
-import { authClient } from "@/lib/auth-client";
+import { ProfileEditorPage } from "../settings";
 
 export const Route = createFileRoute("/_auth/u/profile/")({
-  beforeLoad: async () => {
-    const session = await authClient.getSession().catch(() => null);
-    const user = session?.data?.user;
-    const username = user?.username || user?.displayUsername || "player";
-    throw redirect({
-      params: { username },
-      to: "/players/$username",
-    });
-  },
+  component: ProfileRoute,
 });
+
+function ProfileRoute() {
+  return (
+    <ProfileEditorPage
+      title="Edit Profile"
+      subtitle="Update the public profile players see, including your name, handle, bio, home court, rating, and roles."
+    />
+  );
+}

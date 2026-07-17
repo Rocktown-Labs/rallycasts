@@ -1,5 +1,4 @@
 import { Button } from "@rallycaststv/ui/components/button";
-import { Card, CardContent } from "@rallycaststv/ui/components/card";
 import { Input } from "@rallycaststv/ui/components/input";
 import { Label } from "@rallycaststv/ui/components/label";
 import { useQuery } from "@tanstack/react-query";
@@ -14,7 +13,6 @@ import {
   Star,
   MessageSquare,
   Video,
-  Users,
   UserPlus,
   UserCheck,
   Heart,
@@ -63,7 +61,7 @@ interface Challenge {
   splitMode?: string;
   status: string;
   partner?: string;
-  result?: "won" | "lost" | "upcoming";
+  result?: "draw" | "lost" | "upcoming" | "won";
   videoUrl?: string;
 }
 
@@ -200,7 +198,7 @@ function PlayerHeaderActions({
         </>
       )}
       {isOwnProfile && (
-        <Link to="/u/settings">
+        <Link to="/u/profile">
           <Button
             variant="outline"
             className="rounded-lg text-xs font-semibold px-4 cursor-pointer"
@@ -933,7 +931,9 @@ function buildFeedItems(
   }
 
   for (const ch of challenges) {
-    items.push({ data: ch, id: `challenge-${ch.id}`, type: "challenge" });
+    if (ch.videoUrl) {
+      items.push({ data: ch, id: `challenge-${ch.id}`, type: "challenge" });
+    }
   }
 
   for (const post of posts) {
@@ -947,25 +947,22 @@ function ProfileTabs({
   activeTab,
   onTabChange,
 }: {
-  activeTab: "all" | "videos" | "photos" | "challenges" | "about";
-  onTabChange: (
-    tab: "all" | "videos" | "photos" | "challenges" | "about"
-  ) => void;
+  activeTab: "all" | "videos" | "photos" | "challenges";
+  onTabChange: (tab: "all" | "videos" | "photos" | "challenges") => void;
 }) {
   const tabs: {
     icon: React.ReactNode;
     label: string;
-    value: "all" | "videos" | "photos" | "challenges" | "about";
+    value: "all" | "videos" | "photos" | "challenges";
   }[] = [
     { icon: <Grid3X3 className="size-4" />, label: "All", value: "all" },
     { icon: <Video className="size-4" />, label: "Videos", value: "videos" },
     { icon: <Camera className="size-4" />, label: "Photos", value: "photos" },
     {
-      icon: <Swords className="size-4" />,
-      label: "Challenges",
+      icon: <Video className="size-4" />,
+      label: "Match Videos",
       value: "challenges",
     },
-    { icon: <Users className="size-4" />, label: "About", value: "about" },
   ];
 
   return (
@@ -988,7 +985,7 @@ function ProfileTabs({
 }
 
 function getFeedItemsForTab(
-  activeTab: "all" | "videos" | "photos" | "challenges" | "about",
+  activeTab: "all" | "videos" | "photos" | "challenges",
   allFeedItems: FeedItem[]
 ): FeedItem[] {
   switch (activeTab) {
@@ -1002,9 +999,7 @@ function getFeedItemsForTab(
       return allFeedItems.filter((item) => item.type === "photo");
     }
     case "challenges": {
-      return allFeedItems.filter(
-        (item) => item.type === "challenge" || item.type === "post"
-      );
+      return allFeedItems.filter((item) => item.type === "challenge");
     }
     default: {
       return [];
@@ -1049,6 +1044,13 @@ interface RawPlayer {
   homeCity?: string | null;
   homeState?: string | null;
   onboardingStatus?: string | null;
+}
+
+interface RawStats {
+  followersCount?: number;
+  losses?: number;
+  matchCount?: number;
+  wins?: number;
 }
 
 interface RawPhoto {
@@ -1146,7 +1148,6 @@ function transformProfileData(
 interface ProfileTabContentProps {
   activeTab: string;
   player: RawPlayer;
-  location: string;
   tabItems: FeedItem[];
   setFeedItems: (items: FeedItem[]) => void;
   setSelectedFeedItem: (item: (FeedItem & { index: number }) | null) => void;
@@ -1155,14 +1156,10 @@ interface ProfileTabContentProps {
 function ProfileTabContent({
   activeTab,
   player,
-  location,
   tabItems,
   setFeedItems,
   setSelectedFeedItem,
 }: ProfileTabContentProps) {
-  if (activeTab === "about") {
-    return <AboutTab player={player} location={location} />;
-  }
   if (tabItems.length > 0) {
     return (
       <ProfileGrid
@@ -1178,7 +1175,11 @@ function ProfileTabContent({
   }
   return (
     <EmptyState
-      message={`@${player.username || "player"} hasn't posted anything here yet.`}
+      message={
+        activeTab === "challenges"
+          ? `@${player.username || "player"} does not have recorded challenge match videos yet.`
+          : `@${player.username || "player"} hasn't posted anything here yet.`
+      }
       title="No content yet"
     />
   );
@@ -1203,7 +1204,7 @@ function PlayerProfilePage() {
     ? rawUsername.slice(1)
     : rawUsername;
   const [activeTab, setActiveTab] = useState<
-    "all" | "videos" | "photos" | "challenges" | "about"
+    "all" | "videos" | "photos" | "challenges"
   >("all");
 
   const {
@@ -1260,6 +1261,12 @@ function PlayerProfilePage() {
                 demoPlayer.displayUsername ?? demoPlayer.username,
             },
             posts: [],
+            stats: {
+              followersCount: 0,
+              losses: 0,
+              matchCount: 0,
+              wins: 0,
+            },
             videos: [],
           };
         }
@@ -1319,8 +1326,10 @@ function PlayerProfilePage() {
     photos = [],
     challenges: apiChallenges = [],
     posts: apiPosts = [],
+    stats,
   } = data;
-  const { location, challenges, allFeedItems } = transformProfileData(
+  const profileStats = (stats ?? {}) as RawStats;
+  const { location, allFeedItems } = transformProfileData(
     player,
     videos,
     photos,
@@ -1443,15 +1452,38 @@ function PlayerProfilePage() {
           </span>
         </div>
         <div className="p-3 bg-muted/20 border border-border/50 rounded-xl">
-          <span className="block text-xl font-bold">124</span>
+          <span className="block text-xl font-bold">
+            {profileStats.followersCount ?? 0}
+          </span>
           <span className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-semibold">
             Followers
           </span>
         </div>
         <div className="p-3 bg-muted/20 border border-border/50 rounded-xl">
-          <span className="block text-xl font-bold">{challenges.length}</span>
+          <span className="block text-xl font-bold">
+            {profileStats.matchCount ?? 0}
+          </span>
           <span className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-semibold">
             Matches
+          </span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 text-center">
+        <div className="p-3 bg-muted/20 border border-border/50 rounded-xl">
+          <span className="block text-xl font-bold">
+            {profileStats.wins ?? 0}
+          </span>
+          <span className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+            Wins
+          </span>
+        </div>
+        <div className="p-3 bg-muted/20 border border-border/50 rounded-xl">
+          <span className="block text-xl font-bold">
+            {profileStats.losses ?? 0}
+          </span>
+          <span className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+            Losses
           </span>
         </div>
       </div>
@@ -1462,7 +1494,6 @@ function PlayerProfilePage() {
         <ProfileTabContent
           activeTab={activeTab}
           player={player}
-          location={location}
           tabItems={tabItems}
           setFeedItems={setFeedItems}
           setSelectedFeedItem={setSelectedFeedItem}
@@ -1984,58 +2015,4 @@ function FeedDetailInfo({ item }: { item: FeedItem }) {
       return null;
     }
   }
-}
-
-interface AboutTabProps {
-  player: {
-    skillLevel?: string | null;
-    homeCourtName?: string | null;
-  };
-  location: string;
-}
-
-function AboutTab({ player, location }: AboutTabProps) {
-  return (
-    <Card className="border border-border/50 bg-card rounded-xl overflow-hidden shadow-sm max-w-xl mx-auto">
-      <CardContent className="p-6 space-y-4">
-        <h3 className="font-bold text-base border-b border-border/50 pb-2">
-          Player Details
-        </h3>
-        <div className="grid grid-cols-2 gap-4 text-xs">
-          <div>
-            <span className="text-muted-foreground block text-[10px]">
-              Skill Class
-            </span>
-            <span className="font-semibold text-foreground capitalize mt-0.5 block">
-              {player.skillLevel || "open play"}
-            </span>
-          </div>
-          <div>
-            <span className="text-muted-foreground block text-[10px]">
-              Home Venue
-            </span>
-            <span className="font-semibold text-foreground mt-0.5 block">
-              {player.homeCourtName || "None declared"}
-            </span>
-          </div>
-          <div>
-            <span className="text-muted-foreground block text-[10px]">
-              Location
-            </span>
-            <span className="font-semibold text-foreground mt-0.5 block">
-              {location || "Not specified"}
-            </span>
-          </div>
-          <div>
-            <span className="text-muted-foreground block text-[10px]">
-              Member Since
-            </span>
-            <span className="font-semibold text-foreground mt-0.5 block">
-              June 2026
-            </span>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
 }

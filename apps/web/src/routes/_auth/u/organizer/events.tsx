@@ -47,6 +47,7 @@ const formatEventDate = (value: Date | string) =>
 function OrganizerEventList({
   events,
   isLoading,
+  onCreate,
   organizationNames,
 }: {
   events: {
