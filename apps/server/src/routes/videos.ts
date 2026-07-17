@@ -338,7 +338,7 @@ export const videosRouter = new Hono<AppEnv>()
 
     if (
       c.env.SEARCH_INDEX &&
-      (c.env.AI || c.env.GOOGLE_GENERATIVE_AI_API_KEY) &&
+      c.env.GOOGLE_GENERATIVE_AI_API_KEY &&
       fallbackVideos.length > 0
     ) {
       const existingDocuments = await db
@@ -390,11 +390,7 @@ export const videosRouter = new Hono<AppEnv>()
     const semanticScores = new Map<string, number>();
     let semanticVideos: (typeof video.$inferSelect)[] = [];
     const intent = profile ? buildFeedIntent(profile) : "";
-    if (
-      intent &&
-      c.env.SEARCH_INDEX &&
-      (c.env.AI || c.env.GOOGLE_GENERATIVE_AI_API_KEY)
-    ) {
+    if (intent && c.env.SEARCH_INDEX && c.env.GOOGLE_GENERATIVE_AI_API_KEY) {
       const embedding = await generateEmbedding(c.env, intent, "query");
       const intentVector = embedding?.values;
       if (intentVector) {

@@ -156,7 +156,7 @@ const getSemanticScores = async (
 ) => {
   const scores = new Map<string, number>();
 
-  if (!(env.SEARCH_INDEX && (env.AI || env.GOOGLE_GENERATIVE_AI_API_KEY))) {
+  if (!(env.SEARCH_INDEX && env.GOOGLE_GENERATIVE_AI_API_KEY)) {
     return scores;
   }
 

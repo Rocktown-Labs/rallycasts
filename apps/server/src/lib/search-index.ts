@@ -10,7 +10,7 @@ import type { AppEnv } from "./types";
 type Db = ReturnType<typeof createDb>;
 type SearchBindings = Pick<
   AppEnv["Bindings"],
-  "AI" | "GOOGLE_GENERATIVE_AI_API_KEY" | "SEARCH_INDEX"
+  "GOOGLE_GENERATIVE_AI_API_KEY" | "SEARCH_INDEX"
 >;
 type WaitUntilExecutionContext = Pick<ExecutionContext, "waitUntil">;
 
@@ -82,7 +82,7 @@ export const indexSearchDocumentVector = async (
     title: string;
   }
 ) => {
-  if (!(env.SEARCH_INDEX && (env.AI || env.GOOGLE_GENERATIVE_AI_API_KEY))) {
+  if (!(env.SEARCH_INDEX && env.GOOGLE_GENERATIVE_AI_API_KEY)) {
     return { indexed: false, reason: "missing-bindings" as const };
   }
 
@@ -139,7 +139,7 @@ export const scheduleSearchDocumentIndex = (
   env: SearchBindings,
   document: Parameters<typeof indexSearchDocumentVector>[2]
 ) => {
-  if (!(env.SEARCH_INDEX && (env.AI || env.GOOGLE_GENERATIVE_AI_API_KEY))) {
+  if (!(env.SEARCH_INDEX && env.GOOGLE_GENERATIVE_AI_API_KEY)) {
     return;
   }
 

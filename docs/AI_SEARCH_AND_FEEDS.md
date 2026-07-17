@@ -4,7 +4,7 @@
 
 RallyCasts uses AI behind product-specific data workflows:
 
-1. Global search uses the shared embedding helper to create 768-dimensional embeddings and Cloudflare Vectorize with cosine similarity. Workers AI `@cf/baai/bge-base-en-v1.5` remains the safe default; Gemini Embedding 2 can be selected with `SEARCH_EMBEDDING_PROVIDER=gemini` after re-embedding existing documents.
+1. Global search uses Gemini Embedding 2 through the shared embedding helper to create 768-dimensional embeddings and Cloudflare Vectorize with cosine similarity.
 2. Authenticated Home uses the same embeddings for mixed candidate generation across videos, events, venues, players, and posts, then deterministic application scoring.
 3. A future trading-card workflow can use action-photo generation without adding a generic chat interface.
 
@@ -67,7 +67,7 @@ Use coarse location or opaque venue IDs as filters after candidate generation. D
 
 The shipped `/api/v1/feed/home` endpoint returns typed mixed items with `reason`, `score`, and normalized signal values. Embeddings do not decide permissions or final order by themselves; they supply the semantic score that is blended with social, location, freshness, and engagement signals.
 
-Do not mix providers in the same live vector corpus. Gemini Embedding 2 vectors are not comparable to older embedding spaces, so switching `SEARCH_EMBEDDING_PROVIDER` must be paired with a full `/api/v1/search/backfill` run and verification that current search documents have the selected `embedding_model`.
+Do not mix providers in the same live vector corpus. Gemini Embedding 2 vectors are not comparable to older embedding spaces, so existing search documents should be re-embedded with `/api/v1/search/backfill` and verified for the current `embedding_model`.
 
 These are product defaults, not ML truth. Feed impressions, watch completion, hides, and registrations should eventually replace likes as stronger quality signals and make the weights measurable.
 

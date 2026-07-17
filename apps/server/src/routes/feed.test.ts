@@ -1,7 +1,11 @@
 import { env } from "cloudflare:workers";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import app from "../index";
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 const signUp = async (name: string) => {
   const username = `${name.toLowerCase().replaceAll(" ", "")}${crypto.randomUUID().slice(0, 8)}`;
@@ -67,13 +71,15 @@ describe("home feed API", () => {
         "insert into search_document (id, entity_id, entity_type, title, content, embedding_status) values (?, ?, 'event', 'Advanced doubles ladder', 'Competitive local ladder night', 'ready')"
       ).bind(eventDocumentId, eventId),
     ]);
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      Response.json({ embedding: { values: [0.1, 0.2] } })
+    );
 
     const response = await app.request(
       "/api/v1/feed/home",
       { headers: { Cookie: viewer.cookie } },
       {
         ...env,
-        AI: { run: () => Promise.resolve({ data: [[0.1, 0.2]] }) },
         SEARCH_INDEX: {
           query: () =>
             Promise.resolve({

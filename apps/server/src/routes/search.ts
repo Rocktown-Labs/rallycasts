@@ -58,7 +58,7 @@ export const searchRouter = new Hono<AppEnv>()
       if (
         !(
           semanticType.has(type) &&
-          (c.env.AI || c.env.GOOGLE_GENERATIVE_AI_API_KEY) &&
+          c.env.GOOGLE_GENERATIVE_AI_API_KEY &&
           c.env.SEARCH_INDEX &&
           shouldSearch
         )
@@ -391,8 +391,7 @@ export const searchRouter = new Hono<AppEnv>()
             semanticDocuments.length > 0 ? semanticEmbeddingModel : null,
           mode: semanticDocuments.length > 0 ? "semantic" : "keyword",
           vectorReady: Boolean(
-            c.env.SEARCH_INDEX &&
-            (c.env.AI || c.env.GOOGLE_GENERATIVE_AI_API_KEY)
+            c.env.SEARCH_INDEX && c.env.GOOGLE_GENERATIVE_AI_API_KEY
           ),
         },
         casters: [],

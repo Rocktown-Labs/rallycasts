@@ -1,6 +1,5 @@
 import alchemy, { Secret } from "alchemy";
 import {
-  Ai,
   D1Database,
   DurableObjectNamespace,
   Queue,
@@ -86,7 +85,6 @@ const db = await D1Database("database", {
   migrationsDir: "../../packages/db/src/migrations",
   name: isProd ? "rallycaststv-db" : `rallycaststv-db-${stage}`,
 });
-const ai = Ai();
 const searchIndex = await VectorizeIndex("search-index", {
   adopt: true,
   description: "RallyCasts semantic search index",
@@ -94,8 +92,6 @@ const searchIndex = await VectorizeIndex("search-index", {
   metric: "cosine",
   name: isProd ? "rallycasts-search-v2" : `rallycasts-search-${stage}`,
 });
-const searchEmbeddingProvider =
-  process.env.SEARCH_EMBEDDING_PROVIDER ?? "workers-ai";
 
 const betterAuthSecret = requiredSecret("BETTER_AUTH_SECRET");
 const betterAuthUrl = productionServerUrl;
@@ -186,7 +182,6 @@ export const server = await Worker("rallycasts-server", {
   adopt: true,
   bindings: filterMissingBindings({
     ADMIN_EMAILS: adminEmails,
-    AI: ai,
     BETTER_AUTH_SECRET: betterAuthSecret,
     BETTER_AUTH_URL: betterAuthUrl,
     CORS_ORIGIN: corsOrigin,
@@ -212,7 +207,6 @@ export const server = await Worker("rallycasts-server", {
     RALLYCASTS_ADMIN_EMAIL: rallycastsAdminEmail,
     RESEND_API_KEY: resendApiKey,
     RESEND_WEBHOOK_SECRET: resendWebhookSecret,
-    SEARCH_EMBEDDING_PROVIDER: searchEmbeddingProvider,
     SEARCH_INDEX: searchIndex,
     SENTRY_DSN: sentryDsn,
     STRIPE_SECRET_KEY: stripeSecretKey,

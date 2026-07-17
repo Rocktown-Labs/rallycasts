@@ -1,13 +1,12 @@
 import type { AppEnv } from "./types";
 
-const CLOUDFLARE_EMBEDDING_MODEL = "@cf/baai/bge-base-en-v1.5" as const;
 const GEMINI_EMBEDDING_MODEL = "gemini-embedding-2" as const;
 const GEMINI_EMBEDDING_DIMENSIONS = 768;
 const GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
 
 type EmbeddingBindings = Pick<
   AppEnv["Bindings"],
-  "AI" | "GOOGLE_GENERATIVE_AI_API_KEY" | "SEARCH_EMBEDDING_PROVIDER"
+  "GOOGLE_GENERATIVE_AI_API_KEY"
 >;
 
 export type EmbeddingPurpose = "document" | "query";
@@ -28,38 +27,18 @@ export const generateEmbedding = async (
   input: string,
   purpose: EmbeddingPurpose
 ): Promise<EmbeddingResult | null> => {
-  if (
-    env.SEARCH_EMBEDDING_PROVIDER === "gemini" &&
-    env.GOOGLE_GENERATIVE_AI_API_KEY
-  ) {
-    const values = await generateGeminiEmbedding(
-      env.GOOGLE_GENERATIVE_AI_API_KEY,
-      purpose === "query" ? formatSearchQueryInput(input) : input
-    );
-    if (values) {
-      return {
-        model: `${GEMINI_EMBEDDING_MODEL}:${GEMINI_EMBEDDING_DIMENSIONS}`,
-        values,
-      };
-    }
-  }
-
-  if (!env.AI) {
+  if (!env.GOOGLE_GENERATIVE_AI_API_KEY) {
     return null;
   }
 
-  const text =
-    purpose === "query"
-      ? input
-      : input.replace(/^title: ([^|]+) \| text: /u, "$1\n");
-  const embeddings = await env.AI.run(CLOUDFLARE_EMBEDDING_MODEL, {
-    text: [text],
-  });
-  const values = embeddings.data?.[0];
+  const values = await generateGeminiEmbedding(
+    env.GOOGLE_GENERATIVE_AI_API_KEY,
+    purpose === "query" ? formatSearchQueryInput(input) : input
+  );
 
   return values
     ? {
-        model: CLOUDFLARE_EMBEDDING_MODEL,
+        model: `${GEMINI_EMBEDDING_MODEL}:${GEMINI_EMBEDDING_DIMENSIONS}`,
         values,
       }
     : null;

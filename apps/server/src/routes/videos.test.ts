@@ -139,13 +139,15 @@ describe("videos API", () => {
         "Advanced transition-zone strategy"
       ),
     ]);
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      Response.json({ embedding: { values: [0.1, 0.2] } })
+    );
 
     const response = await app.request(
       "/api/v1/search?q=soft%20game%20strategy&type=videos",
       {},
       {
         ...env,
-        AI: { run: () => Promise.resolve({ data: [[0.1, 0.2]] }) },
         SEARCH_INDEX: {
           query: () =>
             Promise.resolve({
@@ -184,13 +186,15 @@ describe("videos API", () => {
         "insert into user_profile (user_id, bio, skill_level, onboarding_status) values (?, ?, 'advanced', 'complete') on conflict(user_id) do update set bio = excluded.bio, skill_level = excluded.skill_level"
       ).bind(viewer.id, "Competitive doubles and match analysis"),
     ]);
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      Response.json({ embedding: { values: [0.1, 0.2] } })
+    );
 
     const response = await app.request(
       "/api/v1/videos/feed",
       { headers: { Cookie: viewer.cookie } },
       {
         ...env,
-        AI: { run: () => Promise.resolve({ data: [[0.1, 0.2]] }) },
         SEARCH_INDEX: {
           query: () =>
             Promise.resolve({
