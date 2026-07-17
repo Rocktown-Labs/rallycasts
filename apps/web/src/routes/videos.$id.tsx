@@ -11,6 +11,7 @@ import {
   Play,
   Pin,
   Users,
+  X,
 } from "lucide-react";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
@@ -20,7 +21,9 @@ import {
   useVideo,
   useVideoComments,
   useAddVideoComment,
+  useFriends,
   usePinVideoComment,
+  useShareEntity,
 } from "@/lib/hooks";
 
 interface CommentUser {
@@ -51,6 +54,26 @@ interface VideoListItem {
   venueId?: string | null;
 }
 
+interface Friend {
+  displayUsername?: string | null;
+  id: string;
+  image?: string | null;
+  name: string;
+  username?: string | null;
+}
+
+function Avatar({ image, label }: { image?: null | string; label: string }) {
+  return (
+    <span className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-full bg-muted">
+      {image ? (
+        <img alt="" className="size-full object-cover" src={image} />
+      ) : (
+        label.at(0)?.toUpperCase()
+      )}
+    </span>
+  );
+}
+
 export const Route = createFileRoute("/videos/$id")({
   component: VideoDetailPage,
 });
@@ -62,11 +85,6 @@ const formatDuration = (seconds?: number | null) => {
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = seconds % 60;
   return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
-};
-
-const handleShare = () => {
-  navigator.clipboard.writeText(window.location.href);
-  toast.success("Link copied to clipboard!");
 };
 
 const formatDate = (value: Date | string) =>
@@ -140,6 +158,7 @@ interface VideoMetaHeaderProps {
   hasLiked: boolean;
   handleSubscribeToggle: () => void;
   handleLikeToggle: () => void;
+  handleShare: () => void;
   isDemo: boolean;
   venue?: {
     id: string;
@@ -166,6 +185,7 @@ function VideoMetaHeader({
   hasLiked,
   handleSubscribeToggle,
   handleLikeToggle,
+  handleShare,
   isDemo,
   venue,
   taggedUsers,
@@ -642,6 +662,98 @@ function VideoSidebar({ otherVideos }: VideoSidebarProps) {
   );
 }
 
+function VideoSharePanel({
+  href,
+  onClose,
+  videoId,
+}: {
+  href: string;
+  onClose: () => void;
+  videoId: string;
+}) {
+  const { data } = useFriends();
+  const shareEntity = useShareEntity();
+  const friends = data?.friends ?? [];
+  const copyLink = async () => {
+    await navigator.clipboard.writeText(href);
+    toast.success("Video link copied.");
+  };
+
+  const shareWithFriend = (friend: Friend) => {
+    shareEntity.mutate(
+      {
+        channel: "direct_message",
+        entityId: videoId,
+        entityType: "video",
+        href,
+        recipientUserId: friend.id,
+      },
+      {
+        onError: () => toast.error("Could not share that video."),
+        onSuccess: () => {
+          toast.success(`Shared with ${friend.name}.`);
+          onClose();
+        },
+      }
+    );
+  };
+
+  return (
+    <section className="rounded-lg border border-border bg-card p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="font-bold text-sm">Share this video</h2>
+          <p className="mt-1 text-muted-foreground text-xs">
+            Send it to a friend in chat or copy the public link.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            className="rounded-md text-xs"
+            onClick={copyLink}
+            variant="outline"
+          >
+            Copy Link
+          </Button>
+          <Button
+            aria-label="Close share panel"
+            onClick={onClose}
+            size="icon-sm"
+            variant="ghost"
+          >
+            <X className="size-4" />
+          </Button>
+        </div>
+      </div>
+      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        {friends.length > 0 ? (
+          friends.map((friend) => (
+            <button
+              className="flex items-center gap-3 rounded-md border border-border px-3 py-2 text-left text-xs hover:bg-muted disabled:opacity-50"
+              disabled={shareEntity.isPending}
+              key={friend.id}
+              onClick={() => shareWithFriend(friend)}
+              type="button"
+            >
+              <Avatar image={friend.image} label={friend.name} />
+              <span>
+                <span className="block font-semibold">{friend.name}</span>
+                <span className="text-muted-foreground">
+                  @{friend.username ?? friend.displayUsername ?? "player"}
+                </span>
+              </span>
+            </button>
+          ))
+        ) : (
+          <p className="rounded-md border border-dashed border-border p-4 text-center text-muted-foreground text-xs sm:col-span-2">
+            Add friends from player profiles to share directly in chat.
+          </p>
+        )}
+      </div>
+    </section>
+  );
+}
+
 // oxlint-disable-next-line complexity
 function VideoDetailPage() {
   const { id } = useParams({ from: "/videos/$id" });
@@ -665,6 +777,7 @@ function VideoDetailPage() {
   const [likesCount, setLikesCount] = useState(42);
   const [hasLiked, setHasLiked] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [showSharePanel, setShowSharePanel] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -700,6 +813,16 @@ function VideoDetailPage() {
       setHasLiked(true);
       toast.success("Added to liked videos!");
     }
+  };
+
+  const handleShare = () => {
+    if (!currentUser) {
+      navigator.clipboard.writeText(window.location.href);
+      toast.success("Video link copied.");
+      return;
+    }
+
+    setShowSharePanel((value) => !value);
   };
 
   const handleAddComment = (e: React.FormEvent) => {
@@ -770,6 +893,8 @@ function VideoDetailPage() {
     (video.muxPlaybackId
       ? `https://image.mux.com/${video.muxPlaybackId}/thumbnail.webp?time=1`
       : undefined);
+  const shareHref =
+    typeof window === "undefined" ? `/videos/${id}` : window.location.href;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-4 space-y-6">
@@ -838,10 +963,19 @@ function VideoDetailPage() {
             hasLiked={hasLiked}
             handleSubscribeToggle={handleSubscribeToggle}
             handleLikeToggle={handleLikeToggle}
+            handleShare={handleShare}
             isDemo={isDemoVideo}
             venue={venue}
             taggedUsers={taggedUsers}
           />
+
+          {showSharePanel ? (
+            <VideoSharePanel
+              href={shareHref}
+              onClose={() => setShowSharePanel(false)}
+              videoId={video.id}
+            />
+          ) : null}
 
           <CommentsSection
             commentsList={commentsList}

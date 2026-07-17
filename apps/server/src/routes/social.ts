@@ -18,8 +18,10 @@ import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 import { z } from "zod";
 
+import type { ChatRealtimeEvent } from "../durable-objects/chat-room";
 import { createId } from "../lib/ids";
 import { createNotification } from "../lib/notifications";
+import type { CreateNotificationInput } from "../lib/notifications";
 import {
   scheduleSearchDocumentIndex,
   upsertSearchDocument,
@@ -44,9 +46,17 @@ const respondToFriendRequestSchema = z.object({
   status: z.enum(["accepted", "declined"]),
 });
 
-const startConversationSchema = z.object({
-  participantUserId: z.string().min(1),
-});
+const startConversationSchema = z
+  .object({
+    participantUserId: z.string().min(1).optional(),
+    participantUserIds: z.array(z.string().min(1)).max(20).optional(),
+  })
+  .refine(
+    (value) =>
+      Boolean(value.participantUserId) ||
+      Boolean(value.participantUserIds?.length),
+    "Choose at least one friend"
+  );
 
 const messageSchema = z.object({
   body: z.string().min(1).max(2000),
@@ -73,6 +83,74 @@ const pairConditions = (leftUserId: string, rightUserId: string) =>
       eq(friendship.requesterUserId, leftUserId)
     )
   );
+
+type ChatRoomStub = DurableObjectStub & {
+  broadcastMessage: (event: ChatRealtimeEvent) => Promise<void>;
+};
+
+type UserNotificationsStub = DurableObjectStub & {
+  broadcast: (event: {
+    notification?: {
+      body?: null | string;
+      href: string;
+      id: string;
+      title: string;
+      type: string;
+    };
+    type: "notification";
+    unreadCount?: number;
+  }) => Promise<void>;
+};
+
+const getChatRoom = (env: AppEnv["Bindings"], conversationId: string) =>
+  env.CHAT_ROOMS.getByName(conversationId) as ChatRoomStub;
+
+const getUserNotifications = (env: AppEnv["Bindings"], userId: string) =>
+  env.USER_NOTIFICATIONS.getByName(userId) as UserNotificationsStub;
+
+const broadcastNotification = async (
+  env: AppEnv["Bindings"],
+  input: {
+    body?: null | string;
+    href: string;
+    id: string;
+    title: string;
+    type: string;
+    userId: string;
+  }
+) => {
+  try {
+    await getUserNotifications(env, input.userId).broadcast({
+      notification: {
+        body: input.body,
+        href: input.href,
+        id: input.id,
+        title: input.title,
+        type: input.type,
+      },
+      type: "notification",
+    });
+  } catch {
+    // Realtime fanout is best-effort; D1 notifications remain the source of truth.
+  }
+};
+
+const createLiveNotification = async (
+  db: ReturnType<typeof createDb>,
+  env: AppEnv["Bindings"],
+  input: CreateNotificationInput
+) => {
+  const record = await createNotification(db, input);
+  await broadcastNotification(env, {
+    body: record.body,
+    href: record.href,
+    id: record.id,
+    title: record.title,
+    type: record.type,
+    userId: record.userId,
+  });
+  return record;
+};
 
 export const socialRouter = new Hono<AppEnv>()
   .get("/posts", async (c) => {
@@ -142,7 +220,7 @@ export const socialRouter = new Hono<AppEnv>()
       .onConflictDoNothing();
 
     if (record.userId !== authUser.id) {
-      await createNotification(db, {
+      await createLiveNotification(db, c.env, {
         actorUserId: authUser.id,
         body: `${authUser.name} liked your post.`,
         entityId: postId,
@@ -219,7 +297,7 @@ export const socialRouter = new Hono<AppEnv>()
       await db.insert(postComment).values(comment);
 
       if (record.userId !== authUser.id) {
-        await createNotification(db, {
+        await createLiveNotification(db, c.env, {
           actorUserId: authUser.id,
           body: content,
           entityId: comment.id,
@@ -315,7 +393,7 @@ export const socialRouter = new Hono<AppEnv>()
       };
 
       await db.insert(friendRequest).values(request);
-      await createNotification(db, {
+      await createLiveNotification(db, c.env, {
         actorUserId: authUser.id,
         body: requestMessage ?? `${authUser.name} wants to connect.`,
         entityId: request.id,
@@ -396,7 +474,7 @@ export const socialRouter = new Hono<AppEnv>()
             { requesterUserId: request.toUserId, userId: request.fromUserId },
           ])
           .onConflictDoNothing();
-        await createNotification(db, {
+        await createLiveNotification(db, c.env, {
           actorUserId: authUser.id,
           body: `${authUser.name} accepted your friend request.`,
           entityId: id,
@@ -450,11 +528,22 @@ export const socialRouter = new Hono<AppEnv>()
 
     return c.json({ read: true }, HttpStatusCodes.OK);
   })
+  .get("/notifications/realtime", requireAuth, (c) => {
+    const { user: authUser } = c.var.authSession;
+    const stub = c.env.USER_NOTIFICATIONS.getByName(authUser.id);
+    const headers = new Headers(c.req.raw.headers);
+    headers.set("x-rallycasts-user-id", authUser.id);
+
+    return stub.fetch(new Request(c.req.raw, { headers }));
+  })
   .get("/conversations", requireAuth, async (c) => {
     const db = createDb(c.env.DB);
     const { user: authUser } = c.var.authSession;
     const mine = await db
-      .select({ conversationId: conversationParticipant.conversationId })
+      .select({
+        conversationId: conversationParticipant.conversationId,
+        lastReadAt: conversationParticipant.lastReadAt,
+      })
       .from(conversationParticipant)
       .where(eq(conversationParticipant.userId, authUser.id));
     const ids = mine.map((row) => row.conversationId);
@@ -463,9 +552,14 @@ export const socialRouter = new Hono<AppEnv>()
       return c.json({ conversations: [] }, HttpStatusCodes.OK);
     }
 
-    const conversations = await db
+    const conversationRows = await db
+      .select()
+      .from(conversation)
+      .where(inArray(conversation.id, ids))
+      .orderBy(desc(conversation.updatedAt));
+    const participantRows = await db
       .select({
-        conversation,
+        conversationId: conversationParticipant.conversationId,
         participant: {
           displayUsername: user.displayUsername,
           id: user.id,
@@ -475,18 +569,75 @@ export const socialRouter = new Hono<AppEnv>()
         },
       })
       .from(conversationParticipant)
-      .innerJoin(
-        conversation,
-        eq(conversationParticipant.conversationId, conversation.id)
-      )
       .innerJoin(user, eq(conversationParticipant.userId, user.id))
       .where(
         and(
           inArray(conversationParticipant.conversationId, ids),
           ne(conversationParticipant.userId, authUser.id)
         )
+      );
+    const messageRows = await db
+      .select()
+      .from(message)
+      .where(
+        and(
+          inArray(message.conversationId, ids),
+          sql`${message.deletedAt} is null`
+        )
       )
-      .orderBy(desc(conversation.updatedAt));
+      .orderBy(desc(message.createdAt))
+      .limit(250);
+    const participantsByConversation = new Map<
+      string,
+      (typeof participantRows)[number]["participant"][]
+    >();
+    for (const row of participantRows) {
+      const participants = participantsByConversation.get(row.conversationId);
+      if (participants) {
+        participants.push(row.participant);
+      } else {
+        participantsByConversation.set(row.conversationId, [row.participant]);
+      }
+    }
+    const messagesByConversation = new Map<
+      string,
+      (typeof messageRows)[number][]
+    >();
+    for (const row of messageRows) {
+      const messages = messagesByConversation.get(row.conversationId);
+      if (messages) {
+        messages.push(row);
+      } else {
+        messagesByConversation.set(row.conversationId, [row]);
+      }
+    }
+    const readAtByConversation = new Map(
+      mine.map((row) => [row.conversationId, row.lastReadAt])
+    );
+    const conversations = conversationRows.map((record) => {
+      const participants = participantsByConversation.get(record.id) ?? [];
+      const messages = messagesByConversation.get(record.id) ?? [];
+      const lastReadAt = readAtByConversation.get(record.id);
+      const unreadCount = messages.filter(
+        (item) =>
+          item.senderUserId !== authUser.id &&
+          (!lastReadAt || item.createdAt > lastReadAt)
+      ).length;
+
+      return {
+        conversation: record,
+        lastMessage: messages[0] ?? null,
+        participant: participants[0] ?? {
+          displayUsername: null,
+          id: record.id,
+          image: null,
+          name: "Group chat",
+          username: null,
+        },
+        participants,
+        unreadCount,
+      };
+    });
 
     return c.json({ conversations }, HttpStatusCodes.OK);
   })
@@ -497,23 +648,32 @@ export const socialRouter = new Hono<AppEnv>()
     async (c) => {
       const db = createDb(c.env.DB);
       const { user: authUser } = c.var.authSession;
-      const { participantUserId } = c.req.valid("json");
+      const data = c.req.valid("json");
+      const requestedParticipantIds = [
+        ...(data.participantUserId ? [data.participantUserId] : []),
+        ...(data.participantUserIds ?? []),
+      ];
+      const participantUserIds = [...new Set(requestedParticipantIds)];
 
-      if (participantUserId === authUser.id) {
+      if (participantUserIds.includes(authUser.id)) {
         return c.json(
           { message: "Choose another player" },
           HttpStatusCodes.BAD_REQUEST
         );
       }
 
-      const [participant] = await db
-        .select({ id: user.id })
+      const participants = await db
+        .select({
+          id: user.id,
+        })
         .from(user)
-        .where(eq(user.id, participantUserId))
-        .limit(1);
+        .where(inArray(user.id, participantUserIds));
 
-      if (!participant) {
-        return c.json({ message: "User not found" }, HttpStatusCodes.NOT_FOUND);
+      if (participants.length !== participantUserIds.length) {
+        return c.json(
+          { message: "One or more users were not found" },
+          HttpStatusCodes.NOT_FOUND
+        );
       }
 
       const mine = await db
@@ -522,7 +682,9 @@ export const socialRouter = new Hono<AppEnv>()
         .where(eq(conversationParticipant.userId, authUser.id));
       const ids = mine.map((row) => row.conversationId);
 
-      if (ids.length > 0) {
+      const [directParticipantUserId] = participantUserIds;
+
+      if (ids.length > 0 && directParticipantUserId) {
         const [existing] = await db
           .select({ conversationId: conversationParticipant.conversationId })
           .from(conversationParticipant)
@@ -533,7 +695,7 @@ export const socialRouter = new Hono<AppEnv>()
           .where(
             and(
               inArray(conversationParticipant.conversationId, ids),
-              eq(conversationParticipant.userId, participantUserId),
+              eq(conversationParticipant.userId, directParticipantUserId),
               eq(conversation.type, "direct")
             )
           )
@@ -551,14 +713,45 @@ export const socialRouter = new Hono<AppEnv>()
       await db
         .insert(conversation)
         .values({ id: conversationId, type: "direct" });
-      await db.insert(conversationParticipant).values([
-        { conversationId, userId: authUser.id },
-        { conversationId, userId: participantUserId },
-      ]);
+      await db.insert(conversationParticipant).values(
+        [authUser.id, ...participantUserIds].map((userId) => ({
+          conversationId,
+          userId,
+        }))
+      );
 
       return c.json({ conversationId }, HttpStatusCodes.CREATED);
     }
   )
+  .get("/conversations/:id/realtime", requireAuth, async (c) => {
+    const db = createDb(c.env.DB);
+    const { user: authUser } = c.var.authSession;
+    const conversationId = c.req.param("id");
+    const [participant] = await db
+      .select()
+      .from(conversationParticipant)
+      .where(
+        and(
+          eq(conversationParticipant.conversationId, conversationId),
+          eq(conversationParticipant.userId, authUser.id)
+        )
+      )
+      .limit(1);
+
+    if (!participant) {
+      return c.json(
+        { message: "Conversation not found" },
+        HttpStatusCodes.NOT_FOUND
+      );
+    }
+
+    const headers = new Headers(c.req.raw.headers);
+    headers.set("x-rallycasts-user-id", authUser.id);
+    headers.set("x-rallycasts-user-name", authUser.name);
+    const stub = c.env.CHAT_ROOMS.getByName(conversationId);
+
+    return stub.fetch(new Request(c.req.raw, { headers }));
+  })
   .get("/conversations/:id/messages", requireAuth, async (c) => {
     const db = createDb(c.env.DB);
     const { user: authUser } = c.var.authSession;
@@ -649,13 +842,19 @@ export const socialRouter = new Hono<AppEnv>()
         .update(conversation)
         .set({ updatedAt: new Date() })
         .where(eq(conversation.id, conversationId));
+      const sender = {
+        id: authUser.id,
+        image: authUser.image,
+        name: authUser.name,
+        username: authUser.username,
+      };
 
       for (const participant of participants) {
         if (participant.userId === authUser.id) {
           continue;
         }
 
-        await createNotification(db, {
+        await createLiveNotification(db, c.env, {
           actorUserId: authUser.id,
           body,
           entityId: record.id,
@@ -666,6 +865,18 @@ export const socialRouter = new Hono<AppEnv>()
           userId: participant.userId,
         });
       }
+
+      await getChatRoom(c.env, conversationId).broadcastMessage({
+        conversationId,
+        message: {
+          body: record.body,
+          createdAt: new Date().toISOString(),
+          id: record.id,
+          senderUserId: record.senderUserId,
+        },
+        sender,
+        type: "message",
+      });
 
       return c.json({ message: record }, HttpStatusCodes.CREATED);
     }
@@ -683,12 +894,79 @@ export const socialRouter = new Hono<AppEnv>()
     await db.insert(share).values(record);
 
     if (data.recipientUserId) {
-      await createNotification(db, {
+      let conversationId: string | undefined;
+      const shareHref = data.href ?? "/";
+      if (data.channel === "direct_message") {
+        const mine = await db
+          .select({ conversationId: conversationParticipant.conversationId })
+          .from(conversationParticipant)
+          .where(eq(conversationParticipant.userId, authUser.id));
+        const ids = mine.map((row) => row.conversationId);
+        const [existing] =
+          ids.length > 0
+            ? await db
+                .select({
+                  conversationId: conversationParticipant.conversationId,
+                })
+                .from(conversationParticipant)
+                .innerJoin(
+                  conversation,
+                  eq(conversationParticipant.conversationId, conversation.id)
+                )
+                .where(
+                  and(
+                    inArray(conversationParticipant.conversationId, ids),
+                    eq(conversationParticipant.userId, data.recipientUserId),
+                    eq(conversation.type, "direct")
+                  )
+                )
+                .limit(1)
+            : [];
+        conversationId = existing?.conversationId ?? createId();
+        if (!existing) {
+          await db
+            .insert(conversation)
+            .values({ id: conversationId, type: "direct" });
+          await db.insert(conversationParticipant).values([
+            { conversationId, userId: authUser.id },
+            { conversationId, userId: data.recipientUserId },
+          ]);
+        }
+        const messageBody = `${authUser.name} shared a ${data.entityType}: ${shareHref}`;
+        const chatMessage = {
+          body: messageBody,
+          conversationId,
+          id: createId(),
+          senderUserId: authUser.id,
+        };
+        await db.insert(message).values(chatMessage);
+        await db
+          .update(conversation)
+          .set({ updatedAt: new Date() })
+          .where(eq(conversation.id, conversationId));
+        await getChatRoom(c.env, conversationId).broadcastMessage({
+          conversationId,
+          message: {
+            body: chatMessage.body,
+            createdAt: new Date().toISOString(),
+            id: chatMessage.id,
+            senderUserId: chatMessage.senderUserId,
+          },
+          sender: {
+            id: authUser.id,
+            image: authUser.image,
+            name: authUser.name,
+            username: authUser.username,
+          },
+          type: "message",
+        });
+      }
+      await createLiveNotification(db, c.env, {
         actorUserId: authUser.id,
         body: `${authUser.name} shared something with you.`,
         entityId: record.id,
         entityType: "share",
-        href: data.href ?? "/",
+        href: conversationId ? "/u/messages" : shareHref,
         title: "Shared with you",
         type: "share",
         userId: data.recipientUserId,

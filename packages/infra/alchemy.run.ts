@@ -139,6 +139,14 @@ const eventCoordinator = DurableObjectNamespace("event-coordinator", {
   className: "EventCoordinator",
   sqlite: true,
 });
+const chatRooms = DurableObjectNamespace("chat-rooms", {
+  className: "ChatRoom",
+  sqlite: true,
+});
+const userNotifications = DurableObjectNamespace("user-notifications", {
+  className: "UserNotifications",
+  sqlite: true,
+});
 
 // stage is defined at the top
 
@@ -184,6 +192,7 @@ export const server = await Worker("rallycasts-server", {
     ADMIN_EMAILS: adminEmails,
     BETTER_AUTH_SECRET: betterAuthSecret,
     BETTER_AUTH_URL: betterAuthUrl,
+    CHAT_ROOMS: chatRooms,
     CORS_ORIGIN: corsOrigin,
     DB: db,
     EVENT_ACTIVITY_QUEUE: eventActivityQueue,
@@ -211,6 +220,7 @@ export const server = await Worker("rallycasts-server", {
     SENTRY_DSN: sentryDsn,
     STRIPE_SECRET_KEY: stripeSecretKey,
     STRIPE_WEBHOOK_SECRET: stripeWebhookSecret,
+    USER_NOTIFICATIONS: userNotifications,
     VENUE_PRESENCE: venuePresence,
   }),
   compatibility: "node",

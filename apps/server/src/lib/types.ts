@@ -25,6 +25,7 @@ interface VectorizeBinding {
 export interface AppEnv {
   Bindings: Env & {
     ADMIN_EMAILS?: string;
+    CHAT_ROOMS: DurableObjectNamespace;
     EVENT_ACTIVITY_QUEUE?: Queue<EventActivityMessage>;
     EVENT_COORDINATOR: DurableObjectNamespace;
     GOOGLE_GENERATIVE_AI_API_KEY?: string;
@@ -33,6 +34,7 @@ export interface AppEnv {
     SEARCH_INDEX?: VectorizeBinding;
     STRIPE_SECRET_KEY?: string;
     STRIPE_WEBHOOK_SECRET?: string;
+    USER_NOTIFICATIONS: DurableObjectNamespace;
     VENUE_PRESENCE: DurableObjectNamespace;
   };
   Variables: {

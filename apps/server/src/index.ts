@@ -80,6 +80,8 @@ const isAllowedOrigin = (
 
 export { VenuePresence } from "./durable-objects/venue-presence";
 export { EventCoordinator } from "./durable-objects/event-coordinator";
+export { ChatRoom } from "./durable-objects/chat-room";
+export { UserNotifications } from "./durable-objects/user-notifications";
 
 app.use(requestId());
 app.use(timing());

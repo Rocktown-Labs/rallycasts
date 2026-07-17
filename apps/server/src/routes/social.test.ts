@@ -164,6 +164,117 @@ describe("social API", () => {
     );
   });
 
+  it("creates group conversations and rejects self conversations", async () => {
+    const alice = await signUp("Alice Group");
+    const bob = await signUp("Bob Group");
+    const cam = await signUp("Cam Group");
+
+    const selfResponse = await jsonRequest(
+      "/api/v1/social/conversations",
+      alice.cookie,
+      { participantUserId: alice.id }
+    );
+
+    expect(selfResponse.status).toBe(400);
+
+    const groupResponse = await jsonRequest(
+      "/api/v1/social/conversations",
+      alice.cookie,
+      { participantUserIds: [bob.id, cam.id] }
+    );
+
+    expect(groupResponse.status).toBe(201);
+
+    const { conversationId } = (await groupResponse.json()) as {
+      conversationId: string;
+    };
+    const conversationsResponse = await app.request(
+      "/api/v1/social/conversations",
+      {
+        headers: { Cookie: alice.cookie },
+      },
+      env
+    );
+    const conversationsData = (await conversationsResponse.json()) as {
+      conversations: {
+        conversation: { id: string };
+        participants: { id: string }[];
+      }[];
+    };
+
+    expect(conversationsData.conversations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          conversation: expect.objectContaining({ id: conversationId }),
+          participants: expect.arrayContaining([
+            expect.objectContaining({ id: bob.id }),
+            expect.objectContaining({ id: cam.id }),
+          ]),
+        }),
+      ])
+    );
+  });
+
+  it("shares videos into direct messages", async () => {
+    const alice = await signUp("Alice Share");
+    const bob = await signUp("Bob Share");
+    const videoId = "video-share-api-test";
+
+    const shareResponse = await jsonRequest(
+      "/api/v1/social/shares",
+      alice.cookie,
+      {
+        channel: "direct_message",
+        entityId: videoId,
+        entityType: "video",
+        href: `/videos/${videoId}`,
+        recipientUserId: bob.id,
+      }
+    );
+
+    expect(shareResponse.status).toBe(201);
+
+    const conversationsResponse = await app.request(
+      "/api/v1/social/conversations",
+      {
+        headers: { Cookie: bob.cookie },
+      },
+      env
+    );
+    const conversationsData = (await conversationsResponse.json()) as {
+      conversations: {
+        conversation: { id: string };
+        lastMessage: { body: string } | null;
+      }[];
+    };
+    const conversation = conversationsData.conversations.find((item) =>
+      item.lastMessage?.body.includes(`/videos/${videoId}`)
+    );
+
+    expect(conversation).toBeTruthy();
+
+    const messagesResponse = await app.request(
+      `/api/v1/social/conversations/${conversation?.conversation.id}/messages`,
+      {
+        headers: { Cookie: bob.cookie },
+      },
+      env
+    );
+    const messagesData = (await messagesResponse.json()) as {
+      messages: { message: { body: string } }[];
+    };
+
+    expect(messagesData.messages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          message: expect.objectContaining({
+            body: expect.stringContaining(`/videos/${videoId}`),
+          }),
+        }),
+      ])
+    );
+  });
+
   it("indexes new posts for search", async () => {
     const alice = await signUp("Alice Search");
 
