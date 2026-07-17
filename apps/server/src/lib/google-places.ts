@@ -8,6 +8,7 @@ export interface GooglePlaceResult {
   address: string;
   latitude: number;
   longitude: number;
+  isPickleballCandidate?: boolean;
   photoUrl?: string;
   rating?: number;
   userRatingsTotal?: number;
@@ -100,6 +101,13 @@ const LODGING_PLACE_TYPES = new Set([
 ]);
 const PICKLEBALL_QUERY = "pickleball courts";
 const PICKLEBALL_SEARCH_RESULT_LIMIT = 20;
+const SPORTS_COURT_TYPES = new Set([
+  "athletic_field",
+  "sports_activity_location",
+  "sports_club",
+  "sports_complex",
+  "tennis_court",
+]);
 
 export class GooglePlacesClient {
   private apiKey: string;
@@ -129,16 +137,19 @@ export class GooglePlacesClient {
     longitude: number,
     radius = 50_000
   ): Promise<GooglePlaceResult[]> {
-    const textSearchResults = await Promise.all(
-      PICKLEBALL_PARK_SEARCH_TYPES.map((includedType) =>
+    const textSearchResults = await Promise.allSettled([
+      this.searchText(PICKLEBALL_QUERY, latitude, longitude, {
+        maxResultCount: PICKLEBALL_SEARCH_RESULT_LIMIT,
+        radius,
+      }),
+      ...PICKLEBALL_PARK_SEARCH_TYPES.map((includedType) =>
         this.searchText(PICKLEBALL_QUERY, latitude, longitude, {
           includedType,
           maxResultCount: PICKLEBALL_SEARCH_RESULT_LIMIT,
           radius,
-          useLocationRestriction: true,
         })
-      )
-    );
+      ),
+    ]);
 
     const data = await this.postSearch(
       "/places:searchNearby",
@@ -157,7 +168,9 @@ export class GooglePlacesClient {
     );
 
     return GooglePlacesClient.dedupePlaces([
-      ...textSearchResults.flat(),
+      ...textSearchResults.flatMap((result) =>
+        result.status === "fulfilled" ? result.value : []
+      ),
       ...(data.places ?? []).map((place) => this.mapPlaceResult(place)),
     ])
       .filter((place) => GooglePlacesClient.isPickleballParkResult(place))
@@ -186,7 +199,6 @@ export class GooglePlacesClient {
       includedType?: (typeof PICKLEBALL_PARK_SEARCH_TYPES)[number];
       maxResultCount?: number;
       radius?: number;
-      useLocationRestriction?: boolean;
     }
   ): Promise<GooglePlaceResult[]> {
     const body: Record<string, unknown> = {
@@ -205,9 +217,8 @@ export class GooglePlacesClient {
           radius: options?.radius ?? 50_000,
         },
       };
-      body[
-        options?.useLocationRestriction ? "locationRestriction" : "locationBias"
-      ] = locationCircle;
+      body.locationBias = locationCircle;
+      body.rankPreference = "DISTANCE";
     }
 
     const data = await this.postSearch(
@@ -216,7 +227,11 @@ export class GooglePlacesClient {
       body
     );
 
-    return (data.places ?? []).map((place) => this.mapPlaceResult(place));
+    const isPickleballCandidate = query.toLowerCase().includes("pickleball");
+
+    return (data.places ?? []).map((place) =>
+      this.mapPlaceResult(place, { isPickleballCandidate })
+    );
   }
 
   async getPlaceDetails(placeId: string): Promise<GooglePlaceResult> {
@@ -296,12 +311,12 @@ export class GooglePlacesClient {
     }
 
     const hasAllowedType = place.types.some((type) =>
-      (PICKLEBALL_PARK_SEARCH_TYPES as readonly string[]).includes(type)
+      SPORTS_COURT_TYPES.has(type)
     );
     const searchableText = `${place.name} ${place.address}`.toLowerCase();
     const hasPickleballSignal = searchableText.includes("pickleball");
 
-    return hasAllowedType || hasPickleballSignal;
+    return place.isPickleballCandidate || hasAllowedType || hasPickleballSignal;
   }
 
   private async postSearch(
@@ -319,7 +334,10 @@ export class GooglePlacesClient {
     return (await response.json()) as GooglePlaceSearchResponse;
   }
 
-  private mapPlaceResult(place: GooglePlace): GooglePlaceResult {
+  private mapPlaceResult(
+    place: GooglePlace,
+    options?: { isPickleballCandidate?: boolean }
+  ): GooglePlaceResult {
     const photoUrl = place.photos?.[0]?.name
       ? this.getPhotoUrl(place.photos[0].name)
       : undefined;
@@ -332,6 +350,7 @@ export class GooglePlacesClient {
 
     return {
       address: place.formattedAddress || "",
+      isPickleballCandidate: options?.isPickleballCandidate || undefined,
       latitude,
       longitude,
       name: place.displayName?.text || place.id,

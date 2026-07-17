@@ -2,6 +2,7 @@ import type { createDb } from "@rallycaststv/db";
 import { venue } from "@rallycaststv/db/schema/domain";
 import { eq } from "drizzle-orm";
 
+import { syncVenueGeofence } from "./geofence-sync";
 import { createGooglePlacesClient } from "./google-places";
 import { createId } from "./ids";
 import { syncVenueSearchDocument } from "./search-index";
@@ -74,6 +75,19 @@ export const findOrCreateVenueFromGooglePlace = async ({
   }
 
   await syncVenueSearchDocument(getExecutionContext, db, env, createdVenue);
+  if (env.RADAR_SECRET_KEY) {
+    try {
+      await syncVenueGeofence(env.RADAR_SECRET_KEY, {
+        courtCount: createdVenue.courtCount ?? 0,
+        id: createdVenue.id,
+        latitude: createdVenue.latitude,
+        longitude: createdVenue.longitude,
+        name: createdVenue.name,
+      });
+    } catch (error) {
+      console.error("Failed to sync Google venue to Radar:", error);
+    }
+  }
 
   return createdVenue;
 };

@@ -1,7 +1,8 @@
 import { env } from "cloudflare:workers";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import app from "../index";
+import { GooglePlacesClient } from "../lib/google-places";
 import { mergeTrendingVenues } from "./trending";
 
 type DatabaseVenue = Parameters<typeof mergeTrendingVenues>[0][number];
@@ -49,6 +50,10 @@ const googleVenue = (overrides: Partial<GoogleVenue>): GoogleVenue =>
   }) satisfies GoogleVenue;
 
 describe("trending venue discovery", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("keeps Trending available when Google Places is not configured", async () => {
     const response = await app.request(
       "/api/v1/trending?lat=36.37&lng=-94.21",
@@ -58,6 +63,42 @@ describe("trending venue discovery", () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({ venues: [] });
+  });
+
+  it("returns Google Places pickleball parks for nearby trending venues", async () => {
+    vi.spyOn(GooglePlacesClient.prototype, "searchNearby").mockResolvedValue([
+      {
+        address: "Berryhill Rd, Searcy, AR",
+        isPickleballCandidate: true,
+        latitude: 35.2468,
+        longitude: -91.735,
+        name: "Berryhill Park",
+        openNow: true,
+        placeId: "berryhill-place",
+        rating: 4.7,
+        types: ["park"],
+        userRatingsTotal: 24,
+      },
+    ]);
+
+    const response = await app.request(
+      "/api/v1/trending?lat=35.2468&lng=-91.735&radius=50",
+      {},
+      { ...env, GOOGLE_PLACES_API_KEY: "google_test_key" }
+    );
+
+    expect(response.status).toBe(200);
+    const data = await response.json();
+    expect(data.venues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          googlePlaceId: "berryhill-place",
+          id: "google:berryhill-place",
+          name: "Berryhill Park",
+          source: "google_places",
+        }),
+      ])
+    );
   });
 
   it("prefers RallyCasts records while mixing and distance-sorting Google parks", () => {
