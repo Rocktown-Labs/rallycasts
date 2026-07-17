@@ -47,6 +47,7 @@ import { Route as AuthUMeRouteImport } from './routes/_auth/u/me'
 import { Route as AuthUHistoryRouteImport } from './routes/_auth/u/history'
 import { Route as AuthUChallengesRouteImport } from './routes/_auth/u/challenges'
 import { Route as AuthUCastsRouteImport } from './routes/_auth/u/casts'
+import { Route as AuthUAdminRouteImport } from './routes/_auth/u/admin'
 import { Route as AuthOrganizersNewRouteImport } from './routes/_auth/organizers.new'
 import { Route as AuthUVideosIndexRouteImport } from './routes/_auth/u/videos/index'
 import { Route as AuthUStudioIndexRouteImport } from './routes/_auth/u/studio/index'
@@ -267,6 +268,11 @@ const AuthUCastsRoute = AuthUCastsRouteImport.update({
   path: '/casts',
   getParentRoute: () => AuthURoute,
 } as any)
+const AuthUAdminRoute = AuthUAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthURoute,
+} as any)
 const AuthOrganizersNewRoute = AuthOrganizersNewRouteImport.update({
   id: '/organizers/new',
   path: '/organizers/new',
@@ -446,6 +452,7 @@ export interface FileRoutesByFullPath {
   '/events/': typeof EventsIndexRoute
   '/players/': typeof PlayersIndexRoute
   '/organizers/new': typeof AuthOrganizersNewRoute
+  '/u/admin': typeof AuthUAdminRoute
   '/u/casts': typeof AuthUCastsRouteWithChildren
   '/u/challenges': typeof AuthUChallengesRoute
   '/u/history': typeof AuthUHistoryRouteWithChildren
@@ -510,6 +517,7 @@ export interface FileRoutesByTo {
   '/events': typeof EventsIndexRoute
   '/players': typeof PlayersIndexRoute
   '/organizers/new': typeof AuthOrganizersNewRoute
+  '/u/admin': typeof AuthUAdminRoute
   '/u/challenges': typeof AuthUChallengesRoute
   '/u/me': typeof AuthUMeRoute
   '/u/messages': typeof AuthUMessagesRoute
@@ -577,6 +585,7 @@ export interface FileRoutesById {
   '/events/': typeof EventsIndexRoute
   '/players/': typeof PlayersIndexRoute
   '/_auth/organizers/new': typeof AuthOrganizersNewRoute
+  '/_auth/u/admin': typeof AuthUAdminRoute
   '/_auth/u/casts': typeof AuthUCastsRouteWithChildren
   '/_auth/u/challenges': typeof AuthUChallengesRoute
   '/_auth/u/history': typeof AuthUHistoryRouteWithChildren
@@ -648,6 +657,7 @@ export interface FileRouteTypes {
     | '/events/'
     | '/players/'
     | '/organizers/new'
+    | '/u/admin'
     | '/u/casts'
     | '/u/challenges'
     | '/u/history'
@@ -712,6 +722,7 @@ export interface FileRouteTypes {
     | '/events'
     | '/players'
     | '/organizers/new'
+    | '/u/admin'
     | '/u/challenges'
     | '/u/me'
     | '/u/messages'
@@ -778,6 +789,7 @@ export interface FileRouteTypes {
     | '/events/'
     | '/players/'
     | '/_auth/organizers/new'
+    | '/_auth/u/admin'
     | '/_auth/u/casts'
     | '/_auth/u/challenges'
     | '/_auth/u/history'
@@ -1108,6 +1120,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthUCastsRouteImport
       parentRoute: typeof AuthURoute
     }
+    '/_auth/u/admin': {
+      id: '/_auth/u/admin'
+      path: '/admin'
+      fullPath: '/u/admin'
+      preLoaderRoute: typeof AuthUAdminRouteImport
+      parentRoute: typeof AuthURoute
+    }
     '/_auth/organizers/new': {
       id: '/_auth/organizers/new'
       path: '/organizers/new'
@@ -1407,6 +1426,7 @@ const AuthUStudioVideosIdRouteWithChildren =
   AuthUStudioVideosIdRoute._addFileChildren(AuthUStudioVideosIdRouteChildren)
 
 interface AuthURouteChildren {
+  AuthUAdminRoute: typeof AuthUAdminRoute
   AuthUCastsRoute: typeof AuthUCastsRouteWithChildren
   AuthUChallengesRoute: typeof AuthUChallengesRoute
   AuthUHistoryRoute: typeof AuthUHistoryRouteWithChildren
@@ -1428,6 +1448,7 @@ interface AuthURouteChildren {
 }
 
 const AuthURouteChildren: AuthURouteChildren = {
+  AuthUAdminRoute: AuthUAdminRoute,
   AuthUCastsRoute: AuthUCastsRouteWithChildren,
   AuthUChallengesRoute: AuthUChallengesRoute,
   AuthUHistoryRoute: AuthUHistoryRouteWithChildren,

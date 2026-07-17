@@ -15,6 +15,7 @@ import {
   Video,
   ArrowLeft,
   LayoutDashboard,
+  ShieldCheck,
   ShoppingBag,
 } from "lucide-react";
 
@@ -31,6 +32,10 @@ export const organizerNavItems = [
   { icon: Trophy, label: "Dashboard", to: "/u/organizer" },
   { icon: Building2, label: "Organizations", to: "/u/organizer/organizations" },
   { icon: Calendar, label: "Manage Events", to: "/u/organizer/events" },
+] as const;
+
+export const adminNavItems = [
+  { icon: ShieldCheck, label: "Admin", to: "/u/admin" },
 ] as const;
 
 export const accountNavItems = [

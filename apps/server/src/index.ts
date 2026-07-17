@@ -16,6 +16,7 @@ import notFound from "stoker/middlewares/not-found";
 import onError from "stoker/middlewares/on-error";
 
 import type { AppEnv } from "./lib/types";
+import { adminRouter } from "./routes/admin";
 import { castersRouter } from "./routes/casters";
 import { castingJobsRouter } from "./routes/casting-jobs";
 import { challengesRouter } from "./routes/challenges";
@@ -180,6 +181,7 @@ const routes = app
   .route("/api/v1/organizations", organizationsRouter)
   .route("/api/v1/upload", uploadRouter)
   .route("/api/v1/emails", emailsRouter)
+  .route("/api/v1/admin", adminRouter)
   .route("/webhooks", webhooksRouter);
 
 routes.notFound(notFound);

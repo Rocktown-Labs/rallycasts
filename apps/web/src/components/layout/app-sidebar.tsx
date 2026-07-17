@@ -9,6 +9,7 @@ import { useProfile } from "@/lib/hooks";
 
 import {
   accountNavItems,
+  adminNavItems,
   discoverNavItems,
   organizerNavItems,
 } from "./nav-items";
@@ -24,7 +25,8 @@ const NavSection = ({
   items:
     | typeof discoverNavItems
     | typeof accountNavItems
-    | typeof organizerNavItems;
+    | typeof organizerNavItems
+    | typeof adminNavItems;
   label: string;
 }) => (
   <div className="space-y-2">
@@ -110,6 +112,7 @@ export default function AppSidebar({
   const { data: profileData } = useProfile();
   const profile = profileData?.profile;
   const isOrganizer = profile?.isOrganizer ?? false;
+  const isPlatformAdmin = profileData?.isPlatformAdmin ?? false;
 
   return (
     <aside
@@ -165,6 +168,13 @@ export default function AppSidebar({
             collapsed={collapsed}
             items={organizerNavItems}
             label="Organizer Tools"
+          />
+        )}
+        {session && isPlatformAdmin && (
+          <NavSection
+            collapsed={collapsed}
+            items={adminNavItems}
+            label="Platform"
           />
         )}
       </div>
