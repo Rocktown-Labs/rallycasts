@@ -13,6 +13,7 @@ import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 
 import { isPlatformAdminEmail } from "../lib/admin";
+import { generateEmbedding } from "../lib/embeddings";
 import {
   scheduleSearchDocumentIndex,
   upsertSearchDocument,
@@ -44,6 +45,7 @@ export const searchRouter = new Hono<AppEnv>()
     const type = c.req.query("type") ?? "all";
     const pattern = searchPattern(query);
     const shouldSearch = query.trim().length > 1;
+    let semanticEmbeddingModel: string | null = null;
     const semanticDocuments = await (async () => {
       const semanticType = new Set([
         "all",
@@ -56,7 +58,7 @@ export const searchRouter = new Hono<AppEnv>()
       if (
         !(
           semanticType.has(type) &&
-          c.env.AI &&
+          (c.env.AI || c.env.GOOGLE_GENERATIVE_AI_API_KEY) &&
           c.env.SEARCH_INDEX &&
           shouldSearch
         )
@@ -64,10 +66,9 @@ export const searchRouter = new Hono<AppEnv>()
         return [];
       }
 
-      const embeddings = await c.env.AI.run("@cf/baai/bge-base-en-v1.5", {
-        text: [query],
-      });
-      const vector = embeddings.data?.[0];
+      const embedding = await generateEmbedding(c.env, query, "query");
+      const vector = embedding?.values;
+      semanticEmbeddingModel = embedding?.model ?? null;
 
       if (!vector) {
         return [];
@@ -386,8 +387,13 @@ export const searchRouter = new Hono<AppEnv>()
           embeddingBackfill: documents.some(
             (document) => document.embeddingStatus === "pending"
           ),
+          embeddingModel:
+            semanticDocuments.length > 0 ? semanticEmbeddingModel : null,
           mode: semanticDocuments.length > 0 ? "semantic" : "keyword",
-          vectorReady: Boolean(c.env.AI && c.env.SEARCH_INDEX),
+          vectorReady: Boolean(
+            c.env.SEARCH_INDEX &&
+            (c.env.AI || c.env.GOOGLE_GENERATIVE_AI_API_KEY)
+          ),
         },
         casters: [],
         documents,

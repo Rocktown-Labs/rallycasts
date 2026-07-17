@@ -15,6 +15,7 @@ import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 import { z } from "zod";
 
+import { generateEmbedding } from "../lib/embeddings";
 import { createId } from "../lib/ids";
 import { createMuxClip } from "../lib/mux-client";
 import { createNotification } from "../lib/notifications";
@@ -319,6 +320,7 @@ export const videosRouter = new Hono<AppEnv>()
     const resolved = await resolveVideosRelations(db, videos);
     return c.json({ videos: resolved }, HttpStatusCodes.OK);
   })
+  // oxlint-disable-next-line complexity -- Legacy video feed combines semantic, social, location, freshness, and engagement signals.
   .get("/feed", requireAuth, async (c) => {
     const db = createDb(c.env.DB);
     const { user: authUser } = c.var.authSession;
@@ -334,7 +336,11 @@ export const videosRouter = new Hono<AppEnv>()
       .orderBy(desc(videoSortTimestamp), desc(video.id))
       .limit(FEED_CANDIDATE_LIMIT);
 
-    if (c.env.AI && c.env.SEARCH_INDEX && fallbackVideos.length > 0) {
+    if (
+      c.env.SEARCH_INDEX &&
+      (c.env.AI || c.env.GOOGLE_GENERATIVE_AI_API_KEY) &&
+      fallbackVideos.length > 0
+    ) {
       const existingDocuments = await db
         .select({
           embeddingStatus: searchDocument.embeddingStatus,
@@ -384,11 +390,13 @@ export const videosRouter = new Hono<AppEnv>()
     const semanticScores = new Map<string, number>();
     let semanticVideos: (typeof video.$inferSelect)[] = [];
     const intent = profile ? buildFeedIntent(profile) : "";
-    if (intent && c.env.AI && c.env.SEARCH_INDEX) {
-      const embeddings = await c.env.AI.run("@cf/baai/bge-base-en-v1.5", {
-        text: [intent],
-      });
-      const intentVector = embeddings.data?.[0];
+    if (
+      intent &&
+      c.env.SEARCH_INDEX &&
+      (c.env.AI || c.env.GOOGLE_GENERATIVE_AI_API_KEY)
+    ) {
+      const embedding = await generateEmbedding(c.env, intent, "query");
+      const intentVector = embedding?.values;
       if (intentVector) {
         const matches = await c.env.SEARCH_INDEX.query(intentVector, {
           topK: FEED_CANDIDATE_LIMIT,

@@ -21,6 +21,7 @@ import { castingJobsRouter } from "./routes/casting-jobs";
 import { challengesRouter } from "./routes/challenges";
 import { emailsRouter } from "./routes/emails";
 import { eventsRouter } from "./routes/events";
+import { feedRouter } from "./routes/feed";
 import { muxRouter } from "./routes/mux";
 import { organizationsRouter } from "./routes/organizations";
 import { placesRouter } from "./routes/places";
@@ -165,6 +166,7 @@ const routes = app
   .route("/api/v1/challenges", challengesRouter)
   .route("/api/v1/videos", videosRouter)
   .route("/api/v1/events", eventsRouter)
+  .route("/api/v1/feed", feedRouter)
   .route("/api/v1/profile", profileRouter)
   .route("/api/v1/players", playersRouter)
   .route("/api/v1/venues", venuesRouter)

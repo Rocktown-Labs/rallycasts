@@ -4,8 +4,8 @@
 
 RallyCasts uses AI behind product-specific data workflows:
 
-1. Global search uses Cloudflare Workers AI model `@cf/baai/bge-base-en-v1.5` to create 768-dimensional embeddings and Cloudflare Vectorize with cosine similarity.
-2. Authenticated Home recommendations use the same embeddings for candidate generation, then deterministic application scoring.
+1. Global search uses the shared embedding helper to create 768-dimensional embeddings and Cloudflare Vectorize with cosine similarity. Workers AI `@cf/baai/bge-base-en-v1.5` remains the safe default; Gemini Embedding 2 can be selected with `SEARCH_EMBEDDING_PROVIDER=gemini` after re-embedding existing documents.
+2. Authenticated Home uses the same embeddings for mixed candidate generation across videos, events, venues, players, and posts, then deterministic application scoring.
 3. A future trading-card workflow can use action-photo generation without adding a generic chat interface.
 
 There is no generic AI or chat route.
@@ -29,7 +29,7 @@ Organizations are not currently a search-document entity type. They should be ad
 - Vector matches are restored to similarity order after the D1 lookup.
 - Embedding status and model are recorded as pending, ready, or failed.
 - Keyword search remains the fallback when AI or Vectorize bindings are unavailable.
-- Home lazily queues missing embeddings for its first 12 fallback candidates, while `/api/search/backfill` lets a platform admin queue existing profiles, posts, videos, events, and venues in larger batches.
+- The legacy video feed lazily queues missing video embeddings for its first 12 fallback candidates, while `/api/v1/search/backfill` lets a platform admin queue existing profiles, posts, videos, events, and venues in larger batches.
 
 ## Fields suitable for feed ranking
 
@@ -58,12 +58,16 @@ Use coarse location or opaque venue IDs as filters after candidate generation. D
 
 ## Home-feed pipeline
 
-1. **Candidate generation**: fetch semantic video matches, nearby public content, friends/organizations, registered-event content, and a trending fallback in parallel.
+1. **Candidate generation**: fetch semantic matches, nearby public content, friends/organizations, registered-event content, and a trending fallback in parallel.
 2. **Hard filters**: enforce visibility, readiness, blocks, age/safety policy, and geographic eligibility before ranking.
 3. **Deterministic ranking**: combine semantic relevance (40%), coarse distance (20%), social affinity (15%), freshness (15%), and real likes (10%).
 4. **Diversity pass**: cap repeated creators, venues, and content types so one hot account cannot consume the feed.
 5. **Explanation**: return a short reason such as “Near your home court,” “Advanced match,” or “From an organizer you follow.”
 6. **Measurement**: record impressions, opens, watch time, completion, hides, and registrations with an algorithm version.
+
+The shipped `/api/v1/feed/home` endpoint returns typed mixed items with `reason`, `score`, and normalized signal values. Embeddings do not decide permissions or final order by themselves; they supply the semantic score that is blended with social, location, freshness, and engagement signals.
+
+Do not mix providers in the same live vector corpus. Gemini Embedding 2 vectors are not comparable to older embedding spaces, so switching `SEARCH_EMBEDDING_PROVIDER` must be paired with a full `/api/v1/search/backfill` run and verification that current search documents have the selected `embedding_model`.
 
 These are product defaults, not ML truth. Feed impressions, watch completion, hides, and registrations should eventually replace likes as stronger quality signals and make the weights measurable.
 

@@ -2,6 +2,7 @@ export * from "./use-casters";
 export * from "./use-casting-jobs";
 export * from "./use-discovery";
 export * from "./use-events";
+export * from "./use-feed";
 export * from "./use-geolocation";
 export * from "./use-organizations";
 export * from "./use-places";

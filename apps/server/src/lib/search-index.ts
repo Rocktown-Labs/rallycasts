@@ -3,13 +3,16 @@ import type { venue } from "@rallycaststv/db/schema/domain";
 import { searchDocument } from "@rallycaststv/db/schema/domain";
 import { and, eq } from "drizzle-orm";
 
+import { formatSearchDocumentInput, generateEmbedding } from "./embeddings";
 import { createId } from "./ids";
 import type { AppEnv } from "./types";
 
 type Db = ReturnType<typeof createDb>;
-type SearchBindings = Pick<AppEnv["Bindings"], "AI" | "SEARCH_INDEX">;
+type SearchBindings = Pick<
+  AppEnv["Bindings"],
+  "AI" | "GOOGLE_GENERATIVE_AI_API_KEY" | "SEARCH_INDEX"
+>;
 type WaitUntilExecutionContext = Pick<ExecutionContext, "waitUntil">;
-const EMBEDDING_MODEL = "@cf/baai/bge-base-en-v1.5" as const;
 
 type SearchEntityType = "event" | "post" | "profile" | "venue" | "video";
 
@@ -79,20 +82,21 @@ export const indexSearchDocumentVector = async (
     title: string;
   }
 ) => {
-  if (!(env.AI && env.SEARCH_INDEX)) {
+  if (!(env.SEARCH_INDEX && (env.AI || env.GOOGLE_GENERATIVE_AI_API_KEY))) {
     return { indexed: false, reason: "missing-bindings" as const };
   }
 
   try {
-    const embeddings = await env.AI.run(EMBEDDING_MODEL, {
-      text: [`${document.title}\n${document.content}`],
-    });
-    const values = embeddings.data?.[0];
+    const embedding = await generateEmbedding(
+      env,
+      formatSearchDocumentInput(document.title, document.content),
+      "document"
+    );
 
-    if (!values) {
+    if (!embedding) {
       await db
         .update(searchDocument)
-        .set({ embeddingModel: EMBEDDING_MODEL, embeddingStatus: "failed" })
+        .set({ embeddingStatus: "failed" })
         .where(eq(searchDocument.id, document.id));
       return { indexed: false, reason: "missing-embedding" as const };
     }
@@ -105,24 +109,25 @@ export const indexSearchDocumentVector = async (
       {
         id: document.id,
         metadata: {
+          embeddingModel: embedding.model,
           entityId: document.entityId,
           entityType: document.entityType,
           ...("source" in source ? source : {}),
         },
-        values,
+        values: embedding.values,
       },
     ]);
 
     await db
       .update(searchDocument)
-      .set({ embeddingModel: EMBEDDING_MODEL, embeddingStatus: "ready" })
+      .set({ embeddingModel: embedding.model, embeddingStatus: "ready" })
       .where(eq(searchDocument.id, document.id));
 
     return { indexed: true as const };
   } catch {
     await db
       .update(searchDocument)
-      .set({ embeddingModel: EMBEDDING_MODEL, embeddingStatus: "failed" })
+      .set({ embeddingStatus: "failed" })
       .where(eq(searchDocument.id, document.id));
     return { indexed: false, reason: "indexing-failed" as const };
   }
@@ -134,7 +139,7 @@ export const scheduleSearchDocumentIndex = (
   env: SearchBindings,
   document: Parameters<typeof indexSearchDocumentVector>[2]
 ) => {
-  if (!(env.AI && env.SEARCH_INDEX)) {
+  if (!(env.SEARCH_INDEX && (env.AI || env.GOOGLE_GENERATIVE_AI_API_KEY))) {
     return;
   }
 

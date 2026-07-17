@@ -94,6 +94,8 @@ const searchIndex = await VectorizeIndex("search-index", {
   metric: "cosine",
   name: isProd ? "rallycasts-search-v2" : `rallycasts-search-${stage}`,
 });
+const searchEmbeddingProvider =
+  process.env.SEARCH_EMBEDDING_PROVIDER ?? "workers-ai";
 
 const betterAuthSecret = requiredSecret("BETTER_AUTH_SECRET");
 const betterAuthUrl = productionServerUrl;
@@ -210,6 +212,7 @@ export const server = await Worker("rallycasts-server", {
     RALLYCASTS_ADMIN_EMAIL: rallycastsAdminEmail,
     RESEND_API_KEY: resendApiKey,
     RESEND_WEBHOOK_SECRET: resendWebhookSecret,
+    SEARCH_EMBEDDING_PROVIDER: searchEmbeddingProvider,
     SEARCH_INDEX: searchIndex,
     SENTRY_DSN: sentryDsn,
     STRIPE_SECRET_KEY: stripeSecretKey,
