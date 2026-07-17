@@ -58,7 +58,7 @@ describe("social API", () => {
     const bob = await signUp("Bob Kitchen");
 
     const requestResponse = await jsonRequest(
-      "/api/social/friend-requests",
+      "/api/v1/social/friend-requests",
       alice.cookie,
       {
         message: "Open play later?",
@@ -69,7 +69,7 @@ describe("social API", () => {
     expect(requestResponse.status).toBe(201);
 
     const bobNotifications = await app.request(
-      "/api/social/notifications",
+      "/api/v1/social/notifications",
       {
         headers: { Cookie: bob.cookie },
       },
@@ -82,7 +82,7 @@ describe("social API", () => {
     expect(notificationData.unreadCount).toBe(1);
 
     const requestsResponse = await app.request(
-      "/api/social/friend-requests",
+      "/api/v1/social/friend-requests",
       {
         headers: { Cookie: bob.cookie },
       },
@@ -97,7 +97,7 @@ describe("social API", () => {
     expect(requestId).toBeTruthy();
 
     const acceptResponse = await jsonRequest(
-      `/api/social/friend-requests/${requestId}/respond`,
+      `/api/v1/social/friend-requests/${requestId}/respond`,
       bob.cookie,
       { status: "accepted" }
     );
@@ -105,7 +105,7 @@ describe("social API", () => {
     expect(acceptResponse.status).toBe(200);
 
     const friendsResponse = await app.request(
-      "/api/social/friends",
+      "/api/v1/social/friends",
       {
         headers: { Cookie: alice.cookie },
       },
@@ -125,7 +125,7 @@ describe("social API", () => {
     const bob = await signUp("Bob Drive");
 
     const conversationResponse = await jsonRequest(
-      "/api/social/conversations",
+      "/api/v1/social/conversations",
       alice.cookie,
       { participantUserId: bob.id }
     );
@@ -137,7 +137,7 @@ describe("social API", () => {
     };
 
     const messageResponse = await jsonRequest(
-      `/api/social/conversations/${conversationId}/messages`,
+      `/api/v1/social/conversations/${conversationId}/messages`,
       alice.cookie,
       { body: "Meet at court 3?" }
     );
@@ -145,7 +145,7 @@ describe("social API", () => {
     expect(messageResponse.status).toBe(201);
 
     const bobNotifications = await app.request(
-      "/api/social/notifications",
+      "/api/v1/social/notifications",
       {
         headers: { Cookie: bob.cookie },
       },
@@ -164,17 +164,132 @@ describe("social API", () => {
     );
   });
 
+  it("creates group conversations and rejects self conversations", async () => {
+    const alice = await signUp("Alice Group");
+    const bob = await signUp("Bob Group");
+    const cam = await signUp("Cam Group");
+
+    const selfResponse = await jsonRequest(
+      "/api/v1/social/conversations",
+      alice.cookie,
+      { participantUserId: alice.id }
+    );
+
+    expect(selfResponse.status).toBe(400);
+
+    const groupResponse = await jsonRequest(
+      "/api/v1/social/conversations",
+      alice.cookie,
+      { participantUserIds: [bob.id, cam.id] }
+    );
+
+    expect(groupResponse.status).toBe(201);
+
+    const { conversationId } = (await groupResponse.json()) as {
+      conversationId: string;
+    };
+    const conversationsResponse = await app.request(
+      "/api/v1/social/conversations",
+      {
+        headers: { Cookie: alice.cookie },
+      },
+      env
+    );
+    const conversationsData = (await conversationsResponse.json()) as {
+      conversations: {
+        conversation: { id: string };
+        participants: { id: string }[];
+      }[];
+    };
+
+    expect(conversationsData.conversations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          conversation: expect.objectContaining({ id: conversationId }),
+          participants: expect.arrayContaining([
+            expect.objectContaining({ id: bob.id }),
+            expect.objectContaining({ id: cam.id }),
+          ]),
+        }),
+      ])
+    );
+  });
+
+  it("shares videos into direct messages", async () => {
+    const alice = await signUp("Alice Share");
+    const bob = await signUp("Bob Share");
+    const videoId = "video-share-api-test";
+
+    const shareResponse = await jsonRequest(
+      "/api/v1/social/shares",
+      alice.cookie,
+      {
+        channel: "direct_message",
+        entityId: videoId,
+        entityType: "video",
+        href: `/videos/${videoId}`,
+        recipientUserId: bob.id,
+      }
+    );
+
+    expect(shareResponse.status).toBe(201);
+
+    const conversationsResponse = await app.request(
+      "/api/v1/social/conversations",
+      {
+        headers: { Cookie: bob.cookie },
+      },
+      env
+    );
+    const conversationsData = (await conversationsResponse.json()) as {
+      conversations: {
+        conversation: { id: string };
+        lastMessage: { body: string } | null;
+      }[];
+    };
+    const conversation = conversationsData.conversations.find((item) =>
+      item.lastMessage?.body.includes(`/videos/${videoId}`)
+    );
+
+    expect(conversation).toBeTruthy();
+
+    const messagesResponse = await app.request(
+      `/api/v1/social/conversations/${conversation?.conversation.id}/messages`,
+      {
+        headers: { Cookie: bob.cookie },
+      },
+      env
+    );
+    const messagesData = (await messagesResponse.json()) as {
+      messages: { message: { body: string } }[];
+    };
+
+    expect(messagesData.messages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          message: expect.objectContaining({
+            body: expect.stringContaining(`/videos/${videoId}`),
+          }),
+        }),
+      ])
+    );
+  });
+
   it("indexes new posts for search", async () => {
     const alice = await signUp("Alice Search");
 
-    const postResponse = await jsonRequest("/api/social/posts", alice.cookie, {
-      content: "Tonight at Crestwood has spicy 4.0 doubles open play.",
-    });
+    const postResponse = await jsonRequest(
+      "/api/v1/social/posts",
+      alice.cookie,
+      {
+        content: "Tonight at Crestwood has spicy 4.0 doubles open play.",
+      }
+    );
 
     expect(postResponse.status).toBe(201);
 
     const searchResponse = await app.request(
-      "/api/search?q=Crestwood&type=all",
+      "/api/v1/search?q=Crestwood&type=all",
       {},
       env
     );

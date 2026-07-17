@@ -19,7 +19,7 @@ export function OrganizersPage() {
   const [query, setQuery] = useState("");
   const { data: session } = authClient.useSession();
   const { data, isLoading } = useQuery({
-    queryFn: () => readApiJson(apiClient.api.organizations.$get()),
+    queryFn: () => readApiJson(apiClient.api.v1.organizations.$get()),
     queryKey: ["organizations"],
   });
   const organizations = (data?.organizations ?? []).filter((organization) =>

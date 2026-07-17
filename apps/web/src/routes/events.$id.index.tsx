@@ -307,7 +307,7 @@ function EventOverviewTab() {
     if (event.entryFeeCents > 0) {
       try {
         const result = await readApiJson(
-          apiClient.api.stripe.events[":eventId"].checkout.$post({
+          apiClient.api.v1.stripe.events[":eventId"].checkout.$post({
             param: { eventId: event.id },
           })
         );
@@ -340,7 +340,7 @@ function EventOverviewTab() {
     if (myRegistration?.paymentStatus === "paid") {
       try {
         await readApiJson(
-          apiClient.api.stripe.events[":eventId"].refund.$post({
+          apiClient.api.v1.stripe.events[":eventId"].refund.$post({
             param: { eventId: event.id },
           })
         );

@@ -74,7 +74,7 @@ describe("organizations API", () => {
     const editor = await signUp("Organization Editor");
     const slug = `test-club-${crypto.randomUUID().slice(0, 6)}`;
     const createResponse = await jsonRequest(
-      "/api/organizations",
+      "/api/v1/organizations",
       owner.cookie,
       {
         bio: "A competitive community club.",
@@ -87,14 +87,14 @@ describe("organizations API", () => {
     expect(createResponse.status).toBe(201);
 
     const addResponse = await jsonRequest(
-      `/api/organizations/${slug}/members`,
+      `/api/v1/organizations/${slug}/members`,
       owner.cookie,
       { role: "editor", username: editor.username }
     );
     expect(addResponse.status).toBe(200);
 
     const publicResponse = await app.request(
-      `/api/organizations/${slug}`,
+      `/api/v1/organizations/${slug}`,
       {},
       env
     );
@@ -113,13 +113,13 @@ describe("organizations API", () => {
     const editor = await signUp("Tournament Editor");
     const slug = `event-club-${crypto.randomUUID().slice(0, 6)}`;
     await jsonRequest(
-      "/api/profile/me",
+      "/api/v1/profile/me",
       owner.cookie,
       { isOrganizer: true },
       "PATCH"
     );
     const createOrganizationResponse = await jsonRequest(
-      "/api/organizations",
+      "/api/v1/organizations",
       owner.cookie,
       {
         city: "Austin",
@@ -131,27 +131,31 @@ describe("organizations API", () => {
     const organizationBody = (await createOrganizationResponse.json()) as {
       organization: { id: string };
     };
-    await jsonRequest(`/api/organizations/${slug}/members`, owner.cookie, {
+    await jsonRequest(`/api/v1/organizations/${slug}/members`, owner.cookie, {
       role: "editor",
       username: editor.username,
     });
 
     mockGooglePlaceDetails();
-    const createEventResponse = await jsonRequest("/api/events", owner.cookie, {
-      eventType: "tournament",
-      googlePlaceId: "organization_event_place",
-      name: "Member Managed Open",
-      organizationId: organizationBody.organization.id,
-      startsAt: new Date(Date.now() + 86_400_000).toISOString(),
-      status: "published",
-    });
+    const createEventResponse = await jsonRequest(
+      "/api/v1/events",
+      owner.cookie,
+      {
+        eventType: "tournament",
+        googlePlaceId: "organization_event_place",
+        name: "Member Managed Open",
+        organizationId: organizationBody.organization.id,
+        startsAt: new Date(Date.now() + 86_400_000).toISOString(),
+        status: "published",
+      }
+    );
     expect(createEventResponse.status).toBe(201);
     const eventBody = (await createEventResponse.json()) as {
       event: { id: string };
     };
 
     const mineResponse = await app.request(
-      "/api/events/mine",
+      "/api/v1/events/mine",
       { headers: { Cookie: editor.cookie } },
       env
     );
@@ -166,7 +170,7 @@ describe("organizations API", () => {
     });
 
     const updateResponse = await jsonRequest(
-      `/api/events/${eventBody.event.id}`,
+      `/api/v1/events/${eventBody.event.id}`,
       editor.cookie,
       { status: "draft" },
       "PATCH"

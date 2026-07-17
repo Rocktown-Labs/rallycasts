@@ -21,15 +21,24 @@ describe("RallyCasts API", () => {
   });
 
   it("rejects protected routes without a session", async () => {
-    const response = await app.request("/api/casting-jobs", {}, env);
+    const response = await app.request("/api/v1/casting-jobs", {}, env);
 
     expect(response.status).toBe(401);
     await expect(response.json()).resolves.toEqual({ message: "Unauthorized" });
   });
 
+  it("does not expose unversioned app API routes", async () => {
+    const response = await app.request("/api/casting-jobs", {}, env);
+
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toEqual({
+      message: "Not Found - /api/casting-jobs",
+    });
+  });
+
   it("rejects unsigned Stripe webhooks", async () => {
     const response = await app.request(
-      "/api/stripe/webhook",
+      "/api/v1/stripe/webhook",
       {
         body: JSON.stringify({
           id: "evt_test_1",

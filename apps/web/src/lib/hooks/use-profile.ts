@@ -29,7 +29,7 @@ export const useProfile = () =>
   useQuery({
     queryFn: async () => {
       try {
-        const response = await apiClient.api.profile.me.$get();
+        const response = await apiClient.api.v1.profile.me.$get();
         if (response.status === 401) {
           return null;
         }
@@ -51,7 +51,7 @@ export const useUpdateProfile = () => {
 
   return useMutation({
     mutationFn: (json: ProfilePayload) =>
-      readApiJson(apiClient.api.profile.me.$patch({ json })),
+      readApiJson(apiClient.api.v1.profile.me.$patch({ json })),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["profile"] });
     },
@@ -63,7 +63,7 @@ export const useOnboarding = () => {
 
   return useMutation({
     mutationFn: (json: ProfilePayload) =>
-      readApiJson(apiClient.api.profile.onboarding.$post({ json })),
+      readApiJson(apiClient.api.v1.profile.onboarding.$post({ json })),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["profile"] });
     },

@@ -3,7 +3,11 @@ import { Link } from "@tanstack/react-router";
 import { Bell, Calendar, MessageSquare, UserPlus, Video } from "lucide-react";
 import { useState } from "react";
 
-import { useMarkNotificationsRead, useNotifications } from "@/lib/hooks";
+import {
+  useMarkNotificationsRead,
+  useNotificationRealtime,
+  useNotifications,
+} from "@/lib/hooks";
 
 const iconForType = (type: string) => {
   if (type === "friend_request" || type === "friend_accept") {
@@ -25,6 +29,7 @@ export default function NotificationButton() {
   const [open, setOpen] = useState(false);
   const { data } = useNotifications();
   const markRead = useMarkNotificationsRead();
+  useNotificationRealtime(Boolean(data));
   const notifications =
     data?.notifications.map(({ notification: item }) => ({
       href: item.href,

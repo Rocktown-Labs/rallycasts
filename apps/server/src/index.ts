@@ -16,11 +16,13 @@ import notFound from "stoker/middlewares/not-found";
 import onError from "stoker/middlewares/on-error";
 
 import type { AppEnv } from "./lib/types";
+import { adminRouter } from "./routes/admin";
 import { castersRouter } from "./routes/casters";
 import { castingJobsRouter } from "./routes/casting-jobs";
 import { challengesRouter } from "./routes/challenges";
 import { emailsRouter } from "./routes/emails";
 import { eventsRouter } from "./routes/events";
+import { feedRouter } from "./routes/feed";
 import { muxRouter } from "./routes/mux";
 import { organizationsRouter } from "./routes/organizations";
 import { placesRouter } from "./routes/places";
@@ -78,6 +80,8 @@ const isAllowedOrigin = (
 
 export { VenuePresence } from "./durable-objects/venue-presence";
 export { EventCoordinator } from "./durable-objects/event-coordinator";
+export { ChatRoom } from "./durable-objects/chat-room";
+export { UserNotifications } from "./durable-objects/user-notifications";
 
 app.use(requestId());
 app.use(timing());
@@ -160,24 +164,26 @@ const routes = app
 
     return auth.handler(c.req.raw);
   })
-  .route("/api/casters", castersRouter)
-  .route("/api/casting-jobs", castingJobsRouter)
-  .route("/api/challenges", challengesRouter)
-  .route("/api/videos", videosRouter)
-  .route("/api/events", eventsRouter)
-  .route("/api/profile", profileRouter)
-  .route("/api/players", playersRouter)
-  .route("/api/venues", venuesRouter)
-  .route("/api/venues", venueAnalyticsRouter)
-  .route("/api/places", placesRouter)
-  .route("/api/social", socialRouter)
-  .route("/api/search", searchRouter)
-  .route("/api/trending", trendingRouter)
-  .route("/api/stripe", stripeRouter)
-  .route("/api/mux", muxRouter)
-  .route("/api/organizations", organizationsRouter)
-  .route("/api/upload", uploadRouter)
-  .route("/api/emails", emailsRouter)
+  .route("/api/v1/casters", castersRouter)
+  .route("/api/v1/casting-jobs", castingJobsRouter)
+  .route("/api/v1/challenges", challengesRouter)
+  .route("/api/v1/videos", videosRouter)
+  .route("/api/v1/events", eventsRouter)
+  .route("/api/v1/feed", feedRouter)
+  .route("/api/v1/profile", profileRouter)
+  .route("/api/v1/players", playersRouter)
+  .route("/api/v1/venues", venuesRouter)
+  .route("/api/v1/venues", venueAnalyticsRouter)
+  .route("/api/v1/places", placesRouter)
+  .route("/api/v1/social", socialRouter)
+  .route("/api/v1/search", searchRouter)
+  .route("/api/v1/trending", trendingRouter)
+  .route("/api/v1/stripe", stripeRouter)
+  .route("/api/v1/mux", muxRouter)
+  .route("/api/v1/organizations", organizationsRouter)
+  .route("/api/v1/upload", uploadRouter)
+  .route("/api/v1/emails", emailsRouter)
+  .route("/api/v1/admin", adminRouter)
   .route("/webhooks", webhooksRouter);
 
 routes.notFound(notFound);

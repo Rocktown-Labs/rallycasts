@@ -36,7 +36,7 @@ const reportUploadState = async (
   videoId: string,
   state: "failed" | "processing"
 ) => {
-  await apiClient.api.videos[":id"]["upload-state"].$post({
+  await apiClient.api.v1.videos[":id"]["upload-state"].$post({
     json: { state },
     param: { id: videoId },
   });

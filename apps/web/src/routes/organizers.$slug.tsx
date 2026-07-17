@@ -21,7 +21,7 @@ export function OrganizationProfilePage({ slug }: { slug: string }) {
   const { data, isLoading } = useQuery({
     queryFn: () =>
       readApiJson(
-        apiClient.api.organizations[":slug"].$get({ param: { slug } })
+        apiClient.api.v1.organizations[":slug"].$get({ param: { slug } })
       ),
     queryKey: ["organization", slug],
   });

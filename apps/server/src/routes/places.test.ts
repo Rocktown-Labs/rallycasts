@@ -32,16 +32,19 @@ const signUp = async (): Promise<string> => {
   return response.headers.get("set-cookie") ?? "";
 };
 
-const createVenueRequest = async (placeId?: string) => {
+const createVenueRequest = async (
+  placeId?: string,
+  envOverrides?: Partial<typeof env>
+) => {
   const cookie = await signUp();
   return app.request(
-    "/api/places/venues",
+    "/api/v1/places/venues",
     {
       body: JSON.stringify(placeId ? { placeId } : {}),
       headers: { "Content-Type": "application/json", Cookie: cookie },
       method: "POST",
     },
-    env
+    { ...env, RADAR_SECRET_KEY: "", ...envOverrides }
   );
 };
 
@@ -77,7 +80,7 @@ describe("places routes", () => {
       });
 
       const response = await app.request(
-        "/api/places/search?q=pickleball+courts",
+        "/api/v1/places/search?q=pickleball+courts",
         {},
         env
       );
@@ -89,7 +92,7 @@ describe("places routes", () => {
     });
 
     it("returns 400 for empty query", async () => {
-      const response = await app.request("/api/places/search?q=", {}, env);
+      const response = await app.request("/api/v1/places/search?q=", {}, env);
 
       expect(response.status).toBe(400);
       const data = await response.json();
@@ -97,7 +100,7 @@ describe("places routes", () => {
     });
 
     it("returns 400 for missing query parameter", async () => {
-      const response = await app.request("/api/places/search", {}, env);
+      const response = await app.request("/api/v1/places/search", {}, env);
 
       expect(response.status).toBe(400);
     });
@@ -109,7 +112,7 @@ describe("places routes", () => {
       });
 
       const response = await app.request(
-        "/api/places/search?q=pickleball",
+        "/api/v1/places/search?q=pickleball",
         {},
         env
       );
@@ -135,7 +138,7 @@ describe("places routes", () => {
       ]);
 
       const response = await app.request(
-        "/api/places/nearby?lat=40.7128&lng=-74.006&radius=25000",
+        "/api/v1/places/nearby?lat=40.7128&lng=-74.006&radius=25000",
         {},
         env
       );
@@ -147,7 +150,7 @@ describe("places routes", () => {
     });
 
     it("returns 400 for missing lat/lng", async () => {
-      const response = await app.request("/api/places/nearby", {}, env);
+      const response = await app.request("/api/v1/places/nearby", {}, env);
 
       expect(response.status).toBe(400);
       const data = await response.json();
@@ -156,7 +159,7 @@ describe("places routes", () => {
 
     it("returns 400 for missing lng", async () => {
       const response = await app.request(
-        "/api/places/nearby?lat=40.7128",
+        "/api/v1/places/nearby?lat=40.7128",
         {},
         env
       );
@@ -193,7 +196,7 @@ describe("places routes", () => {
       });
 
       const response = await app.request(
-        "/api/places/details/place_789",
+        "/api/v1/places/details/place_789",
         {},
         env
       );
@@ -205,7 +208,7 @@ describe("places routes", () => {
     });
 
     it("returns 400 for missing placeId", async () => {
-      const response = await app.request("/api/places/details/", {}, env);
+      const response = await app.request("/api/v1/places/details/", {}, env);
       expect(response.status).toBe(404);
     });
   });
@@ -213,7 +216,7 @@ describe("places routes", () => {
   describe("POST /api/places/venues", () => {
     it("requires authentication", async () => {
       const response = await app.request(
-        "/api/places/venues",
+        "/api/v1/places/venues",
         {
           body: JSON.stringify({ placeId: "place_private" }),
           headers: { "Content-Type": "application/json" },
@@ -270,6 +273,53 @@ describe("places routes", () => {
         .where(eq(venue.googlePlaceId, "place_new_123"))
         .all();
       expect(venues).toHaveLength(1);
+    });
+
+    it("syncs Google-created venues into Radar geofences", async () => {
+      mockFetch
+        .mockResolvedValueOnce({
+          json: () => ({
+            displayName: {
+              text: "Searcy Pickleball Park",
+            },
+            formattedAddress: "100 Park Ave, Searcy, AR 72143",
+            id: "place_radar_123",
+            location: {
+              latitude: 35.2468,
+              longitude: -91.735,
+            },
+            rating: 4.7,
+            userRatingCount: 12,
+          }),
+          ok: true,
+        })
+        .mockResolvedValueOnce({
+          json: () => ({ meta: { code: 200 } }),
+          ok: true,
+        });
+
+      const response = await createVenueRequest("place_radar_123", {
+        RADAR_SECRET_KEY: "radar_secret_test",
+      });
+
+      expect(response.status).toBe(201);
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      const [radarUrl, radarRequest] = mockFetch.mock.calls[1] ?? [];
+      expect(String(radarUrl)).toContain("https://api.radar.io/v1/venue/");
+      expect(radarRequest).toMatchObject({
+        headers: expect.objectContaining({
+          Authorization: "radar_secret_test",
+        }),
+        method: "PUT",
+      });
+      expect(JSON.parse(radarRequest.body as string)).toMatchObject({
+        coordinates: [-91.735, 35.2468],
+        description: "Searcy Pickleball Park",
+        metadata: expect.objectContaining({
+          venueId: expect.any(String),
+        }),
+        type: "circle",
+      });
     });
 
     it("returns an existing venue for an already validated place", async () => {

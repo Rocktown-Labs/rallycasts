@@ -23,7 +23,7 @@ import { useRadarTracking } from "@/lib/hooks";
 function venueQueryOptions(id: string) {
   return {
     queryFn: async () => {
-      const res = await apiClient.api.venues[":id"].$get({
+      const res = await apiClient.api.v1.venues[":id"].$get({
         param: { id },
       });
       if (!res.ok) {
@@ -38,7 +38,7 @@ function venueQueryOptions(id: string) {
 function venueAnalyticsQueryOptions(id: string) {
   return {
     queryFn: async () => {
-      const res = await apiClient.api.venues[":id"].analytics.$get({
+      const res = await apiClient.api.v1.venues[":id"].analytics.$get({
         param: { id },
       });
       if (!res.ok) {

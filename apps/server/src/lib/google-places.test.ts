@@ -75,7 +75,7 @@ describe("GooglePlacesClient", () => {
         })
       );
 
-      expect(mockFetch).toHaveBeenCalledTimes(6);
+      expect(mockFetch).toHaveBeenCalledTimes(7);
       const [[calledUrl, requestInit], ...remainingCalls] =
         mockFetch.mock.calls;
       expect(calledUrl).toBe(
@@ -89,15 +89,23 @@ describe("GooglePlacesClient", () => {
         method: "POST",
       });
       expect(JSON.parse(requestInit.body as string)).toMatchObject({
-        includedType: "park",
-        locationRestriction: {
+        locationBias: {
           circle: {
             center: { latitude: 40.7128, longitude: -74.006 },
             radius: 50_000,
           },
         },
+        rankPreference: "DISTANCE",
         textQuery: "pickleball courts",
       });
+      expect(JSON.parse(requestInit.body as string)).not.toHaveProperty(
+        "locationRestriction"
+      );
+      expect(
+        mockFetch.mock.calls
+          .map(([, init]) => JSON.parse(init.body as string))
+          .some((body) => body.includedType === "park")
+      ).toBe(true);
       const [, nearbyRequestInit] = remainingCalls.at(-1) ?? [];
       expect(JSON.parse(nearbyRequestInit.body as string)).toMatchObject({
         includedTypes: expect.arrayContaining(["park", "sports_complex"]),
@@ -121,6 +129,50 @@ describe("GooglePlacesClient", () => {
 
       const results = await client.searchNearby(40.7128, -74.006);
       expect(results).toEqual([]);
+    });
+
+    it("keeps nearby discovery alive when one text search refinement fails", async () => {
+      mockFetch
+        .mockResolvedValueOnce({
+          json: () => ({
+            error: {
+              message: "Bad included type",
+              status: "INVALID_ARGUMENT",
+            },
+          }),
+          ok: false,
+          status: 400,
+        })
+        .mockResolvedValue({
+          json: () => ({
+            places: [
+              {
+                displayName: {
+                  text: "Berryhill Park",
+                },
+                formattedAddress: "Berryhill Rd, Searcy, AR",
+                id: "berryhill",
+                location: {
+                  latitude: 35.2468,
+                  longitude: -91.735,
+                },
+                rating: 4.7,
+                types: ["park"],
+                userRatingCount: 24,
+              },
+            ],
+          }),
+          ok: true,
+        });
+
+      const results = await client.searchNearby(35.2468, -91.735);
+
+      expect(results).toHaveLength(1);
+      expect(results[0]).toMatchObject({
+        isPickleballCandidate: true,
+        name: "Berryhill Park",
+        placeId: "berryhill",
+      });
     });
 
     it("filters lodging results out of pickleball discovery", async () => {
@@ -234,6 +286,7 @@ describe("GooglePlacesClient", () => {
             radius: 50_000,
           },
         },
+        rankPreference: "DISTANCE",
       });
     });
   });

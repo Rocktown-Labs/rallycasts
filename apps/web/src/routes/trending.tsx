@@ -221,7 +221,9 @@ function LocationStatus({
   if (location) {
     const locationLabel = location.isFallback
       ? "Arkansas fallback"
-      : `${location.lat.toFixed(3)}, ${location.lng.toFixed(3)}`;
+      : location.label ||
+        [location.city, location.stateCode].filter(Boolean).join(", ") ||
+        `${location.lat.toFixed(3)}, ${location.lng.toFixed(3)}`;
 
     return (
       <button

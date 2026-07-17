@@ -67,14 +67,14 @@ describe("videos API", () => {
       .run();
 
     const publicResponse = await app.request(
-      `/api/videos/${privateVideoId}`,
+      `/api/v1/videos/${privateVideoId}`,
       {},
       env
     );
     expect(publicResponse.status).toBe(404);
 
     const searchResponse = await app.request(
-      "/api/search?q=Private%20processing&type=videos",
+      "/api/v1/search?q=Private%20processing&type=videos",
       {},
       env
     );
@@ -82,7 +82,7 @@ describe("videos API", () => {
     await expect(searchResponse.json()).resolves.toMatchObject({ videos: [] });
 
     const studioResponse = await app.request(
-      `/api/videos/${privateVideoId}/studio`,
+      `/api/v1/videos/${privateVideoId}/studio`,
       { headers: { Cookie: owner.cookie } },
       env
     );
@@ -91,7 +91,7 @@ describe("videos API", () => {
 
   it("removes a video search document when its visibility becomes private", async () => {
     const owner = await signUp("Search Visibility Owner");
-    const createResponse = await jsonRequest("/api/videos", owner.cookie, {
+    const createResponse = await jsonRequest("/api/v1/videos", owner.cookie, {
       status: "ready",
       title: "Public semantic kitchen battle",
       visibility: "public",
@@ -107,7 +107,7 @@ describe("videos API", () => {
     expect(indexedBefore).toBeTruthy();
 
     const updateResponse = await jsonRequest(
-      `/api/videos/${created.video.id}`,
+      `/api/v1/videos/${created.video.id}`,
       owner.cookie,
       { visibility: "private" },
       "PATCH"
@@ -139,13 +139,15 @@ describe("videos API", () => {
         "Advanced transition-zone strategy"
       ),
     ]);
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      Response.json({ embedding: { values: [0.1, 0.2] } })
+    );
 
     const response = await app.request(
-      "/api/search?q=soft%20game%20strategy&type=videos",
+      "/api/v1/search?q=soft%20game%20strategy&type=videos",
       {},
       {
         ...env,
-        AI: { run: () => Promise.resolve({ data: [[0.1, 0.2]] }) },
         SEARCH_INDEX: {
           query: () =>
             Promise.resolve({
@@ -184,13 +186,15 @@ describe("videos API", () => {
         "insert into user_profile (user_id, bio, skill_level, onboarding_status) values (?, ?, 'advanced', 'complete') on conflict(user_id) do update set bio = excluded.bio, skill_level = excluded.skill_level"
       ).bind(viewer.id, "Competitive doubles and match analysis"),
     ]);
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      Response.json({ embedding: { values: [0.1, 0.2] } })
+    );
 
     const response = await app.request(
-      "/api/videos/feed",
+      "/api/v1/videos/feed",
       { headers: { Cookie: viewer.cookie } },
       {
         ...env,
-        AI: { run: () => Promise.resolve({ data: [[0.1, 0.2]] }) },
         SEARCH_INDEX: {
           query: () =>
             Promise.resolve({
@@ -230,7 +234,7 @@ describe("videos API", () => {
     );
 
     const response = await app.request(
-      "/api/upload/mux",
+      "/api/v1/upload/mux",
       {
         body: JSON.stringify({ title: "Uploaded kitchen battle" }),
         headers: {
@@ -267,7 +271,7 @@ describe("videos API", () => {
       )
     );
 
-    const firstResponse = await app.request("/api/videos?limit=5", {}, env);
+    const firstResponse = await app.request("/api/v1/videos?limit=5", {}, env);
     expect(firstResponse.status).toBe(200);
     const firstPage = (await firstResponse.json()) as {
       nextCursor: string | null;
@@ -278,7 +282,7 @@ describe("videos API", () => {
     expect(firstPage.nextCursor).toBeTruthy();
 
     const secondResponse = await app.request(
-      `/api/videos?limit=5&cursor=${encodeURIComponent(firstPage.nextCursor ?? "")}`,
+      `/api/v1/videos?limit=5&cursor=${encodeURIComponent(firstPage.nextCursor ?? "")}`,
       {},
       env
     );
@@ -296,7 +300,7 @@ describe("videos API", () => {
     ).toBe(false);
 
     const detailResponse = await app.request(
-      `/api/videos/${firstPage.videos[0]?.id}`,
+      `/api/v1/videos/${firstPage.videos[0]?.id}`,
       {},
       env
     );
@@ -311,7 +315,7 @@ describe("videos API", () => {
     );
 
     const invalidResponse = await app.request(
-      "/api/videos?cursor=not-a-cursor",
+      "/api/v1/videos?cursor=not-a-cursor",
       {},
       env
     );
@@ -321,7 +325,7 @@ describe("videos API", () => {
   it("lets video owners pin one comment to the top", async () => {
     const owner = await signUp("Video Owner");
     const commenter = await signUp("Comment Friend");
-    const videoResponse = await jsonRequest("/api/videos", owner.cookie, {
+    const videoResponse = await jsonRequest("/api/v1/videos", owner.cookie, {
       description: "Arkansas open play test clip",
       mediaType: "video",
       title: "Bentonville kitchen battle",
@@ -334,7 +338,7 @@ describe("videos API", () => {
     };
     const videoId = videoData.video.id;
     const commentResponse = await jsonRequest(
-      `/api/videos/${videoId}/comments`,
+      `/api/v1/videos/${videoId}/comments`,
       commenter.cookie,
       { content: "Pin this scouting note." }
     );
@@ -345,7 +349,7 @@ describe("videos API", () => {
     };
 
     const unauthorizedPin = await jsonRequest(
-      `/api/videos/${videoId}/comments/${commentData.comment.id}/pin`,
+      `/api/v1/videos/${videoId}/comments/${commentData.comment.id}/pin`,
       commenter.cookie,
       { pinned: true },
       "PATCH"
@@ -354,7 +358,7 @@ describe("videos API", () => {
     expect(unauthorizedPin.status).toBe(404);
 
     const pinResponse = await jsonRequest(
-      `/api/videos/${videoId}/comments/${commentData.comment.id}/pin`,
+      `/api/v1/videos/${videoId}/comments/${commentData.comment.id}/pin`,
       owner.cookie,
       { pinned: true },
       "PATCH"
@@ -363,7 +367,7 @@ describe("videos API", () => {
     expect(pinResponse.status).toBe(200);
 
     const commentsResponse = await app.request(
-      `/api/videos/${videoId}/comments`,
+      `/api/v1/videos/${videoId}/comments`,
       {},
       env
     );

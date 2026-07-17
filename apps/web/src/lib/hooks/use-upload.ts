@@ -5,7 +5,7 @@ import { apiClient } from "@/lib/api-client";
 export function useMuxUpload() {
   return useMutation({
     mutationFn: async () => {
-      const res = await apiClient.api.upload.mux.$get();
+      const res = await apiClient.api.v1.upload.mux.$get();
 
       if (!res.ok) {
         throw new Error("Failed to create Mux upload");
@@ -19,7 +19,7 @@ export function useMuxUpload() {
 export function useMuxUploadStatus() {
   return useMutation({
     mutationFn: async (uploadId: string) => {
-      const res = await apiClient.api.upload.mux.status.$post({
+      const res = await apiClient.api.v1.upload.mux.status.$post({
         json: { uploadId },
       });
 
@@ -38,7 +38,7 @@ export function useImageUpload() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await apiClient.api.upload.image.$post({
+      const res = await apiClient.api.v1.upload.image.$post({
         form: formData,
       });
 

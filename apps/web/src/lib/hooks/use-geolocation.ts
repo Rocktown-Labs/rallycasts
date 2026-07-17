@@ -3,17 +3,82 @@ import { useCallback, useEffect, useState } from "react";
 import { initializeRadar, Radar } from "@/lib/radar";
 
 export interface GeoLocation {
+  city?: string;
   isFallback?: boolean;
+  label?: string;
   lat: number;
   lng: number;
   stateCode?: string;
 }
 
 const ARKANSAS_TEST_LOCATION: GeoLocation = {
+  city: "Bentonville",
   isFallback: true,
+  label: "Bentonville, AR",
   lat: 36.3729,
   lng: -94.2088,
   stateCode: "AR",
+};
+
+const getLocationLabel = (location: Pick<GeoLocation, "city" | "stateCode">) =>
+  [location.city, location.stateCode].filter(Boolean).join(", ");
+
+const locationFromAddress = (
+  address:
+    | {
+        city?: string;
+        latitude?: number;
+        longitude?: number;
+        stateCode?: string;
+      }
+    | undefined
+): GeoLocation | null => {
+  if (
+    typeof address?.latitude !== "number" ||
+    typeof address.longitude !== "number"
+  ) {
+    return null;
+  }
+
+  const location = {
+    city: address.city || undefined,
+    lat: address.latitude,
+    lng: address.longitude,
+    stateCode: address.stateCode || undefined,
+  };
+
+  return {
+    ...location,
+    label: getLocationLabel(location) || undefined,
+  };
+};
+
+const reverseGeocodeLocation = async (
+  lat: number,
+  lng: number
+): Promise<GeoLocation> => {
+  try {
+    const result = await Radar.reverseGeocode({
+      latitude: lat,
+      longitude: lng,
+    });
+    const address = result.addresses.find(
+      (item) => item.city || item.stateCode
+    );
+    const location = {
+      city: address?.city || undefined,
+      lat,
+      lng,
+      stateCode: address?.stateCode || undefined,
+    };
+
+    return {
+      ...location,
+      label: getLocationLabel(location) || undefined,
+    };
+  } catch {
+    return { lat, lng };
+  }
 };
 
 export function useGeolocation(enabled = true) {
@@ -39,14 +104,18 @@ export function useGeolocation(enabled = true) {
     const getLocation = async () => {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
-          (position) => {
+          async (position) => {
             if (cancelled) {
               return;
             }
-            setLocation({
-              lat: position.coords.latitude,
-              lng: position.coords.longitude,
-            });
+            const nextLocation = await reverseGeocodeLocation(
+              position.coords.latitude,
+              position.coords.longitude
+            );
+            if (cancelled) {
+              return;
+            }
+            setLocation(nextLocation);
             setError(null);
             setIsLoading(false);
           },
@@ -57,12 +126,9 @@ export function useGeolocation(enabled = true) {
             // Fallback to Radar IP geolocation if browser geolocation fails
             try {
               const result = await Radar.ipGeocode();
-              if (result.address?.latitude && result.address?.longitude) {
-                setLocation({
-                  lat: result.address.latitude,
-                  lng: result.address.longitude,
-                  stateCode: result.address.stateCode || undefined,
-                });
+              const nextLocation = locationFromAddress(result.address);
+              if (nextLocation) {
+                setLocation(nextLocation);
                 setError(null);
               } else {
                 setLocation(ARKANSAS_TEST_LOCATION);
@@ -85,12 +151,9 @@ export function useGeolocation(enabled = true) {
         // Fallback to Radar IP geolocation if browser geolocation not supported
         try {
           const result = await Radar.ipGeocode();
-          if (result.address?.latitude && result.address?.longitude) {
-            setLocation({
-              lat: result.address.latitude,
-              lng: result.address.longitude,
-              stateCode: result.address.stateCode || undefined,
-            });
+          const nextLocation = locationFromAddress(result.address);
+          if (nextLocation) {
+            setLocation(nextLocation);
             setError(null);
           } else {
             setLocation(ARKANSAS_TEST_LOCATION);

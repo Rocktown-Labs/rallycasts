@@ -11,7 +11,7 @@ import { Checkbox } from "@rallycaststv/ui/components/checkbox";
 import { Input } from "@rallycaststv/ui/components/input";
 import { Label } from "@rallycaststv/ui/components/label";
 import { debounce } from "@tanstack/pacer";
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import {
   CheckCircle,
   MapPin,
@@ -102,10 +102,14 @@ const getProfileFormDefaults = (data: ProfileData | undefined) => {
 };
 
 export function ProfileEditorPage({
+  showHeader = true,
+  submitLabel = "Save Settings",
   title = "Settings",
   subtitle = "Configure your personal details, public profile, home court, and roles.",
 }: {
+  showHeader?: boolean;
   subtitle?: string;
+  submitLabel?: string;
   title?: string;
 }) {
   const { data: profileData, refetch } = useProfile();
@@ -153,7 +157,7 @@ export function ProfileEditorPage({
           setIsCheckingUsername(true);
           setUsernameError(null);
           try {
-            const res = await apiClient.api.profile["check-username"].$get({
+            const res = await apiClient.api.v1.profile["check-username"].$get({
               query: { username },
             });
             if (res.ok) {
@@ -330,14 +334,15 @@ export function ProfileEditorPage({
 
   return (
     <div className="mx-auto max-w-4xl space-y-8 animate-in fade-in duration-300">
-      {/* Header */}
-      <div className="flex items-center gap-3 border-b border-border/60 pb-5">
-        <Settings className="size-8 text-primary" />
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight">{title}</h1>
-          <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
+      {showHeader ? (
+        <div className="flex items-center gap-3 border-b border-border/60 pb-5">
+          <Settings className="size-8 text-primary" />
+          <div>
+            <h1 className="text-3xl font-extrabold tracking-tight">{title}</h1>
+            <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* 1. Public Profile Card */}
@@ -663,7 +668,7 @@ export function ProfileEditorPage({
             className="bg-primary text-brand-yellow font-bold hover:bg-primary/95 rounded-md px-6 gap-2"
           >
             <Save className="size-4" />
-            {updateProfile.isPending ? "Saving..." : "Save Settings"}
+            {updateProfile.isPending ? "Saving..." : submitLabel}
           </Button>
         </div>
       </form>
@@ -672,5 +677,47 @@ export function ProfileEditorPage({
 }
 
 function SettingsPage() {
-  return <ProfileEditorPage />;
+  return (
+    <main className="mx-auto max-w-4xl space-y-6">
+      <div className="flex items-center gap-3 border-b border-border/60 pb-5">
+        <Settings className="size-8 text-primary" />
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tight">Settings</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Account preferences live here. Edit your public player profile from
+            Profile.
+          </p>
+        </div>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card className="rounded-xl">
+          <CardHeader>
+            <CardTitle className="text-lg">Public profile</CardTitle>
+            <CardDescription>
+              Name, handle, bio, home court, rating, and roles.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link to="/u/profile">
+              <Button className="rounded-lg">Edit profile</Button>
+            </Link>
+          </CardContent>
+        </Card>
+        <Card className="rounded-xl">
+          <CardHeader>
+            <CardTitle className="text-lg">Account settings</CardTitle>
+            <CardDescription>
+              More notification, privacy, billing, and login controls will live
+              here as they come online.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button className="rounded-lg" disabled variant="outline">
+              Coming soon
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    </main>
+  );
 }

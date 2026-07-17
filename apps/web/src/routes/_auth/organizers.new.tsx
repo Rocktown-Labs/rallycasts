@@ -36,7 +36,7 @@ export function CreateOrganizationPage() {
       const trimmedSlug = slug.trim();
 
       return readApiJson(
-        apiClient.api.organizations.$post({
+        apiClient.api.v1.organizations.$post({
           json: {
             bio: bio.trim() || undefined,
             city: city.trim() || undefined,

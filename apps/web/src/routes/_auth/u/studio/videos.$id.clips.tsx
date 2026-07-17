@@ -21,7 +21,9 @@ function VideoClipperPage() {
   const [title, setTitle] = useState("Highlight clip");
   const videoQuery = useQuery({
     queryFn: () =>
-      readApiJson(apiClient.api.videos[":id"].studio.$get({ param: { id } })),
+      readApiJson(
+        apiClient.api.v1.videos[":id"].studio.$get({ param: { id } })
+      ),
     queryKey: ["video-studio", id],
   });
   const source = videoQuery.data?.video;
@@ -29,7 +31,7 @@ function VideoClipperPage() {
   const createClip = useMutation({
     mutationFn: () =>
       readApiJson(
-        apiClient.api.videos[":id"].clips.$post({
+        apiClient.api.v1.videos[":id"].clips.$post({
           json: { endTime, startTime, title: title.trim() },
           param: { id },
         })

@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { apiClient } from "@/lib/api-client";
 import {
   useConversationMessages,
+  useConversationRealtime,
   useConversations,
   useFriends,
   useSendMessage,
@@ -72,7 +73,7 @@ function NewMessageComposer({
 }) {
   const [friendQuery, setFriendQuery] = useState("");
   const [message, setMessage] = useState("");
-  const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
+  const [selectedFriends, setSelectedFriends] = useState<Friend[]>([]);
   const { data: friendsData } = useFriends();
   const startConversation = useStartConversation();
   const friends = friendsData?.friends ?? [];
@@ -85,8 +86,8 @@ function NewMessageComposer({
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     const body = message.trim();
-    if (!selectedFriend) {
-      toast.error("Select a friend to message.");
+    if (selectedFriends.length === 0) {
+      toast.error("Select at least one friend to message.");
       return;
     }
     if (!body) {
@@ -96,10 +97,10 @@ function NewMessageComposer({
 
     try {
       const result = await startConversation.mutateAsync({
-        participantUserId: selectedFriend.id,
+        participantUserIds: selectedFriends.map((friend) => friend.id),
       });
       await readApiJson(
-        apiClient.api.social.conversations[":id"].messages.$post({
+        apiClient.api.v1.social.conversations[":id"].messages.$post({
           json: { body },
           param: { id: result.conversationId },
         })
@@ -132,54 +133,75 @@ function NewMessageComposer({
         </Button>
       </div>
       <form className="space-y-3" onSubmit={submit}>
-        {selectedFriend ? (
-          <div className="flex w-fit items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-            {selectedFriend.name}
-            <button
-              aria-label={`Remove ${selectedFriend.name}`}
-              onClick={() => setSelectedFriend(null)}
-              type="button"
-            >
-              <X className="size-3" />
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-3 size-4 text-muted-foreground" />
-              <Input
-                className="pl-9 text-xs"
-                onChange={(event) => setFriendQuery(event.target.value)}
-                placeholder="Search friends..."
-                value={friendQuery}
-              />
-            </div>
-            <div className="max-h-44 overflow-y-auto rounded-md border border-border">
-              {filteredFriends.length > 0 ? (
-                filteredFriends.map((friend) => (
+        <div className="space-y-2">
+          {selectedFriends.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {selectedFriends.map((friend) => (
+                <div
+                  className="flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary"
+                  key={friend.id}
+                >
+                  {friend.name}
                   <button
-                    className="flex w-full items-center gap-3 border-b border-border px-3 py-2 text-left text-xs last:border-b-0 hover:bg-muted"
+                    aria-label={`Remove ${friend.name}`}
+                    onClick={() =>
+                      setSelectedFriends((current) =>
+                        current.filter((item) => item.id !== friend.id)
+                      )
+                    }
+                    type="button"
+                  >
+                    <X className="size-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : null}
+          <div className="relative">
+            <Search className="absolute left-3 top-3 size-4 text-muted-foreground" />
+            <Input
+              className="pl-9 text-xs"
+              onChange={(event) => setFriendQuery(event.target.value)}
+              placeholder="Search friends..."
+              value={friendQuery}
+            />
+          </div>
+          <div className="max-h-44 overflow-y-auto rounded-md border border-border">
+            {filteredFriends.length > 0 ? (
+              filteredFriends.map((friend) => {
+                const selected = selectedFriends.some(
+                  (item) => item.id === friend.id
+                );
+
+                return (
+                  <button
+                    className="flex w-full items-center gap-3 border-b border-border px-3 py-2 text-left text-xs last:border-b-0 hover:bg-muted disabled:opacity-50"
+                    disabled={selected}
                     key={friend.id}
-                    onClick={() => setSelectedFriend(friend)}
+                    onClick={() =>
+                      setSelectedFriends((current) => [...current, friend])
+                    }
                     type="button"
                   >
                     <Avatar image={friend.image} label={friend.name} />
                     <span>
                       <span className="block font-semibold">{friend.name}</span>
                       <span className="text-muted-foreground">
-                        @{friend.username ?? friend.displayUsername ?? "player"}
+                        {selected
+                          ? "Selected"
+                          : `@${friend.username ?? friend.displayUsername ?? "player"}`}
                       </span>
                     </span>
                   </button>
-                ))
-              ) : (
-                <p className="p-4 text-center text-muted-foreground text-xs">
-                  No friends found. Add friends from player profiles first.
-                </p>
-              )}
-            </div>
+                );
+              })
+            ) : (
+              <p className="p-4 text-center text-muted-foreground text-xs">
+                No friends found. Add friends from player profiles first.
+              </p>
+            )}
           </div>
-        )}
+        </div>
         <textarea
           aria-label="Opening message"
           className="min-h-24 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
@@ -214,9 +236,16 @@ function MessagesPage() {
     (item) => item.conversation.id === activeId
   );
   const { data: messagesData } = useConversationMessages(activeId);
+  useConversationRealtime(activeId);
   const sendMessage = useSendMessage(activeId);
   const messages = messagesData?.messages ?? [];
-  const title = activeConversation?.participant.name ?? "Messages";
+  const participantNames =
+    activeConversation?.participants?.map((participant) => participant.name) ??
+    [];
+  const title =
+    participantNames.length > 1
+      ? participantNames.join(", ")
+      : (activeConversation?.participant.name ?? "Messages");
   const initials = useMemo(() => title.at(0)?.toUpperCase() ?? "M", [title]);
 
   const submitMessage = (event: FormEvent<HTMLFormElement>) => {
@@ -261,26 +290,40 @@ function MessagesPage() {
           </div>
           <div>
             {filteredConversations.length > 0 ? (
-              filteredConversations.map(({ conversation, participant }) => (
-                <button
-                  className={`grid w-full grid-cols-[2.5rem_1fr_auto] items-center gap-3 border-b border-border px-4 py-4 text-left ${
-                    conversation.id === activeId ? "bg-muted" : ""
-                  }`}
-                  key={conversation.id}
-                  onClick={() => setSelectedId(conversation.id)}
-                  type="button"
-                >
-                  <Avatar image={participant.image} label={participant.name} />
-                  <span>
-                    <span className="block font-medium text-sm">
-                      {participant.name}
+              filteredConversations.map(
+                ({ conversation, participant, participants, unreadCount }) => (
+                  <button
+                    className={`grid w-full grid-cols-[2.5rem_1fr_auto] items-center gap-3 border-b border-border px-4 py-4 text-left ${
+                      conversation.id === activeId ? "bg-muted" : ""
+                    }`}
+                    key={conversation.id}
+                    onClick={() => setSelectedId(conversation.id)}
+                    type="button"
+                  >
+                    <Avatar
+                      image={participant.image}
+                      label={participant.name}
+                    />
+                    <span>
+                      <span className="block font-medium text-sm">
+                        {participants.length > 1
+                          ? participants.map((item) => item.name).join(", ")
+                          : participant.name}
+                      </span>
+                      <span className="line-clamp-1 text-muted-foreground text-xs">
+                        {participants.length > 1
+                          ? `${participants.length} people`
+                          : `@${participant.username ?? participant.displayUsername}`}
+                      </span>
                     </span>
-                    <span className="line-clamp-1 text-muted-foreground text-xs">
-                      @{participant.username ?? participant.displayUsername}
-                    </span>
-                  </span>
-                </button>
-              ))
+                    {unreadCount > 0 ? (
+                      <span className="grid size-5 place-items-center rounded-full bg-brand-yellow text-[10px] font-bold text-black">
+                        {unreadCount}
+                      </span>
+                    ) : null}
+                  </button>
+                )
+              )
             ) : (
               <div className="grid place-items-center gap-3 px-6 py-16 text-center">
                 <span className="grid size-12 place-items-center rounded-full bg-primary/10 text-primary">

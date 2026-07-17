@@ -38,25 +38,27 @@ import { Route as EventsIdPlayersRouteImport } from './routes/events.$id.players
 import { Route as EventsIdMatchesRouteImport } from './routes/events.$id.matches'
 import { Route as EventsIdLocationsRouteImport } from './routes/events.$id.locations'
 import { Route as EventsIdBracketRouteImport } from './routes/events.$id.bracket'
+import { Route as AuthUVideosRouteImport } from './routes/_auth/u/videos'
 import { Route as AuthUSettingsRouteImport } from './routes/_auth/u/settings'
-import { Route as AuthURecordingRequestsRouteImport } from './routes/_auth/u/recording-requests'
 import { Route as AuthUOrganizerRouteImport } from './routes/_auth/u/organizer'
 import { Route as AuthUNotificationsRouteImport } from './routes/_auth/u/notifications'
 import { Route as AuthUMessagesRouteImport } from './routes/_auth/u/messages'
 import { Route as AuthUMeRouteImport } from './routes/_auth/u/me'
 import { Route as AuthUHistoryRouteImport } from './routes/_auth/u/history'
 import { Route as AuthUChallengesRouteImport } from './routes/_auth/u/challenges'
+import { Route as AuthUCastsRouteImport } from './routes/_auth/u/casts'
+import { Route as AuthUAdminRouteImport } from './routes/_auth/u/admin'
 import { Route as AuthOrganizersNewRouteImport } from './routes/_auth/organizers.new'
+import { Route as AuthUVideosIndexRouteImport } from './routes/_auth/u/videos/index'
+import { Route as AuthUStudioIndexRouteImport } from './routes/_auth/u/studio/index'
 import { Route as AuthUProfileIndexRouteImport } from './routes/_auth/u/profile/index'
 import { Route as AuthUOrganizerIndexRouteImport } from './routes/_auth/u/organizer/index'
 import { Route as AuthUHistoryIndexRouteImport } from './routes/_auth/u/history/index'
+import { Route as AuthUCastsIndexRouteImport } from './routes/_auth/u/casts/index'
 import { Route as AuthUVideosMeRouteImport } from './routes/_auth/u/videos/me'
+import { Route as AuthUVideosLiveRouteImport } from './routes/_auth/u/videos/live'
+import { Route as AuthUVideosClipsRouteImport } from './routes/_auth/u/videos/clips'
 import { Route as AuthUStudioUploadRouteImport } from './routes/_auth/u/studio/upload'
-import { Route as AuthURecordingRequestsPendingRouteImport } from './routes/_auth/u/recording-requests/pending'
-import { Route as AuthURecordingRequestsMeRouteImport } from './routes/_auth/u/recording-requests/me'
-import { Route as AuthURecordingRequestsCompletedRouteImport } from './routes/_auth/u/recording-requests/completed'
-import { Route as AuthURecordingRequestsApprovedRouteImport } from './routes/_auth/u/recording-requests/approved'
-import { Route as AuthURecordingRequestsAllRouteImport } from './routes/_auth/u/recording-requests/all'
 import { Route as AuthUProfileMyRallycastsRouteImport } from './routes/_auth/u/profile/my-rallycasts'
 import { Route as AuthUProfileMeRouteImport } from './routes/_auth/u/profile/me'
 import { Route as AuthUProfileEarnRouteImport } from './routes/_auth/u/profile/earn'
@@ -66,6 +68,11 @@ import { Route as AuthUOrganizerEventsRouteImport } from './routes/_auth/u/organ
 import { Route as AuthUHistoryVideosRouteImport } from './routes/_auth/u/history/videos'
 import { Route as AuthUHistoryProfilesRouteImport } from './routes/_auth/u/history/profiles'
 import { Route as AuthUHistoryEventsRouteImport } from './routes/_auth/u/history/events'
+import { Route as AuthUCastsPendingRouteImport } from './routes/_auth/u/casts/pending'
+import { Route as AuthUCastsNewRouteImport } from './routes/_auth/u/casts/new'
+import { Route as AuthUCastsCompletedRouteImport } from './routes/_auth/u/casts/completed'
+import { Route as AuthUCastsApprovedRouteImport } from './routes/_auth/u/casts/approved'
+import { Route as AuthUCastsAllRouteImport } from './routes/_auth/u/casts/all'
 import { Route as AuthOrganizersSlugManageRouteImport } from './routes/_auth/organizers.$slug.manage'
 import { Route as AuthEventsOrganizersNewRouteImport } from './routes/_auth/events.organizers.new'
 import { Route as AuthUStudioVideosIdRouteImport } from './routes/_auth/u/studio/videos.$id'
@@ -216,14 +223,14 @@ const EventsIdBracketRoute = EventsIdBracketRouteImport.update({
   path: '/bracket',
   getParentRoute: () => EventsIdRoute,
 } as any)
+const AuthUVideosRoute = AuthUVideosRouteImport.update({
+  id: '/videos',
+  path: '/videos',
+  getParentRoute: () => AuthURoute,
+} as any)
 const AuthUSettingsRoute = AuthUSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
-  getParentRoute: () => AuthURoute,
-} as any)
-const AuthURecordingRequestsRoute = AuthURecordingRequestsRouteImport.update({
-  id: '/recording-requests',
-  path: '/recording-requests',
   getParentRoute: () => AuthURoute,
 } as any)
 const AuthUOrganizerRoute = AuthUOrganizerRouteImport.update({
@@ -256,10 +263,30 @@ const AuthUChallengesRoute = AuthUChallengesRouteImport.update({
   path: '/challenges',
   getParentRoute: () => AuthURoute,
 } as any)
+const AuthUCastsRoute = AuthUCastsRouteImport.update({
+  id: '/casts',
+  path: '/casts',
+  getParentRoute: () => AuthURoute,
+} as any)
+const AuthUAdminRoute = AuthUAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthURoute,
+} as any)
 const AuthOrganizersNewRoute = AuthOrganizersNewRouteImport.update({
   id: '/organizers/new',
   path: '/organizers/new',
   getParentRoute: () => AuthRouteRoute,
+} as any)
+const AuthUVideosIndexRoute = AuthUVideosIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthUVideosRoute,
+} as any)
+const AuthUStudioIndexRoute = AuthUStudioIndexRouteImport.update({
+  id: '/studio/',
+  path: '/studio/',
+  getParentRoute: () => AuthURoute,
 } as any)
 const AuthUProfileIndexRoute = AuthUProfileIndexRouteImport.update({
   id: '/profile/',
@@ -276,46 +303,31 @@ const AuthUHistoryIndexRoute = AuthUHistoryIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthUHistoryRoute,
 } as any)
+const AuthUCastsIndexRoute = AuthUCastsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthUCastsRoute,
+} as any)
 const AuthUVideosMeRoute = AuthUVideosMeRouteImport.update({
-  id: '/videos/me',
-  path: '/videos/me',
-  getParentRoute: () => AuthURoute,
+  id: '/me',
+  path: '/me',
+  getParentRoute: () => AuthUVideosRoute,
+} as any)
+const AuthUVideosLiveRoute = AuthUVideosLiveRouteImport.update({
+  id: '/live',
+  path: '/live',
+  getParentRoute: () => AuthUVideosRoute,
+} as any)
+const AuthUVideosClipsRoute = AuthUVideosClipsRouteImport.update({
+  id: '/clips',
+  path: '/clips',
+  getParentRoute: () => AuthUVideosRoute,
 } as any)
 const AuthUStudioUploadRoute = AuthUStudioUploadRouteImport.update({
   id: '/studio/upload',
   path: '/studio/upload',
   getParentRoute: () => AuthURoute,
 } as any)
-const AuthURecordingRequestsPendingRoute =
-  AuthURecordingRequestsPendingRouteImport.update({
-    id: '/pending',
-    path: '/pending',
-    getParentRoute: () => AuthURecordingRequestsRoute,
-  } as any)
-const AuthURecordingRequestsMeRoute =
-  AuthURecordingRequestsMeRouteImport.update({
-    id: '/me',
-    path: '/me',
-    getParentRoute: () => AuthURecordingRequestsRoute,
-  } as any)
-const AuthURecordingRequestsCompletedRoute =
-  AuthURecordingRequestsCompletedRouteImport.update({
-    id: '/completed',
-    path: '/completed',
-    getParentRoute: () => AuthURecordingRequestsRoute,
-  } as any)
-const AuthURecordingRequestsApprovedRoute =
-  AuthURecordingRequestsApprovedRouteImport.update({
-    id: '/approved',
-    path: '/approved',
-    getParentRoute: () => AuthURecordingRequestsRoute,
-  } as any)
-const AuthURecordingRequestsAllRoute =
-  AuthURecordingRequestsAllRouteImport.update({
-    id: '/all',
-    path: '/all',
-    getParentRoute: () => AuthURecordingRequestsRoute,
-  } as any)
 const AuthUProfileMyRallycastsRoute =
   AuthUProfileMyRallycastsRouteImport.update({
     id: '/profile/my-rallycasts',
@@ -362,6 +374,31 @@ const AuthUHistoryEventsRoute = AuthUHistoryEventsRouteImport.update({
   id: '/events',
   path: '/events',
   getParentRoute: () => AuthUHistoryRoute,
+} as any)
+const AuthUCastsPendingRoute = AuthUCastsPendingRouteImport.update({
+  id: '/pending',
+  path: '/pending',
+  getParentRoute: () => AuthUCastsRoute,
+} as any)
+const AuthUCastsNewRoute = AuthUCastsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AuthUCastsRoute,
+} as any)
+const AuthUCastsCompletedRoute = AuthUCastsCompletedRouteImport.update({
+  id: '/completed',
+  path: '/completed',
+  getParentRoute: () => AuthUCastsRoute,
+} as any)
+const AuthUCastsApprovedRoute = AuthUCastsApprovedRouteImport.update({
+  id: '/approved',
+  path: '/approved',
+  getParentRoute: () => AuthUCastsRoute,
+} as any)
+const AuthUCastsAllRoute = AuthUCastsAllRouteImport.update({
+  id: '/all',
+  path: '/all',
+  getParentRoute: () => AuthUCastsRoute,
 } as any)
 const AuthOrganizersSlugManageRoute =
   AuthOrganizersSlugManageRouteImport.update({
@@ -415,14 +452,16 @@ export interface FileRoutesByFullPath {
   '/events/': typeof EventsIndexRoute
   '/players/': typeof PlayersIndexRoute
   '/organizers/new': typeof AuthOrganizersNewRoute
+  '/u/admin': typeof AuthUAdminRoute
+  '/u/casts': typeof AuthUCastsRouteWithChildren
   '/u/challenges': typeof AuthUChallengesRoute
   '/u/history': typeof AuthUHistoryRouteWithChildren
   '/u/me': typeof AuthUMeRoute
   '/u/messages': typeof AuthUMessagesRoute
   '/u/notifications': typeof AuthUNotificationsRoute
   '/u/organizer': typeof AuthUOrganizerRouteWithChildren
-  '/u/recording-requests': typeof AuthURecordingRequestsRouteWithChildren
   '/u/settings': typeof AuthUSettingsRoute
+  '/u/videos': typeof AuthUVideosRouteWithChildren
   '/events/$id/bracket': typeof EventsIdBracketRoute
   '/events/$id/locations': typeof EventsIdLocationsRoute
   '/events/$id/matches': typeof EventsIdMatchesRoute
@@ -432,6 +471,11 @@ export interface FileRoutesByFullPath {
   '/events/$id/': typeof EventsIdIndexRoute
   '/events/organizers/new': typeof AuthEventsOrganizersNewRoute
   '/organizers/$slug/manage': typeof AuthOrganizersSlugManageRoute
+  '/u/casts/all': typeof AuthUCastsAllRoute
+  '/u/casts/approved': typeof AuthUCastsApprovedRoute
+  '/u/casts/completed': typeof AuthUCastsCompletedRoute
+  '/u/casts/new': typeof AuthUCastsNewRoute
+  '/u/casts/pending': typeof AuthUCastsPendingRoute
   '/u/history/events': typeof AuthUHistoryEventsRoute
   '/u/history/profiles': typeof AuthUHistoryProfilesRoute
   '/u/history/videos': typeof AuthUHistoryVideosRoute
@@ -441,16 +485,16 @@ export interface FileRoutesByFullPath {
   '/u/profile/earn': typeof AuthUProfileEarnRoute
   '/u/profile/me': typeof AuthUProfileMeRoute
   '/u/profile/my-rallycasts': typeof AuthUProfileMyRallycastsRoute
-  '/u/recording-requests/all': typeof AuthURecordingRequestsAllRoute
-  '/u/recording-requests/approved': typeof AuthURecordingRequestsApprovedRoute
-  '/u/recording-requests/completed': typeof AuthURecordingRequestsCompletedRoute
-  '/u/recording-requests/me': typeof AuthURecordingRequestsMeRoute
-  '/u/recording-requests/pending': typeof AuthURecordingRequestsPendingRoute
   '/u/studio/upload': typeof AuthUStudioUploadRoute
+  '/u/videos/clips': typeof AuthUVideosClipsRoute
+  '/u/videos/live': typeof AuthUVideosLiveRoute
   '/u/videos/me': typeof AuthUVideosMeRoute
+  '/u/casts/': typeof AuthUCastsIndexRoute
   '/u/history/': typeof AuthUHistoryIndexRoute
   '/u/organizer/': typeof AuthUOrganizerIndexRoute
   '/u/profile/': typeof AuthUProfileIndexRoute
+  '/u/studio/': typeof AuthUStudioIndexRoute
+  '/u/videos/': typeof AuthUVideosIndexRoute
   '/events/organizers/$slug/manage': typeof AuthEventsOrganizersSlugManageRoute
   '/u/studio/videos/$id': typeof AuthUStudioVideosIdRouteWithChildren
   '/u/studio/videos/$id/clips': typeof AuthUStudioVideosIdClipsRoute
@@ -473,11 +517,11 @@ export interface FileRoutesByTo {
   '/events': typeof EventsIndexRoute
   '/players': typeof PlayersIndexRoute
   '/organizers/new': typeof AuthOrganizersNewRoute
+  '/u/admin': typeof AuthUAdminRoute
   '/u/challenges': typeof AuthUChallengesRoute
   '/u/me': typeof AuthUMeRoute
   '/u/messages': typeof AuthUMessagesRoute
   '/u/notifications': typeof AuthUNotificationsRoute
-  '/u/recording-requests': typeof AuthURecordingRequestsRouteWithChildren
   '/u/settings': typeof AuthUSettingsRoute
   '/events/$id/bracket': typeof EventsIdBracketRoute
   '/events/$id/locations': typeof EventsIdLocationsRoute
@@ -488,6 +532,11 @@ export interface FileRoutesByTo {
   '/events/$id': typeof EventsIdIndexRoute
   '/events/organizers/new': typeof AuthEventsOrganizersNewRoute
   '/organizers/$slug/manage': typeof AuthOrganizersSlugManageRoute
+  '/u/casts/all': typeof AuthUCastsAllRoute
+  '/u/casts/approved': typeof AuthUCastsApprovedRoute
+  '/u/casts/completed': typeof AuthUCastsCompletedRoute
+  '/u/casts/new': typeof AuthUCastsNewRoute
+  '/u/casts/pending': typeof AuthUCastsPendingRoute
   '/u/history/events': typeof AuthUHistoryEventsRoute
   '/u/history/profiles': typeof AuthUHistoryProfilesRoute
   '/u/history/videos': typeof AuthUHistoryVideosRoute
@@ -497,16 +546,16 @@ export interface FileRoutesByTo {
   '/u/profile/earn': typeof AuthUProfileEarnRoute
   '/u/profile/me': typeof AuthUProfileMeRoute
   '/u/profile/my-rallycasts': typeof AuthUProfileMyRallycastsRoute
-  '/u/recording-requests/all': typeof AuthURecordingRequestsAllRoute
-  '/u/recording-requests/approved': typeof AuthURecordingRequestsApprovedRoute
-  '/u/recording-requests/completed': typeof AuthURecordingRequestsCompletedRoute
-  '/u/recording-requests/me': typeof AuthURecordingRequestsMeRoute
-  '/u/recording-requests/pending': typeof AuthURecordingRequestsPendingRoute
   '/u/studio/upload': typeof AuthUStudioUploadRoute
+  '/u/videos/clips': typeof AuthUVideosClipsRoute
+  '/u/videos/live': typeof AuthUVideosLiveRoute
   '/u/videos/me': typeof AuthUVideosMeRoute
+  '/u/casts': typeof AuthUCastsIndexRoute
   '/u/history': typeof AuthUHistoryIndexRoute
   '/u/organizer': typeof AuthUOrganizerIndexRoute
   '/u/profile': typeof AuthUProfileIndexRoute
+  '/u/studio': typeof AuthUStudioIndexRoute
+  '/u/videos': typeof AuthUVideosIndexRoute
   '/events/organizers/$slug/manage': typeof AuthEventsOrganizersSlugManageRoute
   '/u/studio/videos/$id': typeof AuthUStudioVideosIdRouteWithChildren
   '/u/studio/videos/$id/clips': typeof AuthUStudioVideosIdClipsRoute
@@ -536,14 +585,16 @@ export interface FileRoutesById {
   '/events/': typeof EventsIndexRoute
   '/players/': typeof PlayersIndexRoute
   '/_auth/organizers/new': typeof AuthOrganizersNewRoute
+  '/_auth/u/admin': typeof AuthUAdminRoute
+  '/_auth/u/casts': typeof AuthUCastsRouteWithChildren
   '/_auth/u/challenges': typeof AuthUChallengesRoute
   '/_auth/u/history': typeof AuthUHistoryRouteWithChildren
   '/_auth/u/me': typeof AuthUMeRoute
   '/_auth/u/messages': typeof AuthUMessagesRoute
   '/_auth/u/notifications': typeof AuthUNotificationsRoute
   '/_auth/u/organizer': typeof AuthUOrganizerRouteWithChildren
-  '/_auth/u/recording-requests': typeof AuthURecordingRequestsRouteWithChildren
   '/_auth/u/settings': typeof AuthUSettingsRoute
+  '/_auth/u/videos': typeof AuthUVideosRouteWithChildren
   '/events/$id/bracket': typeof EventsIdBracketRoute
   '/events/$id/locations': typeof EventsIdLocationsRoute
   '/events/$id/matches': typeof EventsIdMatchesRoute
@@ -553,6 +604,11 @@ export interface FileRoutesById {
   '/events/$id/': typeof EventsIdIndexRoute
   '/_auth/events/organizers/new': typeof AuthEventsOrganizersNewRoute
   '/_auth/organizers/$slug/manage': typeof AuthOrganizersSlugManageRoute
+  '/_auth/u/casts/all': typeof AuthUCastsAllRoute
+  '/_auth/u/casts/approved': typeof AuthUCastsApprovedRoute
+  '/_auth/u/casts/completed': typeof AuthUCastsCompletedRoute
+  '/_auth/u/casts/new': typeof AuthUCastsNewRoute
+  '/_auth/u/casts/pending': typeof AuthUCastsPendingRoute
   '/_auth/u/history/events': typeof AuthUHistoryEventsRoute
   '/_auth/u/history/profiles': typeof AuthUHistoryProfilesRoute
   '/_auth/u/history/videos': typeof AuthUHistoryVideosRoute
@@ -562,16 +618,16 @@ export interface FileRoutesById {
   '/_auth/u/profile/earn': typeof AuthUProfileEarnRoute
   '/_auth/u/profile/me': typeof AuthUProfileMeRoute
   '/_auth/u/profile/my-rallycasts': typeof AuthUProfileMyRallycastsRoute
-  '/_auth/u/recording-requests/all': typeof AuthURecordingRequestsAllRoute
-  '/_auth/u/recording-requests/approved': typeof AuthURecordingRequestsApprovedRoute
-  '/_auth/u/recording-requests/completed': typeof AuthURecordingRequestsCompletedRoute
-  '/_auth/u/recording-requests/me': typeof AuthURecordingRequestsMeRoute
-  '/_auth/u/recording-requests/pending': typeof AuthURecordingRequestsPendingRoute
   '/_auth/u/studio/upload': typeof AuthUStudioUploadRoute
+  '/_auth/u/videos/clips': typeof AuthUVideosClipsRoute
+  '/_auth/u/videos/live': typeof AuthUVideosLiveRoute
   '/_auth/u/videos/me': typeof AuthUVideosMeRoute
+  '/_auth/u/casts/': typeof AuthUCastsIndexRoute
   '/_auth/u/history/': typeof AuthUHistoryIndexRoute
   '/_auth/u/organizer/': typeof AuthUOrganizerIndexRoute
   '/_auth/u/profile/': typeof AuthUProfileIndexRoute
+  '/_auth/u/studio/': typeof AuthUStudioIndexRoute
+  '/_auth/u/videos/': typeof AuthUVideosIndexRoute
   '/_auth/events/organizers/$slug/manage': typeof AuthEventsOrganizersSlugManageRoute
   '/_auth/u/studio/videos/$id': typeof AuthUStudioVideosIdRouteWithChildren
   '/_auth/u/studio/videos/$id/clips': typeof AuthUStudioVideosIdClipsRoute
@@ -601,14 +657,16 @@ export interface FileRouteTypes {
     | '/events/'
     | '/players/'
     | '/organizers/new'
+    | '/u/admin'
+    | '/u/casts'
     | '/u/challenges'
     | '/u/history'
     | '/u/me'
     | '/u/messages'
     | '/u/notifications'
     | '/u/organizer'
-    | '/u/recording-requests'
     | '/u/settings'
+    | '/u/videos'
     | '/events/$id/bracket'
     | '/events/$id/locations'
     | '/events/$id/matches'
@@ -618,6 +676,11 @@ export interface FileRouteTypes {
     | '/events/$id/'
     | '/events/organizers/new'
     | '/organizers/$slug/manage'
+    | '/u/casts/all'
+    | '/u/casts/approved'
+    | '/u/casts/completed'
+    | '/u/casts/new'
+    | '/u/casts/pending'
     | '/u/history/events'
     | '/u/history/profiles'
     | '/u/history/videos'
@@ -627,16 +690,16 @@ export interface FileRouteTypes {
     | '/u/profile/earn'
     | '/u/profile/me'
     | '/u/profile/my-rallycasts'
-    | '/u/recording-requests/all'
-    | '/u/recording-requests/approved'
-    | '/u/recording-requests/completed'
-    | '/u/recording-requests/me'
-    | '/u/recording-requests/pending'
     | '/u/studio/upload'
+    | '/u/videos/clips'
+    | '/u/videos/live'
     | '/u/videos/me'
+    | '/u/casts/'
     | '/u/history/'
     | '/u/organizer/'
     | '/u/profile/'
+    | '/u/studio/'
+    | '/u/videos/'
     | '/events/organizers/$slug/manage'
     | '/u/studio/videos/$id'
     | '/u/studio/videos/$id/clips'
@@ -659,11 +722,11 @@ export interface FileRouteTypes {
     | '/events'
     | '/players'
     | '/organizers/new'
+    | '/u/admin'
     | '/u/challenges'
     | '/u/me'
     | '/u/messages'
     | '/u/notifications'
-    | '/u/recording-requests'
     | '/u/settings'
     | '/events/$id/bracket'
     | '/events/$id/locations'
@@ -674,6 +737,11 @@ export interface FileRouteTypes {
     | '/events/$id'
     | '/events/organizers/new'
     | '/organizers/$slug/manage'
+    | '/u/casts/all'
+    | '/u/casts/approved'
+    | '/u/casts/completed'
+    | '/u/casts/new'
+    | '/u/casts/pending'
     | '/u/history/events'
     | '/u/history/profiles'
     | '/u/history/videos'
@@ -683,16 +751,16 @@ export interface FileRouteTypes {
     | '/u/profile/earn'
     | '/u/profile/me'
     | '/u/profile/my-rallycasts'
-    | '/u/recording-requests/all'
-    | '/u/recording-requests/approved'
-    | '/u/recording-requests/completed'
-    | '/u/recording-requests/me'
-    | '/u/recording-requests/pending'
     | '/u/studio/upload'
+    | '/u/videos/clips'
+    | '/u/videos/live'
     | '/u/videos/me'
+    | '/u/casts'
     | '/u/history'
     | '/u/organizer'
     | '/u/profile'
+    | '/u/studio'
+    | '/u/videos'
     | '/events/organizers/$slug/manage'
     | '/u/studio/videos/$id'
     | '/u/studio/videos/$id/clips'
@@ -721,14 +789,16 @@ export interface FileRouteTypes {
     | '/events/'
     | '/players/'
     | '/_auth/organizers/new'
+    | '/_auth/u/admin'
+    | '/_auth/u/casts'
     | '/_auth/u/challenges'
     | '/_auth/u/history'
     | '/_auth/u/me'
     | '/_auth/u/messages'
     | '/_auth/u/notifications'
     | '/_auth/u/organizer'
-    | '/_auth/u/recording-requests'
     | '/_auth/u/settings'
+    | '/_auth/u/videos'
     | '/events/$id/bracket'
     | '/events/$id/locations'
     | '/events/$id/matches'
@@ -738,6 +808,11 @@ export interface FileRouteTypes {
     | '/events/$id/'
     | '/_auth/events/organizers/new'
     | '/_auth/organizers/$slug/manage'
+    | '/_auth/u/casts/all'
+    | '/_auth/u/casts/approved'
+    | '/_auth/u/casts/completed'
+    | '/_auth/u/casts/new'
+    | '/_auth/u/casts/pending'
     | '/_auth/u/history/events'
     | '/_auth/u/history/profiles'
     | '/_auth/u/history/videos'
@@ -747,16 +822,16 @@ export interface FileRouteTypes {
     | '/_auth/u/profile/earn'
     | '/_auth/u/profile/me'
     | '/_auth/u/profile/my-rallycasts'
-    | '/_auth/u/recording-requests/all'
-    | '/_auth/u/recording-requests/approved'
-    | '/_auth/u/recording-requests/completed'
-    | '/_auth/u/recording-requests/me'
-    | '/_auth/u/recording-requests/pending'
     | '/_auth/u/studio/upload'
+    | '/_auth/u/videos/clips'
+    | '/_auth/u/videos/live'
     | '/_auth/u/videos/me'
+    | '/_auth/u/casts/'
     | '/_auth/u/history/'
     | '/_auth/u/organizer/'
     | '/_auth/u/profile/'
+    | '/_auth/u/studio/'
+    | '/_auth/u/videos/'
     | '/_auth/events/organizers/$slug/manage'
     | '/_auth/u/studio/videos/$id'
     | '/_auth/u/studio/videos/$id/clips'
@@ -982,18 +1057,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EventsIdBracketRouteImport
       parentRoute: typeof EventsIdRoute
     }
+    '/_auth/u/videos': {
+      id: '/_auth/u/videos'
+      path: '/videos'
+      fullPath: '/u/videos'
+      preLoaderRoute: typeof AuthUVideosRouteImport
+      parentRoute: typeof AuthURoute
+    }
     '/_auth/u/settings': {
       id: '/_auth/u/settings'
       path: '/settings'
       fullPath: '/u/settings'
       preLoaderRoute: typeof AuthUSettingsRouteImport
-      parentRoute: typeof AuthURoute
-    }
-    '/_auth/u/recording-requests': {
-      id: '/_auth/u/recording-requests'
-      path: '/recording-requests'
-      fullPath: '/u/recording-requests'
-      preLoaderRoute: typeof AuthURecordingRequestsRouteImport
       parentRoute: typeof AuthURoute
     }
     '/_auth/u/organizer': {
@@ -1038,12 +1113,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthUChallengesRouteImport
       parentRoute: typeof AuthURoute
     }
+    '/_auth/u/casts': {
+      id: '/_auth/u/casts'
+      path: '/casts'
+      fullPath: '/u/casts'
+      preLoaderRoute: typeof AuthUCastsRouteImport
+      parentRoute: typeof AuthURoute
+    }
+    '/_auth/u/admin': {
+      id: '/_auth/u/admin'
+      path: '/admin'
+      fullPath: '/u/admin'
+      preLoaderRoute: typeof AuthUAdminRouteImport
+      parentRoute: typeof AuthURoute
+    }
     '/_auth/organizers/new': {
       id: '/_auth/organizers/new'
       path: '/organizers/new'
       fullPath: '/organizers/new'
       preLoaderRoute: typeof AuthOrganizersNewRouteImport
       parentRoute: typeof AuthRouteRoute
+    }
+    '/_auth/u/videos/': {
+      id: '/_auth/u/videos/'
+      path: '/'
+      fullPath: '/u/videos/'
+      preLoaderRoute: typeof AuthUVideosIndexRouteImport
+      parentRoute: typeof AuthUVideosRoute
+    }
+    '/_auth/u/studio/': {
+      id: '/_auth/u/studio/'
+      path: '/studio'
+      fullPath: '/u/studio/'
+      preLoaderRoute: typeof AuthUStudioIndexRouteImport
+      parentRoute: typeof AuthURoute
     }
     '/_auth/u/profile/': {
       id: '/_auth/u/profile/'
@@ -1066,12 +1169,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthUHistoryIndexRouteImport
       parentRoute: typeof AuthUHistoryRoute
     }
+    '/_auth/u/casts/': {
+      id: '/_auth/u/casts/'
+      path: '/'
+      fullPath: '/u/casts/'
+      preLoaderRoute: typeof AuthUCastsIndexRouteImport
+      parentRoute: typeof AuthUCastsRoute
+    }
     '/_auth/u/videos/me': {
       id: '/_auth/u/videos/me'
-      path: '/videos/me'
+      path: '/me'
       fullPath: '/u/videos/me'
       preLoaderRoute: typeof AuthUVideosMeRouteImport
-      parentRoute: typeof AuthURoute
+      parentRoute: typeof AuthUVideosRoute
+    }
+    '/_auth/u/videos/live': {
+      id: '/_auth/u/videos/live'
+      path: '/live'
+      fullPath: '/u/videos/live'
+      preLoaderRoute: typeof AuthUVideosLiveRouteImport
+      parentRoute: typeof AuthUVideosRoute
+    }
+    '/_auth/u/videos/clips': {
+      id: '/_auth/u/videos/clips'
+      path: '/clips'
+      fullPath: '/u/videos/clips'
+      preLoaderRoute: typeof AuthUVideosClipsRouteImport
+      parentRoute: typeof AuthUVideosRoute
     }
     '/_auth/u/studio/upload': {
       id: '/_auth/u/studio/upload'
@@ -1079,41 +1203,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/u/studio/upload'
       preLoaderRoute: typeof AuthUStudioUploadRouteImport
       parentRoute: typeof AuthURoute
-    }
-    '/_auth/u/recording-requests/pending': {
-      id: '/_auth/u/recording-requests/pending'
-      path: '/pending'
-      fullPath: '/u/recording-requests/pending'
-      preLoaderRoute: typeof AuthURecordingRequestsPendingRouteImport
-      parentRoute: typeof AuthURecordingRequestsRoute
-    }
-    '/_auth/u/recording-requests/me': {
-      id: '/_auth/u/recording-requests/me'
-      path: '/me'
-      fullPath: '/u/recording-requests/me'
-      preLoaderRoute: typeof AuthURecordingRequestsMeRouteImport
-      parentRoute: typeof AuthURecordingRequestsRoute
-    }
-    '/_auth/u/recording-requests/completed': {
-      id: '/_auth/u/recording-requests/completed'
-      path: '/completed'
-      fullPath: '/u/recording-requests/completed'
-      preLoaderRoute: typeof AuthURecordingRequestsCompletedRouteImport
-      parentRoute: typeof AuthURecordingRequestsRoute
-    }
-    '/_auth/u/recording-requests/approved': {
-      id: '/_auth/u/recording-requests/approved'
-      path: '/approved'
-      fullPath: '/u/recording-requests/approved'
-      preLoaderRoute: typeof AuthURecordingRequestsApprovedRouteImport
-      parentRoute: typeof AuthURecordingRequestsRoute
-    }
-    '/_auth/u/recording-requests/all': {
-      id: '/_auth/u/recording-requests/all'
-      path: '/all'
-      fullPath: '/u/recording-requests/all'
-      preLoaderRoute: typeof AuthURecordingRequestsAllRouteImport
-      parentRoute: typeof AuthURecordingRequestsRoute
     }
     '/_auth/u/profile/my-rallycasts': {
       id: '/_auth/u/profile/my-rallycasts'
@@ -1178,6 +1267,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthUHistoryEventsRouteImport
       parentRoute: typeof AuthUHistoryRoute
     }
+    '/_auth/u/casts/pending': {
+      id: '/_auth/u/casts/pending'
+      path: '/pending'
+      fullPath: '/u/casts/pending'
+      preLoaderRoute: typeof AuthUCastsPendingRouteImport
+      parentRoute: typeof AuthUCastsRoute
+    }
+    '/_auth/u/casts/new': {
+      id: '/_auth/u/casts/new'
+      path: '/new'
+      fullPath: '/u/casts/new'
+      preLoaderRoute: typeof AuthUCastsNewRouteImport
+      parentRoute: typeof AuthUCastsRoute
+    }
+    '/_auth/u/casts/completed': {
+      id: '/_auth/u/casts/completed'
+      path: '/completed'
+      fullPath: '/u/casts/completed'
+      preLoaderRoute: typeof AuthUCastsCompletedRouteImport
+      parentRoute: typeof AuthUCastsRoute
+    }
+    '/_auth/u/casts/approved': {
+      id: '/_auth/u/casts/approved'
+      path: '/approved'
+      fullPath: '/u/casts/approved'
+      preLoaderRoute: typeof AuthUCastsApprovedRouteImport
+      parentRoute: typeof AuthUCastsRoute
+    }
+    '/_auth/u/casts/all': {
+      id: '/_auth/u/casts/all'
+      path: '/all'
+      fullPath: '/u/casts/all'
+      preLoaderRoute: typeof AuthUCastsAllRouteImport
+      parentRoute: typeof AuthUCastsRoute
+    }
     '/_auth/organizers/$slug/manage': {
       id: '/_auth/organizers/$slug/manage'
       path: '/organizers/$slug/manage'
@@ -1216,6 +1340,28 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthUCastsRouteChildren {
+  AuthUCastsAllRoute: typeof AuthUCastsAllRoute
+  AuthUCastsApprovedRoute: typeof AuthUCastsApprovedRoute
+  AuthUCastsCompletedRoute: typeof AuthUCastsCompletedRoute
+  AuthUCastsNewRoute: typeof AuthUCastsNewRoute
+  AuthUCastsPendingRoute: typeof AuthUCastsPendingRoute
+  AuthUCastsIndexRoute: typeof AuthUCastsIndexRoute
+}
+
+const AuthUCastsRouteChildren: AuthUCastsRouteChildren = {
+  AuthUCastsAllRoute: AuthUCastsAllRoute,
+  AuthUCastsApprovedRoute: AuthUCastsApprovedRoute,
+  AuthUCastsCompletedRoute: AuthUCastsCompletedRoute,
+  AuthUCastsNewRoute: AuthUCastsNewRoute,
+  AuthUCastsPendingRoute: AuthUCastsPendingRoute,
+  AuthUCastsIndexRoute: AuthUCastsIndexRoute,
+}
+
+const AuthUCastsRouteWithChildren = AuthUCastsRoute._addFileChildren(
+  AuthUCastsRouteChildren,
+)
+
 interface AuthUHistoryRouteChildren {
   AuthUHistoryEventsRoute: typeof AuthUHistoryEventsRoute
   AuthUHistoryProfilesRoute: typeof AuthUHistoryProfilesRoute
@@ -1250,27 +1396,23 @@ const AuthUOrganizerRouteWithChildren = AuthUOrganizerRoute._addFileChildren(
   AuthUOrganizerRouteChildren,
 )
 
-interface AuthURecordingRequestsRouteChildren {
-  AuthURecordingRequestsAllRoute: typeof AuthURecordingRequestsAllRoute
-  AuthURecordingRequestsApprovedRoute: typeof AuthURecordingRequestsApprovedRoute
-  AuthURecordingRequestsCompletedRoute: typeof AuthURecordingRequestsCompletedRoute
-  AuthURecordingRequestsMeRoute: typeof AuthURecordingRequestsMeRoute
-  AuthURecordingRequestsPendingRoute: typeof AuthURecordingRequestsPendingRoute
+interface AuthUVideosRouteChildren {
+  AuthUVideosClipsRoute: typeof AuthUVideosClipsRoute
+  AuthUVideosLiveRoute: typeof AuthUVideosLiveRoute
+  AuthUVideosMeRoute: typeof AuthUVideosMeRoute
+  AuthUVideosIndexRoute: typeof AuthUVideosIndexRoute
 }
 
-const AuthURecordingRequestsRouteChildren: AuthURecordingRequestsRouteChildren =
-  {
-    AuthURecordingRequestsAllRoute: AuthURecordingRequestsAllRoute,
-    AuthURecordingRequestsApprovedRoute: AuthURecordingRequestsApprovedRoute,
-    AuthURecordingRequestsCompletedRoute: AuthURecordingRequestsCompletedRoute,
-    AuthURecordingRequestsMeRoute: AuthURecordingRequestsMeRoute,
-    AuthURecordingRequestsPendingRoute: AuthURecordingRequestsPendingRoute,
-  }
+const AuthUVideosRouteChildren: AuthUVideosRouteChildren = {
+  AuthUVideosClipsRoute: AuthUVideosClipsRoute,
+  AuthUVideosLiveRoute: AuthUVideosLiveRoute,
+  AuthUVideosMeRoute: AuthUVideosMeRoute,
+  AuthUVideosIndexRoute: AuthUVideosIndexRoute,
+}
 
-const AuthURecordingRequestsRouteWithChildren =
-  AuthURecordingRequestsRoute._addFileChildren(
-    AuthURecordingRequestsRouteChildren,
-  )
+const AuthUVideosRouteWithChildren = AuthUVideosRoute._addFileChildren(
+  AuthUVideosRouteChildren,
+)
 
 interface AuthUStudioVideosIdRouteChildren {
   AuthUStudioVideosIdClipsRoute: typeof AuthUStudioVideosIdClipsRoute
@@ -1284,42 +1426,46 @@ const AuthUStudioVideosIdRouteWithChildren =
   AuthUStudioVideosIdRoute._addFileChildren(AuthUStudioVideosIdRouteChildren)
 
 interface AuthURouteChildren {
+  AuthUAdminRoute: typeof AuthUAdminRoute
+  AuthUCastsRoute: typeof AuthUCastsRouteWithChildren
   AuthUChallengesRoute: typeof AuthUChallengesRoute
   AuthUHistoryRoute: typeof AuthUHistoryRouteWithChildren
   AuthUMeRoute: typeof AuthUMeRoute
   AuthUMessagesRoute: typeof AuthUMessagesRoute
   AuthUNotificationsRoute: typeof AuthUNotificationsRoute
   AuthUOrganizerRoute: typeof AuthUOrganizerRouteWithChildren
-  AuthURecordingRequestsRoute: typeof AuthURecordingRequestsRouteWithChildren
   AuthUSettingsRoute: typeof AuthUSettingsRoute
+  AuthUVideosRoute: typeof AuthUVideosRouteWithChildren
   AuthUIndexRoute: typeof AuthUIndexRoute
   AuthUProfileAnalyticsRoute: typeof AuthUProfileAnalyticsRoute
   AuthUProfileEarnRoute: typeof AuthUProfileEarnRoute
   AuthUProfileMeRoute: typeof AuthUProfileMeRoute
   AuthUProfileMyRallycastsRoute: typeof AuthUProfileMyRallycastsRoute
   AuthUStudioUploadRoute: typeof AuthUStudioUploadRoute
-  AuthUVideosMeRoute: typeof AuthUVideosMeRoute
   AuthUProfileIndexRoute: typeof AuthUProfileIndexRoute
+  AuthUStudioIndexRoute: typeof AuthUStudioIndexRoute
   AuthUStudioVideosIdRoute: typeof AuthUStudioVideosIdRouteWithChildren
 }
 
 const AuthURouteChildren: AuthURouteChildren = {
+  AuthUAdminRoute: AuthUAdminRoute,
+  AuthUCastsRoute: AuthUCastsRouteWithChildren,
   AuthUChallengesRoute: AuthUChallengesRoute,
   AuthUHistoryRoute: AuthUHistoryRouteWithChildren,
   AuthUMeRoute: AuthUMeRoute,
   AuthUMessagesRoute: AuthUMessagesRoute,
   AuthUNotificationsRoute: AuthUNotificationsRoute,
   AuthUOrganizerRoute: AuthUOrganizerRouteWithChildren,
-  AuthURecordingRequestsRoute: AuthURecordingRequestsRouteWithChildren,
   AuthUSettingsRoute: AuthUSettingsRoute,
+  AuthUVideosRoute: AuthUVideosRouteWithChildren,
   AuthUIndexRoute: AuthUIndexRoute,
   AuthUProfileAnalyticsRoute: AuthUProfileAnalyticsRoute,
   AuthUProfileEarnRoute: AuthUProfileEarnRoute,
   AuthUProfileMeRoute: AuthUProfileMeRoute,
   AuthUProfileMyRallycastsRoute: AuthUProfileMyRallycastsRoute,
   AuthUStudioUploadRoute: AuthUStudioUploadRoute,
-  AuthUVideosMeRoute: AuthUVideosMeRoute,
   AuthUProfileIndexRoute: AuthUProfileIndexRoute,
+  AuthUStudioIndexRoute: AuthUStudioIndexRoute,
   AuthUStudioVideosIdRoute: AuthUStudioVideosIdRouteWithChildren,
 }
 

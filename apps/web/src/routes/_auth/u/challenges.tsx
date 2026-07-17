@@ -16,7 +16,7 @@ function ChallengesPage() {
   const { data: session } = authClient.useSession();
   const queryClient = useQueryClient();
   const { data, isLoading } = useQuery({
-    queryFn: () => readApiJson(apiClient.api.challenges.me.$get()),
+    queryFn: () => readApiJson(apiClient.api.v1.challenges.me.$get()),
     queryKey: ["challenges", "me"],
   });
   const respond = useMutation({
@@ -28,7 +28,7 @@ function ChallengesPage() {
       response: "accepted" | "declined" | "cancelled";
     }) =>
       readApiJson(
-        apiClient.api.challenges[":id"].respond.$patch({
+        apiClient.api.v1.challenges[":id"].respond.$patch({
           json: { response },
           param: { id },
         })
@@ -47,7 +47,7 @@ function ChallengesPage() {
       result: "draw" | "lost" | "won";
     }) =>
       readApiJson(
-        apiClient.api.challenges[":id"].result.$patch({
+        apiClient.api.v1.challenges[":id"].result.$patch({
           json: { result },
           param: { id },
         })

@@ -6,7 +6,7 @@ import { readApiJson } from "./api";
 
 export const useCastingJobs = () =>
   useQuery({
-    queryFn: () => readApiJson(apiClient.api["casting-jobs"].$get()),
+    queryFn: () => readApiJson(apiClient.api.v1["casting-jobs"].$get()),
     queryKey: ["casting-jobs"],
   });
 
@@ -23,7 +23,7 @@ export const useCreateCastingJob = () => {
       requestedHours: number;
       startsAt: Date | string;
       venueId?: string;
-    }) => readApiJson(apiClient.api["casting-jobs"].$post({ json })),
+    }) => readApiJson(apiClient.api.v1["casting-jobs"].$post({ json })),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["casting-jobs"] });
     },

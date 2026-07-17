@@ -30,6 +30,14 @@
         "name": "EVENT_COORDINATOR",
         "class_name": "EventCoordinator",
       },
+      {
+        "name": "CHAT_ROOMS",
+        "class_name": "ChatRoom",
+      },
+      {
+        "name": "USER_NOTIFICATIONS",
+        "class_name": "UserNotifications",
+      },
     ],
   },
   "queues": {
@@ -48,6 +56,10 @@
     {
       "tag": "v1",
       "new_sqlite_classes": ["VenuePresence", "EventCoordinator"],
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": ["ChatRoom", "UserNotifications"],
     },
   ],
 }

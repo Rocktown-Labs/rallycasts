@@ -90,7 +90,7 @@ function EventLayout() {
 
   const { data, isLoading, error } = useQuery({
     queryFn: async () => {
-      const res = await apiClient.api.events[":id"].$get({
+      const res = await apiClient.api.v1.events[":id"].$get({
         param: { id },
       });
       if (!res.ok) {

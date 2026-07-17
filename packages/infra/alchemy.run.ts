@@ -1,6 +1,5 @@
 import alchemy, { Secret } from "alchemy";
 import {
-  Ai,
   D1Database,
   DurableObjectNamespace,
   Queue,
@@ -86,7 +85,6 @@ const db = await D1Database("database", {
   migrationsDir: "../../packages/db/src/migrations",
   name: isProd ? "rallycaststv-db" : `rallycaststv-db-${stage}`,
 });
-const ai = Ai();
 const searchIndex = await VectorizeIndex("search-index", {
   adopt: true,
   description: "RallyCasts semantic search index",
@@ -141,6 +139,14 @@ const eventCoordinator = DurableObjectNamespace("event-coordinator", {
   className: "EventCoordinator",
   sqlite: true,
 });
+const chatRooms = DurableObjectNamespace("chat-rooms", {
+  className: "ChatRoom",
+  sqlite: true,
+});
+const userNotifications = DurableObjectNamespace("user-notifications", {
+  className: "UserNotifications",
+  sqlite: true,
+});
 
 // stage is defined at the top
 
@@ -184,9 +190,9 @@ export const server = await Worker("rallycasts-server", {
   adopt: true,
   bindings: filterMissingBindings({
     ADMIN_EMAILS: adminEmails,
-    AI: ai,
     BETTER_AUTH_SECRET: betterAuthSecret,
     BETTER_AUTH_URL: betterAuthUrl,
+    CHAT_ROOMS: chatRooms,
     CORS_ORIGIN: corsOrigin,
     DB: db,
     EVENT_ACTIVITY_QUEUE: eventActivityQueue,
@@ -214,6 +220,7 @@ export const server = await Worker("rallycasts-server", {
     SENTRY_DSN: sentryDsn,
     STRIPE_SECRET_KEY: stripeSecretKey,
     STRIPE_WEBHOOK_SECRET: stripeWebhookSecret,
+    USER_NOTIFICATIONS: userNotifications,
     VENUE_PRESENCE: venuePresence,
   }),
   compatibility: "node",

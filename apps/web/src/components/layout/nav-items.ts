@@ -15,6 +15,7 @@ import {
   Video,
   ArrowLeft,
   LayoutDashboard,
+  ShieldCheck,
   ShoppingBag,
 } from "lucide-react";
 
@@ -33,14 +34,18 @@ export const organizerNavItems = [
   { icon: Calendar, label: "Manage Events", to: "/u/organizer/events" },
 ] as const;
 
+export const adminNavItems = [
+  { icon: ShieldCheck, label: "Admin", to: "/u/admin" },
+] as const;
+
 export const accountNavItems = [
-  { icon: Video, label: "Your Videos", to: "/u/videos/me" },
+  { icon: Video, label: "Your Videos", to: "/u/videos" },
   { icon: UploadCloud, label: "Studio", to: "/u/studio" },
   { icon: User, label: "Profile", to: "/u/profile" },
   {
     icon: Calendar,
-    label: "Recording Requests",
-    to: "/u/recording-requests/all",
+    label: "Casting Requests",
+    to: "/u/casts/all",
   },
   { icon: MessageSquare, label: "Messages", to: "/u/messages" },
   { icon: Swords, label: "Challenges", to: "/u/challenges" },
@@ -58,8 +63,8 @@ export const mobileDiscoverItems = [
 
 export const mobileAccountItems = [
   { icon: LayoutDashboard, label: "Dashboard", to: "/u/me" },
-  { icon: Video, label: "Videos", to: "/u/videos/me" },
-  { icon: Camera, label: "Requests", to: "/u/recording-requests/all" },
+  { icon: Video, label: "Videos", to: "/u/videos" },
+  { icon: Camera, label: "Requests", to: "/u/casts/all" },
   { icon: MessageSquare, label: "Messages", to: "/u/messages" },
   { icon: ArrowLeft, label: "Back", to: "/" },
 ] as const;
