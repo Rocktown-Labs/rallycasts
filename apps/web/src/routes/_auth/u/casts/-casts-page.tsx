@@ -54,7 +54,7 @@ const statusMatchesRoute = (
   return jobStatus === "completed";
 };
 
-function NewRecordingRequestForm({ onClose }: { onClose: () => void }) {
+function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
   const createJob = useCreateCastingJob();
   const [place, setPlace] = useState("");
   const [court, setCourt] = useState("");
@@ -100,9 +100,9 @@ function NewRecordingRequestForm({ onClose }: { onClose: () => void }) {
         startsAt: new Date(startsAt).toISOString(),
       },
       {
-        onError: () => toast.error("Could not create recording request."),
+        onError: () => toast.error("Could not create casting request."),
         onSuccess: () => {
-          toast.success("Recording request created.");
+          toast.success("Casting request created.");
           onClose();
         },
       }
@@ -120,7 +120,7 @@ function NewRecordingRequestForm({ onClose }: { onClose: () => void }) {
           </p>
         </div>
         <Button
-          aria-label="Close new recording request form"
+          aria-label="Close new casting request form"
           onClick={onClose}
           size="icon"
           variant="ghost"
@@ -281,7 +281,7 @@ function NewRecordingRequestForm({ onClose }: { onClose: () => void }) {
   );
 }
 
-export function RecordingRequestsPage({
+export function CastingRequestsPage({
   status,
 }: {
   status: RequestRouteStatus;
@@ -325,7 +325,7 @@ export function RecordingRequestsPage({
         </Link>
       </div>
       {isCreating ? (
-        <NewRecordingRequestForm
+        <NewCastingRequestForm
           onClose={() => {
             setIsCreating(false);
             if (status === "new") {

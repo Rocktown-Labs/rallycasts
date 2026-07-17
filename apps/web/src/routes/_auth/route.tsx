@@ -16,7 +16,7 @@ export const Route = createFileRoute("/_auth")({
 
     let profileData = null;
     try {
-      const res = await apiClient.api.profile.me.$get();
+      const res = await apiClient.api.v1.profile.me.$get();
       if (res.ok) {
         profileData = await res.json();
       }

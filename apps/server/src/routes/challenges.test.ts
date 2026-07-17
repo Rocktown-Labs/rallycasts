@@ -46,7 +46,7 @@ const jsonRequest = (
 describe("challenges API", () => {
   it("rejects challenges issued to yourself", async () => {
     const player = await signUp("Solo Player");
-    const response = await jsonRequest("/api/challenges", player.cookie, {
+    const response = await jsonRequest("/api/v1/challenges", player.cookie, {
       challengedUserId: player.id,
       scheduledAt: new Date(Date.now() + 86_400_000).toISOString(),
       venueLabel: "Crestwood Pickleball Park",
@@ -61,21 +61,25 @@ describe("challenges API", () => {
   it("issues actionable match challenges with casting and tips", async () => {
     const challenger = await signUp("Challenger");
     const opponent = await signUp("Opponent");
-    const response = await jsonRequest("/api/challenges", challenger.cookie, {
-      castingSplitMode: "split_evenly",
-      challengedUserId: opponent.id,
-      courtLabel: "Court 7",
-      isCasted: true,
-      matchMode: "singles",
-      scheduledAt: new Date(Date.now() + 86_400_000).toISOString(),
-      tipCents: 1000,
-      venueLabel: "Crestwood Pickleball Park",
-    });
+    const response = await jsonRequest(
+      "/api/v1/challenges",
+      challenger.cookie,
+      {
+        castingSplitMode: "split_evenly",
+        challengedUserId: opponent.id,
+        courtLabel: "Court 7",
+        isCasted: true,
+        matchMode: "singles",
+        scheduledAt: new Date(Date.now() + 86_400_000).toISOString(),
+        tipCents: 1000,
+        venueLabel: "Crestwood Pickleball Park",
+      }
+    );
     expect(response.status).toBe(201);
     const body = (await response.json()) as { challenge: { id: string } };
 
     const acceptResponse = await jsonRequest(
-      `/api/challenges/${body.challenge.id}/respond`,
+      `/api/v1/challenges/${body.challenge.id}/respond`,
       opponent.cookie,
       { response: "accepted" },
       "PATCH"
@@ -91,7 +95,7 @@ describe("challenges API", () => {
     });
 
     const notifications = await app.request(
-      "/api/social/notifications",
+      "/api/v1/social/notifications",
       { headers: { Cookie: opponent.cookie } },
       env
     );
@@ -104,7 +108,7 @@ describe("challenges API", () => {
     });
 
     const resultResponse = await jsonRequest(
-      `/api/challenges/${body.challenge.id}/result`,
+      `/api/v1/challenges/${body.challenge.id}/result`,
       challenger.cookie,
       { result: "won" },
       "PATCH"
@@ -118,7 +122,7 @@ describe("challenges API", () => {
     });
 
     const challengerProfile = await app.request(
-      `/api/players/${challenger.username}`,
+      `/api/v1/players/${challenger.username}`,
       {},
       env
     );

@@ -86,7 +86,9 @@ function VideoStudioPage() {
   const upload = useVideoUploadState(id);
   const videoQuery = useQuery({
     queryFn: () =>
-      readApiJson(apiClient.api.videos[":id"].studio.$get({ param: { id } })),
+      readApiJson(
+        apiClient.api.v1.videos[":id"].studio.$get({ param: { id } })
+      ),
     queryKey: ["video-studio", id],
     refetchInterval: 2500,
   });
@@ -105,7 +107,7 @@ function VideoStudioPage() {
     enabled: playerQuery.trim().length > 1,
     queryFn: () =>
       readApiJson(
-        apiClient.api.players.$get({ query: { q: playerQuery.trim() } })
+        apiClient.api.v1.players.$get({ query: { q: playerQuery.trim() } })
       ),
     queryKey: ["studio-player-search", playerQuery],
   });
@@ -113,7 +115,7 @@ function VideoStudioPage() {
     enabled: placeQuery.trim().length > 1,
     queryFn: () =>
       readApiJson(
-        apiClient.api.places.search.$get({
+        apiClient.api.v1.places.search.$get({
           query: { q: placeQuery.trim() },
         })
       ),
@@ -135,7 +137,7 @@ function VideoStudioPage() {
   const saveVideo = useMutation({
     mutationFn: (nextVisibility: Visibility) =>
       readApiJson(
-        apiClient.api.videos[":id"].$patch({
+        apiClient.api.v1.videos[":id"].$patch({
           json: {
             description: description.trim() || undefined,
             taggedUserIds: taggedPlayers.map((player) => player.id),
@@ -171,7 +173,7 @@ function VideoStudioPage() {
     name: string;
     placeId: string;
   }) => {
-    const response = await apiClient.api.places.venues.$post({
+    const response = await apiClient.api.v1.places.venues.$post({
       json: { placeId: place.placeId },
     });
     const result = (await response.json()) as {

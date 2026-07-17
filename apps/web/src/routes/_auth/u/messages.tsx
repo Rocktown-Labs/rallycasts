@@ -99,7 +99,7 @@ function NewMessageComposer({
         participantUserId: selectedFriend.id,
       });
       await readApiJson(
-        apiClient.api.social.conversations[":id"].messages.$post({
+        apiClient.api.v1.social.conversations[":id"].messages.$post({
           json: { body },
           param: { id: result.conversationId },
         })

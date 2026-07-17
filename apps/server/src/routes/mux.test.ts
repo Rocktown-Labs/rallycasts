@@ -27,7 +27,7 @@ const signMuxPayload = async (payload: string, timestamp: number) => {
 describe("Mux webhooks", () => {
   it("rejects unsigned events", async () => {
     const response = await app.request(
-      "/api/mux/webhook",
+      "/api/v1/mux/webhook",
       {
         body: JSON.stringify({
           id: "mux-event-unsigned",
@@ -52,7 +52,7 @@ describe("Mux webhooks", () => {
     const signature = await signMuxPayload(payload, timestamp);
     const request = () =>
       app.request(
-        "/api/mux/webhook",
+        "/api/v1/mux/webhook",
         {
           body: payload,
           headers: {

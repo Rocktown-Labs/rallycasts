@@ -6,14 +6,14 @@ import { readApiJson } from "./api";
 
 export const useOrganizations = () =>
   useQuery({
-    queryFn: () => readApiJson(apiClient.api.organizations.$get()),
+    queryFn: () => readApiJson(apiClient.api.v1.organizations.$get()),
     queryKey: ["organizations"],
   });
 
 export const useMyOrganizations = (enabled = true) =>
   useQuery({
     enabled,
-    queryFn: () => readApiJson(apiClient.api.organizations.me.$get()),
+    queryFn: () => readApiJson(apiClient.api.v1.organizations.me.$get()),
     queryKey: ["organizations", "me"],
   });
 
@@ -22,7 +22,7 @@ export const useOrganization = (slug: string) =>
     enabled: slug.length > 0,
     queryFn: () =>
       readApiJson(
-        apiClient.api.organizations[":slug"].$get({ param: { slug } })
+        apiClient.api.v1.organizations[":slug"].$get({ param: { slug } })
       ),
     queryKey: ["organization", slug],
   });
@@ -39,7 +39,7 @@ export const useUpdateOrganization = (slug: string) => {
       state?: string;
     }) =>
       readApiJson(
-        apiClient.api.organizations[":slug"].$patch({
+        apiClient.api.v1.organizations[":slug"].$patch({
           json,
           param: { slug },
         })
@@ -60,7 +60,7 @@ export const useAddOrganizationMember = (slug: string) => {
   return useMutation({
     mutationFn: (json: { role: "admin" | "editor"; username: string }) =>
       readApiJson(
-        apiClient.api.organizations[":slug"].members.$post({
+        apiClient.api.v1.organizations[":slug"].members.$post({
           json,
           param: { slug },
         })

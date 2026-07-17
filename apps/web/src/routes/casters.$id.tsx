@@ -21,7 +21,7 @@ function CasterDetailPage() {
 
   const { data, isLoading, error } = useQuery({
     queryFn: async () => {
-      const res = await apiClient.api.casters[":id"].$get({
+      const res = await apiClient.api.v1.casters[":id"].$get({
         param: { id },
       });
       if (!res.ok) {

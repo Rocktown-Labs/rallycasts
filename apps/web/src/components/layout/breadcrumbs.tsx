@@ -26,7 +26,6 @@ const breadcrumbLabels = new Map<string, string>([
   ["/u/casts/pending", "pending"],
   ["/u/casts/approved", "approved"],
   ["/u/casts/completed", "completed"],
-  ["/u/recording-requests/me", "casts"],
   ["/u/messages", "messages"],
   ["/u/history", "history"],
   ["/onboarding", "onboarding"],

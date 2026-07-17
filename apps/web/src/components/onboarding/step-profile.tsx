@@ -73,9 +73,11 @@ export const StepProfile = withForm({
             setIsCheckingUsername(true);
             setUsernameError(null);
             try {
-              const res = await apiClient.api.profile["check-username"].$get({
-                query: { username },
-              });
+              const res = await apiClient.api.v1.profile["check-username"].$get(
+                {
+                  query: { username },
+                }
+              );
               if (res.ok) {
                 const data = await res.json();
                 if (data.available) {

@@ -9,7 +9,7 @@ export const useEvents = () =>
   useQuery({
     queryFn: async () => {
       try {
-        return await readApiJson(apiClient.api.events.$get());
+        return await readApiJson(apiClient.api.v1.events.$get());
       } catch {
         return { events: demoEvents };
       }
@@ -20,7 +20,7 @@ export const useEvents = () =>
 
 export const useMyEvents = () =>
   useQuery({
-    queryFn: () => readApiJson(apiClient.api.events.mine.$get()),
+    queryFn: () => readApiJson(apiClient.api.v1.events.mine.$get()),
     queryKey: ["events", "mine"],
   });
 
@@ -29,7 +29,7 @@ export const useEvent = (id: string) =>
     enabled: id.length > 0,
     queryFn: () =>
       readApiJson(
-        apiClient.api.events[":id"].$get({
+        apiClient.api.v1.events[":id"].$get({
           param: { id },
         })
       ),
@@ -58,7 +58,7 @@ export const useCreateEvent = () => {
       startsAt: string;
       status?: "cancelled" | "completed" | "draft" | "published";
       venueId?: string;
-    }) => readApiJson(apiClient.api.events.$post({ json })),
+    }) => readApiJson(apiClient.api.v1.events.$post({ json })),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["events", "mine"] });
@@ -89,7 +89,7 @@ export const useUpdateEvent = (id: string) => {
       venueId?: string;
     }) =>
       readApiJson(
-        apiClient.api.events[":id"].$patch({
+        apiClient.api.v1.events[":id"].$patch({
           json,
           param: { id },
         })
@@ -107,7 +107,7 @@ export const useEventPlayers = (id: string) =>
     enabled: id.length > 0,
     queryFn: () =>
       readApiJson(
-        apiClient.api.events[":id"].players.$get({
+        apiClient.api.v1.events[":id"].players.$get({
           param: { id },
         })
       ),
@@ -119,7 +119,7 @@ export const useEventBracket = (id: string) =>
     enabled: id.length > 0,
     queryFn: () =>
       readApiJson(
-        apiClient.api.events[":id"].bracket.$get({
+        apiClient.api.v1.events[":id"].bracket.$get({
           param: { id },
         })
       ),
@@ -132,7 +132,7 @@ export const useGenerateEventBracket = (id: string) => {
   return useMutation({
     mutationFn: (json: { force?: boolean } = {}) =>
       readApiJson(
-        apiClient.api.events[":id"].bracket.generate.$post({
+        apiClient.api.v1.events[":id"].bracket.generate.$post({
           json,
           param: { id },
         })
@@ -151,7 +151,7 @@ export const useEventLive = (id: string) =>
     enabled: id.length > 0,
     queryFn: () =>
       readApiJson(
-        apiClient.api.events[":id"].live.$get({
+        apiClient.api.v1.events[":id"].live.$get({
           param: { id },
         })
       ),
@@ -165,7 +165,7 @@ export const useJoinEvent = (id: string) => {
   return useMutation({
     mutationFn: () =>
       readApiJson(
-        apiClient.api.events[":id"].join.$post({
+        apiClient.api.v1.events[":id"].join.$post({
           param: { id },
         })
       ),
@@ -182,7 +182,7 @@ export const useLeaveEvent = (id: string) => {
   return useMutation({
     mutationFn: () =>
       readApiJson(
-        apiClient.api.events[":id"].join.$delete({
+        apiClient.api.v1.events[":id"].join.$delete({
           param: { id },
         })
       ),
@@ -204,7 +204,7 @@ export const useSubmitMatchScore = (eventId: string, matchId: string) => {
       winnerUserId: string;
     }) =>
       readApiJson(
-        apiClient.api.events[":id"].matches[":matchId"].scores.$post({
+        apiClient.api.v1.events[":id"].matches[":matchId"].scores.$post({
           json,
           param: { id: eventId, matchId },
         })

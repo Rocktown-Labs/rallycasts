@@ -41,7 +41,7 @@ export function ManageOrganizationPage({ slug }: { slug: string }) {
   const { data } = useQuery({
     queryFn: () =>
       readApiJson(
-        apiClient.api.organizations[":slug"].$get({ param: { slug } })
+        apiClient.api.v1.organizations[":slug"].$get({ param: { slug } })
       ),
     queryKey: ["organization", slug],
   });
@@ -64,7 +64,7 @@ export function ManageOrganizationPage({ slug }: { slug: string }) {
   );
   const [organizationPost, setOrganizationPost] = useState("");
   const { data: myVideosData } = useQuery({
-    queryFn: () => readApiJson(apiClient.api.videos.me.$get()),
+    queryFn: () => readApiJson(apiClient.api.v1.videos.me.$get()),
     queryKey: ["videos", "me"],
   });
 
@@ -76,7 +76,7 @@ export function ManageOrganizationPage({ slug }: { slug: string }) {
       }
 
       return readApiJson(
-        apiClient.api.organizations[":slug"].$patch({
+        apiClient.api.v1.organizations[":slug"].$patch({
           json: {
             bio: bio.trim() || undefined,
             city: city.trim() || undefined,
@@ -103,7 +103,7 @@ export function ManageOrganizationPage({ slug }: { slug: string }) {
   const addMember = useMutation({
     mutationFn: () =>
       readApiJson(
-        apiClient.api.organizations[":slug"].members.$post({
+        apiClient.api.v1.organizations[":slug"].members.$post({
           json: { role: "editor", username: memberUsername },
           param: { slug },
         })
@@ -117,7 +117,7 @@ export function ManageOrganizationPage({ slug }: { slug: string }) {
   const createTournament = useMutation({
     mutationFn: () =>
       readApiJson(
-        apiClient.api.events.$post({
+        apiClient.api.v1.events.$post({
           json: {
             bracketType: "single_elimination",
             capacity: Number(capacity),
@@ -154,7 +154,7 @@ export function ManageOrganizationPage({ slug }: { slug: string }) {
   const startStripe = useMutation({
     mutationFn: () =>
       readApiJson(
-        apiClient.api.stripe.connect[":organizationId"].onboarding.$post({
+        apiClient.api.v1.stripe.connect[":organizationId"].onboarding.$post({
           param: { organizationId: organization?.id ?? "" },
         })
       ),
@@ -165,7 +165,7 @@ export function ManageOrganizationPage({ slug }: { slug: string }) {
   const publishPost = useMutation({
     mutationFn: () =>
       readApiJson(
-        apiClient.api.organizations[":slug"].posts.$post({
+        apiClient.api.v1.organizations[":slug"].posts.$post({
           json: { content: organizationPost },
           param: { slug },
         })
@@ -179,7 +179,7 @@ export function ManageOrganizationPage({ slug }: { slug: string }) {
   const attachVideo = useMutation({
     mutationFn: (videoId: string) =>
       readApiJson(
-        apiClient.api.organizations[":slug"].videos.$post({
+        apiClient.api.v1.organizations[":slug"].videos.$post({
           json: { videoId },
           param: { slug },
         })

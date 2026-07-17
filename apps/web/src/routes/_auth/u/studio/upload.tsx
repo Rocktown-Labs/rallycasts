@@ -49,7 +49,7 @@ function StudioUploadPage() {
     setIsPreparing(true);
     try {
       const result = await readApiJson(
-        apiClient.api.upload.mux.$post({
+        apiClient.api.v1.upload.mux.$post({
           json: {
             mediaType: "video",
             title: title.trim(),

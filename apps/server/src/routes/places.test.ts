@@ -35,7 +35,7 @@ const signUp = async (): Promise<string> => {
 const createVenueRequest = async (placeId?: string) => {
   const cookie = await signUp();
   return app.request(
-    "/api/places/venues",
+    "/api/v1/places/venues",
     {
       body: JSON.stringify(placeId ? { placeId } : {}),
       headers: { "Content-Type": "application/json", Cookie: cookie },
@@ -77,7 +77,7 @@ describe("places routes", () => {
       });
 
       const response = await app.request(
-        "/api/places/search?q=pickleball+courts",
+        "/api/v1/places/search?q=pickleball+courts",
         {},
         env
       );
@@ -89,7 +89,7 @@ describe("places routes", () => {
     });
 
     it("returns 400 for empty query", async () => {
-      const response = await app.request("/api/places/search?q=", {}, env);
+      const response = await app.request("/api/v1/places/search?q=", {}, env);
 
       expect(response.status).toBe(400);
       const data = await response.json();
@@ -97,7 +97,7 @@ describe("places routes", () => {
     });
 
     it("returns 400 for missing query parameter", async () => {
-      const response = await app.request("/api/places/search", {}, env);
+      const response = await app.request("/api/v1/places/search", {}, env);
 
       expect(response.status).toBe(400);
     });
@@ -109,7 +109,7 @@ describe("places routes", () => {
       });
 
       const response = await app.request(
-        "/api/places/search?q=pickleball",
+        "/api/v1/places/search?q=pickleball",
         {},
         env
       );
@@ -135,7 +135,7 @@ describe("places routes", () => {
       ]);
 
       const response = await app.request(
-        "/api/places/nearby?lat=40.7128&lng=-74.006&radius=25000",
+        "/api/v1/places/nearby?lat=40.7128&lng=-74.006&radius=25000",
         {},
         env
       );
@@ -147,7 +147,7 @@ describe("places routes", () => {
     });
 
     it("returns 400 for missing lat/lng", async () => {
-      const response = await app.request("/api/places/nearby", {}, env);
+      const response = await app.request("/api/v1/places/nearby", {}, env);
 
       expect(response.status).toBe(400);
       const data = await response.json();
@@ -156,7 +156,7 @@ describe("places routes", () => {
 
     it("returns 400 for missing lng", async () => {
       const response = await app.request(
-        "/api/places/nearby?lat=40.7128",
+        "/api/v1/places/nearby?lat=40.7128",
         {},
         env
       );
@@ -193,7 +193,7 @@ describe("places routes", () => {
       });
 
       const response = await app.request(
-        "/api/places/details/place_789",
+        "/api/v1/places/details/place_789",
         {},
         env
       );
@@ -205,7 +205,7 @@ describe("places routes", () => {
     });
 
     it("returns 400 for missing placeId", async () => {
-      const response = await app.request("/api/places/details/", {}, env);
+      const response = await app.request("/api/v1/places/details/", {}, env);
       expect(response.status).toBe(404);
     });
   });
@@ -213,7 +213,7 @@ describe("places routes", () => {
   describe("POST /api/places/venues", () => {
     it("requires authentication", async () => {
       const response = await app.request(
-        "/api/places/venues",
+        "/api/v1/places/venues",
         {
           body: JSON.stringify({ placeId: "place_private" }),
           headers: { "Content-Type": "application/json" },

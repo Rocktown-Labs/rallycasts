@@ -8,7 +8,7 @@ export const useNotifications = () =>
   useQuery({
     queryFn: async () => {
       try {
-        const response = await apiClient.api.social.notifications.$get();
+        const response = await apiClient.api.v1.social.notifications.$get();
         if (response.status === 401) {
           return null;
         }
@@ -31,7 +31,7 @@ export const useMarkNotificationsRead = () => {
 
   return useMutation({
     mutationFn: () =>
-      readApiJson(apiClient.api.social.notifications.read.$post()),
+      readApiJson(apiClient.api.v1.social.notifications.read.$post()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
@@ -40,7 +40,7 @@ export const useMarkNotificationsRead = () => {
 
 export const usePosts = () =>
   useQuery({
-    queryFn: () => readApiJson(apiClient.api.social.posts.$get()),
+    queryFn: () => readApiJson(apiClient.api.v1.social.posts.$get()),
     queryKey: ["posts"],
   });
 
@@ -49,7 +49,7 @@ export const useCreatePost = () => {
 
   return useMutation({
     mutationFn: (json: { content: string }) =>
-      readApiJson(apiClient.api.social.posts.$post({ json })),
+      readApiJson(apiClient.api.v1.social.posts.$post({ json })),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       queryClient.invalidateQueries({ queryKey: ["search"] });
@@ -62,7 +62,7 @@ export const useSendFriendRequest = () => {
 
   return useMutation({
     mutationFn: (json: { message?: string; toUserId: string }) =>
-      readApiJson(apiClient.api.social["friend-requests"].$post({ json })),
+      readApiJson(apiClient.api.v1.social["friend-requests"].$post({ json })),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["friend-requests"] });
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
@@ -75,7 +75,7 @@ export const useStartConversation = () => {
 
   return useMutation({
     mutationFn: (json: { participantUserId: string }) =>
-      readApiJson(apiClient.api.social.conversations.$post({ json })),
+      readApiJson(apiClient.api.v1.social.conversations.$post({ json })),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
     },
@@ -84,14 +84,14 @@ export const useStartConversation = () => {
 
 export const useFriends = () =>
   useQuery({
-    queryFn: () => readApiJson(apiClient.api.social.friends.$get()),
+    queryFn: () => readApiJson(apiClient.api.v1.social.friends.$get()),
     queryKey: ["friends"],
     retry: false,
   });
 
 export const useConversations = () =>
   useQuery({
-    queryFn: () => readApiJson(apiClient.api.social.conversations.$get()),
+    queryFn: () => readApiJson(apiClient.api.v1.social.conversations.$get()),
     queryKey: ["conversations"],
     retry: false,
   });
@@ -101,7 +101,7 @@ export const useConversationMessages = (conversationId?: string) =>
     enabled: Boolean(conversationId),
     queryFn: () =>
       readApiJson(
-        apiClient.api.social.conversations[":id"].messages.$get({
+        apiClient.api.v1.social.conversations[":id"].messages.$get({
           param: { id: conversationId ?? "" },
         })
       ),
@@ -115,7 +115,7 @@ export const useSendMessage = (conversationId?: string) => {
   return useMutation({
     mutationFn: (json: { body: string }) =>
       readApiJson(
-        apiClient.api.social.conversations[":id"].messages.$post({
+        apiClient.api.v1.social.conversations[":id"].messages.$post({
           json,
           param: { id: conversationId ?? "" },
         })
@@ -140,7 +140,7 @@ export const useShareEntity = () => {
       entityType: "event" | "post" | "profile" | "venue" | "video";
       href?: string;
       recipientUserId?: string;
-    }) => readApiJson(apiClient.api.social.shares.$post({ json })),
+    }) => readApiJson(apiClient.api.v1.social.shares.$post({ json })),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },

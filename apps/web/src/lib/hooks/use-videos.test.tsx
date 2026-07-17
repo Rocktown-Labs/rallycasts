@@ -8,15 +8,17 @@ import { useInfiniteVideos } from "./use-videos";
 vi.mock("@/lib/api-client", () => ({
   apiClient: {
     api: {
-      videos: {
-        $get: vi.fn(() =>
-          Promise.resolve(
-            Response.json(
-              { message: "Demo fallback" },
-              { status: 503, statusText: "Unavailable" }
+      v1: {
+        videos: {
+          $get: vi.fn(() =>
+            Promise.resolve(
+              Response.json(
+                { message: "Demo fallback" },
+                { status: 503, statusText: "Unavailable" }
+              )
             )
-          )
-        ),
+          ),
+        },
       },
     },
   },

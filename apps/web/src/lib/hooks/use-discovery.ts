@@ -48,7 +48,7 @@ export const useTrending = (
             : {}),
         };
         const data = await readApiJson(
-          apiClient.api.trending.$get({
+          apiClient.api.v1.trending.$get({
             query,
           })
         );
@@ -75,7 +75,7 @@ export const usePlayers = (
     queryFn: async () => {
       try {
         return await readApiJson(
-          apiClient.api.players.$get({
+          apiClient.api.v1.players.$get({
             query: {
               ...(query ? { q: query } : {}),
               ...(role ? { role } : {}),
@@ -95,7 +95,7 @@ export const useOrganizers = (query = "") =>
     queryFn: async () => {
       try {
         return await readApiJson(
-          apiClient.api.players.$get({
+          apiClient.api.v1.players.$get({
             query: {
               ...(query ? { q: query } : {}),
               role: "organizer",
@@ -134,7 +134,7 @@ export const useVenues = (query = "", location?: GeoLocation) =>
     queryFn: async () => {
       try {
         return await readApiJson(
-          apiClient.api.venues.$get({
+          apiClient.api.v1.venues.$get({
             query: {
               ...(query ? { q: query } : {}),
               ...(location
@@ -163,7 +163,7 @@ export const useSearch = (query: string, type: SearchEntity) =>
 
       try {
         data = await readApiJson(
-          apiClient.api.search.$get({
+          apiClient.api.v1.search.$get({
             query: { q: query, type },
           })
         );

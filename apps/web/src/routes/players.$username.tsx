@@ -1240,7 +1240,7 @@ function PlayerProfilePage() {
   } = useQuery({
     queryFn: async () => {
       try {
-        const res = await apiClient.api.players[":username"].$get({
+        const res = await apiClient.api.v1.players[":username"].$get({
           param: { username },
         });
         if (!res.ok) {
@@ -1366,7 +1366,7 @@ function PlayerProfilePage() {
     };
     try {
       await readApiJson(
-        apiClient.api.challenges.$post({
+        apiClient.api.v1.challenges.$post({
           json: {
             castingSplitMode:
               splitModeMap[challengeData.splitMode] ?? "challenger",

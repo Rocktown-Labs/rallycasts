@@ -60,7 +60,7 @@ describe("Stripe tournament payments", () => {
     );
 
     const checkoutResponse = await app.request(
-      `/api/stripe/events/${eventId}/checkout`,
+      `/api/v1/stripe/events/${eventId}/checkout`,
       { headers: { Cookie: player.cookie }, method: "POST" },
       { ...env, STRIPE_SECRET_KEY: "sk_test_value" }
     );
@@ -92,7 +92,7 @@ describe("Stripe tournament payments", () => {
     const timestamp = Math.floor(Date.now() / 1000).toString();
     const signature = await signPayload(payload, timestamp);
     const webhookResponse = await app.request(
-      "/api/stripe/webhook",
+      "/api/v1/stripe/webhook",
       {
         body: payload,
         headers: {
@@ -115,7 +115,7 @@ describe("Stripe tournament payments", () => {
       Response.json({ id: "re_test_registration" })
     );
     const refundResponse = await app.request(
-      `/api/stripe/events/${eventId}/refund`,
+      `/api/v1/stripe/events/${eventId}/refund`,
       { headers: { Cookie: player.cookie }, method: "POST" },
       { ...env, STRIPE_SECRET_KEY: "sk_test_value" }
     );

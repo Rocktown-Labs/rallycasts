@@ -58,7 +58,7 @@ describe("social API", () => {
     const bob = await signUp("Bob Kitchen");
 
     const requestResponse = await jsonRequest(
-      "/api/social/friend-requests",
+      "/api/v1/social/friend-requests",
       alice.cookie,
       {
         message: "Open play later?",
@@ -69,7 +69,7 @@ describe("social API", () => {
     expect(requestResponse.status).toBe(201);
 
     const bobNotifications = await app.request(
-      "/api/social/notifications",
+      "/api/v1/social/notifications",
       {
         headers: { Cookie: bob.cookie },
       },
@@ -82,7 +82,7 @@ describe("social API", () => {
     expect(notificationData.unreadCount).toBe(1);
 
     const requestsResponse = await app.request(
-      "/api/social/friend-requests",
+      "/api/v1/social/friend-requests",
       {
         headers: { Cookie: bob.cookie },
       },
@@ -97,7 +97,7 @@ describe("social API", () => {
     expect(requestId).toBeTruthy();
 
     const acceptResponse = await jsonRequest(
-      `/api/social/friend-requests/${requestId}/respond`,
+      `/api/v1/social/friend-requests/${requestId}/respond`,
       bob.cookie,
       { status: "accepted" }
     );
@@ -105,7 +105,7 @@ describe("social API", () => {
     expect(acceptResponse.status).toBe(200);
 
     const friendsResponse = await app.request(
-      "/api/social/friends",
+      "/api/v1/social/friends",
       {
         headers: { Cookie: alice.cookie },
       },
@@ -125,7 +125,7 @@ describe("social API", () => {
     const bob = await signUp("Bob Drive");
 
     const conversationResponse = await jsonRequest(
-      "/api/social/conversations",
+      "/api/v1/social/conversations",
       alice.cookie,
       { participantUserId: bob.id }
     );
@@ -137,7 +137,7 @@ describe("social API", () => {
     };
 
     const messageResponse = await jsonRequest(
-      `/api/social/conversations/${conversationId}/messages`,
+      `/api/v1/social/conversations/${conversationId}/messages`,
       alice.cookie,
       { body: "Meet at court 3?" }
     );
@@ -145,7 +145,7 @@ describe("social API", () => {
     expect(messageResponse.status).toBe(201);
 
     const bobNotifications = await app.request(
-      "/api/social/notifications",
+      "/api/v1/social/notifications",
       {
         headers: { Cookie: bob.cookie },
       },
@@ -167,14 +167,18 @@ describe("social API", () => {
   it("indexes new posts for search", async () => {
     const alice = await signUp("Alice Search");
 
-    const postResponse = await jsonRequest("/api/social/posts", alice.cookie, {
-      content: "Tonight at Crestwood has spicy 4.0 doubles open play.",
-    });
+    const postResponse = await jsonRequest(
+      "/api/v1/social/posts",
+      alice.cookie,
+      {
+        content: "Tonight at Crestwood has spicy 4.0 doubles open play.",
+      }
+    );
 
     expect(postResponse.status).toBe(201);
 
     const searchResponse = await app.request(
-      "/api/search?q=Crestwood&type=all",
+      "/api/v1/search?q=Crestwood&type=all",
       {},
       env
     );

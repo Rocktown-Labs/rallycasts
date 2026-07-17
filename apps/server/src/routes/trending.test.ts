@@ -51,7 +51,7 @@ const googleVenue = (overrides: Partial<GoogleVenue>): GoogleVenue =>
 describe("trending venue discovery", () => {
   it("keeps Trending available when Google Places is not configured", async () => {
     const response = await app.request(
-      "/api/trending?lat=36.37&lng=-94.21",
+      "/api/v1/trending?lat=36.37&lng=-94.21",
       {},
       { ...env, GOOGLE_PLACES_API_KEY: "" }
     );

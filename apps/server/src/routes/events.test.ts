@@ -77,7 +77,7 @@ const jsonRequest = (
 
 const activateOrganizer = (cookie: string) =>
   jsonRequest(
-    "/api/profile/me",
+    "/api/v1/profile/me",
     cookie,
     {
       isOrganizer: true,
@@ -93,7 +93,7 @@ describe("events API", () => {
   it("promotes configured RallyCasts admins to organizers and labels hosted events", async () => {
     const admin = await signUp("RallyCasts Admin", "camstewart7@gmail.com");
     const profileResponse = await app.request(
-      "/api/profile/me",
+      "/api/v1/profile/me",
       {
         headers: {
           Cookie: admin.cookie,
@@ -113,7 +113,7 @@ describe("events API", () => {
     });
 
     mockGooglePlaceDetails();
-    const eventResponse = await jsonRequest("/api/events", admin.cookie, {
+    const eventResponse = await jsonRequest("/api/v1/events", admin.cookie, {
       capacity: 16,
       eventType: "tournament",
       googlePlaceId: "event_place_admin",
@@ -142,14 +142,18 @@ describe("events API", () => {
     expect(organizerProfileResponse.status).toBe(200);
 
     mockGooglePlaceDetails();
-    const eventResponse = await jsonRequest("/api/events", organizer.cookie, {
-      capacity: 2,
-      eventType: "tournament",
-      googlePlaceId: "event_place_ladder",
-      name: "Spring Ladder",
-      startsAt,
-      status: "published",
-    });
+    const eventResponse = await jsonRequest(
+      "/api/v1/events",
+      organizer.cookie,
+      {
+        capacity: 2,
+        eventType: "tournament",
+        googlePlaceId: "event_place_ladder",
+        name: "Spring Ladder",
+        startsAt,
+        status: "published",
+      }
+    );
 
     expect(eventResponse.status).toBe(201);
     const eventData = (await eventResponse.json()) as {
@@ -158,7 +162,7 @@ describe("events API", () => {
     const eventId = eventData.event.id;
 
     const unauthorizedPatch = await jsonRequest(
-      `/api/events/${eventId}`,
+      `/api/v1/events/${eventId}`,
       playerOne.cookie,
       { name: "Hijacked Ladder" },
       "PATCH"
@@ -167,12 +171,12 @@ describe("events API", () => {
     expect(unauthorizedPatch.status).toBe(404);
 
     const joinOne = await jsonRequest(
-      `/api/events/${eventId}/join`,
+      `/api/v1/events/${eventId}/join`,
       playerOne.cookie,
       {}
     );
     const joinTwo = await jsonRequest(
-      `/api/events/${eventId}/join`,
+      `/api/v1/events/${eventId}/join`,
       playerTwo.cookie,
       {}
     );
@@ -181,7 +185,7 @@ describe("events API", () => {
     expect(joinTwo.status).toBe(200);
 
     const playersResponse = await app.request(
-      `/api/events/${eventId}/players`,
+      `/api/v1/events/${eventId}/players`,
       {},
       env
     );
@@ -195,7 +199,7 @@ describe("events API", () => {
     ]);
 
     const unauthorizedBracket = await jsonRequest(
-      `/api/events/${eventId}/bracket/generate`,
+      `/api/v1/events/${eventId}/bracket/generate`,
       playerOne.cookie,
       {}
     );
@@ -203,7 +207,7 @@ describe("events API", () => {
     expect(unauthorizedBracket.status).toBe(404);
 
     const bracketResponse = await jsonRequest(
-      `/api/events/${eventId}/bracket/generate`,
+      `/api/v1/events/${eventId}/bracket/generate`,
       organizer.cookie,
       {}
     );
@@ -224,7 +228,7 @@ describe("events API", () => {
     });
 
     const firstScoreResponse = await jsonRequest(
-      `/api/events/${eventId}/matches/${match?.id}/scores`,
+      `/api/v1/events/${eventId}/matches/${match?.id}/scores`,
       playerOne.cookie,
       {
         playerOneScore: 11,
@@ -239,7 +243,7 @@ describe("events API", () => {
     });
 
     const confirmScoreResponse = await jsonRequest(
-      `/api/events/${eventId}/matches/${match?.id}/scores`,
+      `/api/v1/events/${eventId}/matches/${match?.id}/scores`,
       playerTwo.cookie,
       {
         playerOneScore: 11,
@@ -254,7 +258,7 @@ describe("events API", () => {
     });
 
     const liveResponse = await app.request(
-      `/api/events/${eventId}/live`,
+      `/api/v1/events/${eventId}/live`,
       {},
       env
     );
@@ -262,7 +266,7 @@ describe("events API", () => {
     expect(liveResponse.status).toBe(200);
 
     const matchUpdate = await jsonRequest(
-      `/api/events/${eventId}/matches/${match?.id}`,
+      `/api/v1/events/${eventId}/matches/${match?.id}`,
       organizer.cookie,
       {
         playerOneScore: 11,
@@ -278,7 +282,7 @@ describe("events API", () => {
 
   it("rejects event creation until the user has organizer tools enabled", async () => {
     const player = await signUp("Plain Player");
-    const response = await jsonRequest("/api/events", player.cookie, {
+    const response = await jsonRequest("/api/v1/events", player.cookie, {
       capacity: 12,
       eventType: "open_play",
       googlePlaceId: "event_place_rejected",
@@ -302,7 +306,7 @@ describe("events API", () => {
     );
 
     const response = await app.request(
-      "/api/upload/image",
+      "/api/v1/upload/image",
       {
         body,
         headers: {

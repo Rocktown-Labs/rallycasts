@@ -157,7 +157,7 @@ export function ProfileEditorPage({
           setIsCheckingUsername(true);
           setUsernameError(null);
           try {
-            const res = await apiClient.api.profile["check-username"].$get({
+            const res = await apiClient.api.v1.profile["check-username"].$get({
               query: { username },
             });
             if (res.ok) {

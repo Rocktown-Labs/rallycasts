@@ -19,7 +19,7 @@ export const useVideos = () =>
   useQuery({
     queryFn: async () => {
       try {
-        return await readApiJson(apiClient.api.videos.$get());
+        return await readApiJson(apiClient.api.v1.videos.$get());
       } catch {
         return { videos: demoVideos };
       }
@@ -33,7 +33,7 @@ export const useRecommendedVideos = (enabled = true) =>
     enabled,
     queryFn: async () => {
       try {
-        return await readApiJson(apiClient.api.videos.feed.$get());
+        return await readApiJson(apiClient.api.v1.videos.feed.$get());
       } catch {
         return {
           mode: "fallback" as const,
@@ -59,7 +59,7 @@ export const useInfiniteVideos = (limit = 12) =>
 
       try {
         const result = await readApiJson(
-          apiClient.api.videos.$get({
+          apiClient.api.v1.videos.$get({
             query: {
               ...(pageParam ? { cursor: pageParam } : {}),
               limit: String(limit),
@@ -79,7 +79,7 @@ export const useInfiniteVideos = (limit = 12) =>
 
 export const useMyVideos = () =>
   useQuery({
-    queryFn: () => readApiJson(apiClient.api.videos.me.$get()),
+    queryFn: () => readApiJson(apiClient.api.v1.videos.me.$get()),
     queryKey: ["videos", "me"],
   });
 
@@ -93,7 +93,7 @@ export const useVideo = (id: string) =>
       }
 
       return await readApiJson(
-        apiClient.api.videos[":id"].$get({ param: { id } })
+        apiClient.api.v1.videos[":id"].$get({ param: { id } })
       );
     },
     queryKey: ["videos", id],
@@ -114,7 +114,7 @@ export const useCreateVideo = () => {
       venueId?: string | null;
       visibility?: "public" | "friends" | "private";
       taggedUserIds?: string[];
-    }) => readApiJson(apiClient.api.videos.$post({ json })),
+    }) => readApiJson(apiClient.api.v1.videos.$post({ json })),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["videos"] });
     },
@@ -126,7 +126,7 @@ export const useVideoComments = (videoId: string, enabled = true) =>
     enabled: enabled && videoId.length > 0,
     queryFn: () =>
       readApiJson(
-        apiClient.api.videos[":id"].comments.$get({
+        apiClient.api.v1.videos[":id"].comments.$get({
           param: { id: videoId },
         })
       ),
@@ -139,7 +139,7 @@ export const useAddVideoComment = (videoId: string) => {
   return useMutation({
     mutationFn: (json: { content: string }) =>
       readApiJson(
-        apiClient.api.videos[":id"].comments.$post({
+        apiClient.api.v1.videos[":id"].comments.$post({
           json,
           param: { id: videoId },
         })
@@ -158,7 +158,7 @@ export const usePinVideoComment = (videoId: string) => {
   return useMutation({
     mutationFn: (json: { commentId: string; pinned: boolean }) =>
       readApiJson(
-        apiClient.api.videos[":id"].comments[":commentId"].pin.$patch({
+        apiClient.api.v1.videos[":id"].comments[":commentId"].pin.$patch({
           json: { pinned: json.pinned },
           param: { commentId: json.commentId, id: videoId },
         })

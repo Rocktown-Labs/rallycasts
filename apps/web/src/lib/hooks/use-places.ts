@@ -9,7 +9,7 @@ export const usePlaceSearch = (query: string) =>
     enabled: query.trim().length >= 3,
     queryFn: () =>
       readApiJson(
-        apiClient.api.places.search.$get({
+        apiClient.api.v1.places.search.$get({
           query: { q: query.trim() },
         })
       ),
