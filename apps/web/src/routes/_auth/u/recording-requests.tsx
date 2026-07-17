@@ -1,5 +1,7 @@
-import { Outlet, createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_auth/u/recording-requests")({
-  component: () => <Outlet />,
+  beforeLoad: () => {
+    throw redirect({ to: "/u/casts/all" });
+  },
 });

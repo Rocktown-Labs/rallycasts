@@ -88,7 +88,7 @@ function DashboardPage() {
                 <ArrowRight className="size-4" />
               </Button>
             </Link>
-            <Link to="/u/videos/me">
+            <Link to="/u/videos">
               <Button
                 variant="outline"
                 className="w-full justify-between rounded-lg py-5 text-xs"
@@ -99,13 +99,13 @@ function DashboardPage() {
                 <ArrowRight className="size-4" />
               </Button>
             </Link>
-            <Link to="/u/recording-requests/me">
+            <Link to="/u/casts/all">
               <Button
                 variant="outline"
                 className="w-full justify-between rounded-lg py-5 text-xs"
               >
                 <span className="flex items-center gap-2">
-                  <Camera className="size-4 text-primary" /> Recording Requests
+                  <Camera className="size-4 text-primary" /> Casting Requests
                 </span>
                 <ArrowRight className="size-4" />
               </Button>

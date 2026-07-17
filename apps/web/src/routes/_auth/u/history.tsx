@@ -1,7 +1,7 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+
+import { HistoryPage } from "./history/-history-page";
 
 export const Route = createFileRoute("/_auth/u/history")({
-  beforeLoad: () => {
-    throw redirect({ to: "/u/history/videos" });
-  },
+  component: () => <HistoryPage section="videos" />,
 });

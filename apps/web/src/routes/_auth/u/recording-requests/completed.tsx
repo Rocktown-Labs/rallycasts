@@ -1,7 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
-
-import { RecordingRequestsPage } from "./-recording-requests-page";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_auth/u/recording-requests/completed")({
-  component: () => <RecordingRequestsPage status="completed" />,
+  beforeLoad: () => {
+    throw redirect({ to: "/u/casts/completed" });
+  },
 });
