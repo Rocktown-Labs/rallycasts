@@ -94,7 +94,8 @@ jobs:
               bun x wrangler r2 bucket create "$R2_BUCKET_NAME"
             fi
 
-            CUSTOM_DOMAIN_URL="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/r2/buckets/$R2_BUCKET_NAME/domains/custom/media.rallycasts.com"
+            CUSTOM_DOMAIN_COLLECTION_URL="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/r2/buckets/$R2_BUCKET_NAME/domains/custom"
+            CUSTOM_DOMAIN_URL="$CUSTOM_DOMAIN_COLLECTION_URL/media.rallycasts.com"
             CUSTOM_DOMAIN_RESPONSE="$(mktemp)"
             CUSTOM_DOMAIN_STATUS="$(curl -sS -o "$CUSTOM_DOMAIN_RESPONSE" -w "%{http_code}" \
               -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
@@ -127,7 +128,7 @@ jobs:
                 -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
                 -H "Content-Type: application/json" \
                 --data "$CUSTOM_DOMAIN_PAYLOAD" \
-                "$CUSTOM_DOMAIN_URL" | jq -e '.success == true' >/dev/null; then
+                "$CUSTOM_DOMAIN_COLLECTION_URL" | jq -e '.success == true' >/dev/null; then
                 rm -f "$CUSTOM_DOMAIN_RESPONSE"
                 echo "ERROR: Could not create the production R2 custom domain."
                 exit 1
