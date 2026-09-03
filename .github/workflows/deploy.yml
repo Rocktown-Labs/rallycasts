@@ -85,11 +85,11 @@ jobs:
               echo "ERROR: Could not list production R2 buckets."
               exit 1
             fi
-            if ! printf "%s" "$R2_BUCKETS" | jq -e '.success == true and (.result | type == "array")' >/dev/null; then
+            if ! printf "%s" "$R2_BUCKETS" | jq -e '.success == true and (.result.buckets | type == "array")' >/dev/null; then
               echo "ERROR: Cloudflare returned an invalid production R2 bucket list."
               exit 1
             fi
-            if ! printf "%s" "$R2_BUCKETS" | jq -e --arg bucket "$R2_BUCKET_NAME" 'any(.result[]?; .name == $bucket)' >/dev/null; then
+            if ! printf "%s" "$R2_BUCKETS" | jq -e --arg bucket "$R2_BUCKET_NAME" 'any(.result.buckets[]?; .name == $bucket)' >/dev/null; then
               echo "Production R2 bucket is missing; creating it."
               bun x wrangler r2 bucket create "$R2_BUCKET_NAME"
             fi
