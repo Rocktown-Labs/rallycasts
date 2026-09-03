@@ -129,7 +129,7 @@ const stripeWebhookSecret = optionalSecret("STRIPE_WEBHOOK_SECRET");
 const sentryDsn = optionalSecret("SENTRY_DSN");
 
 const mediaBucket = r2BucketName
-  ? await R2Bucket("media-v3", {
+  ? await R2Bucket("media-v4", {
       adopt: true,
       domains: isProd ? ["media.rallycasts.com"] : undefined,
       name: r2BucketName,
