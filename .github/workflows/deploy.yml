@@ -77,6 +77,23 @@ jobs:
             echo "ERROR: R2_BUCKET_NAME is not set and MEDIA_BUCKET could not be inherited from rallycasts-server."
             exit 1
           fi
+          if [ "${{ env.STAGE }}" = "prod" ]; then
+            if ! R2_BUCKETS="$(curl -fsS \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/r2/buckets")"; then
+              echo "ERROR: Could not list production R2 buckets."
+              exit 1
+            fi
+            if ! printf "%s" "$R2_BUCKETS" | jq -e '.success == true and (.result | type == "array")' >/dev/null; then
+              echo "ERROR: Cloudflare returned an invalid production R2 bucket list."
+              exit 1
+            fi
+            if ! printf "%s" "$R2_BUCKETS" | jq -e --arg bucket "$R2_BUCKET_NAME" 'any(.result[]?; .name == $bucket)' >/dev/null; then
+              echo "Production R2 bucket is missing; creating it."
+              bun x wrangler r2 bucket create "$R2_BUCKET_NAME"
+            fi
+          fi
           printf "%s" "$ALCHEMY_STATE_TOKEN" | bun x wrangler secret put STATE_TOKEN --name alchemy-state-service
           cd packages/infra && bun x alchemy deploy --stage ${{ env.STAGE }}
         env:
