@@ -42,9 +42,13 @@ describe("realtime access tokens", () => {
       userId: "user-1",
     });
 
+    const [payload, signature] = token?.split(".") ?? [];
+    const tamperedSignature = signature
+      ? `${signature.startsWith("a") ? "b" : "a"}${signature.slice(1)}`
+      : "";
     await expect(
       verifyRealtimeAccessToken(
-        `${token?.slice(0, -1)}${token?.endsWith("a") ? "b" : "a"}`,
+        `${payload}.${tamperedSignature}`,
         "test-secret",
         "conversation-1"
       )
