@@ -93,6 +93,33 @@ jobs:
               echo "Production R2 bucket is missing; creating it."
               bun x wrangler r2 bucket create "$R2_BUCKET_NAME"
             fi
+
+            CUSTOM_DOMAIN_URL="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/r2/buckets/$R2_BUCKET_NAME/domains/custom/media.rallycasts.com"
+            CUSTOM_DOMAIN_RESPONSE="$(mktemp)"
+            CUSTOM_DOMAIN_STATUS="$(curl -sS -o "$CUSTOM_DOMAIN_RESPONSE" -w "%{http_code}" \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              "$CUSTOM_DOMAIN_URL")" || {
+              rm -f "$CUSTOM_DOMAIN_RESPONSE"
+              echo "ERROR: Could not inspect the production R2 custom domain."
+              exit 1
+            }
+            if [ "$CUSTOM_DOMAIN_STATUS" = "404" ]; then
+              if ! curl -fsS -X POST \
+                -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+                -H "Content-Type: application/json" \
+                --data '{"domain":"media.rallycasts.com","enabled":true}' \
+                "$CUSTOM_DOMAIN_URL" | jq -e '.success == true' >/dev/null; then
+                rm -f "$CUSTOM_DOMAIN_RESPONSE"
+                echo "ERROR: Could not create the production R2 custom domain."
+                exit 1
+              fi
+            elif [ "$CUSTOM_DOMAIN_STATUS" != "200" ] || ! jq -e '.success == true' "$CUSTOM_DOMAIN_RESPONSE" >/dev/null; then
+              rm -f "$CUSTOM_DOMAIN_RESPONSE"
+              echo "ERROR: Cloudflare returned an invalid production R2 custom-domain response."
+              exit 1
+            fi
+            rm -f "$CUSTOM_DOMAIN_RESPONSE"
           fi
           printf "%s" "$ALCHEMY_STATE_TOKEN" | bun x wrangler secret put STATE_TOKEN --name alchemy-state-service
           cd packages/infra && bun x alchemy deploy --stage ${{ env.STAGE }}
