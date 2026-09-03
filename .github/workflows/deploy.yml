@@ -157,7 +157,8 @@ jobs:
               if printf "%s" "$DNS_RECORDS_RESPONSE" | jq -e '.success == true' >/dev/null; then
                 printf "%s" "$DNS_RECORDS_RESPONSE" | jq -c '[.result[] | {type, name, content, proxied}]'
               else
-                echo "WARNING: Could not inspect the production media DNS record."
+                printf "%s" "$DNS_RECORDS_RESPONSE" | jq -c '{success, errors: [.errors[]? | {code, message}]}' 2>/dev/null || \
+                  echo "WARNING: Could not inspect the production media DNS record."
               fi
             fi
             rm -f "$CUSTOM_DOMAIN_RESPONSE"
