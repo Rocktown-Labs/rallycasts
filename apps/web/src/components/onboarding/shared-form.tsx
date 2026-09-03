@@ -70,31 +70,33 @@ export const wizardSchema = z.object({
 
 export type WizardValues = z.infer<typeof wizardSchema>;
 
+export const initialWizardValues: WizardValues = {
+  game: {
+    bio: "",
+    skillLevel: "intermediate",
+  },
+  location: {
+    homeCity: "",
+    homeCourtName: "",
+    homeLatitude: 0,
+    homeLongitude: 0,
+    homeState: "",
+    radarPlaceId: "",
+  },
+  profile: {
+    dob: "",
+    image: "",
+    name: "",
+    username: "",
+  },
+  roles: {
+    accountTier: "free",
+    isCaster: false,
+    isOrganizer: false,
+    isPlayer: true,
+  },
+};
+
 export const wizardFormOpts = formOptions({
-  defaultValues: {
-    game: {
-      bio: "",
-      skillLevel: "intermediate" as const,
-    },
-    location: {
-      homeCity: "",
-      homeCourtName: "",
-      homeLatitude: 0,
-      homeLongitude: 0,
-      homeState: "",
-      radarPlaceId: "",
-    },
-    profile: {
-      dob: "",
-      image: "",
-      name: "",
-      username: "",
-    },
-    roles: {
-      accountTier: "free" as const,
-      isCaster: false,
-      isOrganizer: false,
-      isPlayer: true,
-    },
-  } satisfies WizardValues,
+  defaultValues: initialWizardValues,
 });

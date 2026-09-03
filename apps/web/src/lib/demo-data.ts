@@ -5,7 +5,8 @@ import type {
   VideoCardData,
 } from "@/components/rally/cards";
 
-const demoEnabled = import.meta.env.VITE_DEMO_DATA !== "false";
+export const demoEnabled =
+  import.meta.env.DEV && import.meta.env.VITE_DEMO_DATA === "true";
 
 export interface TrendingData {
   events: EventCardData[];

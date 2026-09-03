@@ -6,16 +6,18 @@ import {
 import { sentry } from "@sentry/hono/cloudflare";
 import { Hono } from "hono";
 import type { Context } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { requestId } from "hono/request-id";
+import { secureHeaders } from "hono/secure-headers";
 import { timing } from "hono/timing";
 import { Resend } from "resend";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 import notFound from "stoker/middlewares/not-found";
-import onError from "stoker/middlewares/on-error";
 
 import type { AppEnv } from "./lib/types";
+import { protectMutations, protectWebSocket } from "./middleware/security";
 import { adminRouter } from "./routes/admin";
 import { castersRouter } from "./routes/casters";
 import { castingJobsRouter } from "./routes/casting-jobs";
@@ -43,11 +45,9 @@ const app = new Hono<AppEnv>();
 // Initialize Sentry middleware as early as possible
 app.use(
   sentry(app, (env) => ({
-    dsn:
-      env.SENTRY_DSN ||
-      "https://45068906aca0ec44b46793aa397c6b57@o4510278858309632.ingest.us.sentry.io/4511701816508416",
-    enableLogs: true,
-    tracesSampleRate: 1,
+    dsn: env.SENTRY_DSN,
+    enableLogs: Boolean(env.SENTRY_DSN),
+    tracesSampleRate: 0.1,
   }))
 );
 
@@ -86,6 +86,20 @@ export { UserNotifications } from "./durable-objects/user-notifications";
 app.use(requestId());
 app.use(timing());
 app.use(logger());
+app.use("/*", secureHeaders());
+app.use("/api/v1/*", bodyLimit({ maxSize: 6 * 1024 * 1024 }));
+app.use("/webhooks/*", bodyLimit({ maxSize: 1 * 1024 * 1024 }));
+app.use("/api/auth/*", protectMutations);
+app.use("/api/v1/*", protectMutations);
+app.use("/api/v1/*", protectWebSocket);
+app.use("/api/v1/*", async (c, next) => {
+  await next();
+  c.header("Cache-Control", "no-store");
+});
+app.use("/health", async (c, next) => {
+  await next();
+  c.header("Cache-Control", "no-store");
+});
 app.use("/*", (c, next) => {
   const corsMiddleware = cors({
     allowHeaders: ["Content-Type", "Authorization"],
@@ -111,55 +125,98 @@ const routes = app
   .get("/", (c) =>
     c.json({ service: "rallycaststv-api", status: "ok" }, HttpStatusCodes.OK)
   )
-  .get("/health", (c) => c.json({ status: "ok" }, HttpStatusCodes.OK))
+  .get("/health", async (c) => {
+    try {
+      await c.env.DB.prepare("select 1 as ok").first();
+      return c.json({ status: "ok" }, HttpStatusCodes.OK);
+    } catch (error) {
+      console.error(
+        JSON.stringify({
+          event: "health_check_failed",
+          message: error instanceof Error ? error.message : "unknown error",
+        })
+      );
+      return c.json(
+        { status: "unavailable" },
+        HttpStatusCodes.SERVICE_UNAVAILABLE
+      );
+    }
+  })
   .on(["POST", "GET"], "/api/auth/*", (c) => {
     const resend = getEmailSender(c);
+    const isLocalAuth =
+      c.env.BETTER_AUTH_URL.includes("localhost") ||
+      c.env.BETTER_AUTH_URL.includes("127.0.0.1");
 
     const auth = createAuth(c.env.DB, {
-      sendResetPassword: resend
-        ? async ({ user, url }) => {
-            const html = await renderResetPasswordEmail({
-              resetUrl: url,
-              username: user.name,
-            });
-            const text = `Hi ${user.name},\n\nWe received a request to reset your RallyCasts password. Visit this link to reset it:\n\n${url}\n\nThis link expires in 1 hour.\n\nIf you did not request this, you can safely ignore this email.`;
-
-            const { error } = await resend.emails.send({
-              from: FROM_EMAIL,
-              html,
-              subject: "Reset your RallyCasts password",
-              text,
-              to: user.email,
-            });
-
-            if (error) {
-              console.error("Failed to send reset password email:", error);
-              throw new Error(error.message);
-            }
+      sendResetPassword: async ({ user, url }) => {
+        if (!resend) {
+          if (isLocalAuth) {
+            return;
           }
-        : undefined,
-      sendVerificationEmail: resend
-        ? async ({ user, url }) => {
-            const html = await renderWelcomeEmail({
-              username: user.name,
-              verificationUrl: url,
-            });
-            const text = `Welcome to RallyCasts, ${user.name}!\n\nPlease verify your email address by visiting:\n\n${url}\n\nIf you did not create an account, you can safely ignore this email.`;
+          throw new Error("Email service is not configured");
+        }
+        const html = await renderResetPasswordEmail({
+          resetUrl: url,
+          username: user.name,
+        });
+        const text = `Hi ${user.name},\n\nWe received a request to reset your RallyCasts password. Visit this link to reset it:\n\n${url}\n\nThis link expires in 1 hour.\n\nIf you did not request this, you can safely ignore this email.`;
 
-            const { error } = await resend.emails.send({
-              from: FROM_EMAIL,
-              html,
-              subject: "Verify your RallyCasts email",
-              text,
-              to: user.email,
-            });
+        const { error } = await resend.emails.send(
+          {
+            from: FROM_EMAIL,
+            html,
+            subject: "Reset your RallyCasts password",
+            text,
+            to: user.email,
+          },
+          { idempotencyKey: `password-reset/${user.id}/${url}` }
+        );
 
-            if (error) {
-              console.error("Failed to send verification email:", error);
-              throw new Error(error.message);
-            }
+        if (error) {
+          console.error(
+            JSON.stringify({
+              event: "reset_email_failed",
+              message: error.message,
+            })
+          );
+          throw new Error("Password reset email could not be sent");
+        }
+      },
+      sendVerificationEmail: async ({ user, url }) => {
+        if (!resend) {
+          if (isLocalAuth) {
+            return;
           }
-        : undefined,
+          throw new Error("Email service is not configured");
+        }
+        const html = await renderWelcomeEmail({
+          username: user.name,
+          verificationUrl: url,
+        });
+        const text = `Welcome to RallyCasts, ${user.name}!\n\nPlease verify your email address by visiting:\n\n${url}\n\nIf you did not create an account, you can safely ignore this email.`;
+
+        const { error } = await resend.emails.send(
+          {
+            from: FROM_EMAIL,
+            html,
+            subject: "Verify your RallyCasts email",
+            text,
+            to: user.email,
+          },
+          { idempotencyKey: `email-verification/${user.id}/${url}` }
+        );
+
+        if (error) {
+          console.error(
+            JSON.stringify({
+              event: "verification_email_failed",
+              message: error.message,
+            })
+          );
+          throw new Error("Verification email could not be sent");
+        }
+      },
     });
 
     return auth.handler(c.req.raw);
@@ -187,7 +244,20 @@ const routes = app
   .route("/webhooks", webhooksRouter);
 
 routes.notFound(notFound);
-routes.onError(onError);
+// oxlint-disable-next-line promise/prefer-await-to-callbacks
+routes.onError((error, c) => {
+  console.error(
+    JSON.stringify({
+      event: "unhandled_request_error",
+      message: error instanceof Error ? error.message : "unknown error",
+      path: c.req.path,
+    })
+  );
+  return c.json(
+    { message: "Internal Server Error" },
+    HttpStatusCodes.INTERNAL_SERVER_ERROR
+  );
+});
 
 export type AppType = typeof routes;
 

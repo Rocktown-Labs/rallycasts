@@ -5,7 +5,7 @@ import {
   casterProfile,
   userProfile,
 } from "@rallycaststv/db/schema/domain";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 import { z } from "zod";
@@ -39,7 +39,14 @@ export const castersRouter = new Hono<AppEnv>()
   .get("/", async (c) => {
     const db = createDb(c.env.DB);
     const casters = await db
-      .select()
+      .select({
+        bio: casterProfile.bio,
+        displayName: casterProfile.displayName,
+        hourlyRateCents: casterProfile.hourlyRateCents,
+        serviceRadiusMiles: casterProfile.serviceRadiusMiles,
+        status: casterProfile.status,
+        userId: casterProfile.userId,
+      })
       .from(casterProfile)
       .where(eq(casterProfile.status, "active"))
       .limit(50);
@@ -131,6 +138,17 @@ export const castersRouter = new Hono<AppEnv>()
       const db = createDb(c.env.DB);
       const { user } = c.var.authSession;
       const data = c.req.valid("json");
+      const [profile] = await db
+        .select({ userId: casterProfile.userId })
+        .from(casterProfile)
+        .where(eq(casterProfile.userId, user.id))
+        .limit(1);
+      if (!profile) {
+        return c.json(
+          { message: "Caster profile required" },
+          HttpStatusCodes.FORBIDDEN
+        );
+      }
       const availability = {
         casterUserId: user.id,
         id: createId(),
@@ -146,9 +164,21 @@ export const castersRouter = new Hono<AppEnv>()
     const db = createDb(c.env.DB);
     const userId = c.req.param("id");
     const [profile] = await db
-      .select()
+      .select({
+        bio: casterProfile.bio,
+        displayName: casterProfile.displayName,
+        hourlyRateCents: casterProfile.hourlyRateCents,
+        serviceRadiusMiles: casterProfile.serviceRadiusMiles,
+        status: casterProfile.status,
+        userId: casterProfile.userId,
+      })
       .from(casterProfile)
-      .where(eq(casterProfile.userId, userId))
+      .where(
+        and(
+          eq(casterProfile.userId, userId),
+          eq(casterProfile.status, "active")
+        )
+      )
       .limit(1);
 
     if (!profile) {

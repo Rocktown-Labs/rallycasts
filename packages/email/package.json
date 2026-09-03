@@ -13,7 +13,7 @@
   },
   "scripts": {
     "dev": "email dev --dir src/templates --port 3002",
-    "build": "email build --dir src/templates",
+    "build": "tsc -b",
     "check-types": "tsc -b"
   },
   "dependencies": {

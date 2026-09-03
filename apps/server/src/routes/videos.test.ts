@@ -33,6 +33,23 @@ const signUp = async (name: string) => {
   };
 };
 
+const markEmailVerified = async (userId: string) => {
+  await env.DB.prepare("update user set email_verified = 1 where id = ?")
+    .bind(userId)
+    .run();
+};
+
+const publishVideo = async (videoId: string, title: string) => {
+  await env.DB.batch([
+    env.DB.prepare(
+      "update video set status = 'ready', published_at = ? where id = ?"
+    ).bind(Date.now(), videoId),
+    env.DB.prepare(
+      "insert into search_document (id, entity_id, entity_type, title, content, embedding_status) values (?, ?, 'video', ?, ?, 'ready')"
+    ).bind(crypto.randomUUID(), videoId, title, title),
+  ]);
+};
+
 const jsonRequest = (
   path: string,
   cookie: string,
@@ -55,6 +72,116 @@ const jsonRequest = (
 describe("videos API", () => {
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it("issues signed playback only to an authenticated private-video owner", async () => {
+    const owner = await signUp("Private Playback Owner");
+    await markEmailVerified(owner.id);
+    const videoId = `private-playback-${crypto.randomUUID()}`;
+    await env.DB.prepare(
+      "insert into video (id, owner_user_id, title, status, visibility, mux_playback_id) values (?, ?, ?, 'ready', 'private', ?)"
+    )
+      .bind(videoId, owner.id, "Private rally", "private-playback-id")
+      .run();
+
+    const signingKey = (await crypto.subtle.generateKey(
+      {
+        hash: "SHA-256",
+        modulusLength: 2048,
+        name: "RSASSA-PKCS1-v1_5",
+        publicExponent: new Uint8Array([1, 0, 1]),
+      },
+      true,
+      ["sign", "verify"]
+    )) as CryptoKeyPair;
+    const privateKey = btoa(
+      String.fromCodePoint(
+        ...new Uint8Array(
+          await crypto.subtle.exportKey("pkcs8", signingKey.privateKey)
+        )
+      )
+    );
+
+    const response = await app.request(
+      `/api/v1/videos/${videoId}/playback`,
+      { headers: { Cookie: owner.cookie } },
+      {
+        ...env,
+        MUX_SIGNING_KEY_ID: "test-signing-key",
+        MUX_SIGNING_KEY_SECRET: privateKey,
+      }
+    );
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { playbackUrl: string };
+    const playbackUrl = new URL(body.playbackUrl);
+    const token = playbackUrl.searchParams.get("token");
+    expect(playbackUrl.hostname).toBe("stream.mux.com");
+    expect(token).toBeTruthy();
+    expect(token).not.toContain("private-playback-id");
+    const [, encodedPayload] = token?.split(".") ?? [];
+    const payload = JSON.parse(
+      new TextDecoder().decode(
+        Uint8Array.from(
+          atob(
+            `${encodedPayload}${"=".repeat((4 - ((encodedPayload?.length ?? 0) % 4)) % 4)}`
+              .replaceAll("-", "+")
+              .replaceAll("_", "/")
+          ),
+          (character) => character.codePointAt(0) ?? 0
+        )
+      )
+    ) as { aud: string; kid: string; sub: string };
+    expect(payload).toMatchObject({
+      aud: "v",
+      kid: "test-signing-key",
+      sub: "private-playback-id",
+    });
+  });
+
+  it("does not expose internal media fields in public video responses", async () => {
+    const owner = await signUp("Public Media Owner");
+    const videoId = `public-media-${crypto.randomUUID()}`;
+    await env.DB.prepare(
+      "insert into video (id, owner_user_id, title, status, visibility, mux_asset_id, mux_playback_id, mux_playback_policy, mux_status, mux_upload_id, r2_key) values (?, ?, ?, 'ready', 'public', ?, ?, 'public', ?, ?, ?)"
+    )
+      .bind(
+        videoId,
+        owner.id,
+        "Public response privacy",
+        "private-asset-id",
+        "public-playback-id",
+        "ready",
+        "private-upload-id",
+        "private/r2-key"
+      )
+      .run();
+
+    const response = await app.request(`/api/v1/videos/${videoId}`, {}, env);
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { video: Record<string, unknown> };
+    expect(body.video).not.toHaveProperty("muxAssetId");
+    expect(body.video).not.toHaveProperty("muxPlaybackPolicy");
+    expect(body.video).not.toHaveProperty("muxStatus");
+    expect(body.video).not.toHaveProperty("muxUploadId");
+    expect(body.video).not.toHaveProperty("r2Key");
+    expect(body.video).toHaveProperty("muxPlaybackId", "public-playback-id");
+  });
+
+  it("does not expose a signed playback ID through a public serializer", async () => {
+    const owner = await signUp("Signed Public Video Owner");
+    const videoId = `signed-public-${crypto.randomUUID()}`;
+    await env.DB.prepare(
+      "insert into video (id, owner_user_id, title, status, visibility, mux_playback_id, mux_playback_policy) values (?, ?, ?, 'ready', 'public', ?, 'signed')"
+    )
+      .bind(videoId, owner.id, "Signed public rally", "signed-playback-id")
+      .run();
+
+    const response = await app.request(`/api/v1/videos/${videoId}`, {}, env);
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { video: Record<string, unknown> };
+    expect(body.video).not.toHaveProperty("muxPlaybackId");
+    expect(body.video).not.toHaveProperty("thumbnailUrl");
   });
 
   it("keeps private and processing videos out of public detail routes", async () => {
@@ -89,6 +216,50 @@ describe("videos API", () => {
     expect(studioResponse.status).toBe(200);
   });
 
+  it("updates Mux policy before making an asset public", async () => {
+    const owner = await signUp("Mux Policy Owner");
+    await markEmailVerified(owner.id);
+    const videoId = `mux-policy-${crypto.randomUUID()}`;
+    await env.DB.prepare(
+      "insert into video (id, owner_user_id, title, status, visibility, mux_asset_id, mux_playback_policy) values (?, ?, ?, 'ready', 'private', ?, 'signed')"
+    )
+      .bind(videoId, owner.id, "Mux policy transition", "asset-to-publish")
+      .run();
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(Response.json({ data: { playback_ids: [] } }))
+      .mockResolvedValueOnce(
+        Response.json({
+          data: { id: "public-playback-replacement", policy: "public" },
+        })
+      );
+
+    const response = await jsonRequest(
+      `/api/v1/videos/${videoId}`,
+      owner.cookie,
+      { visibility: "public" },
+      "PATCH"
+    );
+
+    expect(response.status).toBe(200);
+    const updated = await env.DB.prepare(
+      "select visibility, mux_playback_policy from video where id = ?"
+    )
+      .bind(videoId)
+      .first<{ mux_playback_policy: string; visibility: string }>();
+    expect(updated).toEqual({
+      mux_playback_policy: "public",
+      visibility: "public",
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.mux.com/video/v1/assets/asset-to-publish/playback-ids",
+      expect.objectContaining({
+        body: JSON.stringify({ policy: "public" }),
+        method: "POST",
+      })
+    );
+  });
+
   it("removes a video search document when its visibility becomes private", async () => {
     const owner = await signUp("Search Visibility Owner");
     const createResponse = await jsonRequest("/api/v1/videos", owner.cookie, {
@@ -98,6 +269,7 @@ describe("videos API", () => {
     });
     expect(createResponse.status).toBe(201);
     const created = (await createResponse.json()) as { video: { id: string } };
+    await publishVideo(created.video.id, "Public semantic kitchen battle");
 
     const indexedBefore = await env.DB.prepare(
       "select id from search_document where entity_type = 'video' and entity_id = ?"
@@ -219,6 +391,7 @@ describe("videos API", () => {
 
   it("creates an owner-linked private draft before direct Mux upload", async () => {
     const owner = await signUp("Mux Upload Owner");
+    await markEmailVerified(owner.id);
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       Response.json(
         {
@@ -337,6 +510,7 @@ describe("videos API", () => {
       video: { id: string };
     };
     const videoId = videoData.video.id;
+    await publishVideo(videoId, "Bentonville kitchen battle");
     const commentResponse = await jsonRequest(
       `/api/v1/videos/${videoId}/comments`,
       commenter.cookie,

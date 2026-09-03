@@ -27,6 +27,26 @@ const signUp = async (name: string) => {
   };
 };
 
+const completeProfile = async (cookie: string) => {
+  const response = await app.request(
+    "/api/v1/profile/onboarding",
+    {
+      body: JSON.stringify({
+        age: 30,
+        homeCity: "Austin",
+        homeCourtName: "Crestwood Pickleball Park",
+        homeState: "TX",
+        onboardingStatus: "complete",
+        skillLevel: "intermediate",
+      }),
+      headers: { "Content-Type": "application/json", Cookie: cookie },
+      method: "POST",
+    },
+    env
+  );
+  expect(response.status).toBe(200);
+};
+
 const jsonRequest = (
   path: string,
   cookie: string,
@@ -61,6 +81,8 @@ describe("challenges API", () => {
   it("issues actionable match challenges with casting and tips", async () => {
     const challenger = await signUp("Challenger");
     const opponent = await signUp("Opponent");
+    await completeProfile(challenger.cookie);
+    await completeProfile(opponent.cookie);
     const response = await jsonRequest(
       "/api/v1/challenges",
       challenger.cookie,

@@ -47,9 +47,11 @@ const allowBrowserLocation = () => {
             latitude: 35.2468,
             longitude: -91.735,
             speed: null,
-          },
+            toJSON: () => ({}),
+          } as GeolocationCoordinates,
           timestamp: Date.now(),
-        }),
+          toJSON: () => ({}),
+        } as GeolocationPosition),
     },
   });
 };
@@ -116,7 +118,7 @@ describe("useGeolocation", () => {
     });
   });
 
-  it("uses the explicit Arkansas demo fallback when both providers fail", async () => {
+  it("does not fabricate a location when both providers fail", async () => {
     vi.mocked(Radar.ipGeocode).mockRejectedValue(
       new Error("Radar unavailable")
     );
@@ -124,10 +126,7 @@ describe("useGeolocation", () => {
     const { result } = renderHook(() => useGeolocation());
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.location).toMatchObject({
-      isFallback: true,
-      stateCode: "AR",
-    });
+    expect(result.current.location).toBeUndefined();
     expect(result.current.error).toBe("Location permission denied");
   });
 });

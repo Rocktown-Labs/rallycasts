@@ -14,6 +14,7 @@ import * as HttpStatusCodes from "stoker/http-status-codes";
 
 import { haversineDistance } from "../lib/geo";
 import { GooglePlacesClient } from "../lib/google-places";
+import { toPublicVenue, toPublicVideo } from "../lib/public-data";
 import type { AppEnv } from "../lib/types";
 
 const DEFAULT_VENUE_RADIUS = 50;
@@ -340,6 +341,7 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
       .innerJoin(venue, eq(video.venueId, venue.id))
       .where(
         and(
+          eq(video.status, "ready"),
           eq(video.visibility, "public"),
           isNotNull(video.venueId),
           locationBounds(
@@ -367,7 +369,9 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
         : await db
             .select()
             .from(video)
-            .where(eq(video.visibility, "public"))
+            .where(
+              and(eq(video.status, "ready"), eq(video.visibility, "public"))
+            )
             .orderBy(desc(video.publishedAt))
             .limit(12);
 
@@ -433,6 +437,7 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
       .where(
         and(
           eq(userProfile.isPlayer, true),
+          eq(userProfile.onboardingStatus, "complete"),
           locationBounds(
             lat,
             lng,
@@ -495,13 +500,18 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
             })
             .from(userProfile)
             .innerJoin(user, eq(userProfile.userId, user.id))
-            .where(eq(userProfile.isPlayer, true))
+            .where(
+              and(
+                eq(userProfile.isPlayer, true),
+                eq(userProfile.onboardingStatus, "complete")
+              )
+            )
             .limit(6);
   } else {
     videos = await db
       .select()
       .from(video)
-      .where(eq(video.visibility, "public"))
+      .where(and(eq(video.status, "ready"), eq(video.visibility, "public")))
       .orderBy(desc(video.publishedAt))
       .limit(12);
 
@@ -528,7 +538,12 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
       })
       .from(userProfile)
       .innerJoin(user, eq(userProfile.userId, user.id))
-      .where(eq(userProfile.isPlayer, true))
+      .where(
+        and(
+          eq(userProfile.isPlayer, true),
+          eq(userProfile.onboardingStatus, "complete")
+        )
+      )
       .limit(6);
   }
 
@@ -550,8 +565,8 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
         totalCount: venueTotalCount,
       },
       venueRadius,
-      venues: paginatedVenues,
-      videos,
+      venues: paginatedVenues.map(toPublicVenue),
+      videos: videos.map(toPublicVideo),
     },
     HttpStatusCodes.OK
   );

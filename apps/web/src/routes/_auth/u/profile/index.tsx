@@ -36,7 +36,8 @@ function ProfileRoute() {
 
 function ProfilePreview({ data }: { data: ProfilePreviewData }) {
   const user = data?.user;
-  const profile = data?.profile;
+  const profile =
+    data?.profile && "homeCity" in data.profile ? data.profile : undefined;
   const displayName = user?.name || "RallyCasts Player";
   const username = user?.username || user?.displayUsername || "player";
   const homeLocation = [profile?.homeCity, profile?.homeState]

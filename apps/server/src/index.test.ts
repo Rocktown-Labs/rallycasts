@@ -8,6 +8,9 @@ describe("RallyCasts API", () => {
     const response = await app.request("/health", {}, env);
 
     expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(response.headers.get("x-frame-options")).toBe("SAMEORIGIN");
     await expect(response.json()).resolves.toEqual({ status: "ok" });
   });
 
@@ -18,6 +21,41 @@ describe("RallyCasts API", () => {
     await expect(response.json()).resolves.toEqual({
       message: "Not Found - /missing",
     });
+  });
+
+  it("rejects cross-site authentication mutations", async () => {
+    const response = await app.request(
+      "/api/auth/sign-in/email",
+      {
+        body: JSON.stringify({
+          email: "player@example.com",
+          password: "password-12345678",
+        }),
+        headers: {
+          "Content-Type": "application/json",
+          Origin: "https://attacker.example",
+        },
+        method: "POST",
+      },
+      env
+    );
+
+    expect(response.status).toBe(403);
+  });
+
+  it("rejects cross-site WebSocket upgrades", async () => {
+    const response = await app.request(
+      "/api/v1/social/notifications/realtime",
+      {
+        headers: {
+          Origin: "https://attacker.example",
+          Upgrade: "websocket",
+        },
+      },
+      env
+    );
+
+    expect(response.status).toBe(403);
   });
 
   it("rejects protected routes without a session", async () => {

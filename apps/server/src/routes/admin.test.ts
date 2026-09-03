@@ -23,14 +23,26 @@ const signUp = async (name: string, email?: string) => {
   expect(response.status).toBe(200);
 
   const cookie = response.headers.get("set-cookie");
+  const body = (await response.json()) as { user: { id: string } };
   expect(cookie).toBeTruthy();
 
-  return cookie ?? "";
+  return { cookie: cookie ?? "", id: body.user.id };
+};
+
+const promoteToAdmin = async (userId: string) => {
+  await env.DB.prepare(
+    "insert into user_profile (user_id, platform_role) values (?, 'admin') on conflict(user_id) do update set platform_role = 'admin'"
+  )
+    .bind(userId)
+    .run();
+  await env.DB.prepare("update user set email_verified = 1 where id = ?")
+    .bind(userId)
+    .run();
 };
 
 describe("admin API", () => {
   it("rejects non-admin users", async () => {
-    const cookie = await signUp("Regular Player");
+    const { cookie } = await signUp("Regular Player");
     const response = await app.request(
       "/api/v1/admin/dashboard",
       {
@@ -43,11 +55,12 @@ describe("admin API", () => {
   });
 
   it("returns platform metrics for admins", async () => {
-    const cookie = await signUp("RallyCasts Admin", "camstewart7@gmail.com");
+    const admin = await signUp("RallyCasts Admin", "camstewart7@gmail.com");
+    await promoteToAdmin(admin.id);
     const response = await app.request(
       "/api/v1/admin/dashboard",
       {
-        headers: { Cookie: cookie },
+        headers: { Cookie: admin.cookie },
       },
       env
     );
@@ -67,11 +80,12 @@ describe("admin API", () => {
   });
 
   it("allows admins to queue search backfill", async () => {
-    const cookie = await signUp("RallyCasts Admin", "camstewart7@gmail.com");
+    const admin = await signUp("RallyCasts Admin", "camstewart7@gmail.com");
+    await promoteToAdmin(admin.id);
     const response = await app.request(
       "/api/v1/admin/search/backfill",
       {
-        headers: { Cookie: cookie },
+        headers: { Cookie: admin.cookie },
         method: "POST",
       },
       env

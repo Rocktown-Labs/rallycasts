@@ -13,8 +13,9 @@ import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 import { z } from "zod";
 
-import { isPlatformAdminEmail } from "../lib/admin";
+import { isPlatformAdminUser } from "../lib/admin";
 import { createId } from "../lib/ids";
+import { toPublicVideo } from "../lib/public-data";
 import type { AppEnv } from "../lib/types";
 import { requireAuth } from "../middleware/auth";
 
@@ -45,6 +46,21 @@ const organizationVideoSchema = z.object({
   videoId: z.string().min(1),
 });
 
+const toPublicOrganization = (record: typeof organization.$inferSelect) => {
+  const {
+    createdByUserId: _createdByUserId,
+    stripeAccountId: _stripeAccountId,
+    stripeOnboardingStatus: _stripeOnboardingStatus,
+    ...publicRecord
+  } = record;
+  return publicRecord;
+};
+
+const toMemberOrganization = (record: typeof organization.$inferSelect) => {
+  const { stripeAccountId: _stripeAccountId, ...memberRecord } = record;
+  return memberRecord;
+};
+
 const getMembership = async (
   db: ReturnType<typeof createDb>,
   organizationId: string,
@@ -70,7 +86,10 @@ export const organizationsRouter = new Hono<AppEnv>()
       .select()
       .from(organization)
       .orderBy(desc(organization.isOfficial), desc(organization.createdAt));
-    return c.json({ organizations: records }, HttpStatusCodes.OK);
+    return c.json(
+      { organizations: records.map(toPublicOrganization) },
+      HttpStatusCodes.OK
+    );
   })
   .get("/me", requireAuth, async (c) => {
     const db = createDb(c.env.DB);
@@ -84,7 +103,15 @@ export const organizationsRouter = new Hono<AppEnv>()
       )
       .where(eq(organizationMember.userId, authUser.id))
       .orderBy(desc(organization.updatedAt));
-    return c.json({ organizations: records }, HttpStatusCodes.OK);
+    return c.json(
+      {
+        organizations: records.map((record) => ({
+          ...record,
+          organization: toMemberOrganization(record.organization),
+        })),
+      },
+      HttpStatusCodes.OK
+    );
   })
   .post("/", requireAuth, zValidator("json", organizationFields), async (c) => {
     const db = createDb(c.env.DB);
@@ -96,7 +123,7 @@ export const organizationsRouter = new Hono<AppEnv>()
       id: createId(),
       isOfficial:
         data.slug === "rallycasts" &&
-        isPlatformAdminEmail(authUser.email, c.env),
+        (await isPlatformAdminUser(db, authUser.id)),
     };
 
     const inserted = await db
@@ -116,7 +143,10 @@ export const organizationsRouter = new Hono<AppEnv>()
       role: "owner",
       userId: authUser.id,
     });
-    return c.json({ organization: inserted[0] }, HttpStatusCodes.CREATED);
+    return c.json(
+      { organization: toPublicOrganization(inserted[0]) },
+      HttpStatusCodes.CREATED
+    );
   })
   .get("/:slug", async (c) => {
     const db = createDb(c.env.DB);
@@ -149,7 +179,12 @@ export const organizationsRouter = new Hono<AppEnv>()
       db
         .select()
         .from(event)
-        .where(eq(event.organizationId, record.id))
+        .where(
+          and(
+            eq(event.organizationId, record.id),
+            eq(event.status, "published")
+          )
+        )
         .orderBy(desc(event.startsAt)),
       db
         .select()
@@ -169,7 +204,13 @@ export const organizationsRouter = new Hono<AppEnv>()
         .orderBy(desc(post.createdAt)),
     ]);
     return c.json(
-      { events, members, organization: record, posts, videos },
+      {
+        events,
+        members,
+        organization: toPublicOrganization(record),
+        posts,
+        videos: videos.map(toPublicVideo),
+      },
       HttpStatusCodes.OK
     );
   })
@@ -200,7 +241,12 @@ export const organizationsRouter = new Hono<AppEnv>()
         .set({ ...c.req.valid("json"), updatedAt: new Date() })
         .where(eq(organization.id, record.id))
         .returning();
-      return c.json({ organization: updated }, HttpStatusCodes.OK);
+      return c.json(
+        {
+          organization: updated ? toPublicOrganization(updated) : null,
+        },
+        HttpStatusCodes.OK
+      );
     }
   )
   .post(
@@ -229,12 +275,28 @@ export const organizationsRouter = new Hono<AppEnv>()
       const [memberUser] = await db
         .select({ id: user.id })
         .from(user)
-        .where(eq(user.username, data.username))
+        .where(eq(user.username, data.username.trim().toLowerCase()))
         .limit(1);
       if (!memberUser) {
         return c.json(
           { message: "Player not found" },
           HttpStatusCodes.NOT_FOUND
+        );
+      }
+      const [existingMember] = await db
+        .select({ role: organizationMember.role })
+        .from(organizationMember)
+        .where(
+          and(
+            eq(organizationMember.organizationId, record.id),
+            eq(organizationMember.userId, memberUser.id)
+          )
+        )
+        .limit(1);
+      if (existingMember?.role === "owner") {
+        return c.json(
+          { message: "Organization ownership cannot be changed here" },
+          HttpStatusCodes.FORBIDDEN
         );
       }
       await db

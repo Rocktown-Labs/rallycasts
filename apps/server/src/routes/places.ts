@@ -1,6 +1,8 @@
+import { zValidator } from "@hono/zod-validator";
 import { createDb } from "@rallycaststv/db";
 import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
+import { z } from "zod";
 
 import { createGooglePlacesClient } from "../lib/google-places";
 import type { AppEnv } from "../lib/types";
@@ -90,39 +92,44 @@ export const placesRouter = new Hono<AppEnv>()
       );
     }
   })
-  .post("/venues", requireAuth, async (c) => {
-    const body = (await c.req.json()) as { placeId?: string };
-    const { placeId } = body;
+  .post(
+    "/venues",
+    requireAuth,
+    zValidator(
+      "json",
+      z.object({ placeId: z.string().trim().min(1).max(200) })
+    ),
+    async (c) => {
+      const { placeId } = c.req.valid("json");
 
-    if (!placeId) {
-      return c.json(
-        { error: "placeId is required" },
-        HttpStatusCodes.BAD_REQUEST
-      );
+      try {
+        const db = createDb(c.env.DB);
+        const createdVenue = await findOrCreateVenueFromGooglePlace({
+          db,
+          env: c.env,
+          getExecutionContext: () => {
+            try {
+              return c.executionCtx;
+            } catch {
+              // Hono app.request tests may not provide an ExecutionContext.
+            }
+          },
+          placeId,
+          userId: c.var.authSession.user.id,
+        });
+
+        const {
+          createdByUserId: _createdByUserId,
+          radarPlaceId: _radarPlaceId,
+          ...publicVenue
+        } = createdVenue;
+        return c.json({ venue: publicVenue }, HttpStatusCodes.CREATED);
+      } catch (error) {
+        console.error("Create venue error:", error);
+        return c.json(
+          { error: "Failed to create venue from place" },
+          HttpStatusCodes.INTERNAL_SERVER_ERROR
+        );
+      }
     }
-
-    try {
-      const db = createDb(c.env.DB);
-      const createdVenue = await findOrCreateVenueFromGooglePlace({
-        db,
-        env: c.env,
-        getExecutionContext: () => {
-          try {
-            return c.executionCtx;
-          } catch {
-            // Hono app.request tests may not provide an ExecutionContext.
-          }
-        },
-        placeId,
-        userId: c.var.authSession.user.id,
-      });
-
-      return c.json({ venue: createdVenue }, HttpStatusCodes.CREATED);
-    } catch (error) {
-      console.error("Create venue error:", error);
-      return c.json(
-        { error: "Failed to create venue from place" },
-        HttpStatusCodes.INTERNAL_SERVER_ERROR
-      );
-    }
-  });
+  );

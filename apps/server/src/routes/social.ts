@@ -22,6 +22,7 @@ import type { ChatRealtimeEvent } from "../durable-objects/chat-room";
 import { createId } from "../lib/ids";
 import { createNotification } from "../lib/notifications";
 import type { CreateNotificationInput } from "../lib/notifications";
+import { createRealtimeAccessToken } from "../lib/realtime-auth";
 import {
   scheduleSearchDocumentIndex,
   upsertSearchDocument,
@@ -528,11 +529,27 @@ export const socialRouter = new Hono<AppEnv>()
 
     return c.json({ read: true }, HttpStatusCodes.OK);
   })
-  .get("/notifications/realtime", requireAuth, (c) => {
+  .get("/notifications/realtime", requireAuth, async (c) => {
     const { user: authUser } = c.var.authSession;
+    const accessToken = await createRealtimeAccessToken(
+      c.env.BETTER_AUTH_SECRET,
+      {
+        name: authUser.name,
+        resourceId: authUser.id,
+        userId: authUser.id,
+      }
+    );
+    if (!accessToken) {
+      return c.json(
+        { message: "Realtime notifications are not configured" },
+        HttpStatusCodes.SERVICE_UNAVAILABLE
+      );
+    }
+
     const stub = c.env.USER_NOTIFICATIONS.getByName(authUser.id);
     const headers = new Headers(c.req.raw.headers);
-    headers.set("x-rallycasts-user-id", authUser.id);
+    headers.delete("x-rallycasts-user-id");
+    headers.set("x-rallycasts-realtime-token", accessToken);
 
     return stub.fetch(new Request(c.req.raw, { headers }));
   })
@@ -745,9 +762,25 @@ export const socialRouter = new Hono<AppEnv>()
       );
     }
 
+    const accessToken = await createRealtimeAccessToken(
+      c.env.BETTER_AUTH_SECRET,
+      {
+        name: authUser.name,
+        resourceId: conversationId,
+        userId: authUser.id,
+      }
+    );
+    if (!accessToken) {
+      return c.json(
+        { message: "Realtime messaging is not configured" },
+        HttpStatusCodes.SERVICE_UNAVAILABLE
+      );
+    }
+
     const headers = new Headers(c.req.raw.headers);
-    headers.set("x-rallycasts-user-id", authUser.id);
-    headers.set("x-rallycasts-user-name", authUser.name);
+    headers.delete("x-rallycasts-user-id");
+    headers.delete("x-rallycasts-user-name");
+    headers.set("x-rallycasts-realtime-token", accessToken);
     const stub = c.env.CHAT_ROOMS.getByName(conversationId);
 
     return stub.fetch(new Request(c.req.raw, { headers }));

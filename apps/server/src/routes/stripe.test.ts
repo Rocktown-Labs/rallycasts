@@ -23,6 +23,17 @@ const signUp = async () => {
   return { cookie: response.headers.get("set-cookie") ?? "", id: body.user.id };
 };
 
+const promoteToAdmin = async (userId: string) => {
+  await env.DB.prepare(
+    "insert into user_profile (user_id, platform_role) values (?, 'admin') on conflict(user_id) do update set platform_role = 'admin'"
+  )
+    .bind(userId)
+    .run();
+  await env.DB.prepare("update user set email_verified = 1 where id = ?")
+    .bind(userId)
+    .run();
+};
+
 const signPayload = async (payload: string, timestamp: string) => {
   const key = await crypto.subtle.importKey(
     "raw",
@@ -46,6 +57,7 @@ describe("Stripe tournament payments", () => {
 
   it("confirms a paid registration only after a signed webhook", async () => {
     const player = await signUp();
+    await promoteToAdmin(player.id);
     const eventId = `paid-event-${crypto.randomUUID()}`;
     await env.DB.prepare(
       "insert into event (id, name, organizer_user_id, starts_at, status, event_type, entry_fee_cents, currency) values (?, ?, ?, ?, 'published', 'tournament', 2500, 'usd')"
@@ -78,12 +90,17 @@ describe("Stripe tournament payments", () => {
     const payload = JSON.stringify({
       data: {
         object: {
+          amount_total: 2500,
+          client_reference_id: pending?.id,
+          currency: "usd",
           id: "cs_test_registration",
           metadata: {
             event_id: eventId,
             registration_id: pending?.id,
           },
+          mode: "payment",
           payment_intent: "pi_test_registration",
+          payment_status: "paid",
         },
       },
       id: `evt_${crypto.randomUUID()}`,

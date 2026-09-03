@@ -42,6 +42,15 @@ async function processGeofenceEvent(
     return;
   }
 
+  const venueRecord = await env.DB.prepare(
+    "select id from venue where id = ? limit 1"
+  )
+    .bind(venueId)
+    .first<{ id: string }>();
+  if (!venueRecord) {
+    return;
+  }
+
   // Get the Durable Object for this venue
   const doId = env.VENUE_PRESENCE.idFromName(venueId);
   const presence = env.VENUE_PRESENCE.get(doId) as VenuePresenceStub;
@@ -50,22 +59,22 @@ async function processGeofenceEvent(
 
   if (event.type === "user.entered_geofence") {
     // Update real-time presence
-    const { count } = await presence.userEntered(userId);
-    console.log(`User ${userId} entered venue ${venueId}. Active: ${count}`);
-
+    await presence.userEntered(userId);
     // Create a visit record
     const visitId = crypto.randomUUID();
-    await db.insert(venueVisit).values({
-      enteredAt: new Date(),
-      id: visitId,
-      userId,
-      venueId,
-    });
+    await db
+      .insert(venueVisit)
+      .values({
+        enteredAt: new Date(),
+        id: visitId,
+        radarEventId: event._id,
+        userId,
+        venueId,
+      })
+      .onConflictDoNothing({ target: venueVisit.radarEventId });
   } else if (event.type === "user.exited_geofence") {
     // Update real-time presence
-    const { count } = await presence.userExited(userId);
-    console.log(`User ${userId} exited venue ${venueId}. Active: ${count}`);
-
+    await presence.userExited(userId);
     // Update the visit record with exit time
     const [visit] = await db
       .select()

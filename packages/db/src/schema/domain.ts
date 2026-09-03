@@ -45,6 +45,9 @@ export const userProfile = sqliteTable(
     })
       .default("pending")
       .notNull(),
+    platformRole: text("platform_role", { enum: ["user", "admin"] })
+      .default("user")
+      .notNull(),
     radarAddressId: text("radar_address_id"),
     radarPlaceId: text("radar_place_id"),
     skillLevel: text("skill_level", {
@@ -172,6 +175,9 @@ export const video = sqliteTable(
       .notNull(),
     muxAssetId: text("mux_asset_id"),
     muxPlaybackId: text("mux_playback_id"),
+    muxPlaybackPolicy: text("mux_playback_policy", {
+      enum: ["public", "signed"],
+    }),
     muxStatus: text("mux_status"),
     muxUploadId: text("mux_upload_id"),
     organizationId: text("organization_id").references(() => organization.id, {
@@ -366,7 +372,7 @@ export const eventPayment = sqliteTable(
   (table) => [
     uniqueIndex("event_payment_checkout_idx").on(table.stripeCheckoutSessionId),
     index("event_payment_event_idx").on(table.eventId),
-    index("event_payment_registration_idx").on(table.registrationId),
+    uniqueIndex("event_payment_registration_idx").on(table.registrationId),
   ]
 );
 
@@ -868,6 +874,7 @@ export const venueVisit = sqliteTable(
     enteredAt: timestamp("entered_at"),
     exitedAt: nullableTimestamp("exited_at"),
     id: text("id").primaryKey(),
+    radarEventId: text("radar_event_id"),
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
@@ -879,6 +886,7 @@ export const venueVisit = sqliteTable(
     index("venue_visit_venue_idx").on(table.venueId),
     index("venue_visit_user_idx").on(table.userId),
     index("venue_visit_entered_idx").on(table.enteredAt),
+    uniqueIndex("venue_visit_radar_event_idx").on(table.radarEventId),
   ]
 );
 
@@ -950,7 +958,9 @@ export const webhookEvent = sqliteTable(
     id: text("id").primaryKey(),
     payloadJson: text("payload_json").notNull(),
     processedAt: integer("processed_at", { mode: "timestamp_ms" }),
-    provider: text("provider", { enum: ["mux", "stripe"] }).notNull(),
+    provider: text("provider", {
+      enum: ["mux", "radar", "resend", "stripe"],
+    }).notNull(),
     providerEventId: text("provider_event_id").notNull(),
     status: text("status", { enum: ["received", "processed", "failed"] })
       .default("received")

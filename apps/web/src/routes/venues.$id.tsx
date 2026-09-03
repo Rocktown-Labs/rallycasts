@@ -15,10 +15,10 @@ import {
   Radio,
 } from "lucide-react";
 
-import type { EventCardData } from "@/components/rally/cards";
+import type { EventCardData, VenueCardData } from "@/components/rally/cards";
 import { apiClient } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
-import { useRadarTracking } from "@/lib/hooks";
+import { useLocationConsent, useRadarTracking } from "@/lib/hooks";
 
 function venueQueryOptions(id: string) {
   return {
@@ -54,40 +54,10 @@ export const Route = createFileRoute("/venues/$id")({
   component: VenueDetailPage,
 });
 
-// Fallback data for popular times when no real data is available
-const _POPULAR_TIMES = [
-  { hour: "6a", value: 15 },
-  { hour: "7a", value: 35 },
-  { hour: "8a", value: 55 },
-  { hour: "9a", value: 75 },
-  { hour: "10a", value: 85 },
-  { hour: "11a", value: 90 },
-  { hour: "12p", value: 80 },
-  { hour: "1p", value: 70 },
-  { hour: "2p", value: 85 },
-  { hour: "3p", value: 95 },
-  { hour: "4p", value: 88 },
-  { hour: "5p", value: 75 },
-  { hour: "6p", value: 60 },
-  { hour: "7p", value: 45 },
-  { hour: "8p", value: 30 },
-  { hour: "9p", value: 15 },
-];
-
-const _WEEKLY_VISITS = [
-  { day: "Mon", value: 42 },
-  { day: "Tue", value: 58 },
-  { day: "Wed", value: 65 },
-  { day: "Thu", value: 48 },
-  { day: "Fri", value: 72 },
-  { day: "Sat", value: 95 },
-  { day: "Sun", value: 88 },
-];
-
 function PopularTimesChart({
   peakHours,
 }: {
-  peakHours: { hour: string; visits: number }[];
+  peakHours: { hour: string | number; visits: number }[];
 }) {
   const hours =
     peakHours.length > 0
@@ -135,7 +105,7 @@ function PopularTimesChart({
                 title={`${time.hour}: ${time.visits} visits`}
               />
               <span className="text-[8px] text-muted-foreground">
-                {time.hour.split(":")[0]}
+                {String(time.hour).split(":")[0]}
               </span>
             </div>
           );
@@ -365,7 +335,7 @@ function VenueAnalyticsCard({
   peakHours,
   peakDays,
 }: {
-  peakHours: { hour: number; visits: number }[];
+  peakHours: { hour: string | number; visits: number }[];
   peakDays: { day: string; visits: number }[];
 }) {
   return (
@@ -381,15 +351,17 @@ function VenueAnalyticsCard({
 }
 
 function VenueSidebar({
-  venue,
-  events,
   activePlayers,
-  analyticsData,
+  events,
+  locationSharingEnabled,
+  onEnableLocation,
+  venue,
 }: {
   venue: VenueCardData;
   events: EventCardData[];
   activePlayers: number;
-  analyticsData: VenueAnalytics | undefined;
+  locationSharingEnabled: boolean;
+  onEnableLocation: () => void;
 }) {
   return (
     <div className="space-y-4">
@@ -425,8 +397,13 @@ function VenueSidebar({
           Enable location tracking to see when friends are here, get popular
           times, and earn park badges.
         </p>
-        <Button size="sm" className="w-full rounded-md text-xs">
-          Enable Check-ins
+        <Button
+          className="w-full rounded-md text-xs"
+          disabled={locationSharingEnabled}
+          onClick={onEnableLocation}
+          size="sm"
+        >
+          {locationSharingEnabled ? "Check-ins enabled" : "Enable Check-ins"}
         </Button>
       </Card>
 
@@ -441,18 +418,18 @@ function VenueSidebar({
           )}
         </div>
         <div className="flex -space-x-2">
-          {(analyticsData?.activeUsers ?? []).slice(0, 5).map((user, i) => (
+          {Array.from({ length: Math.min(activePlayers, 5) }, (_, index) => (
             <div
-              key={user.userId}
               className="grid size-8 place-items-center rounded-full border-2 border-card bg-muted text-xs font-bold"
-              title={`User ${user.userId}`}
+              key={index}
+              title="Active player"
             >
-              {String.fromCodePoint(65 + i)}
+              {String.fromCodePoint(65 + index)}
             </div>
           ))}
-          {(analyticsData?.activeUsers ?? []).length > 5 && (
+          {activePlayers > 5 && (
             <div className="grid size-8 place-items-center rounded-full border-2 border-card bg-muted text-xs text-muted-foreground">
-              +{(analyticsData?.activeUsers ?? []).length - 5}
+              +{activePlayers - 5}
             </div>
           )}
         </div>
@@ -519,6 +496,7 @@ function EventsSection({ events }: { events: EventCardData[] }) {
   );
 }
 
+// oxlint-disable-next-line complexity -- Venue detail combines analytics, consent, and loading states.
 function VenueDetailPage() {
   const { id } = useParams({ from: "/venues/$id" });
   const { data, isLoading, error } = useQuery(venueQueryOptions(id));
@@ -526,7 +504,8 @@ function VenueDetailPage() {
 
   const { data: session } = authClient.useSession();
   const userId = session?.user?.id;
-  useRadarTracking(userId);
+  const { grantConsent, hasConsent: hasLocationConsent } = useLocationConsent();
+  useRadarTracking(userId, hasLocationConsent);
 
   if (isLoading) {
     return (
@@ -583,7 +562,8 @@ function VenueDetailPage() {
           venue={venue}
           events={events}
           activePlayers={activePlayers}
-          analyticsData={analyticsData}
+          locationSharingEnabled={hasLocationConsent && Boolean(userId)}
+          onEnableLocation={grantConsent}
         />
       </div>
       <EventsSection events={events} />

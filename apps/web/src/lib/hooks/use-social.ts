@@ -12,7 +12,7 @@ export const useNotifications = () =>
     queryFn: async () => {
       try {
         const response = await apiClient.api.v1.social.notifications.$get();
-        if (response.status === 401) {
+        if ((response.status as number) === 401) {
           return null;
         }
         if (!response.ok) {

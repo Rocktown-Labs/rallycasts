@@ -1,11 +1,12 @@
 import { createDb } from "@rallycaststv/db";
 import { video, webhookEvent } from "@rallycaststv/db/schema/domain";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 
 import { createId } from "../lib/ids";
 import { readJsonPayload } from "../lib/json";
+import { replaceMuxAssetPlaybackPolicy } from "../lib/mux-client";
 import {
   indexSearchDocumentVector,
   removeSearchDocument,
@@ -94,6 +95,7 @@ interface MuxVideoUpdate {
 // oxlint-disable-next-line complexity -- Mux lifecycle events intentionally converge here.
 const applyMuxVideoUpdate = async (
   db: ReturnType<typeof createDb>,
+  env: AppEnv["Bindings"],
   update: MuxVideoUpdate
 ) => {
   const {
@@ -135,26 +137,60 @@ const applyMuxVideoUpdate = async (
     return;
   }
 
+  const videoFilter = muxUploadId
+    ? eq(video.muxUploadId, muxUploadId)
+    : eq(video.muxAssetId, muxAssetId);
+  const [existingVideo] = await db
+    .select({
+      muxPlaybackId: video.muxPlaybackId,
+      muxPlaybackPolicy: video.muxPlaybackPolicy,
+      visibility: video.visibility,
+    })
+    .from(video)
+    .where(videoFilter)
+    .limit(1);
+  let persistedPlaybackId = muxPlaybackId;
+  if (existingVideo && eventType === "video.asset.ready") {
+    const desiredPlaybackPolicy =
+      existingVideo.visibility === "public" ? "public" : "signed";
+    if (existingVideo.muxPlaybackPolicy !== desiredPlaybackPolicy) {
+      if (!(env.MUX_TOKEN_ID && env.MUX_TOKEN_SECRET)) {
+        throw new Error(
+          "Mux credentials are required to update playback policy"
+        );
+      }
+      persistedPlaybackId = await replaceMuxAssetPlaybackPolicy(
+        muxAssetId,
+        desiredPlaybackPolicy,
+        env.MUX_TOKEN_ID,
+        env.MUX_TOKEN_SECRET,
+        muxPlaybackId ?? existingVideo.muxPlaybackId
+      );
+    }
+  }
   const status = getAssetVideoStatus(eventType);
+  let muxPlaybackPolicy: "public" | "signed" | undefined;
+  if (status === "ready" && existingVideo) {
+    muxPlaybackPolicy =
+      existingVideo.visibility === "public" ? "public" : "signed";
+  }
   const [updated] = await db
     .update(video)
     .set({
       durationSeconds: duration === null ? undefined : Math.round(duration),
       muxAssetId,
-      muxPlaybackId: muxPlaybackId ?? undefined,
+      muxPlaybackId: persistedPlaybackId ?? undefined,
+      muxPlaybackPolicy,
       muxStatus: muxStatus ?? eventType,
       publishedAt: status === "ready" ? new Date() : undefined,
       status,
-      thumbnailUrl: muxPlaybackId
-        ? `https://image.mux.com/${muxPlaybackId}/thumbnail.webp?time=1`
-        : undefined,
+      thumbnailUrl:
+        existingVideo?.visibility === "public" && persistedPlaybackId
+          ? `https://image.mux.com/${persistedPlaybackId}/thumbnail.webp?time=1`
+          : null,
       updatedAt: new Date(),
     })
-    .where(
-      muxUploadId
-        ? eq(video.muxUploadId, muxUploadId)
-        : eq(video.muxAssetId, muxAssetId)
-    )
+    .where(videoFilter)
     .returning();
 
   return updated;
@@ -218,15 +254,15 @@ export const muxRouter = new Hono<AppEnv>()
       HttpStatusCodes.OK
     )
   )
+  // oxlint-disable-next-line complexity -- Webhook parsing validates several Mux event variants.
   .post("/webhook", async (c) => {
-    const db = createDb(c.env.DB);
-    const { raw, value } = await readJsonPayload(c.req.raw);
+    const payload = await readJsonPayload(c.req.raw);
     const webhookSecret = c.env.MUX_WEBHOOK_SECRET;
 
     if (
       !webhookSecret ||
       !(await verifyMuxSignature(
-        raw,
+        payload.ok ? payload.raw : "",
         c.req.header("Mux-Signature"),
         webhookSecret
       ))
@@ -236,9 +272,23 @@ export const muxRouter = new Hono<AppEnv>()
         HttpStatusCodes.UNAUTHORIZED
       );
     }
+    if (!payload.ok) {
+      return c.json(
+        { message: "Invalid webhook payload" },
+        HttpStatusCodes.BAD_REQUEST
+      );
+    }
 
-    const providerEventId = getStringProperty(value, "id") ?? createId();
-    const eventType = getStringProperty(value, "type") ?? "mux.unknown";
+    const { value } = payload;
+    const providerEventId = getStringProperty(value, "id");
+    const eventType = getStringProperty(value, "type");
+    if (!(providerEventId && eventType)) {
+      return c.json(
+        { message: "Invalid Mux webhook payload" },
+        HttpStatusCodes.BAD_REQUEST
+      );
+    }
+    const db = createDb(c.env.DB);
     const data = getRecord(value, "data");
     const { muxAssetId, muxUploadId } = getMuxObjectIds(eventType, data);
     const playbackIds = data?.playback_ids;
@@ -248,33 +298,77 @@ export const muxRouter = new Hono<AppEnv>()
     const muxStatus = data ? getStringProperty(data, "status") : null;
     const duration = data ? getNumberProperty(data, "duration") : null;
 
-    const insertedEvents = await db
+    const [insertedEvent] = await db
       .insert(webhookEvent)
       .values({
         eventType,
         id: createId(),
-        payloadJson: raw,
+        payloadJson: payload.raw,
         provider: "mux",
         providerEventId,
       })
       .onConflictDoNothing()
       .returning({ id: webhookEvent.id });
+    let webhookEventId = insertedEvent?.id;
 
-    if (insertedEvents.length === 0) {
+    if (!insertedEvent) {
+      const [existingEvent] = await db
+        .select({ id: webhookEvent.id, status: webhookEvent.status })
+        .from(webhookEvent)
+        .where(
+          and(
+            eq(webhookEvent.provider, "mux"),
+            eq(webhookEvent.providerEventId, providerEventId)
+          )
+        )
+        .limit(1);
+      if (existingEvent?.status === "processed") {
+        return c.json(
+          { eventType, providerEventId, received: true },
+          HttpStatusCodes.OK
+        );
+      }
+      if (!existingEvent) {
+        return c.json(
+          { message: "Webhook could not be recorded" },
+          HttpStatusCodes.SERVICE_UNAVAILABLE
+        );
+      }
+      webhookEventId = existingEvent.id;
+    }
+
+    let updatedVideo: Awaited<ReturnType<typeof applyMuxVideoUpdate>>;
+    try {
+      updatedVideo = await applyMuxVideoUpdate(db, c.env, {
+        duration,
+        eventType,
+        muxAssetId,
+        muxPlaybackId,
+        muxStatus,
+        muxUploadId,
+      });
+    } catch (error) {
+      await db
+        .update(webhookEvent)
+        .set({ status: "failed" })
+        .where(eq(webhookEvent.id, webhookEventId ?? ""));
+      console.error(
+        JSON.stringify({
+          event: "mux_webhook_processing_failed",
+          message: error instanceof Error ? error.message : "unknown error",
+          providerEventId,
+        })
+      );
       return c.json(
-        { eventType, providerEventId, received: true },
-        HttpStatusCodes.OK
+        { message: "Mux webhook processing failed" },
+        HttpStatusCodes.SERVICE_UNAVAILABLE
       );
     }
 
-    const updatedVideo = await applyMuxVideoUpdate(db, {
-      duration,
-      eventType,
-      muxAssetId,
-      muxPlaybackId,
-      muxStatus,
-      muxUploadId,
-    });
+    await db
+      .update(webhookEvent)
+      .set({ processedAt: new Date(), status: "processed" })
+      .where(eq(webhookEvent.id, webhookEventId ?? ""));
 
     if (
       updatedVideo?.status === "ready" &&

@@ -1,21 +1,47 @@
+import { zValidator } from "@hono/zod-validator";
 import { createDb } from "@rallycaststv/db";
 import { event, venue } from "@rallycaststv/db/schema/domain";
-import { desc, eq, like, or, sql } from "drizzle-orm";
+import { and, desc, eq, like, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
+import { z } from "zod";
 
 import { EARTH_RADIUS_MILES } from "../lib/geo";
 import { syncVenueGeofence } from "../lib/geofence-sync";
+import { toPublicVenue } from "../lib/public-data";
 import { syncVenueSearchDocument } from "../lib/search-index";
 import type { AppEnv } from "../lib/types";
+import { requireAuth } from "../middleware/auth";
 
 const searchPattern = (query: string | undefined) => `%${query ?? ""}%`;
 
+const venueSchema = z.object({
+  addressLine1: z.string().max(200).optional(),
+  addressLine2: z.string().max(200).optional(),
+  city: z.string().max(120).optional(),
+  country: z.string().length(2).default("US"),
+  courtCount: z.number().int().min(0).max(500).optional(),
+  description: z.string().max(2000).optional(),
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
+  name: z.string().trim().min(1).max(160),
+  postalCode: z.string().max(20).optional(),
+  state: z.string().max(80).optional(),
+  venueType: z.enum(["park", "club", "facility", "other"]).default("park"),
+});
+
 export const venuesRouter = new Hono<AppEnv>()
-  .post("/", async (c) => {
+  .post("/", requireAuth, zValidator("json", venueSchema), async (c) => {
     const db = createDb(c.env.DB);
-    const body = await c.req.json();
-    const newVenue = await db.insert(venue).values(body).returning();
+    const { user: authUser } = c.var.authSession;
+    const newVenue = await db
+      .insert(venue)
+      .values({
+        ...c.req.valid("json"),
+        createdByUserId: authUser.id,
+        id: crypto.randomUUID(),
+      })
+      .returning();
 
     // Sync to Radar geofences
     if (c.env.RADAR_SECRET_KEY && newVenue[0]) {
@@ -40,7 +66,10 @@ export const venuesRouter = new Hono<AppEnv>()
       );
     }
 
-    return c.json({ venue: newVenue[0] }, HttpStatusCodes.CREATED);
+    return c.json(
+      { venue: newVenue[0] ? toPublicVenue(newVenue[0]) : null },
+      HttpStatusCodes.CREATED
+    );
   })
   .get("/", async (c) => {
     const db = createDb(c.env.DB);
@@ -108,7 +137,7 @@ export const venuesRouter = new Hono<AppEnv>()
         .limit(50);
     }
 
-    return c.json({ venues }, HttpStatusCodes.OK);
+    return c.json({ venues: venues.map(toPublicVenue) }, HttpStatusCodes.OK);
   })
   .get("/:id", async (c) => {
     const db = createDb(c.env.DB);
@@ -125,9 +154,12 @@ export const venuesRouter = new Hono<AppEnv>()
     const venueEvents = await db
       .select()
       .from(event)
-      .where(eq(event.venueId, record.id))
+      .where(and(eq(event.venueId, record.id), eq(event.status, "published")))
       .orderBy(desc(event.startsAt))
       .limit(20);
 
-    return c.json({ events: venueEvents, venue: record }, HttpStatusCodes.OK);
+    return c.json(
+      { events: venueEvents, venue: toPublicVenue(record) },
+      HttpStatusCodes.OK
+    );
   });

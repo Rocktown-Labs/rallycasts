@@ -76,6 +76,9 @@ const isProd = stage === "prod";
 
 const productionServerUrl = "https://api.rallycasts.com";
 const productionWebUrl = "https://rallycasts.com";
+const serverWorkerUrl = isProd
+  ? productionServerUrl
+  : `https://rallycasts-server-${stage}.rocktown-labs.workers.dev`;
 const webWorkerUrl = isProd
   ? "https://rallycasts-web.rocktown-labs.workers.dev"
   : `https://rallycasts-web-${stage}.rocktown-labs.workers.dev`;
@@ -94,11 +97,10 @@ const searchIndex = await VectorizeIndex("search-index", {
 });
 
 const betterAuthSecret = requiredSecret("BETTER_AUTH_SECRET");
-const betterAuthUrl = productionServerUrl;
-const corsOrigin = `${webWorkerUrl},${productionWebUrl}`;
-const adminEmails = process.env.ADMIN_EMAILS ?? "camstewart7@gmail.com";
-const rallycastsAdminEmail =
-  process.env.RALLYCASTS_ADMIN_EMAIL ?? "camstewart7@gmail.com";
+const betterAuthUrl = serverWorkerUrl;
+const corsOrigin = isProd
+  ? `${productionWebUrl},${webWorkerUrl}`
+  : `${webWorkerUrl},http://localhost:3001,http://127.0.0.1:3001`;
 const googleAiApiKey = requiredSecret("GOOGLE_GENERATIVE_AI_API_KEY");
 const githubClientId = process.env.GITHUB_CLIENT_ID ?? "";
 const githubClientSecret = optionalSecret("GITHUB_CLIENT_SECRET");
@@ -111,7 +113,10 @@ const fourthwallStorefrontUrl =
   process.env.VITE_FOURTHWALL_STOREFRONT_URL ?? "";
 const muxTokenSecret = optionalSecret("MUX_TOKEN_SECRET");
 const muxTokenId = optionalSecret("MUX_TOKEN_ID");
+const muxSigningKeyId = optionalSecret("MUX_SIGNING_KEY_ID");
+const muxSigningKeySecret = optionalSecret("MUX_SIGNING_KEY_SECRET");
 const muxWebhookSecret = optionalSecret("MUX_WEBHOOK_SECRET");
+const radarWebhookSecret = optionalSecret("RADAR_WEBHOOK_SECRET");
 const r2AccessKeyId = optionalSecret("R2_ACCESS_KEY_ID");
 const r2SecretAccessKey = optionalSecret("R2_SECRET_ACCESS_KEY");
 const r2BucketName = optionalPlainEnv("R2_BUCKET_NAME");
@@ -150,9 +155,17 @@ const userNotifications = DurableObjectNamespace("user-notifications", {
 
 // stage is defined at the top
 
+const geofenceDeadLetterQueue = await Queue("geofence-events-dlq", {
+  adopt: true,
+  name: `rallycasts-geofence-events-dlq-${stage}`,
+});
 const geofenceQueue = await Queue("geofence-events", {
   adopt: true,
   name: `rallycasts-geofence-events-${stage}`,
+});
+const eventActivityDeadLetterQueue = await Queue("event-activity-dlq", {
+  adopt: true,
+  name: `rallycasts-event-activity-dlq-${stage}`,
 });
 const eventActivityQueue = await Queue("event-activity", {
   adopt: true,
@@ -168,7 +181,19 @@ await Worker("rallycasts-geofence-events", {
   compatibility: "node",
   cwd: "../../apps/server",
   entrypoint: "src/queues/geofence-events.ts",
-  eventSources: [{ queue: geofenceQueue }],
+  eventSources: [
+    {
+      queue: geofenceQueue,
+      settings: {
+        batchSize: 25,
+        deadLetterQueue: geofenceDeadLetterQueue,
+        maxConcurrency: 5,
+        maxRetries: 5,
+        maxWaitTimeMs: 5000,
+        retryDelay: 60,
+      },
+    },
+  ],
   name: `rallycasts-geofence-events-${stage}`,
 });
 
@@ -182,14 +207,25 @@ await Worker("rallycasts-event-activity", {
   compatibility: "node",
   cwd: "../../apps/server",
   entrypoint: "src/queues/event-activity.ts",
-  eventSources: [{ queue: eventActivityQueue }],
+  eventSources: [
+    {
+      queue: eventActivityQueue,
+      settings: {
+        batchSize: 25,
+        deadLetterQueue: eventActivityDeadLetterQueue,
+        maxConcurrency: 5,
+        maxRetries: 5,
+        maxWaitTimeMs: 5000,
+        retryDelay: 60,
+      },
+    },
+  ],
   name: `rallycasts-event-activity-${stage}`,
 });
 
 export const server = await Worker("rallycasts-server", {
   adopt: true,
   bindings: filterMissingBindings({
-    ADMIN_EMAILS: adminEmails,
     BETTER_AUTH_SECRET: betterAuthSecret,
     BETTER_AUTH_URL: betterAuthUrl,
     CHAT_ROOMS: chatRooms,
@@ -205,6 +241,8 @@ export const server = await Worker("rallycasts-server", {
     GOOGLE_GENERATIVE_AI_API_KEY: googleAiApiKey,
     GOOGLE_PLACES_API_KEY: googlePlacesApiKey,
     MEDIA_BUCKET: mediaBucket,
+    MUX_SIGNING_KEY_ID: muxSigningKeyId,
+    MUX_SIGNING_KEY_SECRET: muxSigningKeySecret,
     MUX_TOKEN_ID: muxTokenId,
     MUX_TOKEN_SECRET: muxTokenSecret,
     MUX_WEBHOOK_SECRET: muxWebhookSecret,
@@ -213,7 +251,7 @@ export const server = await Worker("rallycasts-server", {
     R2_PUBLIC_URL: r2PublicUrl,
     R2_SECRET_ACCESS_KEY: r2SecretAccessKey,
     RADAR_SECRET_KEY: radarSecretKey,
-    RALLYCASTS_ADMIN_EMAIL: rallycastsAdminEmail,
+    RADAR_WEBHOOK_SECRET: radarWebhookSecret,
     RESEND_API_KEY: resendApiKey,
     RESEND_WEBHOOK_SECRET: resendWebhookSecret,
     SEARCH_INDEX: searchIndex,
@@ -251,7 +289,7 @@ export const web = await TanStackStart("rallycasts-web", {
     VITE_FOURTHWALL_STOREFRONT_URL: fourthwallStorefrontUrl,
     VITE_RADAR_PUBLISHABLE_KEY: radarPublishableKey,
     VITE_SENTRY_DSN: sentryDsn,
-    VITE_SERVER_URL: productionServerUrl,
+    VITE_SERVER_URL: serverWorkerUrl,
   }),
   compatibility: "node",
   cwd: "../../apps/web",

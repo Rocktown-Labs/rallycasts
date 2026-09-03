@@ -5,7 +5,9 @@ import { apiClient } from "@/lib/api-client";
 import { readApiJson } from "./api";
 
 export type AdminDashboard = Awaited<
-  ReturnType<ReturnType<typeof apiClient.api.v1.admin.dashboard.$get>["json"]>
+  ReturnType<
+    Awaited<ReturnType<typeof apiClient.api.v1.admin.dashboard.$get>>["json"]
+  >
 >;
 
 export const useAdminDashboard = (enabled: boolean) =>

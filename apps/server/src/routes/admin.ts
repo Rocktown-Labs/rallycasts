@@ -18,14 +18,18 @@ import { Hono } from "hono";
 import { createMiddleware } from "hono/factory";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 
-import { isPlatformAdminEmail } from "../lib/admin";
+import { isPlatformAdminUser } from "../lib/admin";
 import { backfillSearchDocuments } from "../lib/search-backfill";
 import type { AppEnv } from "../lib/types";
 import { requireAuth } from "../middleware/auth";
 
 const requirePlatformAdmin = createMiddleware<AppEnv>(async (c, next) => {
   const { user: authUser } = c.var.authSession;
-  if (!isPlatformAdminEmail(authUser.email, c.env)) {
+  const db = createDb(c.env.DB);
+  if (
+    !authUser.emailVerified ||
+    !(await isPlatformAdminUser(db, authUser.id))
+  ) {
     return c.json({ message: "Forbidden" }, HttpStatusCodes.FORBIDDEN);
   }
 

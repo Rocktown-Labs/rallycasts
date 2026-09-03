@@ -39,7 +39,7 @@ function generateEmojiAvatar(
 export const StepProfile = withForm({
   ...wizardFormOpts,
   props: {
-    setStep: (_step: number) => void 0,
+    setStep: (() => null) as (step: number) => void,
     step: 0,
   },
   render: function render({ form, setStep }) {

@@ -1,0 +1,1 @@
+ALTER TABLE `video` ADD `mux_playback_policy` text;

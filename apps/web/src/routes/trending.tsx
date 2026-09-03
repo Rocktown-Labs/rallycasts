@@ -35,9 +35,11 @@ import type {
   EventCardData,
 } from "@/components/rally/cards";
 import { authClient } from "@/lib/auth-client";
+import type { GeoLocation } from "@/lib/hooks";
 import {
   useGeolocation,
   useInfiniteVideos,
+  useLocationConsent,
   useRadarTracking,
   useTrending,
 } from "@/lib/hooks";
@@ -186,17 +188,32 @@ function VenueRadiusSelect({
 
 function LocationStatus({
   error,
+  hasLocationConsent,
   isApiFallback,
   isLoading,
   location,
   requestLocation,
 }: {
   error: string | null;
+  hasLocationConsent: boolean;
   isApiFallback?: boolean;
   isLoading: boolean;
-  location?: { isFallback?: boolean; lat: number; lng: number };
+  location?: GeoLocation;
   requestLocation: () => void;
 }) {
+  if (!hasLocationConsent) {
+    return (
+      <Button
+        className="text-xs text-[#bcdf21]"
+        onClick={requestLocation}
+        size="sm"
+        variant="ghost"
+      >
+        Enable location
+      </Button>
+    );
+  }
+
   if (isLoading && !location) {
     return (
       <span className="text-xs text-muted-foreground animate-pulse">
@@ -468,7 +485,8 @@ function VideosViewSection() {
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
     useInfiniteVideos();
-  const videos = data?.pages.flatMap((page) => page.videos) ?? [];
+  const videos: VideoCardData[] =
+    data?.pages.flatMap((page) => page?.videos ?? []) ?? [];
 
   useEffect(() => {
     const target = loadMoreRef.current;
@@ -560,6 +578,7 @@ function VideosViewSection() {
 function TrendingDashboardView({
   geoError,
   geoLoading,
+  hasLocationConsent,
   location,
   onVenueRadiusChange,
   requestLocation,
@@ -575,6 +594,7 @@ function TrendingDashboardView({
 }: {
   geoError: string | null;
   geoLoading: boolean;
+  hasLocationConsent: boolean;
   location?: { isFallback?: boolean; lat: number; lng: number } | null;
   onVenueRadiusChange: (radius: number) => void;
   requestLocation: () => void;
@@ -640,6 +660,7 @@ function TrendingDashboardView({
                 {isAuthenticated ? (
                   <LocationStatus
                     error={geoError}
+                    hasLocationConsent={hasLocationConsent}
                     isApiFallback={isApiFallback}
                     isLoading={geoLoading}
                     location={location || undefined}
@@ -805,12 +826,13 @@ function TrendingPage() {
   );
   const venueLimit =
     viewSection === "venues" ? VIEW_ALL_VENUE_LIMIT : undefined;
+  const { grantConsent, hasConsent: hasLocationConsent } = useLocationConsent();
   const {
     error: geoError,
     isLoading: geoLoading,
     location,
-    requestLocation,
-  } = useGeolocation(Boolean(session?.user));
+    requestLocation: requestLocationFromHook,
+  } = useGeolocation(Boolean(session?.user) && hasLocationConsent);
   const { data, isLoading } = useTrending(
     session?.user ? location : undefined,
     {
@@ -819,7 +841,14 @@ function TrendingPage() {
       venueRadius,
     }
   );
-  useRadarTracking(session?.user?.id);
+  useRadarTracking(session?.user?.id, hasLocationConsent);
+  const requestLocation = () => {
+    if (!hasLocationConsent) {
+      grantConsent();
+      return;
+    }
+    requestLocationFromHook();
+  };
   const isApiFallback = data?.isApiFallback ?? false;
   const videos = data?.videos ?? [];
   const venues = data?.venues ?? [];
@@ -843,7 +872,9 @@ function TrendingPage() {
         location={location || undefined}
         onRadiusChange={handleVenueRadiusChange}
         page={venuePage}
-        pagination={data?.venuePagination}
+        pagination={
+          data && "venuePagination" in data ? data.venuePagination : undefined
+        }
         radius={venueRadius}
         requestLocation={requestLocation}
         venues={venues as unknown as VenueCardData[]}
@@ -859,6 +890,7 @@ function TrendingPage() {
     <TrendingDashboardView
       geoError={geoError}
       geoLoading={geoLoading}
+      hasLocationConsent={hasLocationConsent}
       location={location}
       onVenueRadiusChange={handleVenueRadiusChange}
       requestLocation={requestLocation}

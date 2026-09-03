@@ -10,3 +10,8 @@ pre-commit:
     - name: oxfmt
       run: bun oxfmt --write {staged_files}
       stage_fixed: true
+
+pre-push:
+  commands:
+    check-types:
+      run: bun run check-types

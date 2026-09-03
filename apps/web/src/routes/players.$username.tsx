@@ -37,7 +37,7 @@ import { EmptyState } from "@/components/rally/cards";
 import type { VideoCardData } from "@/components/rally/cards";
 import { apiClient } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
-import { demoPlayers } from "@/lib/demo-data";
+import { demoEnabled, demoPlayers } from "@/lib/demo-data";
 import { usePlayers } from "@/lib/hooks";
 import { readApiJson } from "@/lib/hooks/api";
 
@@ -94,7 +94,7 @@ interface SocialPost {
 interface PlayerHeaderProps {
   player: {
     id: string;
-    name: string;
+    name: string | null;
     image?: string | null;
     skillLevel?: string | null;
     username?: string | null;
@@ -414,7 +414,7 @@ function ChallengeModal({
   const [challengeMode, setChallengeMode] = useState<"singles" | "doubles">(
     "singles"
   );
-  const [challengeVenue, setChallengeVenue] = useState("demo-venue-1");
+  const [challengeVenue, setChallengeVenue] = useState("");
   const [challengeDate, setChallengeDate] = useState(() => {
     const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
     return tomorrow.toISOString().slice(0, 10);
@@ -449,12 +449,6 @@ function ChallengeModal({
       return;
     }
 
-    const venues: Record<string, string> = {
-      "demo-venue-1": "Crestwood Pickleball Park",
-      "demo-venue-2": "Mueller Sports Courts",
-      "demo-venue-3": "South Lamar Recreation Center",
-    };
-
     onSubmit({
       casted: requestCasting,
       courtLabel,
@@ -466,8 +460,8 @@ function ChallengeModal({
       splitMode: castingSplit,
       time: challengeTime,
       tipCents: requestCasting ? Math.round(Number(tipDollars) * 100) : 0,
-      venue: venues[challengeVenue] || "Crestwood Pickleball Park",
-      venueId: challengeVenue.startsWith("demo-") ? undefined : challengeVenue,
+      venue: challengeVenue.trim() || "Venue to be confirmed",
+      venueId: undefined,
     });
 
     setChallengeMsg("");
@@ -582,17 +576,14 @@ function ChallengeModal({
             )}
 
             <div className="space-y-1">
-              <Label htmlFor="challengeVenueSelect">Venue</Label>
-              <select
-                id="challengeVenueSelect"
+              <Label htmlFor="challengeVenueInput">Venue</Label>
+              <Input
+                id="challengeVenueInput"
+                placeholder="Name the venue (optional)"
                 value={challengeVenue}
                 onChange={(e) => setChallengeVenue(e.target.value)}
-                className="w-full mt-1.5 p-2.5 bg-card border border-border rounded-md text-xs focus:ring-1 focus:ring-primary focus:outline-none"
-              >
-                <option value="demo-venue-1">Crestwood Pickleball Park</option>
-                <option value="demo-venue-2">Mueller Sports Courts</option>
-                <option value="demo-venue-3">South Lamar Rec Center</option>
-              </select>
+                className="mt-1.5 text-xs"
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -1020,9 +1011,9 @@ function useModals() {
 }
 
 function useFeedDetailModal() {
-  const [selectedFeedItem, setSelectedFeedItem] = useState<FeedItem | null>(
-    null
-  );
+  const [selectedFeedItem, setSelectedFeedItem] = useState<
+    (FeedItem & { index: number }) | null
+  >(null);
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
 
   return {
@@ -1036,7 +1027,7 @@ function useFeedDetailModal() {
 interface RawPlayer {
   id: string;
   name: string | null;
-  username: string | null;
+  username?: string | null;
   displayUsername?: string | null;
   image?: string | null;
   skillLevel?: string | null;
@@ -1102,7 +1093,7 @@ function transformProfileData(
     url: photo.thumbnailUrl || photo.r2Key || "",
   }));
 
-  const challenges = apiChallenges.map((ch) => ({
+  const challenges: Challenge[] = apiChallenges.map((ch) => ({
     casted: ch.casted || false,
     challenged: ch.challengedName || "Unknown",
     challenger: ch.challengerName || "Unknown",
@@ -1113,7 +1104,10 @@ function transformProfileData(
     message: ch.message || "",
     mode: ch.matchMode || "singles",
     partner: ch.partnerName || "",
-    result: ch.result || "upcoming",
+    result:
+      ch.result === "draw" || ch.result === "lost" || ch.result === "won"
+        ? ch.result
+        : "upcoming",
     splitMode: ch.castingSplitMode || "",
     status: ch.status || "issued",
     time: ch.scheduledAt
@@ -1248,6 +1242,9 @@ function PlayerProfilePage() {
         }
         return await res.json();
       } catch (error) {
+        if (!demoEnabled) {
+          throw error;
+        }
         const demoPlayer = demoPlayers.find(
           (p) => p.username === username || p.displayUsername === username
         );
@@ -1396,22 +1393,23 @@ function PlayerProfilePage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 space-y-8 animate-in fade-in duration-300">
-      {player.onboardingStatus === "pending" && (
-        <div className="bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 rounded-xl p-4 text-sm flex items-center gap-3 animate-in slide-in-from-top-4 duration-300">
-          <div className="bg-amber-500/20 rounded-full p-1.5 text-amber-600 dark:text-amber-400">
-            <Info className="size-4" />
+      {"onboardingStatus" in player &&
+        player.onboardingStatus === "pending" && (
+          <div className="bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 rounded-xl p-4 text-sm flex items-center gap-3 animate-in slide-in-from-top-4 duration-300">
+            <div className="bg-amber-500/20 rounded-full p-1.5 text-amber-600 dark:text-amber-400">
+              <Info className="size-4" />
+            </div>
+            <div>
+              <p className="font-semibold text-xs sm:text-sm">
+                Onboarding Setup Pending
+              </p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">
+                This player hasn't completed their onboarding yet. Some stats or
+                records might not be fully configured.
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="font-semibold text-xs sm:text-sm">
-              Onboarding Setup Pending
-            </p>
-            <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">
-              This player hasn't completed their onboarding yet. Some stats or
-              records might not be fully configured.
-            </p>
-          </div>
-        </div>
-      )}
+        )}
       <PlayerHeader
         player={player}
         location={location}
@@ -1441,7 +1439,7 @@ function PlayerProfilePage() {
           }
           setShowDMModal(true);
         }}
-        isOwnProfile={isOwnProfile}
+        isOwnProfile={Boolean(isOwnProfile)}
       />
 
       <div className="grid grid-cols-3 gap-4 text-center">
@@ -1525,9 +1523,7 @@ function PlayerProfilePage() {
           items={feedItems}
           onClose={() => setSelectedFeedItem(null)}
           onNavigate={(index) => {
-            setSelectedFeedItem({ ...feedItems[index], index } as FeedItem & {
-              index: number;
-            });
+            setSelectedFeedItem({ ...feedItems[index], index });
           }}
           player={player}
         />
@@ -1675,9 +1671,10 @@ interface FeedDetailModalProps {
   onClose: () => void;
   onNavigate: (index: number) => void;
   player: {
-    name: string;
+    name: string | null;
     image?: string | null;
     username?: string | null;
+    displayUsername?: string | null;
   };
 }
 

@@ -1,10 +1,12 @@
 import { createDb } from "@rallycaststv/db";
-import { venueVisit } from "@rallycaststv/db/schema/domain";
+import { event, venue, venueVisit } from "@rallycaststv/db/schema/domain";
 import { and, count, eq, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 
+import { isPlatformAdminUser } from "../lib/admin";
 import type { AppEnv } from "../lib/types";
+import { requireAuth } from "../middleware/auth";
 
 type VenuePresenceStub = DurableObjectStub & {
   getActiveUsers: () => Promise<{ enteredAt: string; userId: string }[]>;
@@ -12,18 +14,67 @@ type VenuePresenceStub = DurableObjectStub & {
 
 export const venueAnalyticsRouter = new Hono<AppEnv>().get(
   "/:id/analytics",
+  requireAuth,
   async (c) => {
     const venueId = c.req.param("id");
     const db = createDb(c.env.DB);
+    const { user: authUser } = c.var.authSession;
+    const [venueRecord] = await db
+      .select({ createdByUserId: venue.createdByUserId })
+      .from(venue)
+      .where(eq(venue.id, venueId))
+      .limit(1);
 
-    // Get active users from Durable Object
+    if (!venueRecord) {
+      return c.json({ message: "Venue not found" }, HttpStatusCodes.NOT_FOUND);
+    }
+
+    const isAdmin = await isPlatformAdminUser(db, authUser.id);
+    let canView = isAdmin || venueRecord.createdByUserId === authUser.id;
+    if (!canView) {
+      const [eventRecord] = await db
+        .select({ id: event.id })
+        .from(event)
+        .where(
+          and(
+            eq(event.venueId, venueId),
+            eq(event.organizerUserId, authUser.id)
+          )
+        )
+        .limit(1);
+      canView = Boolean(eventRecord);
+    }
+    if (!canView) {
+      return c.json({ message: "Forbidden" }, HttpStatusCodes.FORBIDDEN);
+    }
+
+    const retentionCutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    const retentionTask = (async () => {
+      try {
+        await db
+          .delete(venueVisit)
+          .where(sql`${venueVisit.createdAt} < ${retentionCutoff.getTime()}`);
+      } catch (error) {
+        console.error(
+          JSON.stringify({
+            event: "venue_visit_retention_failed",
+            message: error instanceof Error ? error.message : "unknown error",
+          })
+        );
+      }
+    })();
+    try {
+      c.executionCtx.waitUntil(retentionTask);
+    } catch {
+      // Unit-test requests may not provide an execution context.
+    }
+
     const venuePresence: DurableObjectNamespace = c.env.VENUE_PRESENCE;
     const doId = venuePresence.idFromName(venueId);
     const presence = venuePresence.get(doId) as VenuePresenceStub;
     const activeUsers = await presence.getActiveUsers();
     const activeCount = activeUsers.length;
 
-    // Get today's visits
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayVisits = await db
@@ -36,7 +87,6 @@ export const venueAnalyticsRouter = new Hono<AppEnv>().get(
         )
       );
 
-    // Get this week's visits
     const weekStart = new Date();
     weekStart.setDate(weekStart.getDate() - 7);
     weekStart.setHours(0, 0, 0, 0);
@@ -50,11 +100,8 @@ export const venueAnalyticsRouter = new Hono<AppEnv>().get(
         )
       );
 
-    // Get average duration
     const durations = await db
-      .select({
-        avgDuration: sql<number>`AVG(${venueVisit.durationMinutes})`,
-      })
+      .select({ avgDuration: sql<number>`AVG(${venueVisit.durationMinutes})` })
       .from(venueVisit)
       .where(
         and(
@@ -63,7 +110,6 @@ export const venueAnalyticsRouter = new Hono<AppEnv>().get(
         )
       );
 
-    // Get peak hours (last 7 days)
     const peakHours = await db
       .select({
         hour: sql<number>`strftime('%H', ${venueVisit.enteredAt} / 1000, 'unixepoch')`,
@@ -80,7 +126,6 @@ export const venueAnalyticsRouter = new Hono<AppEnv>().get(
       .orderBy(sql`visits DESC`)
       .limit(5);
 
-    // Get peak days (last 30 days)
     const monthStart = new Date();
     monthStart.setDate(monthStart.getDate() - 30);
     monthStart.setHours(0, 0, 0, 0);
@@ -111,21 +156,17 @@ export const venueAnalyticsRouter = new Hono<AppEnv>().get(
     return c.json(
       {
         activeCount,
-        activeUsers: activeUsers.map((activeUser) => ({
-          enteredAt: activeUser.enteredAt,
-          userId: activeUser.userId,
-        })),
         avgDurationMinutes: Math.round(durations[0]?.avgDuration ?? 0),
         heatScore,
-        peakDays: peakDays.map((d) => ({
+        peakDays: peakDays.map((record) => ({
           day: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][
-            Number.parseInt(d.day, 10)
+            Number.parseInt(record.day, 10)
           ],
-          visits: d.visits,
+          visits: record.visits,
         })),
-        peakHours: peakHours.map((h) => ({
-          hour: `${h.hour}:00`,
-          visits: h.visits,
+        peakHours: peakHours.map((record) => ({
+          hour: `${record.hour}:00`,
+          visits: record.visits,
         })),
         todayVisits: todayVisits[0]?.count ?? 0,
         weekVisits: weekVisits[0]?.count ?? 0,
