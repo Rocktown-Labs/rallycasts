@@ -105,10 +105,28 @@ jobs:
               exit 1
             }
             if [ "$CUSTOM_DOMAIN_STATUS" = "404" ]; then
+              if ! ZONE_RESPONSE="$(curl -fsS \
+                -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+                -H "Content-Type: application/json" \
+                "https://api.cloudflare.com/client/v4/zones?name=rallycasts.com&status=active")"; then
+                rm -f "$CUSTOM_DOMAIN_RESPONSE"
+                echo "ERROR: Could not inspect the production Cloudflare zone."
+                exit 1
+              fi
+              ZONE_ID="$(printf "%s" "$ZONE_RESPONSE" | jq -r 'select(.success == true) | .result[0].id // empty')"
+              if [ -z "$ZONE_ID" ]; then
+                rm -f "$CUSTOM_DOMAIN_RESPONSE"
+                echo "ERROR: Could not resolve the production Cloudflare zone ID."
+                exit 1
+              fi
+              CUSTOM_DOMAIN_PAYLOAD="$(jq -n \
+                --arg domain "media.rallycasts.com" \
+                --arg zoneId "$ZONE_ID" \
+                '{domain: $domain, enabled: true, zoneId: $zoneId}')"
               if ! curl -fsS -X POST \
                 -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
                 -H "Content-Type: application/json" \
-                --data '{"domain":"media.rallycasts.com","enabled":true}' \
+                --data "$CUSTOM_DOMAIN_PAYLOAD" \
                 "$CUSTOM_DOMAIN_URL" | jq -e '.success == true' >/dev/null; then
                 rm -f "$CUSTOM_DOMAIN_RESPONSE"
                 echo "ERROR: Could not create the production R2 custom domain."
