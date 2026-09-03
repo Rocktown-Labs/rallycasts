@@ -28,7 +28,7 @@ const SKILL_OPTIONS = [
 export const StepGame = withForm({
   ...wizardFormOpts,
   props: {
-    setStep: (_step: number) => void 0,
+    setStep: (() => null) as (step: number) => void,
     step: 2,
   },
   render: function render({ form, setStep }) {

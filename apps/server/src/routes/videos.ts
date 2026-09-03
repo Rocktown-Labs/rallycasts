@@ -17,8 +17,13 @@ import { z } from "zod";
 
 import { generateEmbedding } from "../lib/embeddings";
 import { createId } from "../lib/ids";
-import { createMuxClip } from "../lib/mux-client";
+import {
+  createMuxClip,
+  createMuxPlaybackToken,
+  replaceMuxAssetPlaybackPolicy,
+} from "../lib/mux-client";
 import { createNotification } from "../lib/notifications";
+import { toPublicVenue, toPublicVideo } from "../lib/public-data";
 import {
   removeSearchDocument,
   scheduleSearchDocumentIndex,
@@ -26,6 +31,7 @@ import {
 } from "../lib/search-index";
 import type { AppEnv } from "../lib/types";
 import { requireAuth } from "../middleware/auth";
+import { requireVerifiedAuth } from "../middleware/security";
 
 const createVideoSchema = z.object({
   description: z.string().max(2000).optional(),
@@ -253,6 +259,13 @@ async function resolveVideosRelations(
   });
 }
 
+const toPublicResolvedVideo = (
+  record: Awaited<ReturnType<typeof resolveVideosRelations>>[number]
+) => ({
+  ...toPublicVideo(record),
+  venue: record.venue ? toPublicVenue(record.venue) : record.venue,
+});
+
 export const videosRouter = new Hono<AppEnv>()
   .get("/", async (c) => {
     const db = createDb(c.env.DB);
@@ -302,7 +315,7 @@ export const videosRouter = new Hono<AppEnv>()
       {
         nextCursor:
           hasNextPage && lastVideo ? encodeVideoCursor(lastVideo) : null,
-        videos: resolved,
+        videos: resolved.map(toPublicResolvedVideo),
       },
       HttpStatusCodes.OK
     );
@@ -554,24 +567,30 @@ export const videosRouter = new Hono<AppEnv>()
 
     return c.json({
       mode: semanticScores.size > 0 ? "hybrid" : "fallback",
-      videos: ranked,
+      videos: ranked.map(toPublicResolvedVideo),
     });
   })
   .post("/", requireAuth, zValidator("json", createVideoSchema), async (c) => {
     const db = createDb(c.env.DB);
     const { user: authUser } = c.var.authSession;
     const data = c.req.valid("json");
-    const { taggedUserIds, ...rest } = data;
+    const {
+      muxUploadId: _muxUploadId,
+      status: _status,
+      taggedUserIds,
+      ...rest
+    } = data;
 
     const draft = {
       id: createId(),
       ownerUserId: authUser.id,
       ...rest,
+      status: "draft" as const,
       taggedUserIds: taggedUserIds ? JSON.stringify(taggedUserIds) : null,
     };
 
     await db.insert(video).values(draft);
-    if (draft.status === "ready" && draft.visibility === "public") {
+    if ((draft.status as string) === "ready" && draft.visibility === "public") {
       const searchRecord = await upsertSearchDocument(db, {
         content: [data.title, data.description].filter(Boolean).join("\n"),
         entityId: draft.id,
@@ -608,20 +627,21 @@ export const videosRouter = new Hono<AppEnv>()
       const id = c.req.param("id");
       const { state } = c.req.valid("json");
 
-      await db
+      const [updated] = await db
         .update(video)
         .set({
           muxStatus: state === "failed" ? "upload_failed" : "uploaded",
           status: state,
           updatedAt: new Date(),
         })
-        .where(and(eq(video.id, id), eq(video.ownerUserId, authUser.id)));
-
-      const [updated] = await db
-        .select()
-        .from(video)
-        .where(and(eq(video.id, id), eq(video.ownerUserId, authUser.id)))
-        .limit(1);
+        .where(
+          and(
+            eq(video.id, id),
+            eq(video.ownerUserId, authUser.id),
+            inArray(video.status, ["uploading", "processing"])
+          )
+        )
+        .returning();
 
       if (!updated) {
         return c.json(
@@ -653,6 +673,7 @@ export const videosRouter = new Hono<AppEnv>()
   .post(
     "/:id/clips",
     requireAuth,
+    requireVerifiedAuth,
     zValidator("json", createClipSchema),
     async (c) => {
       const db = createDb(c.env.DB);
@@ -700,6 +721,7 @@ export const videosRouter = new Hono<AppEnv>()
         mediaType: "short" as const,
         muxAssetId: muxClip.assetId,
         muxPlaybackId: muxClip.playbackId,
+        muxPlaybackPolicy: "signed" as const,
         muxStatus: muxClip.status,
         ownerUserId: authUser.id,
         status: "processing" as const,
@@ -751,14 +773,15 @@ export const videosRouter = new Hono<AppEnv>()
     if (!resolved) {
       return c.json({ message: "Video not found" }, HttpStatusCodes.NOT_FOUND);
     }
+    const publicVideo = toPublicResolvedVideo(resolved);
     return c.json(
       {
-        owner: resolved.owner,
-        relatedVideos,
-        taggedUsers: resolved.taggedUsers,
-        venue: resolved.venue,
+        owner: publicVideo.owner,
+        relatedVideos: relatedVideos.map(toPublicResolvedVideo),
+        taggedUsers: publicVideo.taggedUsers,
+        venue: publicVideo.venue,
         video: {
-          ...resolved,
+          ...publicVideo,
           owner: undefined,
           taggedUsers: undefined,
           venue: undefined,
@@ -766,6 +789,76 @@ export const videosRouter = new Hono<AppEnv>()
       },
       HttpStatusCodes.OK
     );
+  })
+  .get("/:id/playback", requireAuth, requireVerifiedAuth, async (c) => {
+    const db = createDb(c.env.DB);
+    const { user: authUser } = c.var.authSession;
+    const id = c.req.param("id");
+    const [record] = await db
+      .select({
+        muxPlaybackId: video.muxPlaybackId,
+        muxPlaybackPolicy: video.muxPlaybackPolicy,
+        ownerUserId: video.ownerUserId,
+        status: video.status,
+        visibility: video.visibility,
+      })
+      .from(video)
+      .where(eq(video.id, id))
+      .limit(1);
+
+    if (!record || record.status !== "ready" || !record.muxPlaybackId) {
+      return c.json({ message: "Video not found" }, HttpStatusCodes.NOT_FOUND);
+    }
+    if (record.visibility !== "public" && record.ownerUserId !== authUser.id) {
+      return c.json({ message: "Forbidden" }, HttpStatusCodes.FORBIDDEN);
+    }
+
+    if (
+      record.visibility === "public" &&
+      record.muxPlaybackPolicy === "public"
+    ) {
+      return c.json(
+        {
+          playbackUrl: `https://stream.mux.com/${record.muxPlaybackId}.m3u8`,
+        },
+        HttpStatusCodes.OK
+      );
+    }
+
+    const signingKeyId = c.env.MUX_SIGNING_KEY_ID;
+    const signingKeySecret = c.env.MUX_SIGNING_KEY_SECRET;
+    if (!(signingKeyId && signingKeySecret)) {
+      return c.json(
+        { message: "Private playback is not configured" },
+        HttpStatusCodes.SERVICE_UNAVAILABLE
+      );
+    }
+
+    try {
+      const token = await createMuxPlaybackToken(
+        record.muxPlaybackId,
+        signingKeyId,
+        signingKeySecret
+      );
+      return c.json(
+        {
+          playbackUrl: `https://stream.mux.com/${record.muxPlaybackId}.m3u8?token=${encodeURIComponent(token)}`,
+        },
+        HttpStatusCodes.OK
+      );
+    } catch (error) {
+      console.error(
+        JSON.stringify({
+          event: "mux_playback_token_failed",
+          message: error instanceof Error ? error.message : "unknown error",
+          videoId: id,
+        })
+      );
+      return c.json(
+        { message: "Private playback is unavailable" },
+        HttpStatusCodes.SERVICE_UNAVAILABLE
+      );
+    }
   })
   .patch(
     "/:id",
@@ -776,14 +869,76 @@ export const videosRouter = new Hono<AppEnv>()
       const { user: authUser } = c.var.authSession;
       const id = c.req.param("id");
       const data = c.req.valid("json");
-      const publishedAt = data.status === "ready" ? new Date() : undefined;
+      const [currentVideo] = await db
+        .select({
+          muxAssetId: video.muxAssetId,
+          muxPlaybackId: video.muxPlaybackId,
+          muxPlaybackPolicy: video.muxPlaybackPolicy,
+          visibility: video.visibility,
+        })
+        .from(video)
+        .where(and(eq(video.id, id), eq(video.ownerUserId, authUser.id)))
+        .limit(1);
+      if (!currentVideo) {
+        return c.json(
+          { message: "Video not found" },
+          HttpStatusCodes.NOT_FOUND
+        );
+      }
 
-      const { taggedUserIds, ...rest } = data;
+      const {
+        durationSeconds: _durationSeconds,
+        muxAssetId: _muxAssetId,
+        muxPlaybackId: _muxPlaybackId,
+        muxStatus: _muxStatus,
+        muxUploadId: _muxUploadId,
+        r2Key: _r2Key,
+        status: _status,
+        taggedUserIds,
+        thumbnailUrl: _thumbnailUrl,
+        ...rest
+      } = data;
+      const effectiveVisibility = data.visibility ?? currentVideo.visibility;
+      const desiredPlaybackPolicy =
+        effectiveVisibility === "public" ? "public" : "signed";
+      let replacementPlaybackId: string | undefined;
+      if (
+        currentVideo.muxAssetId &&
+        currentVideo.muxPlaybackPolicy !== desiredPlaybackPolicy
+      ) {
+        if (!(c.env.MUX_TOKEN_ID && c.env.MUX_TOKEN_SECRET)) {
+          return c.json(
+            { message: "Mux playback policy is not configured" },
+            HttpStatusCodes.SERVICE_UNAVAILABLE
+          );
+        }
+        try {
+          replacementPlaybackId = await replaceMuxAssetPlaybackPolicy(
+            currentVideo.muxAssetId,
+            desiredPlaybackPolicy,
+            c.env.MUX_TOKEN_ID,
+            c.env.MUX_TOKEN_SECRET,
+            currentVideo.muxPlaybackId
+          );
+        } catch {
+          return c.json(
+            { message: "Could not update video playback policy" },
+            HttpStatusCodes.BAD_GATEWAY
+          );
+        }
+      }
       await db
         .update(video)
         .set({
           ...rest,
-          publishedAt,
+          ...(data.visibility && data.visibility !== "public"
+            ? { thumbnailUrl: null }
+            : {}),
+          muxPlaybackId: replacementPlaybackId,
+          muxPlaybackPolicy:
+            currentVideo.muxPlaybackPolicy === desiredPlaybackPolicy
+              ? undefined
+              : desiredPlaybackPolicy,
           taggedUserIds: taggedUserIds
             ? JSON.stringify(taggedUserIds)
             : undefined,
@@ -830,7 +985,7 @@ export const videosRouter = new Hono<AppEnv>()
           }
         : null;
 
-      return c.json({ id, ...data, video: returnedVideo }, HttpStatusCodes.OK);
+      return c.json({ id, video: returnedVideo }, HttpStatusCodes.OK);
     }
   )
   .get("/:id/social", async (c) => {
@@ -844,7 +999,13 @@ export const videosRouter = new Hono<AppEnv>()
       .from(video)
       .leftJoin(videoLike, eq(videoLike.videoId, video.id))
       .leftJoin(videoComment, eq(videoComment.videoId, video.id))
-      .where(eq(video.id, id))
+      .where(
+        and(
+          eq(video.id, id),
+          eq(video.status, "ready"),
+          eq(video.visibility, "public")
+        )
+      )
       .limit(1);
 
     return c.json(
@@ -859,10 +1020,16 @@ export const videosRouter = new Hono<AppEnv>()
     const [record] = await db
       .select()
       .from(video)
-      .where(eq(video.id, id))
+      .where(
+        and(
+          eq(video.id, id),
+          eq(video.status, "ready"),
+          eq(video.visibility, "public")
+        )
+      )
       .limit(1);
 
-    if (!record || record.status === "deleted") {
+    if (!record) {
       return c.json({ message: "Video not found" }, HttpStatusCodes.NOT_FOUND);
     }
 
@@ -919,7 +1086,14 @@ export const videosRouter = new Hono<AppEnv>()
       })
       .from(videoComment)
       .innerJoin(user, eq(videoComment.userId, user.id))
-      .where(eq(videoComment.videoId, id))
+      .innerJoin(video, eq(videoComment.videoId, video.id))
+      .where(
+        and(
+          eq(videoComment.videoId, id),
+          eq(video.status, "ready"),
+          eq(video.visibility, "public")
+        )
+      )
       .orderBy(
         desc(videoComment.isPinned),
         desc(videoComment.pinnedAt),
@@ -945,7 +1119,11 @@ export const videosRouter = new Hono<AppEnv>()
         .where(eq(video.id, id))
         .limit(1);
 
-      if (!record || record.status === "deleted") {
+      if (
+        !record ||
+        record.status !== "ready" ||
+        record.visibility !== "public"
+      ) {
         return c.json(
           { message: "Video not found" },
           HttpStatusCodes.NOT_FOUND

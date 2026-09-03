@@ -12,8 +12,9 @@ import { and, desc, eq, inArray, like, or } from "drizzle-orm";
 import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 
-import { isPlatformAdminEmail } from "../lib/admin";
+import { isPlatformAdminUser } from "../lib/admin";
 import { generateEmbedding } from "../lib/embeddings";
+import { toPublicVenue, toPublicVideo } from "../lib/public-data";
 import { backfillSearchDocuments } from "../lib/search-backfill";
 import type { AppEnv } from "../lib/types";
 import { requireAuth } from "../middleware/auth";
@@ -202,7 +203,9 @@ export const searchRouter = new Hono<AppEnv>()
         (record): record is (typeof semanticVideoRows)[number] =>
           record !== undefined
       );
-    const videos = mergeById(orderedSemanticVideos, keywordVideos).slice(0, 6);
+    const videos = mergeById(orderedSemanticVideos, keywordVideos)
+      .slice(0, 6)
+      .map(toPublicVideo);
     const keywordPosts =
       type === "all" || type === "posts"
         ? await db
@@ -270,7 +273,12 @@ export const searchRouter = new Hono<AppEnv>()
             })
             .from(userProfile)
             .innerJoin(user, eq(userProfile.userId, user.id))
-            .where(or(like(user.name, pattern), like(user.username, pattern)))
+            .where(
+              and(
+                eq(userProfile.onboardingStatus, "complete"),
+                or(like(user.name, pattern), like(user.username, pattern))
+              )
+            )
             .limit(6)
         : [];
     const semanticPlayerIds = semanticDocuments
@@ -290,7 +298,12 @@ export const searchRouter = new Hono<AppEnv>()
             })
             .from(userProfile)
             .innerJoin(user, eq(userProfile.userId, user.id))
-            .where(inArray(user.id, semanticPlayerIds))
+            .where(
+              and(
+                eq(userProfile.onboardingStatus, "complete"),
+                inArray(user.id, semanticPlayerIds)
+              )
+            )
         : [];
     const semanticPlayerById = new Map(
       semanticPlayerRows.map((record) => [record.id, record])
@@ -378,6 +391,13 @@ export const searchRouter = new Hono<AppEnv>()
       );
     const venues = mergeById(orderedSemanticVenues, keywordVenues).slice(0, 6);
 
+    const publicDocuments = documents.map((document) => ({
+      entityId: document.entityId,
+      entityType: document.entityType,
+      id: document.id,
+      title: document.title,
+    }));
+
     return c.json(
       {
         ai: {
@@ -392,22 +412,25 @@ export const searchRouter = new Hono<AppEnv>()
           ),
         },
         casters: [],
-        documents,
+        documents: publicDocuments,
         events,
         players,
         posts,
-        venues,
+        venues: venues.map(toPublicVenue),
         videos,
       },
       HttpStatusCodes.OK
     );
   })
   .post("/backfill", requireAuth, async (c) => {
+    const db = createDb(c.env.DB);
     const { user: authUser } = c.var.authSession;
-    if (!isPlatformAdminEmail(authUser.email, c.env)) {
+    if (
+      !authUser.emailVerified ||
+      !(await isPlatformAdminUser(db, authUser.id))
+    ) {
       return c.json({ message: "Forbidden" }, HttpStatusCodes.FORBIDDEN);
     }
-    const db = createDb(c.env.DB);
     const queued = await backfillSearchDocuments({
       db,
       env: c.env,

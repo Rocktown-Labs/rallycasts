@@ -1,17 +1,38 @@
+import type { createDb } from "@rallycaststv/db";
+import { userProfile } from "@rallycaststv/db/schema/domain";
+import { eq } from "drizzle-orm";
+
 import type { AppEnv } from "./types";
 
-const normalizeEmail = (email: string) => email.trim().toLowerCase();
+export const isPlatformAdminUser = async (
+  db: ReturnType<typeof createDb>,
+  userId: string
+): Promise<boolean> => {
+  const [profile] = await db
+    .select({ platformRole: userProfile.platformRole })
+    .from(userProfile)
+    .where(eq(userProfile.userId, userId))
+    .limit(1);
 
-const splitEmails = (value: string | undefined) =>
-  (value ?? "").split(",").map(normalizeEmail).filter(Boolean);
+  return profile?.platformRole === "admin";
+};
 
-export const getAdminEmails = (env: AppEnv["Bindings"]) =>
-  new Set([
-    ...splitEmails(env.ADMIN_EMAILS),
-    ...splitEmails(env.RALLYCASTS_ADMIN_EMAIL),
-  ]);
-
-export const isPlatformAdminEmail = (
-  email: string | null | undefined,
+export const isConfiguredOrigin = (
+  origin: string | undefined,
   env: AppEnv["Bindings"]
-) => (email ? getAdminEmails(env).has(normalizeEmail(email)) : false);
+) => {
+  if (!origin) {
+    return false;
+  }
+
+  const configuredOrigins = (env.CORS_ORIGIN ?? "")
+    .split(",")
+    .map((value: string) => value.trim())
+    .filter(Boolean);
+
+  return (
+    configuredOrigins.includes(origin) ||
+    origin === "rallycaststv://" ||
+    origin.startsWith("exp://")
+  );
+};

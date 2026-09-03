@@ -12,7 +12,7 @@ import { wizardFormOpts } from "./shared-form";
 export const StepLocation = withForm({
   ...wizardFormOpts,
   props: {
-    setStep: (_step: number) => void 0,
+    setStep: (() => null) as (step: number) => void,
     step: 1,
   },
   render: function render({ form, setStep }) {

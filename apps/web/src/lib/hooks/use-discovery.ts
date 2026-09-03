@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { apiClient } from "@/lib/api-client";
 import {
+  demoEnabled,
   demoPlayers,
   demoTrending,
   demoVenues,
@@ -53,8 +54,11 @@ export const useTrending = (
           })
         );
         return { ...data, isApiFallback: false };
-      } catch {
-        return { ...demoTrending, isApiFallback: true };
+      } catch (error) {
+        if (demoEnabled) {
+          return { ...demoTrending, isApiFallback: true };
+        }
+        throw error;
       }
     },
     queryKey: [
@@ -82,8 +86,11 @@ export const usePlayers = (
             },
           })
         );
-      } catch {
-        return { players: demoPlayers };
+      } catch (error) {
+        if (demoEnabled) {
+          return { players: demoPlayers };
+        }
+        throw error;
       }
     },
     queryKey: ["players", query, role],
@@ -102,16 +109,18 @@ export const useOrganizers = (query = "") =>
             },
           })
         );
-      } catch {
-        // Fallback to demo organizers (we can filter players with organizer profiles or use demo)
-        const demoOrganizers = demoPlayers.map((p, idx) => ({
-          ...p,
-          bio:
-            idx % 2 === 0
-              ? "Leagues coordinator & tournament host"
-              : "Pickleball Club director",
-        }));
-        return { players: demoOrganizers };
+      } catch (error) {
+        if (demoEnabled) {
+          const demoOrganizers = demoPlayers.map((player, index) => ({
+            ...player,
+            bio:
+              index % 2 === 0
+                ? "Leagues coordinator & tournament host"
+                : "Pickleball Club director",
+          }));
+          return { players: demoOrganizers };
+        }
+        throw error;
       }
     },
     queryKey: ["organizers", query],
@@ -147,8 +156,11 @@ export const useVenues = (query = "", location?: GeoLocation) =>
             },
           })
         );
-      } catch {
-        return { venues: demoVenues };
+      } catch (error) {
+        if (demoEnabled) {
+          return { venues: demoVenues };
+        }
+        throw error;
       }
     },
     queryKey: ["venues", query, location?.lat, location?.lng],
@@ -158,7 +170,7 @@ export const useSearch = (query: string, type: SearchEntity) =>
   useQuery({
     enabled: query.trim().length > 1,
     queryFn: async () => {
-      const demoResults = filterDemoSearch(query);
+      const demoResults = demoEnabled ? filterDemoSearch(query) : null;
       let data;
 
       try {
@@ -167,16 +179,11 @@ export const useSearch = (query: string, type: SearchEntity) =>
             query: { q: query, type },
           })
         );
-      } catch {
-        data = demoResults ?? {
-          casters: [],
-          documents: [],
-          events: [],
-          players: [],
-          posts: [],
-          venues: [],
-          videos: [],
-        };
+      } catch (error) {
+        if (!demoResults) {
+          throw error;
+        }
+        data = demoResults;
       }
 
       if (!demoResults) {

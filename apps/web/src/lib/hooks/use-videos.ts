@@ -7,6 +7,7 @@ import {
 
 import { apiClient } from "@/lib/api-client";
 import {
+  demoEnabled,
   demoVideos,
   getDemoVideoDetail,
   getDemoVideoPage,
@@ -20,8 +21,11 @@ export const useVideos = () =>
     queryFn: async () => {
       try {
         return await readApiJson(apiClient.api.v1.videos.$get());
-      } catch {
-        return { videos: demoVideos };
+      } catch (error) {
+        if (demoEnabled) {
+          return { videos: demoVideos };
+        }
+        throw error;
       }
     },
     queryKey: ["videos"],
@@ -34,15 +38,18 @@ export const useRecommendedVideos = (enabled = true) =>
     queryFn: async () => {
       try {
         return await readApiJson(apiClient.api.v1.videos.feed.$get());
-      } catch {
-        return {
-          mode: "fallback" as const,
-          videos: demoVideos.map((video) => ({
-            ...video,
-            recommendationReason: "Popular on RallyCasts",
-            recommendationScore: 0,
-          })),
-        };
+      } catch (error) {
+        if (demoEnabled) {
+          return {
+            mode: "fallback" as const,
+            videos: demoVideos.map((video) => ({
+              ...video,
+              recommendationReason: "Popular on RallyCasts",
+              recommendationScore: 0,
+            })),
+          };
+        }
+        throw error;
       }
     },
     queryKey: ["videos", "feed"],
@@ -50,10 +57,20 @@ export const useRecommendedVideos = (enabled = true) =>
 
 export const useInfiniteVideos = (limit = 12) =>
   useInfiniteQuery({
-    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    getNextPageParam: (lastPage: unknown) => {
+      if (
+        typeof lastPage !== "object" ||
+        lastPage === null ||
+        !("nextCursor" in lastPage) ||
+        typeof lastPage.nextCursor !== "string"
+      ) {
+        return;
+      }
+      return lastPage.nextCursor;
+    },
     initialPageParam: undefined as string | undefined,
     queryFn: async ({ pageParam }) => {
-      if (pageParam?.startsWith("demo:")) {
+      if (demoEnabled && pageParam?.startsWith("demo:")) {
         return getDemoVideoPage(pageParam, limit);
       }
 
@@ -67,11 +84,14 @@ export const useInfiniteVideos = (limit = 12) =>
           })
         );
 
-        return result.videos.length > 0 || pageParam
-          ? result
-          : getDemoVideoPage(undefined, limit);
-      } catch {
-        return getDemoVideoPage(pageParam, limit);
+        return demoEnabled && result.videos.length === 0 && !pageParam
+          ? getDemoVideoPage(undefined, limit)
+          : result;
+      } catch (error) {
+        if (demoEnabled) {
+          return getDemoVideoPage(pageParam, limit);
+        }
+        throw error;
       }
     },
     queryKey: ["videos", "infinite", limit],
@@ -87,7 +107,7 @@ export const useVideo = (id: string) =>
   useQuery({
     enabled: id.length > 0,
     queryFn: async () => {
-      const demoVideo = getDemoVideoDetail(id);
+      const demoVideo = demoEnabled ? getDemoVideoDetail(id) : null;
       if (demoVideo) {
         return demoVideo;
       }

@@ -198,7 +198,7 @@ function EventsHistory() {
             <h3 className="font-medium text-sm">{event.name}</h3>
             <p className="text-muted-foreground text-xs">
               {new Date(event.startsAt).toLocaleDateString()} ·{" "}
-              {event.eventType.replaceAll("_", " ")}
+              {event.eventType?.replaceAll("_", " ") ?? ""}
             </p>
           </div>
           <Link params={{ id: event.id }} to="/events/$id">

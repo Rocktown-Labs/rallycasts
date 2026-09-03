@@ -33,17 +33,17 @@ export interface EventData {
   name: string;
   eventType: string;
   startsAt: string;
-  endsAt?: string;
+  endsAt?: string | null;
   status: string;
-  capacity?: number;
-  description?: string;
-  venueId?: string;
+  capacity?: number | null;
+  description?: string | null;
+  venueId?: string | null;
   entryFeeCents: number;
-  organizerUserId?: string;
-  registrationDeadline?: string;
-  refundPolicy?: string;
-  courtLabelsJson?: string;
-  organizationId?: string;
+  organizerUserId?: string | null;
+  registrationDeadline?: string | null;
+  refundPolicy?: string | null;
+  courtLabelsJson?: string | null;
+  organizationId?: string | null;
 }
 
 export interface EventContextType {
@@ -136,35 +136,12 @@ function EventLayout() {
     year: "numeric",
   });
 
-  // Get location and tag fallbacks from mock list for display
-  const eventDetailsMap: Record<
-    string,
-    { location: string; tags: string[]; imageUrl: string }
-  > = {
-    "demo-event-1": {
-      imageUrl:
-        "radial-gradient(circle at 30% 30%, hsl(142 100% 18% / 0.4), transparent), linear-gradient(135deg, hsl(142 100% 18% / 0.8), hsl(78 100% 60% / 0.3))",
-      location: "Phoenix, AZ",
-      tags: ["tournament", "summer", "all-levels"],
-    },
-    "demo-event-2": {
-      imageUrl:
-        "radial-gradient(circle at 70% 30%, hsl(142 100% 18% / 0.5), transparent), linear-gradient(135deg, hsl(240 10% 4% / 0.95), hsl(142 100% 18% / 0.4))",
-      location: "Seattle, WA",
-      tags: ["tournament", "qualifier", "competitive"],
-    },
-    "demo-event-3": {
-      imageUrl:
-        "radial-gradient(circle at 50% 50%, hsl(78 100% 60% / 0.2), transparent), linear-gradient(135deg, hsl(142 100% 18% / 0.6), hsl(240 10% 4% / 0.8))",
-      location: "Chicago, IL",
-      tags: ["workshop", "beginner", "training"],
-    },
-  };
-
-  const details = eventDetailsMap[eventData.id] || {
+  const details = {
     imageUrl:
       "linear-gradient(135deg, hsl(142 100% 18% / 0.6), hsl(78 100% 60% / 0.15))",
-    location: "Austin, TX",
+    location: eventData.venueId
+      ? "Venue details available below"
+      : "Location to be announced",
     tags: [eventData.eventType, "pickleball"],
   };
   const manageableOrganizationIds = new Set(

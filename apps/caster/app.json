@@ -1,13 +1,24 @@
 {
   "expo": {
+    "name": "RallyCasts Caster",
+    "slug": "rallycastscaster",
+    "version": "1.0.0",
     "scheme": "rallycastscaster",
     "userInterfaceStyle": "automatic",
     "orientation": "default",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "tv.rallycasts.caster"
+    },
+    "android": {
+      "package": "tv.rallycasts.caster",
+      "adaptiveIcon": {
+        "backgroundColor": "#0d1117"
+      }
+    },
     "web": {
       "bundler": "metro"
     },
-    "name": "RallyCasts Caster",
-    "slug": "rallycastscaster",
     "plugins": ["expo-font"],
     "experiments": {
       "typedRoutes": true,

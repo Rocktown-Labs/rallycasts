@@ -56,6 +56,17 @@ const signUp = async (name: string, email?: string) => {
   };
 };
 
+const promoteToAdmin = async (userId: string) => {
+  await env.DB.prepare(
+    "insert into user_profile (user_id, platform_role) values (?, 'admin') on conflict(user_id) do update set platform_role = 'admin'"
+  )
+    .bind(userId)
+    .run();
+  await env.DB.prepare("update user set email_verified = 1 where id = ?")
+    .bind(userId)
+    .run();
+};
+
 const jsonRequest = (
   path: string,
   cookie: string,
@@ -92,6 +103,7 @@ describe("events API", () => {
 
   it("promotes configured RallyCasts admins to organizers and labels hosted events", async () => {
     const admin = await signUp("RallyCasts Admin", "camstewart7@gmail.com");
+    await promoteToAdmin(admin.id);
     const profileResponse = await app.request(
       "/api/v1/profile/me",
       {
@@ -134,6 +146,7 @@ describe("events API", () => {
 
   it("lets players join events and organizers manage bracket matches", async () => {
     const organizer = await signUp("Olive Organizer");
+    await promoteToAdmin(organizer.id);
     const playerOne = await signUp("Parker Player");
     const playerTwo = await signUp("Taylor Thirdshot");
     const startsAt = new Date("2027-04-10T15:00:00.000Z").toISOString();
@@ -263,7 +276,7 @@ describe("events API", () => {
       env
     );
 
-    expect(liveResponse.status).toBe(200);
+    expect(liveResponse.status).toBe(404);
 
     const matchUpdate = await jsonRequest(
       `/api/v1/events/${eventId}/matches/${match?.id}`,
@@ -278,6 +291,57 @@ describe("events API", () => {
     );
 
     expect(matchUpdate.status).toBe(200);
+  });
+
+  it("does not cancel a paid event without a configured refund path", async () => {
+    const organizer = await signUp("Paid Event Organizer");
+    await promoteToAdmin(organizer.id);
+    const eventId = `paid-cancel-${crypto.randomUUID()}`;
+    const registrationId = `paid-registration-${crypto.randomUUID()}`;
+    const paymentId = `paid-payment-${crypto.randomUUID()}`;
+    await env.DB.batch([
+      env.DB.prepare(
+        "insert into event (id, name, organizer_user_id, starts_at, status, event_type, entry_fee_cents) values (?, ?, ?, ?, 'published', 'tournament', 2500)"
+      ).bind(
+        eventId,
+        "Paid cancellation test",
+        organizer.id,
+        Date.now() + 86_400_000
+      ),
+      env.DB.prepare(
+        "insert into event_registration (id, event_id, user_id, status, payment_status, paid_amount_cents) values (?, ?, ?, 'registered', 'paid', 2500)"
+      ).bind(registrationId, eventId, organizer.id),
+      env.DB.prepare(
+        "insert into event_payment (id, event_id, registration_id, user_id, amount_cents, status, stripe_payment_intent_id) values (?, ?, ?, ?, 2500, 'succeeded', ?)"
+      ).bind(
+        paymentId,
+        eventId,
+        registrationId,
+        organizer.id,
+        "pi_missing_config"
+      ),
+    ]);
+
+    const response = await app.request(
+      `/api/v1/events/${eventId}`,
+      {
+        body: JSON.stringify({ status: "cancelled" }),
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: organizer.cookie,
+        },
+        method: "PATCH",
+      },
+      { ...env, STRIPE_SECRET_KEY: "" }
+    );
+
+    expect(response.status).toBe(503);
+    const eventRecord = await env.DB.prepare(
+      "select status from event where id = ?"
+    )
+      .bind(eventId)
+      .first<{ status: string }>();
+    expect(eventRecord).toEqual({ status: "published" });
   });
 
   it("rejects event creation until the user has organizer tools enabled", async () => {
@@ -299,6 +363,9 @@ describe("events API", () => {
 
   it("rejects unsupported image uploads before writing to R2", async () => {
     const user = await signUp("Image Tester");
+    await env.DB.prepare("update user set email_verified = 1 where id = ?")
+      .bind(user.id)
+      .run();
     const body = new FormData();
     body.set(
       "file",

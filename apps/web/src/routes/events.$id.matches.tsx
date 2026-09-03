@@ -7,6 +7,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { authClient } from "@/lib/auth-client";
+import { demoEnabled } from "@/lib/demo-data";
 import { useEventBracket, useSubmitMatchScore } from "@/lib/hooks";
 
 export const Route = createFileRoute("/events/$id/matches")({
@@ -213,6 +214,7 @@ function EventMatchesTab() {
   const { data: session } = authClient.useSession();
   const { data: bracketData } = useEventBracket(id);
   const backendMatches = (bracketData?.matches ?? []) as BackendMatchRow[];
+  const fallbackMatches = demoEnabled ? mockMatches : [];
   const hasBackendMatches = backendMatches.length > 0;
 
   return (
@@ -282,7 +284,7 @@ function EventMatchesTab() {
                 </CardContent>
               </Card>
             ))
-          : mockMatches.map((match) => (
+          : fallbackMatches.map((match) => (
               <Card
                 key={match.id}
                 className="border border-border/50 bg-card rounded-xl overflow-hidden shadow-sm"

@@ -7,7 +7,6 @@ import {
   eventPayment,
   eventRegistration,
   organizationMember,
-  userProfile,
 } from "@rallycaststv/db/schema/domain";
 import { and, asc, desc, eq, inArray, ne, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
@@ -16,7 +15,7 @@ import type { Context } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 import { z } from "zod";
 
-import { isPlatformAdminEmail } from "../lib/admin";
+import { isPlatformAdminUser } from "../lib/admin";
 import { enqueueEventActivity } from "../lib/event-activity";
 import type { EventActivityMessage } from "../lib/event-activity";
 import { createId } from "../lib/ids";
@@ -72,7 +71,7 @@ const eventSchema = eventFields
   );
 
 const updateEventSchema = eventFields
-  .omit({ googlePlaceId: true })
+  .omit({ googlePlaceId: true, organizationId: true })
   .partial()
   .refine(
     (data) => !data.endsAt || !data.startsAt || data.endsAt > data.startsAt,
@@ -108,6 +107,9 @@ const updateMatchSchema = z
     message: "Completed matches require a winner.",
     path: ["winnerUserId"],
   });
+
+const STRIPE_REQUEST_TIMEOUT_MS = 10_000;
+const STRIPE_API_VERSION = "2026-07-29.dahlia";
 
 const submitScoreSchema = z.object({
   note: z.string().max(500).optional(),
@@ -183,7 +185,7 @@ const getManageableEvent = async (
       )
     )
     .limit(1);
-  return membership ? record : null;
+  return membership && membership.role !== "editor" ? record : null;
 };
 
 const scheduleEventLifecycle = (
@@ -250,6 +252,7 @@ const refundCancelledEventPayments = async (
   const refundErrors: string[] = [];
   for (const { payment, registration } of payments) {
     if (!payment.stripePaymentIntentId) {
+      refundErrors.push(payment.id);
       continue;
     }
     let response: Response;
@@ -261,9 +264,11 @@ const refundCancelledEventPayments = async (
         headers: {
           Authorization: `Bearer ${stripeSecretKey}`,
           "Content-Type": "application/x-www-form-urlencoded",
-          "Stripe-Version": "2026-02-25.clover",
+          "Idempotency-Key": `event-cancel-refund/${payment.id}`,
+          "Stripe-Version": STRIPE_API_VERSION,
         },
         method: "POST",
+        signal: AbortSignal.timeout(STRIPE_REQUEST_TIMEOUT_MS),
       });
     } catch {
       refundErrors.push(payment.id);
@@ -273,15 +278,28 @@ const refundCancelledEventPayments = async (
       refundErrors.push(payment.id);
       continue;
     }
-    const refund = (await response.json()) as { id: string };
-    await db
+    const refund = (await response.json()) as { id?: unknown };
+    if (typeof refund.id !== "string") {
+      refundErrors.push(payment.id);
+      continue;
+    }
+    const [refundedPayment] = await db
       .update(eventPayment)
       .set({
         status: "refunded",
         stripeRefundId: refund.id,
         updatedAt: new Date(),
       })
-      .where(eq(eventPayment.id, payment.id));
+      .where(
+        and(
+          eq(eventPayment.id, payment.id),
+          eq(eventPayment.status, "succeeded")
+        )
+      )
+      .returning({ id: eventPayment.id });
+    if (!refundedPayment) {
+      continue;
+    }
     await db
       .update(eventRegistration)
       .set({
@@ -307,24 +325,8 @@ const refundCancelledEventPayments = async (
   }
 };
 
-const isOrganizerUser = async (
-  db: ReturnType<typeof createDb>,
-  userId: string,
-  email: string,
-  c: Context<AppEnv>
-) => {
-  if (isPlatformAdminEmail(email, c.env)) {
-    return true;
-  }
-
-  const [profile] = await db
-    .select({ isOrganizer: userProfile.isOrganizer })
-    .from(userProfile)
-    .where(eq(userProfile.userId, userId))
-    .limit(1);
-
-  return profile?.isOrganizer === true;
-};
+const isOrganizerUser = (db: ReturnType<typeof createDb>, userId: string) =>
+  isPlatformAdminUser(db, userId);
 
 export const eventsRouter = new Hono<AppEnv>()
   .get("/", async (c) => {
@@ -380,13 +382,13 @@ export const eventsRouter = new Hono<AppEnv>()
           )
         )
         .limit(1);
-      if (!membership) {
+      if (!membership || membership.role === "editor") {
         return c.json({ message: "Forbidden" }, HttpStatusCodes.FORBIDDEN);
       }
     }
-    const isPlatformAdmin = isPlatformAdminEmail(user.email, c.env);
+    const isPlatformAdmin = await isPlatformAdminUser(db, user.id);
 
-    if (!(await isOrganizerUser(db, user.id, user.email, c))) {
+    if (!data.organizationId && !(await isOrganizerUser(db, user.id))) {
       return c.json(
         { message: "Organizer profile required" },
         HttpStatusCodes.FORBIDDEN
@@ -446,7 +448,9 @@ export const eventsRouter = new Hono<AppEnv>()
     const [record] = await db
       .select()
       .from(event)
-      .where(eq(event.id, c.req.param("id")))
+      .where(
+        and(eq(event.id, c.req.param("id")), eq(event.status, "published"))
+      )
       .limit(1);
 
     if (!record) {
@@ -464,7 +468,7 @@ export const eventsRouter = new Hono<AppEnv>()
       .from(event)
       .where(eq(event.id, id))
       .limit(1);
-    if (!record) {
+    if (!record || record.status !== "published") {
       return c.json({ message: "Event not found" }, HttpStatusCodes.NOT_FOUND);
     }
     if (
@@ -528,14 +532,25 @@ export const eventsRouter = new Hono<AppEnv>()
           name: userTable.name,
           username: userTable.username,
         },
-        registration: eventRegistration,
+        registration: {
+          createdAt: eventRegistration.createdAt,
+          id: eventRegistration.id,
+          seed: eventRegistration.seed,
+          status: eventRegistration.status,
+        },
       })
       .from(eventRegistration)
+      .innerJoin(event, eq(eventRegistration.eventId, event.id))
       .innerJoin(userTable, eq(eventRegistration.userId, userTable.id))
       .where(
         and(
-          eq(eventRegistration.eventId, id),
-          ne(eventRegistration.status, "cancelled")
+          eq(event.id, id),
+          eq(event.status, "published"),
+          inArray(eventRegistration.status, [
+            "registered",
+            "waitlisted",
+            "checked_in",
+          ])
         )
       )
       .orderBy(asc(eventRegistration.createdAt));
@@ -543,7 +558,16 @@ export const eventsRouter = new Hono<AppEnv>()
     return c.json({ players }, HttpStatusCodes.OK);
   })
   .get("/:id/live", async (c) => {
+    const db = createDb(c.env.DB);
     const id = c.req.param("id");
+    const [publishedEvent] = await db
+      .select({ id: event.id })
+      .from(event)
+      .where(and(eq(event.id, id), eq(event.status, "published")))
+      .limit(1);
+    if (!publishedEvent) {
+      return c.json({ message: "Event not found" }, HttpStatusCodes.NOT_FOUND);
+    }
     const snapshot = await getEventCoordinator(
       c.env.EVENT_COORDINATOR,
       id
@@ -554,6 +578,14 @@ export const eventsRouter = new Hono<AppEnv>()
   .get("/:id/bracket", async (c) => {
     const db = createDb(c.env.DB);
     const id = c.req.param("id");
+    const [publishedEvent] = await db
+      .select({ id: event.id })
+      .from(event)
+      .where(and(eq(event.id, id), eq(event.status, "published")))
+      .limit(1);
+    if (!publishedEvent) {
+      return c.json({ message: "Event not found" }, HttpStatusCodes.NOT_FOUND);
+    }
     const matches = await db
       .select({
         match: eventMatch,
@@ -842,6 +874,56 @@ export const eventsRouter = new Hono<AppEnv>()
           HttpStatusCodes.NOT_FOUND
         );
       }
+      if (
+        data.status === "published" &&
+        !(data.venueId ?? manageableEvent.venueId)
+      ) {
+        return c.json(
+          { message: "Published events require a validated location" },
+          HttpStatusCodes.BAD_REQUEST
+        );
+      }
+      if (data.status === "cancelled") {
+        const [succeededPayment] = await db
+          .select({ id: eventPayment.id })
+          .from(eventPayment)
+          .where(
+            and(
+              eq(eventPayment.eventId, id),
+              eq(eventPayment.status, "succeeded")
+            )
+          )
+          .limit(1);
+        if (succeededPayment && !c.env.STRIPE_SECRET_KEY) {
+          return c.json(
+            { message: "Stripe is required to cancel paid events" },
+            HttpStatusCodes.SERVICE_UNAVAILABLE
+          );
+        }
+        if (succeededPayment && c.env.STRIPE_SECRET_KEY) {
+          try {
+            await refundCancelledEventPayments(
+              db,
+              id,
+              manageableEvent.name,
+              c.env.STRIPE_SECRET_KEY
+            );
+          } catch (error) {
+            console.error(
+              JSON.stringify({
+                event: "event_cancellation_refund_failed",
+                eventId: id,
+                message:
+                  error instanceof Error ? error.message : "unknown error",
+              })
+            );
+            return c.json(
+              { message: "Event refunds could not be completed" },
+              HttpStatusCodes.BAD_GATEWAY
+            );
+          }
+        }
+      }
       await db
         .update(event)
         .set({
@@ -866,17 +948,6 @@ export const eventsRouter = new Hono<AppEnv>()
         waitUntil(
           c,
           scheduleEventLifecycle(c.env.EVENT_ACTIVITY_QUEUE, updated)
-        );
-      }
-      if (data.status === "cancelled" && c.env.STRIPE_SECRET_KEY) {
-        waitUntil(
-          c,
-          refundCancelledEventPayments(
-            db,
-            updated.id,
-            updated.name,
-            c.env.STRIPE_SECRET_KEY
-          )
         );
       }
       await syncEventSearch(c, db, updated);

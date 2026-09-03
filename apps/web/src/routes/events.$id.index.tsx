@@ -283,8 +283,14 @@ function EventOverviewTab() {
     ({ player }) => player.id === currentUser?.id
   )?.registration;
   const isRegistered = Boolean(myRegistration);
+  const liveSnapshot = liveData?.snapshot;
   const registrationCount =
-    liveData?.snapshot?.registrationCount ?? players.length;
+    typeof liveSnapshot === "object" &&
+    liveSnapshot !== null &&
+    "registrationCount" in liveSnapshot &&
+    typeof liveSnapshot.registrationCount === "number"
+      ? liveSnapshot.registrationCount
+      : players.length;
   const capacity = event.capacity ?? Math.max(registrationCount, 1);
   const progressPercent = Math.min(100, (registrationCount / capacity) * 100);
 
@@ -337,7 +343,12 @@ function EventOverviewTab() {
   };
 
   const handleCancelRegistration = async () => {
-    if (myRegistration?.paymentStatus === "paid") {
+    const isPaidRegistration =
+      typeof myRegistration === "object" &&
+      myRegistration !== null &&
+      "paymentStatus" in myRegistration &&
+      myRegistration.paymentStatus === "paid";
+    if (isPaidRegistration) {
       try {
         await readApiJson(
           apiClient.api.v1.stripe.events[":eventId"].refund.$post({
@@ -580,7 +591,16 @@ function EventOverviewTab() {
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         onRegister={handleRegister}
-        currentUser={currentUser || null}
+        currentUser={
+          currentUser
+            ? {
+                displayUsername: currentUser.displayUsername ?? undefined,
+                id: currentUser.id,
+                name: currentUser.name,
+                username: currentUser.username ?? undefined,
+              }
+            : null
+        }
         entryFeeCents={event.entryFeeCents}
       />
     </div>

@@ -1,7 +1,8 @@
 import { env } from "cloudflare:workers";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import app from "../index";
+import { replaceMuxAssetPlaybackPolicy } from "../lib/mux-client";
 
 const bytesToHex = (bytes: ArrayBuffer) =>
   Array.from(new Uint8Array(bytes), (byte) =>
@@ -25,6 +26,41 @@ const signMuxPayload = async (payload: string, timestamp: number) => {
 };
 
 describe("Mux webhooks", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("creates and revokes playback IDs when a policy changes", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(Response.json({ data: { playback_ids: [] } }))
+      .mockResolvedValueOnce(
+        Response.json({ data: { id: "signed-playback", policy: "signed" } })
+      )
+      .mockResolvedValueOnce(new Response(null, { status: 204 }));
+
+    await expect(
+      replaceMuxAssetPlaybackPolicy(
+        "mux-asset-policy",
+        "signed",
+        "mux-token",
+        "mux-secret",
+        "public-playback"
+      )
+    ).resolves.toBe("signed-playback");
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "https://api.mux.com/video/v1/assets/mux-asset-policy/playback-ids",
+      expect.objectContaining({
+        body: JSON.stringify({ policy: "signed" }),
+        method: "POST",
+      })
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      "https://api.mux.com/video/v1/assets/mux-asset-policy/playback-ids/public-playback",
+      expect.objectContaining({ method: "DELETE" })
+    );
+  });
+
   it("rejects unsigned events", async () => {
     const response = await app.request(
       "/api/v1/mux/webhook",

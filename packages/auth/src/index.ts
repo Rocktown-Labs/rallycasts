@@ -6,20 +6,26 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { username } from "better-auth/plugins/username";
 
+const isLocalUrl = (url: string) => {
+  try {
+    const { hostname } = new URL(url);
+    return hostname === "localhost" || hostname === "127.0.0.1";
+  } catch {
+    return false;
+  }
+};
+
 const getCookieDomain = (url: string) => {
   try {
     const { hostname } = new URL(url);
-    if (hostname === "localhost" || hostname.endsWith(".localhost")) {
-      return;
+    if (hostname === "rallycasts.com" || hostname.endsWith(".rallycasts.com")) {
+      return ".rallycasts.com";
     }
-    const parts = hostname.split(".");
-    if (parts.length <= 2) {
-      return `.${hostname}`;
-    }
-    return `.${parts.slice(1).join(".")}`;
   } catch {
-    // Ignore invalid URL parsing errors
+    // Ignore invalid URL parsing errors.
   }
+
+  // Do not set a parent-domain cookie for preview or public-suffix hosts.
 };
 
 const getSocialProviders = () => ({
@@ -69,8 +75,8 @@ export const createAuth = (
       defaultCookieAttributes: {
         domain: getCookieDomain(env.BETTER_AUTH_URL),
         httpOnly: true,
-        sameSite: "none",
-        secure: true,
+        sameSite: "lax",
+        secure: !isLocalUrl(env.BETTER_AUTH_URL),
       },
     },
     baseURL: env.BETTER_AUTH_URL,
@@ -80,12 +86,13 @@ export const createAuth = (
     }),
     emailAndPassword: {
       enabled: true,
+      requireEmailVerification: !isLocalUrl(env.BETTER_AUTH_URL),
       revokeSessionsOnPasswordReset: true,
       sendResetPassword: emailCallbacks?.sendResetPassword,
     },
     emailVerification: {
       autoSendOnSignUp: true,
-      sendOnSignIn: false,
+      sendOnSignIn: true,
       sendVerificationEmail: emailCallbacks?.sendVerificationEmail,
     },
     plugins: [

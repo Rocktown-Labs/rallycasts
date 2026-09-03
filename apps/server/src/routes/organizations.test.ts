@@ -175,6 +175,6 @@ describe("organizations API", () => {
       { status: "draft" },
       "PATCH"
     );
-    expect(updateResponse.status).toBe(200);
+    expect(updateResponse.status).toBe(404);
   });
 });

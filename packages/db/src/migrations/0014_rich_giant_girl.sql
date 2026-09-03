@@ -1,0 +1,1 @@
+ALTER TABLE `user_profile` ADD `platform_role` text DEFAULT 'user' NOT NULL;

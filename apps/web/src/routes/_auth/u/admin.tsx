@@ -220,7 +220,7 @@ function AdminDashboardPage() {
             ].map(([label, healthy]) => (
               <div
                 className="flex items-center justify-between rounded-lg border border-border p-4"
-                key={label}
+                key={String(label)}
               >
                 <span className="text-sm font-medium">{label}</span>
                 <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">

@@ -3,6 +3,39 @@ import { describe, expect, it } from "vitest";
 
 import app from "../index";
 
+const radarRequest = async (body: string) => {
+  const signingId = `test-${crypto.randomUUID()}`;
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode("radar-webhook-secret"),
+    { hash: "SHA-1", name: "HMAC" },
+    false,
+    ["sign"]
+  );
+  const signature = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    new TextEncoder().encode(signingId)
+  );
+  const signatureHex = Array.from(new Uint8Array(signature), (byte) =>
+    byte.toString(16).padStart(2, "0")
+  ).join("");
+
+  return app.request(
+    "/webhooks/radar",
+    {
+      body,
+      headers: {
+        "Content-Type": "application/json",
+        "X-Radar-Signature": signatureHex,
+        "X-Radar-Signing-Id": signingId,
+      },
+      method: "POST",
+    },
+    { ...env, RADAR_WEBHOOK_SECRET: "radar-webhook-secret" }
+  );
+};
+
 describe("webhooks routes", () => {
   describe("POST /webhooks/radar", () => {
     it("accepts single event payload", async () => {
@@ -26,15 +59,7 @@ describe("webhooks routes", () => {
         },
       };
 
-      const response = await app.request(
-        "/webhooks/radar",
-        {
-          body: JSON.stringify({ event }),
-          headers: { "Content-Type": "application/json" },
-          method: "POST",
-        },
-        env
-      );
+      const response = await radarRequest(JSON.stringify({ event }));
 
       expect(response.status).toBe(200);
       const data = await response.json();
@@ -79,65 +104,36 @@ describe("webhooks routes", () => {
         },
       ];
 
-      const response = await app.request(
-        "/webhooks/radar",
-        {
-          body: JSON.stringify({ data: events }),
-          headers: { "Content-Type": "application/json" },
-          method: "POST",
-        },
-        env
-      );
+      const response = await radarRequest(JSON.stringify({ data: events }));
 
       expect(response.status).toBe(200);
       const data = await response.json();
       expect(data.processed).toBe(2);
     });
 
-    it("returns OK for empty events", async () => {
-      const response = await app.request(
-        "/webhooks/radar",
-        {
-          body: JSON.stringify({}),
-          headers: { "Content-Type": "application/json" },
-          method: "POST",
-        },
-        env
-      );
+    it("rejects empty events", async () => {
+      const response = await radarRequest(JSON.stringify({}));
 
-      expect(response.status).toBe(200);
-      const data = await response.json();
-      expect(data.message).toBe("No events");
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toMatchObject({
+        message: "Invalid Radar webhook payload",
+      });
     });
 
-    it("returns OK for empty array", async () => {
-      const response = await app.request(
-        "/webhooks/radar",
-        {
-          body: JSON.stringify({ data: [] }),
-          headers: { "Content-Type": "application/json" },
-          method: "POST",
-        },
-        env
-      );
+    it("accepts an empty event array", async () => {
+      const response = await radarRequest(JSON.stringify({ data: [] }));
 
       expect(response.status).toBe(200);
-      const data = await response.json();
-      expect(data.message).toBe("No events");
+      await expect(response.json()).resolves.toMatchObject({
+        processed: 0,
+        queued: 0,
+      });
     });
 
     it("handles invalid JSON gracefully", async () => {
-      const response = await app.request(
-        "/webhooks/radar",
-        {
-          body: "invalid json",
-          headers: { "Content-Type": "application/json" },
-          method: "POST",
-        },
-        env
-      );
+      const response = await radarRequest("invalid json");
 
-      expect(response.status).toBe(500);
+      expect(response.status).toBe(400);
     });
   });
 

@@ -53,10 +53,8 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
     },
     validators: {
       onSubmit: z.object({
-        acceptTerms: z.literal(true, {
-          errorMap: () => ({
-            message: "You must accept the Terms of Service and Privacy Policy",
-          }),
+        acceptTerms: z.boolean().refine((val) => val === true, {
+          message: "You must accept the Terms of Service and Privacy Policy",
         }),
         email: z.string().email("Invalid email address"),
         name: z.string().min(2, "Name must be at least 2 characters"),
@@ -113,12 +111,18 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
                       onChange={(e) => field.handleChange(e.target.value)}
                       className="h-9 text-xs rounded-md bg-background/50 border-muted focus-visible:ring-primary focus-visible:border-primary"
                     />
-                    {field.state.meta.errors.map((error) => (
+                    {field.state.meta.errors.map((error, i) => (
                       <p
-                        key={error?.message}
+                        key={
+                          typeof error === "string"
+                            ? error
+                            : (error as { message?: string })?.message || i
+                        }
                         className="text-[10px] text-destructive font-medium"
                       >
-                        {error?.message}
+                        {typeof error === "string"
+                          ? error
+                          : (error as { message?: string })?.message}
                       </p>
                     ))}
                   </div>
@@ -146,12 +150,18 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
                       onChange={(e) => field.handleChange(e.target.value)}
                       className="h-9 text-xs rounded-md bg-background/50 border-muted focus-visible:ring-primary focus-visible:border-primary"
                     />
-                    {field.state.meta.errors.map((error) => (
+                    {field.state.meta.errors.map((error, i) => (
                       <p
-                        key={error?.message}
+                        key={
+                          typeof error === "string"
+                            ? error
+                            : (error as { message?: string })?.message || i
+                        }
                         className="text-[10px] text-destructive font-medium"
                       >
-                        {error?.message}
+                        {typeof error === "string"
+                          ? error
+                          : (error as { message?: string })?.message}
                       </p>
                     ))}
                   </div>
@@ -179,12 +189,18 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
                       onChange={(e) => field.handleChange(e.target.value)}
                       className="h-9 text-xs rounded-md bg-background/50 border-muted focus-visible:ring-primary focus-visible:border-primary"
                     />
-                    {field.state.meta.errors.map((error) => (
+                    {field.state.meta.errors.map((error, i) => (
                       <p
-                        key={error?.message}
+                        key={
+                          typeof error === "string"
+                            ? error
+                            : (error as { message?: string })?.message || i
+                        }
                         className="text-[10px] text-destructive font-medium"
                       >
-                        {error?.message}
+                        {typeof error === "string"
+                          ? error
+                          : (error as { message?: string })?.message}
                       </p>
                     ))}
                   </div>
@@ -230,12 +246,18 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
                         </a>
                         .
                       </Label>
-                      {field.state.meta.errors.map((error) => (
+                      {field.state.meta.errors.map((error, i) => (
                         <p
-                          key={error?.message}
+                          key={
+                            typeof error === "string"
+                              ? error
+                              : (error as { message?: string })?.message || i
+                          }
                           className="text-[10px] text-destructive font-medium"
                         >
-                          {error?.message}
+                          {typeof error === "string"
+                            ? error
+                            : (error as { message?: string })?.message}
                         </p>
                       ))}
                     </div>

@@ -5,8 +5,8 @@ import { wizardFormOpts } from "./shared-form";
 export const StepRoles = withForm({
   ...wizardFormOpts,
   props: {
-    onFinish: (_values: unknown) => void 0,
-    setStep: (_step: number) => void 0,
+    onFinish: (() => null) as (values?: unknown) => void,
+    setStep: (() => null) as (step: number) => void,
     step: 3,
   },
   render: function render({ form, onFinish: _onFinish, setStep }) {

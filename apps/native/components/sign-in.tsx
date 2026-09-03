@@ -73,7 +73,7 @@ function SignIn() {
           password: value.password,
         },
         {
-          onError(error) {
+          onError(error: { error?: { message?: string } }) {
             toast.show({
               label: error.error?.message || "Failed to sign in",
               variant: "danger",

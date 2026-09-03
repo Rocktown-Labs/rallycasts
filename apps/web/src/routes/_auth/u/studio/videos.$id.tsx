@@ -80,6 +80,7 @@ function StatusIcon({ status }: { status: keyof typeof statusCopy }) {
   return <Clock3 className="size-5 text-primary" />;
 }
 
+// oxlint-disable-next-line complexity -- Studio combines upload, metadata, and playback states.
 function VideoStudioPage() {
   const { id } = Route.useParams();
   const queryClient = useQueryClient();
@@ -93,6 +94,14 @@ function VideoStudioPage() {
     refetchInterval: 2500,
   });
   const video = videoQuery.data?.video;
+  const playbackQuery = useQuery({
+    enabled: Boolean(video && isPublishableVideo(video)),
+    queryFn: () =>
+      readApiJson(
+        apiClient.api.v1.videos[":id"].playback.$get({ param: { id } })
+      ),
+    queryKey: ["video-playback", id],
+  });
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [visibility, setVisibility] = useState<Visibility>("private");
@@ -129,7 +138,11 @@ function VideoStudioPage() {
     setTitle(video.title);
     setDescription(video.description ?? "");
     setVisibility(video.visibility);
-    setTaggedPlayers(video.taggedUsers ?? []);
+    setTaggedPlayers(
+      (video.taggedUsers ?? []).filter(
+        (player): player is NonNullable<typeof player> => player !== null
+      )
+    );
     setSelectedVenue(video.venue ?? null);
     setInitializedVideoId(video.id);
   }, [initializedVideoId, video]);
@@ -179,7 +192,7 @@ function VideoStudioPage() {
     const result = (await response.json()) as {
       venue?: { id: string; name: string };
     };
-    if (!response.ok && response.status !== 409) {
+    if (!response.ok && (response.status as number) !== 409) {
       toast.error("Could not attach that park.");
       return;
     }
@@ -424,11 +437,11 @@ function VideoStudioPage() {
         <aside className="space-y-4">
           <div className="overflow-hidden rounded-2xl border bg-card">
             <div className="aspect-video bg-black">
-              {isReady ? (
+              {isReady && playbackQuery.data?.playbackUrl ? (
                 <MuxPlayer
                   accentColor="hsl(var(--primary))"
                   metadata={{ video_id: id, video_title: video.title }}
-                  playbackId={video.muxPlaybackId ?? undefined}
+                  src={playbackQuery.data.playbackUrl}
                   style={{ aspectRatio: "16 / 9", width: "100%" }}
                 />
               ) : (

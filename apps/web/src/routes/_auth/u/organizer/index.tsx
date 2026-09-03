@@ -151,13 +151,17 @@ function OrganizerDashboardPage() {
             <div className="flex items-center justify-between gap-4 border-b border-border pb-3">
               <span className="text-muted-foreground">Home court</span>
               <span className="max-w-48 truncate font-medium">
-                {profile.homeCourtName ?? "Not set"}
+                {(profile as { homeCourtName?: string | null }).homeCourtName ??
+                  "Not set"}
               </span>
             </div>
             <div className="flex items-center justify-between gap-4 border-b border-border pb-3">
               <span className="text-muted-foreground">Location</span>
               <span className="font-medium">
-                {[profile.homeCity, profile.homeState]
+                {[
+                  (profile as { homeCity?: string | null }).homeCity,
+                  (profile as { homeState?: string | null }).homeState,
+                ]
                   .filter(Boolean)
                   .join(", ") || "Not set"}
               </span>

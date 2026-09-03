@@ -487,7 +487,8 @@ export function ManageOrganizationPage({ slug }: { slug: string }) {
             payouts. RallyCasts retains 5%.
           </p>
           <Button className="mt-4" onClick={() => startStripe.mutate()}>
-            {organization.stripeOnboardingStatus === "complete"
+            {(organization as { stripeOnboardingStatus?: string })
+              .stripeOnboardingStatus === "complete"
               ? "Update Stripe"
               : "Set up Stripe payouts"}
           </Button>

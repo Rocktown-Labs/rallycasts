@@ -1,15 +1,23 @@
-export const readJsonPayload = async (request: Request) => {
-  const text = await request.text();
+export type JsonPayload =
+  | { ok: true; raw: string; value: unknown }
+  | { error: "invalid_json"; ok: false; raw: string; value: null };
 
-  if (!text) {
-    return {
-      raw: "{}",
-      value: {},
-    };
+export const readJsonPayload = async (
+  request: Request
+): Promise<JsonPayload> => {
+  const raw = await request.text();
+
+  if (!raw) {
+    return { ok: true, raw: "{}", value: {} };
   }
 
-  return {
-    raw: text,
-    value: JSON.parse(text) as unknown,
-  };
+  try {
+    return {
+      ok: true,
+      raw,
+      value: JSON.parse(raw) as unknown,
+    };
+  } catch {
+    return { error: "invalid_json", ok: false, raw, value: null };
+  }
 };

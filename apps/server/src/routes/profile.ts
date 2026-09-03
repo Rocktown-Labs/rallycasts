@@ -8,7 +8,7 @@ import type { Context } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 import { z } from "zod";
 
-import { isPlatformAdminEmail } from "../lib/admin";
+import { isPlatformAdminUser } from "../lib/admin";
 import { BloomFilter } from "../lib/bloom";
 import {
   scheduleSearchDocumentIndex,
@@ -256,7 +256,7 @@ export const profileRouter = new Hono<AppEnv>()
   .get("/me", async (c) => {
     const db = createDb(c.env.DB);
     const { user: authUser } = c.var.authSession;
-    const isPlatformAdmin = isPlatformAdminEmail(authUser.email, c.env);
+    const isPlatformAdmin = await isPlatformAdminUser(db, authUser.id);
     if (isPlatformAdmin) {
       const profile = await ensureAdminProfile(db, authUser.id);
 
@@ -363,9 +363,18 @@ export const profileRouter = new Hono<AppEnv>()
     }
 
     // Filter out user fields from the profile update
-    const { name: _name, username: _username, ...profileData } = data;
+    const {
+      accountTier: _accountTier,
+      isCaster: _isCaster,
+      isOrganizer: _isOrganizer,
+      isPlayer: _isPlayer,
+      name: _name,
+      onboardingStatus: _onboardingStatus,
+      username: _username,
+      ...profileData
+    } = data;
 
-    const isPlatformAdmin = isPlatformAdminEmail(authUser.email, c.env);
+    const isPlatformAdmin = await isPlatformAdminUser(db, authUser.id);
     const record = {
       ...profileData,
       ...(isPlatformAdmin ? adminProfilePatch : {}),
@@ -396,6 +405,7 @@ export const profileRouter = new Hono<AppEnv>()
 
     return c.json(
       {
+        isPlatformAdmin,
         profile,
         user: userRecord ?? authUser,
         ...getOnboardingState({
@@ -411,10 +421,41 @@ export const profileRouter = new Hono<AppEnv>()
     const db = createDb(c.env.DB);
     const { user: authUser } = c.var.authSession;
     const data = c.req.valid("json");
-    const isPlatformAdmin = isPlatformAdminEmail(authUser.email, c.env);
+    const isPlatformAdmin = await isPlatformAdminUser(db, authUser.id);
+    const {
+      accountTier: _accountTier,
+      isCaster: _isCaster,
+      isOrganizer: _isOrganizer,
+      isPlayer: _isPlayer,
+      onboardingStatus: requestedOnboardingStatus,
+      ...onboardingData
+    } = data;
+    const [existingProfile] = await db
+      .select()
+      .from(userProfile)
+      .where(eq(userProfile.userId, authUser.id))
+      .limit(1);
+    const candidateProfile = {
+      ...(existingProfile ?? {
+        isCaster: false,
+        isOrganizer: false,
+        isPlayer: true,
+      }),
+      ...onboardingData,
+    };
+    const missingOnboardingFields = getMissingOnboardingFields(
+      candidateProfile,
+      authUser
+    );
+    const onboardingStatus =
+      isPlatformAdmin ||
+      (requestedOnboardingStatus === "complete" &&
+        missingOnboardingFields.length === 0)
+        ? ("complete" as const)
+        : ("pending" as const);
     const record = {
-      ...data,
-      ...(isPlatformAdmin ? adminProfilePatch : {}),
+      ...onboardingData,
+      ...(isPlatformAdmin ? adminProfilePatch : { onboardingStatus }),
       updatedAt: new Date(),
       userId: authUser.id,
     };

@@ -45,13 +45,10 @@ interface VideoCommentWithUser {
 interface VideoListItem {
   id: string;
   title: string;
-  description?: string | null;
   thumbnailUrl?: string | null;
   muxPlaybackId?: string | null;
   durationSeconds?: number | null;
   status?: string;
-  createdAt: string | Date;
-  venueId?: string | null;
 }
 
 interface Friend {
@@ -148,10 +145,10 @@ interface VideoMetaHeaderProps {
     venueId: string | null;
   };
   owner: {
-    name: string;
-    username: string | null;
-    displayUsername: string | null;
-    image: string | null;
+    name?: string | null;
+    username?: string | null;
+    displayUsername?: string | null;
+    image?: string | null;
   } | null;
   isSubscribed: boolean;
   likesCount: number;
@@ -167,12 +164,12 @@ interface VideoMetaHeaderProps {
     state?: string | null;
   } | null;
   taggedUsers?:
-    | {
+    | ({
         id: string;
-        name: string | null;
-        username: string | null;
-        image: string | null;
-      }[]
+        name?: string | null;
+        username?: string | null;
+        image?: string | null;
+      } | null)[]
     | null;
 }
 
@@ -328,27 +325,31 @@ function VideoMetaHeader({
                 In this video
               </p>
               <div className="flex flex-wrap gap-2">
-                {taggedUsers.map((u) => (
-                  <Link
-                    key={u.id}
-                    to="/players/$username"
-                    params={{ username: u.username || "player" }}
-                    className="flex items-center gap-1.5 px-2.5 py-1 bg-background hover:bg-accent border border-border hover:border-primary/30 rounded-full text-[11px] font-semibold text-foreground hover:text-primary transition-all cursor-pointer shadow-sm"
-                  >
-                    <div className="size-4 rounded-full bg-muted overflow-hidden shrink-0 flex items-center justify-center">
-                      {u.image ? (
-                        <img
-                          src={u.image}
-                          alt=""
-                          className="size-full object-cover"
-                        />
-                      ) : (
-                        <Users className="size-2 text-muted-foreground" />
-                      )}
-                    </div>
-                    <span>@{u.username || u.name}</span>
-                  </Link>
-                ))}
+                {taggedUsers
+                  .filter(
+                    (user): user is NonNullable<typeof user> => user !== null
+                  )
+                  .map((u) => (
+                    <Link
+                      key={u.id}
+                      to="/players/$username"
+                      params={{ username: u.username || "player" }}
+                      className="flex items-center gap-1.5 px-2.5 py-1 bg-background hover:bg-accent border border-border hover:border-primary/30 rounded-full text-[11px] font-semibold text-foreground hover:text-primary transition-all cursor-pointer shadow-sm"
+                    >
+                      <div className="size-4 rounded-full bg-muted overflow-hidden shrink-0 flex items-center justify-center">
+                        {u.image ? (
+                          <img
+                            src={u.image}
+                            alt=""
+                            className="size-full object-cover"
+                          />
+                        ) : (
+                          <Users className="size-2 text-muted-foreground" />
+                        )}
+                      </div>
+                      <span>@{u.username || u.name}</span>
+                    </Link>
+                  ))}
               </div>
             </div>
           )}
@@ -957,7 +958,7 @@ function VideoDetailPage() {
 
           <VideoMetaHeader
             video={video}
-            owner={owner ?? null}
+            owner={owner}
             isSubscribed={isSubscribed}
             likesCount={likesCount}
             hasLiked={hasLiked}

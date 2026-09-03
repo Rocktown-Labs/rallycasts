@@ -151,7 +151,8 @@ function DashboardPage() {
             <div className="flex items-center justify-between pb-1">
               <span className="text-xs text-muted-foreground">Home Venue</span>
               <span className="text-xs font-semibold max-w-[200px] truncate text-right">
-                {profile?.homeCourtName || "None set"}
+                {(profile as { homeCourtName?: string | null })
+                  ?.homeCourtName || "None set"}
               </span>
             </div>
           </CardContent>

@@ -30,14 +30,35 @@ const ForgotPasswordForm = ({
       email: "",
     },
     onSubmit: async ({ value }) => {
-      await authClient.forgetPassword(
+      await authClient.requestPasswordReset(
         {
           email: value.email,
           redirectTo: "/reset-password",
         },
         {
-          onError: (error) => {
-            toast.error(error.error.message || error.error.statusText);
+          onError: (error: unknown) => {
+            let message = "Failed to send reset link";
+            if (error instanceof Error) {
+              const { message: errorMessage } = error;
+              message = errorMessage;
+            } else if (
+              typeof error === "object" &&
+              error !== null &&
+              "error" in error
+            ) {
+              const nestedError = error.error;
+              if (
+                typeof nestedError === "object" &&
+                nestedError !== null &&
+                "message" in nestedError
+              ) {
+                const { message: nestedMessage } = nestedError;
+                if (typeof nestedMessage === "string") {
+                  message = nestedMessage;
+                }
+              }
+            }
+            toast.error(message);
           },
           onSuccess: () => {
             setSent(true);

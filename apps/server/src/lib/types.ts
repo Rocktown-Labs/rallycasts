@@ -1,3 +1,4 @@
+import "../../worker-configuration.d.ts";
 import type { createAuth } from "@rallycaststv/auth";
 
 import type { EventActivityMessage } from "./event-activity";
@@ -23,15 +24,32 @@ interface VectorizeBinding {
 }
 
 export interface AppEnv {
-  Bindings: Env & {
-    ADMIN_EMAILS?: string;
+  Bindings: WranglerEnv & {
+    BETTER_AUTH_SECRET: string;
+    BETTER_AUTH_URL: string;
     CHAT_ROOMS: DurableObjectNamespace;
+    CORS_ORIGIN?: string;
     EVENT_ACTIVITY_QUEUE?: Queue<EventActivityMessage>;
     EVENT_COORDINATOR: DurableObjectNamespace;
+    GITHUB_CLIENT_ID?: string;
+    GITHUB_CLIENT_SECRET?: string;
+    GOOGLE_CLIENT_ID?: string;
+    GOOGLE_CLIENT_SECRET?: string;
     GOOGLE_GENERATIVE_AI_API_KEY?: string;
+    GOOGLE_PLACES_API_KEY?: string;
+    MEDIA_BUCKET?: R2Bucket;
+    MUX_SIGNING_KEY_ID?: string;
+    MUX_SIGNING_KEY_SECRET?: string;
+    MUX_TOKEN_ID?: string;
+    MUX_TOKEN_SECRET?: string;
     MUX_WEBHOOK_SECRET?: string;
-    RALLYCASTS_ADMIN_EMAIL?: string;
+    R2_PUBLIC_URL?: string;
+    RADAR_SECRET_KEY?: string;
+    RADAR_WEBHOOK_SECRET?: string;
+    RESEND_API_KEY?: string;
+    RESEND_WEBHOOK_SECRET?: string;
     SEARCH_INDEX?: VectorizeBinding;
+    SENTRY_DSN?: string;
     STRIPE_SECRET_KEY?: string;
     STRIPE_WEBHOOK_SECRET?: string;
     USER_NOTIFICATIONS: DurableObjectNamespace;

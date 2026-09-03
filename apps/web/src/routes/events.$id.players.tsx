@@ -2,6 +2,7 @@ import { Card, CardContent } from "@rallycaststv/ui/components/card";
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { Star, Users } from "lucide-react";
 
+import { demoEnabled } from "@/lib/demo-data";
 import { useEventPlayers } from "@/lib/hooks";
 
 export const Route = createFileRoute("/events/$id/players")({
@@ -46,6 +47,7 @@ function EventPlayersTab() {
   const { id } = useParams({ from: "/events/$id/players" });
   const { data } = useEventPlayers(id);
   const registeredPlayers = data?.players ?? [];
+  const fallbackTeams = demoEnabled ? mockTeams : [];
   const hasRegisteredPlayers = registeredPlayers.length > 0;
 
   return (
@@ -55,7 +57,7 @@ function EventPlayersTab() {
           <Users className="size-5 text-primary" /> Registered Teams (
           {hasRegisteredPlayers
             ? `${registeredPlayers.length} players`
-            : `${mockTeams.length * 2} players`}
+            : `${fallbackTeams.length * 2} players`}
           )
         </h2>
         <p className="text-xs text-muted-foreground mt-1">
@@ -107,7 +109,7 @@ function EventPlayersTab() {
                 </CardContent>
               </Card>
             ))
-          : mockTeams.map((team) => (
+          : fallbackTeams.map((team) => (
               <Card
                 key={team.rank}
                 className="border border-border/50 bg-card rounded-xl overflow-hidden shadow-sm hover:border-primary/30 transition-all"

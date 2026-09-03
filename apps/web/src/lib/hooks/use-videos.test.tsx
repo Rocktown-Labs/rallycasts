@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -25,7 +25,7 @@ vi.mock("@/lib/api-client", () => ({
 }));
 
 describe("useInfiniteVideos", () => {
-  it("progressively appends deterministic demo pages", async () => {
+  it("surfaces API failures instead of fabricating demo pages", async () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
@@ -34,19 +34,8 @@ describe("useInfiniteVideos", () => {
     );
     const { result } = renderHook(() => useInfiniteVideos(12), { wrapper });
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(
-      result.current.data?.pages.flatMap((page) => page.videos)
-    ).toHaveLength(12);
-
-    await act(async () => {
-      await result.current.fetchNextPage();
-    });
-
-    await waitFor(() =>
-      expect(
-        result.current.data?.pages.flatMap((page) => page.videos)
-      ).toHaveLength(24)
-    );
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.data).toBeUndefined();
+    expect(result.current.isSuccess).toBe(false);
   });
 });

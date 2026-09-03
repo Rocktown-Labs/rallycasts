@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { apiClient } from "@/lib/api-client";
-import { demoEvents, withDemoList } from "@/lib/demo-data";
+import { demoEnabled, demoEvents, withDemoList } from "@/lib/demo-data";
 
 import { readApiJson } from "./api";
 
@@ -10,8 +10,11 @@ export const useEvents = () =>
     queryFn: async () => {
       try {
         return await readApiJson(apiClient.api.v1.events.$get());
-      } catch {
-        return { events: demoEvents };
+      } catch (error) {
+        if (demoEnabled) {
+          return { events: demoEvents };
+        }
+        throw error;
       }
     },
     queryKey: ["events"],
@@ -81,7 +84,6 @@ export const useUpdateEvent = (id: string) => {
       eventType?: "clinic" | "league" | "open_play" | "tournament";
       entryFeeCents?: number;
       name?: string;
-      organizationId?: string;
       refundPolicy?: string;
       registrationDeadline?: string;
       startsAt?: string;

@@ -17,6 +17,7 @@ import * as HttpStatusCodes from "stoker/http-status-codes";
 
 import { generateEmbedding } from "../lib/embeddings";
 import { haversineDistance } from "../lib/geo";
+import { toPublicVenue, toPublicVideo } from "../lib/public-data";
 import type { AppEnv } from "../lib/types";
 import { requireAuth } from "../middleware/auth";
 
@@ -278,7 +279,11 @@ export const feedRouter = new Hono<AppEnv>().get(
         .from(userProfile)
         .innerJoin(user, eq(userProfile.userId, user.id))
         .where(
-          and(eq(userProfile.isPlayer, true), sql`${user.id} != ${authUser.id}`)
+          and(
+            eq(userProfile.isPlayer, true),
+            eq(userProfile.onboardingStatus, "complete"),
+            sql`${user.id} != ${authUser.id}`
+          )
         )
         .limit(FEED_CANDIDATE_LIMIT),
       db
@@ -360,10 +365,10 @@ export const feedRouter = new Hono<AppEnv>().get(
         ...rankItem(
           {
             entity: {
-              ...row.video,
+              ...toPublicVideo(row.video),
               owner: row.owner,
               taggedUserIds: parseTaggedUserIds(row.video.taggedUserIds),
-              venue: row.venue,
+              venue: row.venue ? toPublicVenue(row.venue) : row.venue,
             },
             entityType: "video" as const,
             id: row.video.id,
@@ -427,7 +432,7 @@ export const feedRouter = new Hono<AppEnv>().get(
       return {
         ...rankItem(
           {
-            entity: record,
+            entity: toPublicVenue(record),
             entityType: "venue" as const,
             id: record.id,
             title: record.name,

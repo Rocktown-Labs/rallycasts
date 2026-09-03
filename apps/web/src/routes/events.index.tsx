@@ -210,49 +210,16 @@ function EventsPage() {
   const myOrganizations = organizationsData?.organizations ?? [];
   const publicOrganizations = publicOrganizationsData?.organizations ?? [];
 
-  // Group events based on state and distance:
-  // 1. Near You (Within 1 Mile): distanceMiles <= 1.0
-  // 2. Statewide: state === userState && distanceMiles > 1.0
-  // 3. Nationwide / Global: state !== userState
-  const parsedEvents = allEvents.map((event) => {
-    let distanceMiles = 0.5;
-    let state = userState;
-    let locationStr = `Fayetteville, ${userState}`;
+  const parsedEvents = allEvents.map((event) => ({
+    ...event,
+    distanceMiles: null,
+    location: event.venueId ? "Validated venue" : "Location to be announced",
+    state: null,
+  }));
 
-    if (event.id === "demo-event-1") {
-      distanceMiles = 0.8;
-      // Phoenix, AZ
-      state = "AZ";
-      locationStr = "Phoenix, AZ";
-    } else if (event.id === "demo-event-2") {
-      distanceMiles = 12.5;
-      // Seattle, WA
-      state = "WA";
-      locationStr = "Seattle, WA";
-    } else if (event.id === "demo-event-3") {
-      distanceMiles = 15;
-      state = userState;
-      locationStr = `Little Rock, ${userState}`;
-    } else {
-      // New user events
-      distanceMiles = 0.4;
-      state = userState;
-      locationStr = `Fayetteville, ${userState}`;
-    }
-
-    return {
-      ...event,
-      distanceMiles,
-      location: event.location || locationStr,
-      state,
-    };
-  });
-
-  const nearYouEvents = parsedEvents.filter((e) => e.distanceMiles <= 1);
-  const statewideEvents = parsedEvents.filter(
-    (e) => e.state === userState && e.distanceMiles > 1
-  );
-  const globalEvents = parsedEvents.filter((e) => e.state !== userState);
+  const nearYouEvents: typeof parsedEvents = [];
+  const statewideEvents: typeof parsedEvents = [];
+  const globalEvents = parsedEvents;
   const organizerPreview = getOrganizerPreview(
     publicOrganizations,
     userCity,

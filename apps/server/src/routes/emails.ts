@@ -1,78 +1,100 @@
 import { zValidator } from "@hono/zod-validator";
+import { createDb } from "@rallycaststv/db";
 import {
   renderResetPasswordEmail,
   renderWelcomeEmail,
 } from "@rallycaststv/email";
 import { Hono } from "hono";
+import { createMiddleware } from "hono/factory";
 import { Resend } from "resend";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 import { z } from "zod";
 
+import { isPlatformAdminUser } from "../lib/admin";
 import type { AppEnv } from "../lib/types";
+import { requireAuth } from "../middleware/auth";
 
 const sendEmailSchema = z.object({
-  html: z.string().optional(),
-  props: z.record(z.string(), z.any()).optional(),
-  subject: z.string(),
-  template: z.enum(["welcome", "reset-password"]).optional(),
-  text: z.string().optional(),
-  to: z.union([z.string(), z.array(z.string())]),
+  props: z
+    .object({
+      resetUrl: z.url().optional(),
+      username: z.string().trim().min(1).max(100).optional(),
+      verificationUrl: z.url().optional(),
+    })
+    .optional(),
+  subject: z.string().trim().min(1).max(200),
+  template: z.enum(["welcome", "reset-password"]),
+  to: z.union([z.email(), z.array(z.email()).min(1).max(10)]),
 });
 
-export const emailsRouter = new Hono<AppEnv>().post(
-  "/send",
-  zValidator("json", sendEmailSchema),
-  async (c) => {
-    const { to, subject, html, text, template, props } = c.req.valid("json");
+const requireEmailAdmin = createMiddleware<AppEnv>(async (c, next) => {
+  const db = createDb(c.env.DB);
+  const { user: authUser } = c.var.authSession;
+  if (
+    !authUser.emailVerified ||
+    !(await isPlatformAdminUser(db, authUser.id))
+  ) {
+    return c.json({ error: "Forbidden" }, HttpStatusCodes.FORBIDDEN);
+  }
 
+  await next();
+});
+
+export const emailsRouter = new Hono<AppEnv>()
+  .use(requireAuth, requireEmailAdmin)
+  .post("/send", zValidator("json", sendEmailSchema), async (c) => {
+    const { to, subject, template, props } = c.req.valid("json");
     const apiKey = c.env.RESEND_API_KEY;
     if (!apiKey) {
       return c.json(
-        { error: "Resend API key is not configured" },
-        HttpStatusCodes.INTERNAL_SERVER_ERROR
+        { error: "Email service unavailable" },
+        HttpStatusCodes.SERVICE_UNAVAILABLE
       );
     }
 
+    const username = props?.username ?? "Player";
+    const html =
+      template === "welcome"
+        ? await renderWelcomeEmail({
+            username,
+            verificationUrl: props?.verificationUrl,
+          })
+        : await renderResetPasswordEmail({
+            resetUrl: props?.resetUrl ?? "",
+            username,
+          });
+    const text =
+      template === "welcome"
+        ? `Welcome to RallyCasts, ${username}!`
+        : `Hi ${username}, we received a request to reset your RallyCasts password.`;
+    const recipients = Array.isArray(to) ? to : [to];
+    const idempotencyKey =
+      c.req.header("Idempotency-Key") ??
+      `admin-email/${template}/${recipients.join(",")}/${subject}`;
     const resend = new Resend(apiKey);
-    let finalHtml = html;
-
-    if (template === "welcome") {
-      finalHtml = await renderWelcomeEmail({
-        username:
-          typeof props?.username === "string" ? props.username : "Player",
-        verificationUrl:
-          typeof props?.verificationUrl === "string"
-            ? props.verificationUrl
-            : undefined,
-      });
-    } else if (template === "reset-password") {
-      finalHtml = await renderResetPasswordEmail({
-        resetUrl: typeof props?.resetUrl === "string" ? props.resetUrl : "",
-        username:
-          typeof props?.username === "string" ? props.username : "Player",
-      });
-    }
-
-    if (!finalHtml && !text) {
-      return c.json(
-        { error: "Must provide either html, text, or a valid template" },
-        HttpStatusCodes.BAD_REQUEST
-      );
-    }
-
-    const { data, error } = await resend.emails.send({
-      from: "RallyCasts <dinks@rallycasts.com>",
-      subject,
-      to: Array.isArray(to) ? to : [to],
-      ...(finalHtml ? { html: finalHtml } : {}),
-      ...(text ? { text } : {}),
-    } as Parameters<typeof resend.emails.send>[0]);
+    const { data, error } = await resend.emails.send(
+      {
+        from: "RallyCasts <dinks@rallycasts.com>",
+        html,
+        subject,
+        text,
+        to: recipients,
+      },
+      { idempotencyKey }
+    );
 
     if (error) {
-      console.error("Failed to send email via API route:", error);
-      return c.json({ error: error.message }, HttpStatusCodes.BAD_REQUEST);
+      console.error(
+        JSON.stringify({
+          event: "email_send_failed",
+          message: error.message,
+        })
+      );
+      return c.json(
+        { error: "Email could not be sent" },
+        HttpStatusCodes.BAD_GATEWAY
+      );
     }
 
     return c.json({ id: data?.id, success: true }, HttpStatusCodes.OK);
-  }
-);
+  });

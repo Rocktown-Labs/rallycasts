@@ -4,8 +4,13 @@ import { apiClient } from "@/lib/api-client";
 
 export function useMuxUpload() {
   return useMutation({
-    mutationFn: async () => {
-      const res = await apiClient.api.v1.upload.mux.$get();
+    mutationFn: async (json: {
+      description?: string;
+      mediaType?: "short" | "video";
+      title: string;
+      visibility?: "friends" | "private" | "public";
+    }) => {
+      const res = await apiClient.api.v1.upload.mux.$post({ json });
 
       if (!res.ok) {
         throw new Error("Failed to create Mux upload");

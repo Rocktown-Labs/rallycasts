@@ -272,7 +272,9 @@ export class EventCoordinator extends DurableObject<EventCoordinatorEnv> {
       : [];
     const isOrganizer =
       record?.organizerUserId === input.submittedByUserId ||
-      Boolean(organizationMembership);
+      Boolean(
+        organizationMembership && organizationMembership.role !== "editor"
+      );
     const isMatchPlayer =
       match.playerOneUserId === input.submittedByUserId ||
       match.playerTwoUserId === input.submittedByUserId;

@@ -40,13 +40,15 @@ export interface VideoCardData {
     username?: string | null;
     displayUsername?: string | null;
   } | null;
-  taggedUsers?: {
-    id: string;
-    name: string;
-    image?: string | null;
-    username?: string | null;
-    displayUsername?: string | null;
-  }[];
+  taggedUsers?:
+    | ({
+        id: string;
+        name?: string | null;
+        image?: string | null;
+        username?: string | null;
+        displayUsername?: string | null;
+      } | null)[]
+    | null;
   venue?: {
     id: string;
     name: string;
@@ -69,8 +71,11 @@ export interface PlayerCardData {
 
 export interface VenueCardData {
   activePlayers?: number | null;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
   city?: string | null;
   courtCount?: number | null;
+  description?: string | null;
   distanceMiles?: number | null;
   externalUrl?: string;
   googlePlaceId?: string | null;
@@ -78,6 +83,7 @@ export interface VenueCardData {
   id: string;
   name: string;
   openNow?: boolean;
+  postalCode?: string | null;
   rating?: number | null;
   source?: "google_places" | "rallycasts";
   state?: string | null;
@@ -103,8 +109,9 @@ export interface EventCardData {
   name: string;
   startsAt: Date | string;
   status?: string;
+  venueId?: string | null;
   location?: string;
-  endsAt?: Date | string;
+  endsAt?: Date | string | null;
   tags?: string[];
   imageUrl?: string;
 }
@@ -331,19 +338,21 @@ export function VideoCard({ video }: { video: VideoCardData }) {
         <VideoThumbnail video={video} imageUrl={imageUrl} />
         {video.taggedUsers && video.taggedUsers.length > 0 && (
           <div className="absolute left-2 top-2 flex flex-wrap gap-1 z-10">
-            {video.taggedUsers.map((u) => (
-              <Link
-                key={u.id}
-                to="/players/$username"
-                params={{
-                  username: u.username ?? u.displayUsername ?? "player",
-                }}
-                className="rounded-full bg-black/75 hover:bg-primary text-white px-2 py-0.5 text-[9px] font-semibold transition-colors flex items-center gap-1 backdrop-blur-xs shadow-sm border border-white/10"
-              >
-                <span className="inline-block size-1 rounded-full bg-[#bcdf21]" />
-                <span>{u.name}</span>
-              </Link>
-            ))}
+            {video.taggedUsers
+              .filter((user): user is NonNullable<typeof user> => user !== null)
+              .map((u) => (
+                <Link
+                  key={u.id}
+                  to="/players/$username"
+                  params={{
+                    username: u.username ?? u.displayUsername ?? "player",
+                  }}
+                  className="rounded-full bg-black/75 hover:bg-primary text-white px-2 py-0.5 text-[9px] font-semibold transition-colors flex items-center gap-1 backdrop-blur-xs shadow-sm border border-white/10"
+                >
+                  <span className="inline-block size-1 rounded-full bg-[#bcdf21]" />
+                  <span>{u.name ?? "Player"}</span>
+                </Link>
+              ))}
           </div>
         )}
       </div>
@@ -647,41 +656,14 @@ export function EventCard({ event }: { event: EventCardData }) {
   const endsAtDate = event.endsAt ? new Date(event.endsAt) : null;
   const isRallyCastsHosted = event.hostType === "rallycasts";
 
-  // Static fallback values matching the mockup image
-  const fallbacks: Record<
-    string,
-    { location: string; tags: string[]; banner: string }
-  > = {
-    "demo-event-1": {
-      banner:
-        "radial-gradient(circle at 30% 30%, hsl(142 100% 18% / 0.45), transparent), linear-gradient(135deg, hsl(142 100% 18% / 0.8), hsl(78 100% 60% / 0.3))",
-      location: "Phoenix, AZ",
-      tags: ["tournament", "summer", "all-levels"],
-    },
-    "demo-event-2": {
-      banner:
-        "radial-gradient(circle at 70% 30%, hsl(142 100% 18% / 0.5), transparent), linear-gradient(135deg, hsl(240 10% 4% / 0.95), hsl(142 100% 18% / 0.4))",
-      location: "Seattle, WA",
-      tags: ["tournament", "qualifier", "competitive"],
-    },
-    "demo-event-3": {
-      banner:
-        "radial-gradient(circle at 50% 50%, hsl(78 100% 60% / 0.25), transparent), linear-gradient(135deg, hsl(142 100% 18% / 0.65), hsl(240 10% 4% / 0.85))",
-      location: "Chicago, IL",
-      tags: ["workshop", "beginner", "training"],
-    },
-  };
-
   const itemDetails = {
     banner:
-      fallbacks[event.id]?.banner ||
+      event.imageUrl ??
       "linear-gradient(135deg, hsl(142 100% 18% / 0.65), hsl(78 100% 60% / 0.2))",
-    location: event.location || fallbacks[event.id]?.location || "Austin, TX",
-    tags: event.tags ||
-      fallbacks[event.id]?.tags || [
-        event.eventType ?? "open play",
-        "pickleball",
-      ],
+    location:
+      event.location ??
+      (event.venueId ? "Validated venue" : "Location to be announced"),
+    tags: event.tags ?? [event.eventType ?? "open play", "pickleball"],
   };
 
   return (
@@ -695,7 +677,7 @@ export function EventCard({ event }: { event: EventCardData }) {
       >
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
 
-        {/* Mock visual element: tennis/pickleball net overlay */}
+        {/* Event type overlay */}
         <div className="absolute inset-x-0 bottom-0 h-10 border-t border-dashed border-white/20 flex items-center justify-center">
           <span className="text-[10px] text-white/45 font-bold uppercase tracking-widest bg-black/40 px-2 py-0.5 rounded backdrop-blur-[2px]">
             {event.eventType ?? "open play"}

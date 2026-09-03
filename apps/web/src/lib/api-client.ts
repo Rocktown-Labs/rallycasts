@@ -3,7 +3,7 @@ import { hc } from "hono/client";
 import type { AppType } from "server";
 
 export const apiClient = hc<AppType>(env.VITE_SERVER_URL, {
-  fetch: (input, init) =>
+  fetch: (input: RequestInfo | URL, init?: RequestInit) =>
     fetch(input, {
       ...init,
       credentials: "include",

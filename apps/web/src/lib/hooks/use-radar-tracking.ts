@@ -2,9 +2,12 @@ import { useEffect } from "react";
 
 import { initializeRadar, Radar } from "@/lib/radar";
 
-export function useRadarTracking(userId?: string | null) {
+export function useRadarTracking(
+  userId?: string | null,
+  locationSharingEnabled = false
+) {
   useEffect(() => {
-    if (typeof window === "undefined" || !userId) {
+    if (typeof window === "undefined" || !userId || !locationSharingEnabled) {
       return;
     }
 
@@ -49,5 +52,5 @@ export function useRadarTracking(userId?: string | null) {
     return () => {
       clearInterval(interval);
     };
-  }, [userId]);
+  }, [locationSharingEnabled, userId]);
 }

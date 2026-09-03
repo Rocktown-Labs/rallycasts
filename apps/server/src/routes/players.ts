@@ -13,6 +13,7 @@ import { alias } from "drizzle-orm/sqlite-core";
 import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 
+import { toPublicVideo } from "../lib/public-data";
 import type { AppEnv } from "../lib/types";
 
 const searchPattern = (query: string | undefined) => `%${query ?? ""}%`;
@@ -35,6 +36,7 @@ export const playersRouter = new Hono<AppEnv>()
     } else {
       conditions.push(eq(userProfile.isPlayer, true));
     }
+    conditions.push(eq(userProfile.onboardingStatus, "complete"));
 
     if (query) {
       conditions.push(
@@ -89,7 +91,12 @@ export const playersRouter = new Hono<AppEnv>()
       })
       .from(user)
       .leftJoin(userProfile, eq(userProfile.userId, user.id))
-      .where(eq(user.username, username))
+      .where(
+        and(
+          eq(user.username, username),
+          eq(userProfile.onboardingStatus, "complete")
+        )
+      )
       .limit(1);
 
     if (!player) {
@@ -99,7 +106,13 @@ export const playersRouter = new Hono<AppEnv>()
     const playerVideos = await db
       .select()
       .from(video)
-      .where(eq(video.ownerUserId, player.id))
+      .where(
+        and(
+          eq(video.ownerUserId, player.id),
+          eq(video.status, "ready"),
+          eq(video.visibility, "public")
+        )
+      )
       .orderBy(desc(video.createdAt))
       .limit(20);
 
@@ -107,7 +120,12 @@ export const playersRouter = new Hono<AppEnv>()
       .select()
       .from(video)
       .where(
-        and(eq(video.ownerUserId, player.id), eq(video.mediaType, "photo"))
+        and(
+          eq(video.ownerUserId, player.id),
+          eq(video.mediaType, "photo"),
+          eq(video.status, "ready"),
+          eq(video.visibility, "public")
+        )
       )
       .orderBy(desc(video.createdAt))
       .limit(20);
@@ -123,7 +141,6 @@ export const playersRouter = new Hono<AppEnv>()
         createdAt: challenge.createdAt,
         id: challenge.id,
         matchMode: challenge.matchMode,
-        message: challenge.message,
         partnerName: partnerTable.name,
         partnerUserId: challenge.partnerUserId,
         result: challenge.result,
@@ -132,7 +149,6 @@ export const playersRouter = new Hono<AppEnv>()
         updatedAt: challenge.updatedAt,
         venueId: challenge.venueId,
         venueName: venue.name,
-        videoUrl: challenge.videoUrl,
       })
       .from(challenge)
       .leftJoin(
@@ -146,9 +162,12 @@ export const playersRouter = new Hono<AppEnv>()
       .leftJoin(partnerTable, eq(challenge.partnerUserId, partnerTable.id))
       .leftJoin(venue, eq(challenge.venueId, venue.id))
       .where(
-        or(
-          eq(challenge.challengerUserId, player.id),
-          eq(challenge.challengedUserId, player.id)
+        and(
+          or(
+            eq(challenge.challengerUserId, player.id),
+            eq(challenge.challengedUserId, player.id)
+          ),
+          eq(challenge.status, "completed")
         )
       )
       .orderBy(desc(challenge.createdAt))
@@ -190,7 +209,7 @@ export const playersRouter = new Hono<AppEnv>()
     return c.json(
       {
         challenges: playerChallenges,
-        photos: playerPhotos,
+        photos: playerPhotos.map(toPublicVideo),
         player,
         posts: playerPosts,
         stats: {
@@ -199,7 +218,7 @@ export const playersRouter = new Hono<AppEnv>()
           matchCount,
           wins,
         },
-        videos: playerVideos,
+        videos: playerVideos.map(toPublicVideo),
       },
       HttpStatusCodes.OK
     );

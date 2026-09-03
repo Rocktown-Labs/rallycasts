@@ -34,6 +34,8 @@ export const Route = createFileRoute("/_auth/u/settings")({
   component: SettingsPage,
 });
 
+type SkillLevel = NonNullable<ProfilePayload["skillLevel"]>;
+
 interface ProfileData {
   profile?: {
     bio?: string | null;
@@ -68,7 +70,7 @@ const getProfileFormDefaults = (data: ProfileData | undefined) => {
     isPlayer: true,
     name: "",
     radarPlaceId: "",
-    skillLevel: "intermediate" as const,
+    skillLevel: "intermediate" as SkillLevel,
     username: "",
   };
 

@@ -4,6 +4,7 @@ import { createFileRoute, useParams } from "@tanstack/react-router";
 import { Award, CheckCircle2, Radio, Swords, Video } from "lucide-react";
 import { toast } from "sonner";
 
+import { demoEnabled } from "@/lib/demo-data";
 import {
   useCreateCastingJob,
   useEventBracket,
@@ -112,6 +113,7 @@ function EventBracketTab() {
     ...new Set(backendMatches.map(({ match }) => match.round)),
   ].toSorted((left, right) => left - right);
   const hasRealBracket = backendMatches.length > 0;
+  const previewRounds = demoEnabled ? demoRounds : [];
 
   const generate = () => {
     generateBracket.mutate(
@@ -132,6 +134,8 @@ function EventBracketTab() {
       }
     );
   };
+
+  const showPreviewNotice = demoEnabled && !hasRealBracket;
 
   const requestCaster = (matchId: string) => {
     createCastingJob.mutate(
@@ -165,23 +169,25 @@ function EventBracketTab() {
         </Button>
       </div>
 
-      {hasRealBracket ? null : (
+      {showPreviewNotice ? (
         <div className="rounded-xl border border-dashed bg-muted/20 p-4 text-xs text-muted-foreground">
           Preview mode: this sample shows how a seeded eight-player bracket
           progresses. Generate the live bracket after players register.
         </div>
-      )}
+      ) : null}
 
       <div className="grid min-w-0 gap-5 overflow-x-auto lg:grid-flow-col lg:auto-cols-[minmax(17rem,1fr)]">
         {(hasRealBracket
           ? roundNumbers.map((round) => ({ round }))
-          : demoRounds
+          : previewRounds
         ).map((roundData) => {
           const realMatches = backendMatches.filter(
             ({ match }) => match.round === roundData.round
           );
           const previewMatches =
-            "matches" in roundData ? roundData.matches : [];
+            "matches" in roundData && Array.isArray(roundData.matches)
+              ? (roundData.matches as (typeof demoRounds)[number]["matches"])
+              : [];
           return (
             <section className="min-w-64 space-y-3" key={roundData.round}>
               <h3 className="text-center text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">

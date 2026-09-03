@@ -27,6 +27,16 @@ function VideoClipperPage() {
     queryKey: ["video-studio", id],
   });
   const source = videoQuery.data?.video;
+  const playbackQuery = useQuery({
+    enabled: Boolean(
+      source && source.status === "ready" && source.muxPlaybackId
+    ),
+    queryFn: () =>
+      readApiJson(
+        apiClient.api.v1.videos[":id"].playback.$get({ param: { id } })
+      ),
+    queryKey: ["video-playback", id],
+  });
 
   const createClip = useMutation({
     mutationFn: () =>
@@ -78,11 +88,17 @@ function VideoClipperPage() {
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="overflow-hidden rounded-2xl border bg-black">
-          <MuxPlayer
-            metadata={{ video_id: id, video_title: source.title }}
-            playbackId={source.muxPlaybackId ?? undefined}
-            style={{ aspectRatio: "16 / 9", width: "100%" }}
-          />
+          {playbackQuery.data?.playbackUrl ? (
+            <MuxPlayer
+              metadata={{ video_id: id, video_title: source.title }}
+              src={playbackQuery.data.playbackUrl}
+              style={{ aspectRatio: "16 / 9", width: "100%" }}
+            />
+          ) : (
+            <div className="grid aspect-video place-items-center text-sm text-white/70">
+              Preparing secure playback…
+            </div>
+          )}
         </div>
 
         <aside className="rounded-2xl border bg-card p-5">

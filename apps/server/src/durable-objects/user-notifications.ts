@@ -1,5 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
 
+import { verifyRealtimeAccessToken } from "../lib/realtime-auth";
+
 interface NotificationRealtimeEvent {
   notification?: {
     body?: null | string;
@@ -22,19 +24,25 @@ const safeSend = (socket: WebSocket, payload: unknown) => {
 };
 
 export class UserNotifications extends DurableObject {
-  fetch(request: Request): Response {
+  async fetch(request: Request): Promise<Response> {
     if (request.headers.get("Upgrade") !== "websocket") {
       return new Response("Expected WebSocket", { status: 426 });
     }
 
-    const userId = request.headers.get("x-rallycasts-user-id");
-    if (!(userId && userId === this.ctx.id.name)) {
+    const resourceId = this.ctx.id.name;
+    const claims = await verifyRealtimeAccessToken(
+      request.headers.get("x-rallycasts-realtime-token") ?? undefined,
+      this.env.BETTER_AUTH_SECRET,
+      resourceId ?? "",
+      resourceId ?? undefined
+    );
+    if (!claims) {
       return new Response("Unauthorized", { status: 401 });
     }
 
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair) as [WebSocket, WebSocket];
-    server.serializeAttachment({ userId });
+    server.serializeAttachment({ userId: claims.userId });
     this.ctx.acceptWebSocket(server);
 
     return new Response(null, { status: 101, webSocket: client });
