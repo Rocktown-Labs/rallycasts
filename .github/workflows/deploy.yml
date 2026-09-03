@@ -148,6 +148,18 @@ jobs:
               exit 1
             fi
             jq -c '.result | {domain, enabled, status, zoneId, zoneName}' "$CUSTOM_DOMAIN_RESPONSE"
+            DOMAIN_ZONE_ID="$(jq -r '.result.zoneId // empty' "$CUSTOM_DOMAIN_RESPONSE")"
+            if [ -n "$DOMAIN_ZONE_ID" ]; then
+              DNS_RECORDS_RESPONSE="$(curl -sS \
+                -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+                -H "Content-Type: application/json" \
+                "https://api.cloudflare.com/client/v4/zones/$DOMAIN_ZONE_ID/dns_records?name=media.rallycasts.com")" || DNS_RECORDS_RESPONSE=""
+              if printf "%s" "$DNS_RECORDS_RESPONSE" | jq -e '.success == true' >/dev/null; then
+                printf "%s" "$DNS_RECORDS_RESPONSE" | jq -c '[.result[] | {type, name, content, proxied}]'
+              else
+                echo "WARNING: Could not inspect the production media DNS record."
+              fi
+            fi
             rm -f "$CUSTOM_DOMAIN_RESPONSE"
           fi
           printf "%s" "$ALCHEMY_STATE_TOKEN" | bun x wrangler secret put STATE_TOKEN --name alchemy-state-service
