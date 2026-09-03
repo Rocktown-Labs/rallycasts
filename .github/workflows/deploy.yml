@@ -133,11 +133,21 @@ jobs:
                 echo "ERROR: Could not create the production R2 custom domain."
                 exit 1
               fi
-            elif [ "$CUSTOM_DOMAIN_STATUS" != "200" ] || ! jq -e '.success == true' "$CUSTOM_DOMAIN_RESPONSE" >/dev/null; then
+              CUSTOM_DOMAIN_STATUS="$(curl -sS -o "$CUSTOM_DOMAIN_RESPONSE" -w "%{http_code}" \
+                -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+                -H "Content-Type: application/json" \
+                "$CUSTOM_DOMAIN_URL")" || {
+                rm -f "$CUSTOM_DOMAIN_RESPONSE"
+                echo "ERROR: Could not verify the production R2 custom domain."
+                exit 1
+              }
+            fi
+            if [ "$CUSTOM_DOMAIN_STATUS" != "200" ] || ! jq -e '.success == true' "$CUSTOM_DOMAIN_RESPONSE" >/dev/null; then
               rm -f "$CUSTOM_DOMAIN_RESPONSE"
               echo "ERROR: Cloudflare returned an invalid production R2 custom-domain response."
               exit 1
             fi
+            jq -c '.result | {domain, enabled, status, zoneId, zoneName}' "$CUSTOM_DOMAIN_RESPONSE"
             rm -f "$CUSTOM_DOMAIN_RESPONSE"
           fi
           printf "%s" "$ALCHEMY_STATE_TOKEN" | bun x wrangler secret put STATE_TOKEN --name alchemy-state-service
