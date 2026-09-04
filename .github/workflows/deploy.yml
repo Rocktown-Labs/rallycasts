@@ -276,6 +276,35 @@ jobs:
               fi
             fi
 
+            if [ -z "$R2_PUBLIC_URL" ]; then
+              rm -f "$CUSTOM_DOMAIN_RESPONSE"
+              echo "ERROR: R2_PUBLIC_URL is required for the production media smoke test."
+              exit 1
+            fi
+            SMOKE_KEY="healthchecks/r2-${GITHUB_SHA}.txt"
+            SMOKE_FILE="$(mktemp)"
+            SMOKE_RESPONSE="$(mktemp)"
+            cleanup_r2_smoke() {
+              bun x wrangler r2 object delete "$R2_BUCKET_NAME/$SMOKE_KEY" --remote --force >/dev/null 2>&1 || true
+              rm -f "$CUSTOM_DOMAIN_RESPONSE" "$SMOKE_FILE" "$SMOKE_RESPONSE"
+            }
+            trap cleanup_r2_smoke EXIT
+            SMOKE_CONTENT="rallycasts-r2-smoke:${GITHUB_SHA}"
+            printf '%s\n' "$SMOKE_CONTENT" > "$SMOKE_FILE"
+            bun x wrangler r2 object put "$R2_BUCKET_NAME/$SMOKE_KEY" \
+              --file "$SMOKE_FILE" --content-type text/plain --remote --force
+            SMOKE_URL="${R2_PUBLIC_URL%/}/$SMOKE_KEY"
+            if ! curl --fail --silent --show-error --retry 5 --retry-all-errors --retry-delay 5 \
+              "$SMOKE_URL" -o "$SMOKE_RESPONSE"; then
+              echo "ERROR: Production R2 custom domain could not serve the smoke-test object."
+              exit 1
+            fi
+            if ! cmp -s "$SMOKE_FILE" "$SMOKE_RESPONSE"; then
+              echo "ERROR: Production R2 custom domain returned unexpected smoke-test contents."
+              exit 1
+            fi
+            echo "Production R2 custom domain served the smoke-test object."
+
             jq -c '.result | {domain, enabled, status, zoneId, zoneName}' "$CUSTOM_DOMAIN_RESPONSE"
             printf 'authoritative DNS:\n%s\npublic DNS:\n%s\n' "$AUTHORITATIVE_DNS_RESPONSE" "$PUBLIC_DNS_RESPONSE"
             rm -f "$CUSTOM_DOMAIN_RESPONSE"
