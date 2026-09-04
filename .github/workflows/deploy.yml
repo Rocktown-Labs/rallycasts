@@ -94,6 +94,7 @@ jobs:
               bun x wrangler r2 bucket create "$R2_BUCKET_NAME"
             fi
 
+            ZONE_NAME="rallycasts.com"
             CUSTOM_DOMAIN="media.rallycasts.com"
             CUSTOM_DOMAIN_COLLECTION_URL="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/r2/buckets/$R2_BUCKET_NAME/domains/custom"
             CUSTOM_DOMAIN_URL="$CUSTOM_DOMAIN_COLLECTION_URL/$CUSTOM_DOMAIN"
@@ -107,6 +108,19 @@ jobs:
                 "$CUSTOM_DOMAIN_URL")"
             }
 
+            get_authoritative_dns() {
+              command -v dig >/dev/null 2>&1 || return 1
+              AUTHORITATIVE_NAMESERVERS="$(dig +short "$ZONE_NAME" NS @1.1.1.1 2>/dev/null)" || return 1
+              [ -n "$AUTHORITATIVE_NAMESERVERS" ] || return 1
+              AUTHORITATIVE_DNS_RESPONSE="$(
+                for nameserver in $AUTHORITATIVE_NAMESERVERS; do
+                  dig +short "$CUSTOM_DOMAIN" CNAME "@$nameserver" || true
+                  dig +short "$CUSTOM_DOMAIN" A "@$nameserver" || true
+                  dig +short "$CUSTOM_DOMAIN" AAAA "@$nameserver" || true
+                done
+              )"
+            }
+
             get_public_dns() {
               command -v dig >/dev/null 2>&1 || return 1
               PUBLIC_DNS_RESPONSE="$(
@@ -118,6 +132,21 @@ jobs:
               )"
             }
 
+            wait_for_dns() {
+              DNS_READY=false
+              for _ in $(seq 1 12); do
+                if get_custom_domain && [ "$CUSTOM_DOMAIN_STATUS" = "200" ] && jq -e \
+                  '.success == true and .result.enabled == true and .result.status.ownership == "active" and .result.status.ssl == "active"' \
+                  "$CUSTOM_DOMAIN_RESPONSE" >/dev/null && \
+                  get_authoritative_dns && [ -n "$AUTHORITATIVE_DNS_RESPONSE" ]; then
+                  DNS_READY=true
+                  return 0
+                fi
+                sleep 5
+              done
+              return 1
+            }
+
             if ! get_custom_domain; then
               rm -f "$CUSTOM_DOMAIN_RESPONSE"
               echo "ERROR: Could not inspect the production R2 custom domain."
@@ -127,7 +156,7 @@ jobs:
               if ! ZONE_RESPONSE="$(curl -fsS \
                 -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
                 -H "Content-Type: application/json" \
-                "https://api.cloudflare.com/client/v4/zones?name=rallycasts.com&status=active")"; then
+                "https://api.cloudflare.com/client/v4/zones?name=$ZONE_NAME&status=active")"; then
                 rm -f "$CUSTOM_DOMAIN_RESPONSE"
                 echo "ERROR: Could not inspect the production Cloudflare zone."
                 exit 1
@@ -188,12 +217,13 @@ jobs:
               --arg domain "$CUSTOM_DOMAIN" \
               --arg zoneId "$DOMAIN_ZONE_ID" \
               '{domain: $domain, enabled: true, zoneId: $zoneId}')"
-            if ! get_public_dns; then
+            if ! get_authoritative_dns; then
               rm -f "$CUSTOM_DOMAIN_RESPONSE"
-              echo "ERROR: Could not query public DNS for the production R2 custom domain."
+              echo "ERROR: Could not query authoritative DNS for the production R2 custom domain."
               exit 1
             fi
-            if [ -z "$PUBLIC_DNS_RESPONSE" ]; then
+            get_public_dns || PUBLIC_DNS_RESPONSE=""
+            if [ -z "$AUTHORITATIVE_DNS_RESPONSE" ]; then
               echo "R2 custom domain is active but its DNS record is missing; reattaching it."
               DELETE_RESPONSE="$(mktemp)"
               DELETE_STATUS="$(curl -sS -o "$DELETE_RESPONSE" -w "%{http_code}" -X DELETE \
@@ -237,21 +267,9 @@ jobs:
               fi
               rm -f "$REATTACH_RESPONSE"
 
-              DNS_READY=false
-              for _ in $(seq 1 12); do
-                if get_custom_domain && [ "$CUSTOM_DOMAIN_STATUS" = "200" ] && jq -e \
-                  '.success == true and .result.enabled == true and .result.status.ownership == "active" and .result.status.ssl == "active"' \
-                  "$CUSTOM_DOMAIN_RESPONSE" >/dev/null; then
-                  if get_public_dns && [ -n "$PUBLIC_DNS_RESPONSE" ]; then
-                    DNS_READY=true
-                    break
-                  fi
-                fi
-                sleep 5
-              done
-              if [ "$DNS_READY" != "true" ]; then
+              if ! wait_for_dns; then
                 jq -c '.result | {domain, enabled, status, zoneId, zoneName}' "$CUSTOM_DOMAIN_RESPONSE" 2>/dev/null || true
-                printf '%s\n' "$PUBLIC_DNS_RESPONSE"
+                printf 'authoritative DNS:\n%s\npublic DNS:\n%s\n' "$AUTHORITATIVE_DNS_RESPONSE" "$PUBLIC_DNS_RESPONSE"
                 rm -f "$CUSTOM_DOMAIN_RESPONSE"
                 echo "ERROR: Production R2 custom-domain DNS was not provisioned."
                 exit 1
@@ -259,7 +277,7 @@ jobs:
             fi
 
             jq -c '.result | {domain, enabled, status, zoneId, zoneName}' "$CUSTOM_DOMAIN_RESPONSE"
-            printf '%s\n' "$PUBLIC_DNS_RESPONSE"
+            printf 'authoritative DNS:\n%s\npublic DNS:\n%s\n' "$AUTHORITATIVE_DNS_RESPONSE" "$PUBLIC_DNS_RESPONSE"
             rm -f "$CUSTOM_DOMAIN_RESPONSE"
           fi
           printf "%s" "$ALCHEMY_STATE_TOKEN" | bun x wrangler secret put STATE_TOKEN --name alchemy-state-service
