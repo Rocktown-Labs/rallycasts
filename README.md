@@ -95,7 +95,7 @@ If you want to add app-specific blocks instead of shared primitives, run the sha
 
 Production deployments provision the web app, Hono API, D1 migrations, queues, Durable Objects, and configured Google Places, Radar, Mux, and R2 bindings through `packages/infra/alchemy.run.ts`.
 
-The production `CLOUDFLARE_API_TOKEN` GitHub secret must permit the documented R2 bucket/custom-domain operations and zone lookup for `rallycasts.com`. The deployment verifies that `media.rallycasts.com` is active and has an authoritative DNS record, reports public resolver propagation, and reattaches the documented R2 custom domain if the authoritative record is missing. Do not replace it with a manual `r2.dev` CNAME.
+The production `CLOUDFLARE_API_TOKEN` GitHub secret must permit the documented R2 bucket/custom-domain operations and zone lookup for `rallycasts.com`. The deployment verifies that `media.rallycasts.com` is active and has an authoritative DNS record, reports public resolver propagation, and reattaches the documented R2 custom domain if the authoritative record is missing. It also performs a unique put/fetch/content comparison through the custom domain and deletes the smoke-test object. Do not replace it with a manual `r2.dev` CNAME.
 
 Paid tournaments require `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`. Connect onboarding and payment confirmation remain unavailable when those bindings are absent; registrations are confirmed only by a verified webhook.
 
