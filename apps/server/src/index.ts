@@ -20,6 +20,7 @@ import { EMAIL_FROM } from "./lib/email";
 import type { AppEnv } from "./lib/types";
 import { protectMutations, protectWebSocket } from "./middleware/security";
 import { adminRouter } from "./routes/admin";
+import { adsRouter } from "./routes/ads";
 import { castersRouter } from "./routes/casters";
 import { castingJobsRouter } from "./routes/casting-jobs";
 import { challengesRouter } from "./routes/challenges";
@@ -241,6 +242,7 @@ const routes = app
   .route("/api/v1/upload", uploadRouter)
   .route("/api/v1/emails", emailsRouter)
   .route("/api/v1/admin", adminRouter)
+  .route("/api/v1/ads", adsRouter)
   .route("/api/v1/internal/e2e", e2eRouter)
   .route("/webhooks", webhooksRouter);
 

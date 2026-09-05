@@ -1,6 +1,7 @@
 import { Button } from "@rallycaststv/ui/components/button";
 import { Card, CardContent } from "@rallycaststv/ui/components/card";
 import { Input } from "@rallycaststv/ui/components/input";
+import { useQueryClient } from "@tanstack/react-query";
 import { useParams, Link, createFileRoute } from "@tanstack/react-router";
 import {
   ChevronLeft,
@@ -8,23 +9,18 @@ import {
   MapPin,
   ThumbsUp,
   Share2,
-  Play,
   Pin,
   Users,
   X,
 } from "lucide-react";
-import { useState, useRef } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { SponsoredPlayer } from "@/components/ads/sponsored-player";
 import { authClient } from "@/lib/auth-client";
-import {
-  useVideo,
-  useVideoComments,
-  useAddVideoComment,
-  useFriends,
-  usePinVideoComment,
-  useShareEntity,
-} from "@/lib/hooks";
+import { getVideoCommentsCollection, useLiveQuery } from "@/lib/collections";
+import type { VideoCommentRecord } from "@/lib/collections";
+import { useFriends, useShareEntity, useVideo } from "@/lib/hooks";
 
 interface CommentUser {
   id: string;
@@ -761,26 +757,26 @@ function VideoDetailPage() {
   const isDemoVideo = id.startsWith("demo-video-");
   const { data: session } = authClient.useSession();
   const currentUser = session?.user;
+  const queryClient = useQueryClient();
 
   const {
     data: videoData,
     isLoading: videoLoading,
     error: videoError,
   } = useVideo(id);
-  const { data: commentsData, isLoading: commentsLoading } = useVideoComments(
-    id,
-    !isDemoVideo
+
+  const commentsCollection = useMemo(
+    () => getVideoCommentsCollection(queryClient, id),
+    [queryClient, id]
   );
-  const addCommentMutation = useAddVideoComment(id);
-  const pinCommentMutation = usePinVideoComment(id);
+  const { data: comments = [], isLoading: commentsLoading } =
+    useLiveQuery(commentsCollection);
+
   const [commentText, setCommentText] = useState("");
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [likesCount, setLikesCount] = useState(42);
   const [hasLiked, setHasLiked] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [showSharePanel, setShowSharePanel] = useState(false);
-
-  const videoRef = useRef<HTMLVideoElement>(null);
 
   if (videoLoading) {
     return <VideoLoadingSkeleton />;
@@ -791,7 +787,21 @@ function VideoDetailPage() {
   }
 
   const { video, owner, venue, taggedUsers, relatedVideos } = videoData;
-  const commentsList = commentsData?.comments ?? [];
+  const sortedComments = useMemo(
+    () =>
+      comments.toSorted((a, b) => {
+        if (a.isPinned && !b.isPinned) {
+          return -1;
+        }
+        if (!a.isPinned && b.isPinned) {
+          return 1;
+        }
+        return (
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+      }),
+    [comments]
+  );
   const canPinComments = Boolean(
     currentUser?.id && owner?.id && currentUser.id === owner.id
   );
@@ -836,56 +846,44 @@ function VideoDetailPage() {
       toast.error("You must be logged in to comment.");
       return;
     }
-    if (!commentText.trim()) {
+    const trimmed = commentText.trim();
+    if (!trimmed) {
       return;
     }
 
-    addCommentMutation.mutate(
-      { content: commentText },
-      {
-        onError: () => {
-          toast.error("Failed to post comment. Please try again.");
-        },
-        onSuccess: () => {
-          setCommentText("");
-          toast.success("Comment posted successfully!");
-        },
-      }
-    );
+    const newComment: VideoCommentRecord = {
+      content: trimmed,
+      createdAt: new Date().toISOString(),
+      id: crypto.randomUUID(),
+      isPinned: false,
+      pinnedAt: null,
+      user: {
+        id: currentUser.id,
+        image: currentUser.image ?? null,
+        name: currentUser.name ?? null,
+        username:
+          (currentUser as { username?: string | null }).username ?? null,
+      },
+    };
+
+    setCommentText("");
+    try {
+      commentsCollection.insert(newComment);
+      toast.success("Comment posted successfully!");
+    } catch {
+      toast.error("Failed to post comment. Please try again.");
+    }
   };
 
   const handlePinComment = (commentId: string, pinned: boolean) => {
-    pinCommentMutation.mutate(
-      { commentId, pinned },
-      {
-        onError: () => {
-          toast.error("Could not update pinned comment.");
-        },
-        onSuccess: () => {
-          toast.success(pinned ? "Comment pinned." : "Comment unpinned.");
-        },
-      }
-    );
-  };
-
-  const handlePlayVideo = async () => {
-    if (!video.muxPlaybackId) {
-      return;
-    }
-    if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pause();
-        setIsPlaying(false);
-      } else {
-        try {
-          await videoRef.current.play();
-        } catch {
-          // ignore play errors
-        }
-        setIsPlaying(true);
-      }
-    } else {
-      setIsPlaying(!isPlaying);
+    try {
+      commentsCollection.update(commentId, (draft) => {
+        draft.isPinned = pinned;
+        draft.pinnedAt = pinned ? new Date().toISOString() : null;
+      });
+      toast.success(pinned ? "Comment pinned." : "Comment unpinned.");
+    } catch {
+      toast.error("Could not update pinned comment.");
     }
   };
 
@@ -910,19 +908,20 @@ function VideoDetailPage() {
 
       <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
-          <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-border bg-black group/player shadow-lg">
+          <div>
             {video.muxPlaybackId ? (
-              <video
-                ref={videoRef}
-                className="size-full object-contain cursor-pointer"
-                src={`https://stream.mux.com/${video.muxPlaybackId}/medium.mp4`}
+              <SponsoredPlayer
+                adContext={{
+                  city: venue?.city ?? null,
+                  state: venue?.state ?? null,
+                  venueId: video.venueId ?? null,
+                }}
                 poster={posterUrl}
-                controls={isPlaying}
-                onClick={handlePlayVideo}
-                aria-label={video.title}
-              >
-                <track kind="captions" />
-              </video>
+                playbackId={video.muxPlaybackId}
+                title={video.title}
+                videoId={video.id}
+                viewerId={currentUser?.id}
+              />
             ) : (
               <div className="flex size-full flex-col items-center justify-center gap-3 bg-[radial-gradient(circle_at_top,hsl(142_100%_18%/.45),transparent_65%)] px-6 text-center text-white">
                 <VideoIcon className="size-12 text-[#bcdf21]" />
@@ -936,23 +935,10 @@ function VideoDetailPage() {
               </div>
             )}
 
-            {video.muxPlaybackId && !isPlaying && (
-              <button
-                type="button"
-                onClick={handlePlayVideo}
-                className="absolute inset-0 flex items-center justify-center bg-black/40 hover:bg-black/30 transition-all cursor-pointer z-10 size-full border-none p-0"
-                aria-label="Play video"
-              >
-                <div className="size-16 rounded-full bg-primary/95 text-primary-foreground flex items-center justify-center shadow-xl transform scale-100 hover:scale-110 transition-transform duration-200">
-                  <Play className="size-8 fill-current ml-1" />
-                </div>
-              </button>
-            )}
-
             {video.status !== "ready" && (
-              <div className="absolute top-4 left-4 z-20 bg-yellow-500/90 text-black text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider shadow">
+              <p className="mt-2 inline-block rounded-full bg-yellow-500/90 px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider text-black shadow">
                 Mux processing
-              </div>
+              </p>
             )}
           </div>
 
@@ -979,15 +965,15 @@ function VideoDetailPage() {
           ) : null}
 
           <CommentsSection
-            commentsList={commentsList}
+            commentsList={sortedComments as VideoCommentWithUser[]}
             commentsLoading={commentsLoading}
             currentUser={currentUser ?? null}
             commentText={commentText}
             setCommentText={setCommentText}
             handleAddComment={handleAddComment}
             handlePinComment={handlePinComment}
-            isPending={addCommentMutation.isPending}
-            isPinPending={pinCommentMutation.isPending}
+            isPending={false}
+            isPinPending={false}
             canPinComments={canPinComments}
             isReadOnly={isDemoVideo}
           />

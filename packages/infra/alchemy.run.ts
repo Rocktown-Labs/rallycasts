@@ -1,5 +1,6 @@
 import alchemy, { Secret } from "alchemy";
 import {
+  AnalyticsEngineDataset,
   D1Database,
   DurableObjectNamespace,
   Queue,
@@ -187,6 +188,43 @@ const eventActivityQueue = await Queue("event-activity", {
   adopt: true,
   name: `rallycasts-event-activity-${stage}`,
 });
+const adsAnalytics = AnalyticsEngineDataset("ads-analytics", {
+  dataset: isProd ? "rallycasts_ads" : `rallycasts_ads_${stage}`,
+});
+const adsDeadLetterQueue = await Queue("ads-events-dlq", {
+  adopt: true,
+  name: `rallycasts-ads-events-dlq-${stage}`,
+});
+const adsQueue = await Queue("ads-events", {
+  adopt: true,
+  name: `rallycasts-ads-events-${stage}`,
+});
+
+await Worker("rallycasts-ads-events", {
+  adopt: true,
+  bindings: {
+    ADS_ANALYTICS: adsAnalytics,
+    DB: db,
+  },
+  compatibility: "node",
+  cwd: "../../apps/server",
+  entrypoint: "src/queues/ads-events.ts",
+  eventSources: [
+    {
+      queue: adsQueue,
+      settings: {
+        batchSize: 100,
+        deadLetterQueue: adsDeadLetterQueue,
+        maxConcurrency: 5,
+        maxRetries: 5,
+        maxWaitTimeMs: 5000,
+        retryDelay: 60,
+      },
+    },
+  ],
+  name: `rallycasts-ads-events-${stage}`,
+  observability,
+});
 
 await Worker("rallycasts-geofence-events", {
   adopt: true,
@@ -244,6 +282,8 @@ await Worker("rallycasts-event-activity", {
 export const server = await Worker("rallycasts-server", {
   adopt: true,
   bindings: filterMissingBindings({
+    ADS_ANALYTICS: adsAnalytics,
+    ADS_EVENTS: adsQueue,
     BETTER_AUTH_SECRET: betterAuthSecret,
     BETTER_AUTH_URL: betterAuthUrl,
     CHAT_ROOMS: chatRooms,

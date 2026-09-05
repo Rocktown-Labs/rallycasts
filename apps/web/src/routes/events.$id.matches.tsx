@@ -1,14 +1,16 @@
 import { Button } from "@rallycaststv/ui/components/button";
 import { Card, CardContent } from "@rallycaststv/ui/components/card";
 import { Input } from "@rallycaststv/ui/components/input";
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import { Clock, MapPin, Swords, Video, Trophy } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { authClient } from "@/lib/auth-client";
+import { getEventMatchesCollection, useLiveQuery } from "@/lib/collections";
+import type { BackendMatchRow } from "@/lib/collections";
 import { demoEnabled } from "@/lib/demo-data";
-import { useEventBracket, useSubmitMatchScore } from "@/lib/hooks";
 
 export const Route = createFileRoute("/events/$id/matches")({
   component: EventMatchesTab,
@@ -24,22 +26,6 @@ interface Match {
   time: string;
   status: "scheduled" | "live" | "completed";
   caster?: string;
-}
-
-interface BackendMatchRow {
-  match: {
-    courtLabel?: string | null;
-    id: string;
-    playerOneScore?: number | null;
-    playerOneUserId?: string | null;
-    playerTwoScore?: number | null;
-    playerTwoUserId?: string | null;
-    round: number;
-    status: "scheduled" | "in_progress" | "completed" | "cancelled";
-    winnerUserId?: string | null;
-  };
-  playerOne?: { id: string | null; name: string | null } | null;
-  playerTwo?: { id: string | null; name: string | null } | null;
 }
 
 const mockMatches: Match[] = [
@@ -98,16 +84,6 @@ function getMatchStatusClass(
   return "bg-yellow-500/20 text-yellow-400";
 }
 
-const getScoreToastMessage = (status: "confirmed" | "disputed" | "pending") => {
-  if (status === "confirmed") {
-    return "Score confirmed and match advanced.";
-  }
-  if (status === "disputed") {
-    return "Score dispute sent to organizer.";
-  }
-  return "Score submitted. Waiting for the other team.";
-};
-
 const getDisplayStatus = (
   status: BackendMatchRow["match"]["status"]
 ): "scheduled" | "live" | "completed" => {
@@ -121,10 +97,10 @@ const getDisplayStatus = (
 };
 
 function ScoreSubmitForm({
-  eventId,
+  matchesCollection,
   row,
 }: {
-  eventId: string;
+  matchesCollection: ReturnType<typeof getEventMatchesCollection>;
   row: BackendMatchRow;
 }) {
   const [playerOneScore, setPlayerOneScore] = useState(
@@ -136,7 +112,6 @@ function ScoreSubmitForm({
   const [winnerUserId, setWinnerUserId] = useState(
     row.match.winnerUserId ?? row.match.playerOneUserId ?? ""
   );
-  const submitScore = useSubmitMatchScore(eventId, row.match.id);
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -152,21 +127,17 @@ function ScoreSubmitForm({
       return;
     }
 
-    submitScore.mutate(
-      {
-        playerOneScore: firstScore,
-        playerTwoScore: secondScore,
-        winnerUserId,
-      },
-      {
-        onError: () => {
-          toast.error("Could not submit score.");
-        },
-        onSuccess: (result) => {
-          toast.success(getScoreToastMessage(result.status));
-        },
-      }
-    );
+    try {
+      matchesCollection.update(row.match.id, (draft) => {
+        draft.match.playerOneScore = firstScore;
+        draft.match.playerTwoScore = secondScore;
+        draft.match.winnerUserId = winnerUserId;
+        draft.match.status = "completed";
+      });
+      toast.success("Score confirmed and match advanced.");
+    } catch {
+      toast.error("Could not submit score.");
+    }
   };
 
   return (
@@ -198,11 +169,7 @@ function ScoreSubmitForm({
           {row.playerTwo?.name ?? "Player two"}
         </option>
       </select>
-      <Button
-        type="submit"
-        disabled={submitScore.isPending}
-        className="h-8 rounded-md text-xs"
-      >
+      <Button type="submit" className="h-8 rounded-md text-xs">
         Submit score
       </Button>
     </form>
@@ -212,8 +179,12 @@ function ScoreSubmitForm({
 function EventMatchesTab() {
   const { id } = useParams({ from: "/events/$id/matches" });
   const { data: session } = authClient.useSession();
-  const { data: bracketData } = useEventBracket(id);
-  const backendMatches = (bracketData?.matches ?? []) as BackendMatchRow[];
+  const queryClient = useQueryClient();
+  const matchesCollection = useMemo(
+    () => getEventMatchesCollection(queryClient, id),
+    [queryClient, id]
+  );
+  const { data: backendMatches = [] } = useLiveQuery(matchesCollection);
   const fallbackMatches = demoEnabled ? mockMatches : [];
   const hasBackendMatches = backendMatches.length > 0;
 
@@ -279,7 +250,10 @@ function EventMatchesTab() {
                   {session?.user &&
                     row.match.playerOneUserId &&
                     row.match.playerTwoUserId && (
-                      <ScoreSubmitForm eventId={id} row={row} />
+                      <ScoreSubmitForm
+                        matchesCollection={matchesCollection}
+                        row={row}
+                      />
                     )}
                 </CardContent>
               </Card>

@@ -12,6 +12,7 @@ import { Hono } from "hono";
 import type { Context } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 
+import { getDisplaySponsorships } from "../lib/ads";
 import { haversineDistance } from "../lib/geo";
 import { GooglePlacesClient } from "../lib/google-places";
 import { toPublicVenue, toPublicVideo } from "../lib/public-data";
@@ -215,6 +216,18 @@ export const mergeTrendingVenues = (
         (right.distanceMiles ?? Number.POSITIVE_INFINITY)
     )
     .slice(0, limit);
+};
+
+type TrendingDb = ReturnType<typeof createDb>;
+
+const sponsoredTrendingEvents = async (db: TrendingDb) => {
+  const sponsorships = await getDisplaySponsorships(db, {});
+  return sponsorships.slice(0, 2).map((sponsorship) => ({
+    ...sponsorship.event,
+    adCampaignId: sponsorship.campaign.id,
+    adCreativeId: sponsorship.creative.id,
+    sponsored: true as const,
+  }));
 };
 
 export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
@@ -557,6 +570,7 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
     {
       events,
       players,
+      sponsoredEvents: await sponsoredTrendingEvents(db),
       venuePagination: {
         hasNextPage: venueOffset + venuePageSize < venueTotalCount,
         hasPreviousPage: venuePage > 1,

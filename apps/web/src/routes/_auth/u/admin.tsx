@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { AdminAdsReview } from "@/components/ads/admin-ads-review";
 import { EmptyState, StatCard } from "@/components/rally/cards";
 import {
   useAdminDashboard,
@@ -291,8 +292,12 @@ function AdminDashboardPage() {
         </Card>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-6 xl:grid-cols-[1fr_420px]">
+        <AdminAdsReview />
         <StatusBreakdown label="Videos" rows={data.statusBreakdown.videos} />
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatusBreakdown label="Events" rows={data.statusBreakdown.events} />
         <StatusBreakdown
           label="Casting Requests"
