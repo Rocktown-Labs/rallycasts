@@ -73,6 +73,21 @@ const app = await alchemy("rallycaststv", {
 
 const stage = app.stage === "ubuntu" ? "prod" : (app.stage ?? "dev");
 const isProd = stage === "prod";
+const observability = {
+  enabled: true,
+  headSamplingRate: 1,
+  logs: {
+    enabled: true,
+    headSamplingRate: 1,
+    invocationLogs: true,
+    persist: true,
+  },
+  traces: {
+    enabled: true,
+    headSamplingRate: isProd ? 0.1 : 1,
+    persist: true,
+  },
+} as const;
 
 const productionServerUrl = "https://api.rallycasts.com";
 const productionWebUrl = "https://rallycasts.com";
@@ -195,6 +210,7 @@ await Worker("rallycasts-geofence-events", {
     },
   ],
   name: `rallycasts-geofence-events-${stage}`,
+  observability,
 });
 
 await Worker("rallycasts-event-activity", {
@@ -221,6 +237,7 @@ await Worker("rallycasts-event-activity", {
     },
   ],
   name: `rallycasts-event-activity-${stage}`,
+  observability,
 });
 
 export const server = await Worker("rallycasts-server", {
@@ -268,6 +285,7 @@ export const server = await Worker("rallycasts-server", {
   },
   entrypoint: "src/index.ts",
   name: isProd ? "rallycasts-server" : `rallycasts-server-${stage}`,
+  observability,
   url: true,
 });
 
@@ -294,6 +312,7 @@ export const web = await TanStackStart("rallycasts-web", {
   compatibility: "node",
   cwd: "../../apps/web",
   name: isProd ? "rallycasts-web" : `rallycasts-web-${stage}`,
+  observability,
   url: true,
 });
 

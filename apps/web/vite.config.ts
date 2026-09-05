@@ -20,16 +20,33 @@ const cloudflareWorkersAlias: Record<string, string> = shouldUseAlchemy
   : {
       "cloudflare:workers": cloudflareWorkersShimPath,
     };
+const sentryAuthToken = process.env.SENTRY_AUTH_TOKEN;
+const sentryRelease = process.env.GITHUB_SHA;
+const sentryBuildPlugins = sentryAuthToken
+  ? sentryTanstackStart({
+      authToken: sentryAuthToken,
+      org: "rocktown-labs-tq",
+      project: "rallycasts-web",
+      release: sentryRelease
+        ? {
+            create: true,
+            finalize: true,
+            inject: true,
+            name: sentryRelease,
+          }
+        : undefined,
+      sourcemaps: {
+        filesToDeleteAfterUpload: ["**/*.map"],
+      },
+      telemetry: false,
+    })
+  : [];
 
 export default defineConfig({
   plugins: [
     tailwindcss(),
     tanstackStart(),
-    sentryTanstackStart({
-      authToken: process.env.SENTRY_AUTH_TOKEN,
-      org: "rocktown-labs-tq",
-      project: "rallycasts-web",
-    }),
+    ...sentryBuildPlugins,
     viteReact(),
     ...(shouldUseAlchemy ? [alchemy({ configPath: alchemyConfigPath })] : []),
   ],

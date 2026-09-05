@@ -172,7 +172,14 @@ export default {
         await processEventActivity(message.body, env);
         message.ack();
       } catch (error) {
-        console.error("Failed to process event activity:", error);
+        console.error({
+          attempts: message.attempts,
+          error: error instanceof Error ? error.message : "unknown error",
+          event: "queue_message_failed",
+          messageId: message.id,
+          queue: batch.queue,
+          worker: "event-activity",
+        });
         message.retry();
       }
     }
