@@ -13,6 +13,7 @@ import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 
 import { isPlatformAdminUser } from "../lib/admin";
+import { getDisplaySponsorships } from "../lib/ads";
 import { generateEmbedding } from "../lib/embeddings";
 import { toPublicVenue, toPublicVideo } from "../lib/public-data";
 import { backfillSearchDocuments } from "../lib/search-backfill";
@@ -355,7 +356,27 @@ export const searchRouter = new Hono<AppEnv>()
         (record): record is (typeof semanticEventRows)[number] =>
           record !== undefined
       );
-    const events = mergeById(orderedSemanticEvents, keywordEvents).slice(0, 6);
+    let events = mergeById(orderedSemanticEvents, keywordEvents).slice(0, 6);
+    if (type === "all" || type === "events") {
+      // Sponsored events match the query text so intent is preserved,
+      // and they are labeled instead of blended into semantic order.
+      const sponsorships = await getDisplaySponsorships(db, {});
+      const needle = query.trim().toLowerCase();
+      const sponsored = sponsorships
+        .filter((sponsorship) =>
+          `${sponsorship.event.name} ${sponsorship.event.description ?? ""}`
+            .toLowerCase()
+            .includes(needle)
+        )
+        .slice(0, 2)
+        .map((sponsorship) => ({
+          ...sponsorship.event,
+          adCampaignId: sponsorship.campaign.id,
+          adCreativeId: sponsorship.creative.id,
+          sponsored: true as const,
+        }));
+      events = [...sponsored, ...events].slice(0, 6);
+    }
     const keywordVenues =
       type === "all" || type === "parks"
         ? await db

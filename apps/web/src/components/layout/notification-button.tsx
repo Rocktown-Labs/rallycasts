@@ -3,11 +3,8 @@ import { Link } from "@tanstack/react-router";
 import { Bell, Calendar, MessageSquare, UserPlus, Video } from "lucide-react";
 import { useState } from "react";
 
-import {
-  useMarkNotificationsRead,
-  useNotificationRealtime,
-  useNotifications,
-} from "@/lib/hooks";
+import { notificationsCollection, useLiveQuery } from "@/lib/collections";
+import { useNotificationRealtime } from "@/lib/hooks";
 
 const iconForType = (type: string) => {
   if (type === "friend_request" || type === "friend_accept") {
@@ -27,23 +24,33 @@ const iconForType = (type: string) => {
 
 const NotificationButton = () => {
   const [open, setOpen] = useState(false);
-  const { data } = useNotifications();
-  const markRead = useMarkNotificationsRead();
-  useNotificationRealtime(Boolean(data));
-  const notifications =
-    data?.notifications.map(({ notification: item }) => ({
-      href: item.href,
-      icon: iconForType(item.type),
-      id: item.id,
-      message: item.body ?? "",
-      title: item.title,
-    })) ?? [];
-  const unread = data?.unreadCount ?? 0;
+  const { data: notificationItems = [] } = useLiveQuery(
+    notificationsCollection
+  );
+  useNotificationRealtime(true);
+  const unreadItems = notificationItems.filter(
+    (item) => !item.notification.readAt
+  );
+  const unread = unreadItems.length;
+
+  const notifications = notificationItems.map(({ notification: item }) => ({
+    href: item.href,
+    icon: iconForType(item.type),
+    id: item.id,
+    message: item.body ?? "",
+    title: item.title,
+  }));
 
   const toggleOpen = () => {
     setOpen((value) => !value);
-    if (!open && unread > 0 && data) {
-      markRead.mutate();
+    if (!open && unread > 0) {
+      const unreadIds = unreadItems.map((item) => item.notification.id);
+      notificationsCollection.update(unreadIds, (drafts) => {
+        const now = new Date().toISOString();
+        for (const draft of drafts) {
+          draft.notification.readAt = now;
+        }
+      });
     }
   };
 

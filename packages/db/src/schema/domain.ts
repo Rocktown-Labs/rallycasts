@@ -1167,3 +1167,162 @@ export const casterProfileRelations = relations(
     }),
   })
 );
+
+export const advertiser = sqliteTable(
+  "advertiser",
+  {
+    createdAt: timestamp("created_at"),
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    status: text("status", { enum: ["active", "suspended"] })
+      .default("active")
+      .notNull(),
+    updatedAt: timestamp("updated_at").$onUpdate(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("advertiser_organization_idx").on(table.organizationId),
+  ]
+);
+
+export const adCampaign = sqliteTable(
+  "ad_campaign",
+  {
+    advertiserId: text("advertiser_id")
+      .notNull()
+      .references(() => advertiser.id, { onDelete: "cascade" }),
+    city: text("city"),
+    cpmCents: integer("cpm_cents").default(500).notNull(),
+    createdAt: timestamp("created_at"),
+    createdByUserId: text("created_by_user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    dailyBudgetCents: integer("daily_budget_cents").default(1000).notNull(),
+    endsAt: nullableTimestamp("ends_at"),
+    eventId: text("event_id")
+      .notNull()
+      .references(() => event.id, { onDelete: "cascade" }),
+    fundedCents: integer("funded_cents").default(0).notNull(),
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    placements: text("placements", {
+      enum: ["display", "preroll", "both"],
+    })
+      .default("both")
+      .notNull(),
+    rejectionReason: text("rejection_reason"),
+    reviewedAt: nullableTimestamp("reviewed_at"),
+    reviewedByUserId: text("reviewed_by_user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    skillLevel: text("skill_level", {
+      enum: ["beginner", "intermediate", "advanced", "pro"],
+    }),
+    spentCents: integer("spent_cents").default(0).notNull(),
+    startsAt: nullableTimestamp("starts_at"),
+    state: text("state"),
+    status: text("status", {
+      enum: [
+        "draft",
+        "pending_approval",
+        "active",
+        "paused",
+        "completed",
+        "rejected",
+      ],
+    })
+      .default("draft")
+      .notNull(),
+    totalBudgetCents: integer("total_budget_cents").default(5000).notNull(),
+    updatedAt: timestamp("updated_at").$onUpdate(() => new Date()),
+    venueId: text("venue_id").references(() => venue.id, {
+      onDelete: "set null",
+    }),
+    videoCpmCents: integer("video_cpm_cents").default(1500).notNull(),
+  },
+  (table) => [
+    index("ad_campaign_advertiser_idx").on(table.advertiserId),
+    index("ad_campaign_event_idx").on(table.eventId),
+    index("ad_campaign_status_idx").on(table.status),
+  ]
+);
+
+export const adCreative = sqliteTable(
+  "ad_creative",
+  {
+    body: text("body"),
+    campaignId: text("campaign_id")
+      .notNull()
+      .references(() => adCampaign.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at"),
+    ctaPath: text("cta_path"),
+    id: text("id").primaryKey(),
+    imageUrl: text("image_url"),
+    kind: text("kind", { enum: ["display", "preroll"] })
+      .default("display")
+      .notNull(),
+    status: text("status", { enum: ["active", "paused"] })
+      .default("active")
+      .notNull(),
+    title: text("title").notNull(),
+    updatedAt: timestamp("updated_at").$onUpdate(() => new Date()),
+    videoId: text("video_id").references(() => video.id, {
+      onDelete: "set null",
+    }),
+  },
+  (table) => [index("ad_creative_campaign_idx").on(table.campaignId)]
+);
+
+export const adDailyStat = sqliteTable(
+  "ad_daily_stat",
+  {
+    campaignId: text("campaign_id")
+      .notNull()
+      .references(() => adCampaign.id, { onDelete: "cascade" }),
+    clicks: integer("clicks").default(0).notNull(),
+    createdAt: timestamp("created_at"),
+    day: text("day").notNull(),
+    impressions: integer("impressions").default(0).notNull(),
+    placement: text("placement", { enum: ["display", "preroll"] })
+      .default("display")
+      .notNull(),
+    spentCents: integer("spent_cents").default(0).notNull(),
+    updatedAt: timestamp("updated_at").$onUpdate(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("ad_daily_stat_campaign_day_placement_idx").on(
+      table.campaignId,
+      table.day,
+      table.placement
+    ),
+    index("ad_daily_stat_day_idx").on(table.day),
+  ]
+);
+
+export const adPayment = sqliteTable(
+  "ad_payment",
+  {
+    amountCents: integer("amount_cents").notNull(),
+    campaignId: text("campaign_id")
+      .notNull()
+      .references(() => adCampaign.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at"),
+    currency: text("currency").default("usd").notNull(),
+    id: text("id").primaryKey(),
+    status: text("status", {
+      enum: ["pending", "succeeded", "failed"],
+    })
+      .default("pending")
+      .notNull(),
+    stripeCheckoutSessionId: text("stripe_checkout_session_id"),
+    updatedAt: timestamp("updated_at").$onUpdate(() => new Date()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    index("ad_payment_campaign_idx").on(table.campaignId),
+    uniqueIndex("ad_payment_checkout_idx").on(table.stripeCheckoutSessionId),
+  ]
+);

@@ -14,7 +14,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { EmptyState, RequestCard } from "@/components/rally/cards";
-import { useCastingJobs, useCreateCastingJob } from "@/lib/hooks";
+import { castingJobsCollection, useLiveQuery } from "@/lib/collections";
+import type { CastingJobRecord } from "@/lib/collections";
 
 type RequestRouteStatus = "all" | "approved" | "completed" | "new" | "pending";
 
@@ -55,7 +56,6 @@ const statusMatchesRoute = (
 };
 
 function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
-  const createJob = useCreateCastingJob();
   const [place, setPlace] = useState("");
   const [court, setCourt] = useState("");
   const [participants, setParticipants] = useState("");
@@ -91,22 +91,23 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
       .filter(Boolean)
       .join("\n");
 
-    createJob.mutate(
-      {
-        endsAt: endsAt ? new Date(endsAt).toISOString() : undefined,
-        notes: requestDetails,
-        priceCents: Math.round(Number(budget || "0") * 100),
-        requestedHours: Number.parseFloat(requestedHours) || 1,
-        startsAt: new Date(startsAt).toISOString(),
-      },
-      {
-        onError: () => toast.error("Could not create casting request."),
-        onSuccess: () => {
-          toast.success("Casting request created.");
-          onClose();
-        },
-      }
-    );
+    const newJob: CastingJobRecord = {
+      endsAt: endsAt ? new Date(endsAt).toISOString() : null,
+      id: crypto.randomUUID(),
+      notes: requestDetails,
+      priceCents: Math.round(Number(budget || "0") * 100),
+      requestedHours: Number.parseFloat(requestedHours) || 1,
+      startsAt: new Date(startsAt).toISOString(),
+      status: "requested",
+    };
+
+    try {
+      castingJobsCollection.insert(newJob);
+      toast.success("Casting request created.");
+      onClose();
+    } catch {
+      toast.error("Could not create casting request.");
+    }
   };
 
   return (
@@ -269,11 +270,7 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
           placeholder="Coverage goals, special instructions, tournament bracket info, or anything the caster should know."
           value={notes}
         />
-        <Button
-          className="w-fit rounded-lg"
-          disabled={createJob.isPending}
-          type="submit"
-        >
+        <Button className="w-fit rounded-lg" type="submit">
           Create Request
         </Button>
       </form>
@@ -286,10 +283,10 @@ export function CastingRequestsPage({
 }: {
   status: RequestRouteStatus;
 }) {
-  const { data, isLoading } = useCastingJobs();
+  const { data: allJobs = [], isLoading } = useLiveQuery(castingJobsCollection);
   const navigate = useNavigate();
   const [isCreating, setIsCreating] = useState(status === "new");
-  const jobs = (data?.jobs ?? []).filter((job) =>
+  const jobs = allJobs.filter((job) =>
     statusMatchesRoute(job.status ?? "requested", status)
   );
   const activeTab = requestTabs.find((tab) => tab.status === status);
@@ -342,7 +339,10 @@ export function CastingRequestsPage({
         {jobs.length > 0 ? (
           <div className="grid gap-4">
             {jobs.map((job) => (
-              <RequestCard key={job.id} job={job} />
+              <RequestCard
+                key={job.id}
+                job={{ ...job, priceCents: job.priceCents ?? undefined }}
+              />
             ))}
           </div>
         ) : (

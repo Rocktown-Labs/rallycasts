@@ -15,6 +15,7 @@ import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 
+import { getDisplaySponsorships } from "../lib/ads";
 import { generateEmbedding } from "../lib/embeddings";
 import { haversineDistance } from "../lib/geo";
 import { toPublicVenue, toPublicVideo } from "../lib/public-data";
@@ -23,6 +24,7 @@ import { requireAuth } from "../middleware/auth";
 
 const FEED_CANDIDATE_LIMIT = 32;
 const FEED_RESULT_LIMIT = 24;
+const MAX_SPONSORED_ITEMS = 2;
 const NEARBY_MILES = 100;
 const EVENT_NEARBY_MILES = 200;
 const FRESHNESS_WINDOW_DAYS = 30;
@@ -503,8 +505,46 @@ export const feedRouter = new Hono<AppEnv>().get(
 
     const items = [...videos, ...events, ...venues, ...players, ...posts]
       .toSorted(byScoreThenFreshness)
-      .slice(0, FEED_RESULT_LIMIT)
+      .slice(0, FEED_RESULT_LIMIT - MAX_SPONSORED_ITEMS)
       .map(({ sortDate: _sortDate, ...item }) => item);
+
+    const sponsorships = await getDisplaySponsorships(db, {
+      city: profile?.homeCity ?? null,
+      skillLevel: profile?.skillLevel ?? null,
+      state: profile?.homeState ?? null,
+    });
+    const sponsoredItems = sponsorships
+      .slice(0, MAX_SPONSORED_ITEMS)
+      .map((sponsorship) => ({
+        entity: {
+          ...sponsorship.event,
+          adCampaignId: sponsorship.campaign.id,
+          adCreativeId: sponsorship.creative.id,
+          location: "",
+          sponsored: true as const,
+        },
+        entityType: "event" as const,
+        id: sponsorship.event.id,
+        reason: "Promoted tournament",
+        score: 0,
+        signals: {
+          engagement: 0,
+          freshness: 0,
+          location: 0,
+          semantic: 0,
+          social: 0,
+        },
+        title: sponsorship.event.name,
+      }));
+    // Fixed slots keep sponsored placement deterministic and auditable.
+    for (const [slot, item] of [
+      [3, sponsoredItems[0]],
+      [12, sponsoredItems[1]],
+    ] as const) {
+      if (item) {
+        items.splice(Math.min(slot, items.length), 0, item);
+      }
+    }
 
     return c.json(
       {

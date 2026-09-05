@@ -11,6 +11,7 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 
+import { processAdBudgetCompleted } from "../lib/ads";
 import { createId } from "../lib/ids";
 import { readJsonPayload } from "../lib/json";
 import { createNotification } from "../lib/notifications";
@@ -81,7 +82,7 @@ const stripeJson = async <T>(
   }
 };
 
-const stripeForm = async <T>(
+export const stripeForm = async <T>(
   path: string,
   secret: string,
   values: Record<string, string>,
@@ -803,7 +804,10 @@ export const stripeRouter = new Hono<AppEnv>()
         ].includes(eventType) &&
         object
       ) {
-        await processCheckoutCompleted(db, object, c.env.STRIPE_SECRET_KEY);
+        const handledByAds = await processAdBudgetCompleted(db, object);
+        if (!handledByAds) {
+          await processCheckoutCompleted(db, object, c.env.STRIPE_SECRET_KEY);
+        }
       }
       await db
         .update(webhookEvent)

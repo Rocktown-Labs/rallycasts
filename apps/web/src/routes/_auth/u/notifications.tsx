@@ -3,7 +3,8 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { Bell, Calendar, MessageSquare, UserPlus, Video } from "lucide-react";
 
 import { EmptyState } from "@/components/rally/cards";
-import { useMarkNotificationsRead, useNotifications } from "@/lib/hooks";
+import { notificationsCollection, useLiveQuery } from "@/lib/collections";
+import { useNotificationRealtime } from "@/lib/hooks";
 
 export const Route = createFileRoute("/_auth/u/notifications")({
   component: NotificationsPage,
@@ -23,9 +24,25 @@ const iconForType = (type: string) => {
 };
 
 function NotificationsPage() {
-  const { data, isLoading } = useNotifications();
-  const markRead = useMarkNotificationsRead();
-  const notifications = data?.notifications ?? [];
+  const { data: notifications = [], isLoading } = useLiveQuery(
+    notificationsCollection
+  );
+  useNotificationRealtime(true);
+  const unreadItems = notifications.filter((item) => !item.notification.readAt);
+  const unreadCount = unreadItems.length;
+
+  const markAllRead = () => {
+    if (unreadCount === 0) {
+      return;
+    }
+    const unreadIds = unreadItems.map((item) => item.notification.id);
+    notificationsCollection.update(unreadIds, (drafts) => {
+      const now = new Date().toISOString();
+      for (const draft of drafts) {
+        draft.notification.readAt = now;
+      }
+    });
+  };
 
   return (
     <main className="mx-auto max-w-5xl space-y-6">
@@ -38,8 +55,8 @@ function NotificationsPage() {
         </div>
         <Button
           className="rounded-md"
-          disabled={!data?.unreadCount || markRead.isPending}
-          onClick={() => markRead.mutate()}
+          disabled={unreadCount === 0}
+          onClick={markAllRead}
           variant="outline"
         >
           Mark all read

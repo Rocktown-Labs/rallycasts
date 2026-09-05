@@ -1,5 +1,7 @@
 import { Button } from "@rallycaststv/ui/components/button";
 import { Input } from "@rallycaststv/ui/components/input";
+import { useQueryClient } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { MessageSquare, Plus, Search, Send, X } from "lucide-react";
 import type { FormEvent } from "react";
@@ -7,12 +9,16 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { apiClient } from "@/lib/api-client";
+import { authClient } from "@/lib/auth-client";
 import {
-  useConversationMessages,
+  conversationsCollection,
+  getConversationMessagesCollection,
+  useLiveQuery,
+} from "@/lib/collections";
+import type { ConversationItem, MessageRecord } from "@/lib/collections";
+import {
   useConversationRealtime,
-  useConversations,
   useFriends,
-  useSendMessage,
   useStartConversation,
 } from "@/lib/hooks";
 import { readApiJson } from "@/lib/hooks/api";
@@ -217,28 +223,35 @@ function NewMessageComposer({
   );
 }
 
-function MessagesPage() {
+function ActiveChatPane({
+  activeConversation,
+  activeId,
+  currentUser,
+  queryClient,
+}: {
+  activeConversation?: ConversationItem;
+  activeId: string;
+  currentUser?: { id: string; image?: string | null; name?: string | null };
+  queryClient: QueryClient;
+}) {
   const [draft, setDraft] = useState("");
-  const [query, setQuery] = useState("");
-  const [selectedId, setSelectedId] = useState<string>();
-  const [showComposer, setShowComposer] = useState(false);
-  const { data } = useConversations();
-  const conversations = data?.conversations ?? [];
-  const filteredConversations = conversations.filter(({ participant }) =>
-    `${participant.name} ${participant.username ?? ""} ${
-      participant.displayUsername ?? ""
-    }`
-      .toLowerCase()
-      .includes(query.toLowerCase())
+  const activeMessagesCollection = useMemo(
+    () => getConversationMessagesCollection(queryClient, activeId),
+    [queryClient, activeId]
   );
-  const activeId = selectedId ?? filteredConversations[0]?.conversation.id;
-  const activeConversation = conversations.find(
-    (item) => item.conversation.id === activeId
-  );
-  const { data: messagesData } = useConversationMessages(activeId);
+  const { data: rawMessages = [] } = useLiveQuery(activeMessagesCollection);
   useConversationRealtime(activeId);
-  const sendMessage = useSendMessage(activeId);
-  const messages = messagesData?.messages ?? [];
+
+  const messages = useMemo(
+    () =>
+      rawMessages.toSorted(
+        (a, b) =>
+          new Date(a.message.createdAt).getTime() -
+          new Date(b.message.createdAt).getTime()
+      ),
+    [rawMessages]
+  );
+
   const participantNames =
     activeConversation?.participants?.map((participant) => participant.name) ??
     [];
@@ -252,17 +265,122 @@ function MessagesPage() {
     event.preventDefault();
     const body = draft.trim();
 
-    if (!(activeId && body)) {
+    if (!(activeId && body && activeMessagesCollection && currentUser)) {
       return;
     }
 
-    sendMessage.mutate(
-      { body },
-      {
-        onSuccess: () => setDraft(""),
-      }
-    );
+    const tempId = crypto.randomUUID();
+    const optimisticMessage: MessageRecord = {
+      $synced: false,
+      message: {
+        body,
+        conversationId: activeId,
+        createdAt: new Date().toISOString(),
+        id: tempId,
+        senderUserId: currentUser.id,
+      },
+      sender: {
+        displayUsername:
+          (currentUser as { displayUsername?: string | null })
+            .displayUsername ?? null,
+        id: currentUser.id,
+        image: currentUser.image ?? null,
+        name: currentUser.name ?? "You",
+        username:
+          (currentUser as { username?: string | null }).username ?? null,
+      },
+    };
+
+    setDraft("");
+    try {
+      activeMessagesCollection.insert(optimisticMessage);
+    } catch {
+      toast.error("Failed to send message.");
+    }
   };
+
+  return (
+    <section className="flex min-h-0 flex-col">
+      <div className="flex items-center gap-3 border-b border-border p-4">
+        <span className="grid size-10 place-items-center rounded-full bg-muted">
+          {initials}
+        </span>
+        <h2 className="font-semibold text-sm">{title}</h2>
+      </div>
+      <div className="flex-1 space-y-4 overflow-y-auto p-4">
+        {messages.length > 0 ? (
+          messages.map(({ $synced, message, sender }) => {
+            const mine =
+              activeConversation?.participant.id !== message.senderUserId;
+
+            return (
+              <div
+                className={mine ? "flex justify-end" : "flex justify-start"}
+                key={message.id}
+              >
+                <div
+                  className={`max-w-[75%] rounded-lg px-4 py-3 ${
+                    mine ? "bg-primary text-primary-foreground" : "bg-muted"
+                  }`}
+                >
+                  {mine ? null : (
+                    <p className="mb-1 font-medium text-[10px]">
+                      {sender.name}
+                    </p>
+                  )}
+                  <p className="text-xs">{message.body}</p>
+                  <div className="mt-1 flex items-center justify-end gap-1 text-[10px] opacity-70">
+                    <span>{relativeTime(message.createdAt)}</span>
+                    {$synced === false ? <span>• Sending...</span> : null}
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div className="grid h-full place-items-center text-center text-muted-foreground text-sm">
+            No messages yet. Start the rally.
+          </div>
+        )}
+      </div>
+      <form
+        className="flex gap-2 border-t border-border p-4"
+        onSubmit={submitMessage}
+      >
+        <Input
+          className="text-xs"
+          onChange={(event) => setDraft(event.target.value)}
+          placeholder="Type your message..."
+          value={draft}
+        />
+        <Button className="rounded-md text-xs" type="submit">
+          Send
+        </Button>
+      </form>
+    </section>
+  );
+}
+
+function MessagesPage() {
+  const [query, setQuery] = useState("");
+  const [selectedId, setSelectedId] = useState<string>();
+  const [showComposer, setShowComposer] = useState(false);
+  const queryClient = useQueryClient();
+  const { data: session } = authClient.useSession();
+  const currentUser = session?.user;
+
+  const { data: conversations = [] } = useLiveQuery(conversationsCollection);
+  const filteredConversations = conversations.filter(({ participant }) =>
+    `${participant.name} ${participant.username ?? ""} ${
+      participant.displayUsername ?? ""
+    }`
+      .toLowerCase()
+      .includes(query.toLowerCase())
+  );
+  const activeId = selectedId ?? filteredConversations[0]?.conversation.id;
+  const activeConversation = conversations.find(
+    (item) => item.conversation.id === activeId
+  );
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -340,70 +458,18 @@ function MessagesPage() {
             )}
           </div>
         </aside>
-        <section className="flex min-h-0 flex-col">
-          <div className="flex items-center gap-3 border-b border-border p-4">
-            <span className="grid size-10 place-items-center rounded-full bg-muted">
-              {initials}
-            </span>
-            <h2 className="font-semibold text-sm">{title}</h2>
-          </div>
-          <div className="flex-1 space-y-4 overflow-y-auto p-4">
-            {messages.length > 0 ? (
-              messages.map(({ message, sender }) => {
-                const mine =
-                  activeConversation?.participant.id !== message.senderUserId;
-
-                return (
-                  <div
-                    className={mine ? "flex justify-end" : "flex justify-start"}
-                    key={message.id}
-                  >
-                    <div
-                      className={`max-w-[75%] rounded-lg px-4 py-3 ${
-                        mine ? "bg-primary text-primary-foreground" : "bg-muted"
-                      }`}
-                    >
-                      {mine ? null : (
-                        <p className="mb-1 font-medium text-[10px]">
-                          {sender.name}
-                        </p>
-                      )}
-                      <p className="text-xs">{message.body}</p>
-                      <p className="mt-1 text-[10px] opacity-70">
-                        {relativeTime(message.createdAt)}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="grid h-full place-items-center text-center text-muted-foreground text-sm">
-                {activeId
-                  ? "No messages yet. Start the rally."
-                  : "Choose or create a conversation to start messaging."}
-              </div>
-            )}
-          </div>
-          <form
-            className="flex gap-2 border-t border-border p-4"
-            onSubmit={submitMessage}
-          >
-            <Input
-              className="text-xs"
-              disabled={!activeId}
-              onChange={(event) => setDraft(event.target.value)}
-              placeholder="Type your message..."
-              value={draft}
-            />
-            <Button
-              className="rounded-md text-xs"
-              disabled={!activeId || sendMessage.isPending}
-              type="submit"
-            >
-              Send
-            </Button>
-          </form>
-        </section>
+        {activeId ? (
+          <ActiveChatPane
+            activeConversation={activeConversation}
+            activeId={activeId}
+            currentUser={currentUser ?? undefined}
+            queryClient={queryClient}
+          />
+        ) : (
+          <section className="flex min-h-0 flex-col items-center justify-center p-8 text-center text-muted-foreground text-sm">
+            Choose or create a conversation to start messaging.
+          </section>
+        )}
       </div>
     </div>
   );

@@ -54,6 +54,10 @@
   "queues": {
     "producers": [
       {
+        "binding": "ADS_EVENTS",
+        "queue": "ads-events",
+      },
+      {
         "binding": "GEOFENCE_EVENTS",
         "queue": "geofence-events",
       },

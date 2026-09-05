@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 
 import { EmptyState } from "@/components/rally/cards";
-import { useMyVideos } from "@/lib/hooks";
+import { myVideosCollection, useLiveQuery } from "@/lib/collections";
 
 type VideosSection = "clips" | "live" | "videos";
 
@@ -30,7 +30,7 @@ const statusLabel = {
   uploading: "Uploading",
 } as const;
 
-const formatDuration = (seconds: number | null) => {
+const formatDuration = (seconds?: number | null) => {
   if (!seconds) {
     return "-";
   }
@@ -43,8 +43,7 @@ export function VideosPage({
 }: {
   section?: VideosSection;
 }) {
-  const { data, isLoading } = useMyVideos();
-  const videos = data?.videos ?? [];
+  const { data: videos = [], isLoading } = useLiveQuery(myVideosCollection);
   const clips = videos.filter((video) => video.mediaType === "short");
   const activeItems = section === "clips" ? clips : videos;
   const activeTab = videoTabs.find((tab) => tab.section === section);

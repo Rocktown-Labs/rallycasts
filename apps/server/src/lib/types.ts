@@ -1,6 +1,7 @@
 import "../../worker-configuration.d.ts";
 import type { createAuth } from "@rallycaststv/auth";
 
+import type { AdEventMessage as AppAdEventMessage } from "./ads";
 import type { EventActivityMessage } from "./event-activity";
 
 type Auth = ReturnType<typeof createAuth>;
@@ -25,6 +26,8 @@ interface VectorizeBinding {
 
 export interface AppEnv {
   Bindings: WranglerEnv & {
+    ADS_ANALYTICS?: AnalyticsEngineDataset;
+    ADS_EVENTS?: Queue<AppAdEventMessage>;
     BETTER_AUTH_SECRET: string;
     BETTER_AUTH_URL: string;
     CHAT_ROOMS: DurableObjectNamespace;

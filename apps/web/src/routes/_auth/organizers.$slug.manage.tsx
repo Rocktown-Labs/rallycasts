@@ -12,7 +12,6 @@ import {
   Calendar,
   CreditCard,
   FileVideo,
-  Megaphone,
   Plus,
   Settings,
   Users,
@@ -21,6 +20,7 @@ import type { FormEvent } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { ManageAdsPanel } from "@/components/ads/manage-ads-panel";
 import { PlaceSearchPicker } from "@/components/places/place-search-picker";
 import type { SelectedPlace } from "@/components/places/place-search-picker";
 import { apiClient } from "@/lib/api-client";
@@ -496,14 +496,11 @@ const ManageOrganizationEditor = ({
               : "Set up Stripe payouts"}
           </Button>
         </div>
-        <div className="rounded-2xl border border-dashed bg-muted/20 p-6">
-          <h2 className="flex items-center gap-2 font-bold">
-            <Megaphone className="size-4 text-primary" /> Ads — coming soon
-          </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Promoted tournaments and local sponsor placements will live here.
-          </p>
-        </div>
+        <ManageAdsPanel
+          events={data.events}
+          organizationId={organization.id}
+          videos={myVideosData?.videos ?? []}
+        />
       </section>
     </main>
   );

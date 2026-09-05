@@ -8,6 +8,11 @@ export {
   verification,
 } from "./auth";
 export {
+  adCampaign,
+  adCreative,
+  adDailyStat,
+  adPayment,
+  advertiser,
   casterAvailability,
   casterProfile,
   casterProfileRelations,
