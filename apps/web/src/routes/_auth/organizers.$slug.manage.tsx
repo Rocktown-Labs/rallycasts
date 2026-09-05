@@ -18,7 +18,7 @@ import {
   Users,
 } from "lucide-react";
 import type { FormEvent } from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { PlaceSearchPicker } from "@/components/places/place-search-picker";
@@ -35,22 +35,41 @@ export const Route = createFileRoute("/_auth/organizers/$slug/manage")({
   },
 });
 
-export function ManageOrganizationPage({ slug }: { slug: string }) {
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
+const getOrganization = (slug: string) =>
+  readApiJson(
+    apiClient.api.v1.organizations[":slug"].$get({ param: { slug } })
+  );
+
+type OrganizationData = Awaited<ReturnType<typeof getOrganization>>;
+
+export const ManageOrganizationPage = ({ slug }: { slug: string }) => {
   const { data } = useQuery({
-    queryFn: () =>
-      readApiJson(
-        apiClient.api.v1.organizations[":slug"].$get({ param: { slug } })
-      ),
+    queryFn: () => getOrganization(slug),
     queryKey: ["organization", slug],
   });
-  const organization = data?.organization;
-  const [name, setName] = useState("");
-  const [city, setCity] = useState("");
-  const [logoUrl, setLogoUrl] = useState("");
-  const [state, setState] = useState("");
-  const [bio, setBio] = useState("");
+
+  if (!data?.organization) {
+    return <div className="h-64 animate-pulse rounded-xl bg-muted" />;
+  }
+
+  return <ManageOrganizationEditor data={data} slug={slug} />;
+};
+
+const ManageOrganizationEditor = ({
+  data,
+  slug,
+}: {
+  data: OrganizationData;
+  slug: string;
+}) => {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { organization } = data;
+  const [name, setName] = useState(organization.name);
+  const [city, setCity] = useState(organization.city ?? "");
+  const [logoUrl, setLogoUrl] = useState(organization.logoUrl ?? "");
+  const [state, setState] = useState(organization.state ?? "");
+  const [bio, setBio] = useState(organization.bio ?? "");
   const [memberUsername, setMemberUsername] = useState("");
   const [eventName, setEventName] = useState("");
   const [startsAt, setStartsAt] = useState("");
@@ -189,22 +208,6 @@ export function ManageOrganizationPage({ slug }: { slug: string }) {
       toast.success("Video posted as the organization");
     },
   });
-
-  useEffect(() => {
-    if (!organization) {
-      return;
-    }
-
-    setName(organization.name);
-    setCity(organization.city ?? "");
-    setLogoUrl(organization.logoUrl ?? "");
-    setState(organization.state ?? "");
-    setBio(organization.bio ?? "");
-  }, [organization]);
-
-  if (!organization) {
-    return <div className="h-64 animate-pulse rounded-xl bg-muted" />;
-  }
 
   const submitTournament = (event: FormEvent) => {
     event.preventDefault();
@@ -504,4 +507,4 @@ export function ManageOrganizationPage({ slug }: { slug: string }) {
       </section>
     </main>
   );
-}
+};

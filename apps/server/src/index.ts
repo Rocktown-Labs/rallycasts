@@ -22,6 +22,7 @@ import { adminRouter } from "./routes/admin";
 import { castersRouter } from "./routes/casters";
 import { castingJobsRouter } from "./routes/casting-jobs";
 import { challengesRouter } from "./routes/challenges";
+import { e2eRouter } from "./routes/e2e";
 import { emailsRouter } from "./routes/emails";
 import { eventsRouter } from "./routes/events";
 import { feedRouter } from "./routes/feed";
@@ -241,6 +242,7 @@ const routes = app
   .route("/api/v1/upload", uploadRouter)
   .route("/api/v1/emails", emailsRouter)
   .route("/api/v1/admin", adminRouter)
+  .route("/api/v1/internal/e2e", e2eRouter)
   .route("/webhooks", webhooksRouter);
 
 routes.notFound(notFound);

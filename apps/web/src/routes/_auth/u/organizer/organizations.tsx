@@ -23,10 +23,10 @@ import { EmptyState } from "@/components/rally/cards";
 import { useMyOrganizations, useProfile } from "@/lib/hooks";
 
 export const Route = createFileRoute("/_auth/u/organizer/organizations")({
-  component: OrganizerOrganizationsPage,
+  component: () => <OrganizerOrganizationsPage />,
 });
 
-function OrganizerOrganizationsPage() {
+const OrganizerOrganizationsPage = () => {
   const { data: profileData } = useProfile();
   const { data, isLoading } = useMyOrganizations();
   const [query, setQuery] = useState("");
@@ -203,4 +203,4 @@ function OrganizerOrganizationsPage() {
       </div>
     </div>
   );
-}
+};

@@ -24,27 +24,25 @@ const historyTabs = [
   },
 ] as const;
 
-function HistoryRowsSkeleton() {
-  return (
-    <div className="divide-y divide-border">
-      {Array.from({ length: 3 }).map((_, index) => (
-        <div
-          className="grid gap-4 py-5 md:grid-cols-[9rem_1fr_auto] md:items-center"
-          key={`history-skeleton-${index.toString()}`}
-        >
-          <Skeleton className="aspect-video rounded-md" />
-          <div className="flex flex-col gap-2">
-            <Skeleton className="h-4 w-48 rounded-md" />
-            <Skeleton className="h-3 w-32 rounded-md" />
-          </div>
-          <Skeleton className="h-9 w-24 rounded-md" />
+const HistoryRowsSkeleton = () => (
+  <div className="divide-y divide-border">
+    {Array.from({ length: 3 }).map((_, index) => (
+      <div
+        className="grid gap-4 py-5 md:grid-cols-[9rem_1fr_auto] md:items-center"
+        key={`history-skeleton-${index.toString()}`}
+      >
+        <Skeleton className="aspect-video rounded-md" />
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-4 w-48 rounded-md" />
+          <Skeleton className="h-3 w-32 rounded-md" />
         </div>
-      ))}
-    </div>
-  );
-}
+        <Skeleton className="h-9 w-24 rounded-md" />
+      </div>
+    ))}
+  </div>
+);
 
-function VideosHistory() {
+const VideosHistory = () => {
   const { data, isError, isLoading } = useMyVideos();
   const videos = data?.videos ?? [];
 
@@ -104,9 +102,9 @@ function VideosHistory() {
       ))}
     </div>
   );
-}
+};
 
-function ProfilesHistory() {
+const ProfilesHistory = () => {
   const { data, isError, isLoading } = useFriends();
   const friends = data?.friends ?? [];
 
@@ -159,9 +157,9 @@ function ProfilesHistory() {
       ))}
     </div>
   );
-}
+};
 
-function EventsHistory() {
+const EventsHistory = () => {
   const { data, isError, isLoading } = useEvents();
   const events = data?.events ?? [];
 
@@ -210,9 +208,9 @@ function EventsHistory() {
       ))}
     </div>
   );
-}
+};
 
-export function HistoryPage({ section }: { section: HistorySection }) {
+export const HistoryPage = ({ section }: { section: HistorySection }) => {
   const activeTab = historyTabs.find((tab) => tab.section === section);
   const ActiveIcon = activeTab?.icon ?? Video;
 
@@ -243,4 +241,4 @@ export function HistoryPage({ section }: { section: HistorySection }) {
       </div>
     </div>
   );
-}
+};

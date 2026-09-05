@@ -43,6 +43,8 @@ lerna-debug.log*
 # Testing
 coverage
 .nyc_output
+.e2e
+/e2e/fixtures/*.mp4
 
 # Misc
 *.tgz

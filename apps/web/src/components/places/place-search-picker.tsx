@@ -8,7 +8,7 @@ export interface SelectedPlace {
   placeId: string;
 }
 
-export function PlaceSearchPicker({
+export const PlaceSearchPicker = ({
   id,
   label = "Location",
   onPlaceChange,
@@ -22,7 +22,7 @@ export function PlaceSearchPicker({
   onQueryChange: (query: string) => void;
   query: string;
   selectedPlace: SelectedPlace | null;
-}) {
+}) => {
   const { data, isFetching } = usePlaceSearch(query);
   const places = data?.places ?? [];
   const showResults = query.trim().length >= 3 && !selectedPlace;
@@ -87,4 +87,4 @@ export function PlaceSearchPicker({
       ) : null}
     </div>
   );
-}
+};

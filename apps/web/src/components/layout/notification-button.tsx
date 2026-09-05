@@ -25,7 +25,7 @@ const iconForType = (type: string) => {
   return Video;
 };
 
-export default function NotificationButton() {
+const NotificationButton = () => {
   const [open, setOpen] = useState(false);
   const { data } = useNotifications();
   const markRead = useMarkNotificationsRead();
@@ -106,4 +106,6 @@ export default function NotificationButton() {
       ) : null}
     </div>
   );
-}
+};
+
+export default NotificationButton;
