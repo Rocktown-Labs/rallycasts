@@ -33,7 +33,10 @@ const ForgotPasswordForm = ({
       await authClient.requestPasswordReset(
         {
           email: value.email,
-          redirectTo: "/reset-password",
+          redirectTo: new URL(
+            "/reset-password",
+            window.location.origin
+          ).toString(),
         },
         {
           onError: (error: unknown) => {
