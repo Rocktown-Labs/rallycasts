@@ -11,6 +11,7 @@ import { Input } from "@rallycaststv/ui/components/input";
 import { Label } from "@rallycaststv/ui/components/label";
 import { useForm } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { toast } from "sonner";
 import z from "zod";
 
@@ -23,6 +24,7 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
     from: "/",
   });
   const { isPending } = authClient.useSession();
+  const [verificationSent, setVerificationSent] = useState(false);
 
   const form = useForm({
     defaultValues: {
@@ -32,24 +34,26 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
       password: "",
     },
     onSubmit: async ({ value }) => {
-      await authClient.signUp.email(
-        {
-          email: value.email,
-          name: value.name,
-          password: value.password,
-        },
-        {
-          onError: (error) => {
-            toast.error(error.error.message || error.error.statusText);
-          },
-          onSuccess: () => {
-            navigate({
-              to: "/onboarding",
-            });
-            toast.success("Sign up successful");
-          },
-        }
-      );
+      const { data, error } = await authClient.signUp.email({
+        callbackURL: "/onboarding",
+        email: value.email,
+        name: value.name,
+        password: value.password,
+      });
+
+      if (error) {
+        toast.error(error.message || error.statusText);
+        return;
+      }
+
+      if (data?.token) {
+        navigate({ to: "/onboarding" });
+        toast.success("Sign up successful");
+        return;
+      }
+
+      setVerificationSent(true);
+      toast.success("Check your email to verify your account");
     },
     validators: {
       onSubmit: z.object({
@@ -65,6 +69,36 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
 
   if (isPending) {
     return <Loader />;
+  }
+
+  if (verificationSent) {
+    return (
+      <div className="mx-auto mt-10 flex min-h-[80vh] w-full max-w-md flex-col justify-center p-4">
+        <Card className="rounded-xl border border-border bg-card/60 p-2 shadow-xl backdrop-blur-md">
+          <CardHeader className="pb-4 text-center">
+            <CardTitle className="mt-2 text-2xl font-bold tracking-tight text-foreground">
+              Check Your Email
+            </CardTitle>
+            <CardDescription className="text-xs text-muted-foreground">
+              We sent a verification link to your email address. Verify your
+              account before signing in.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-center text-sm text-muted-foreground">
+              If you do not see it, check your spam folder.
+            </p>
+            <Button
+              onClick={onSwitchToSignIn}
+              variant="outline"
+              className="h-9 w-full rounded-md text-xs font-semibold"
+            >
+              Back to Sign In
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (

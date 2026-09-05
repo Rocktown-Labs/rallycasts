@@ -3,7 +3,7 @@ import { createDb } from "@rallycaststv/db";
 import {
   renderResetPasswordEmail,
   renderWelcomeEmail,
-} from "@rallycaststv/email";
+} from "@rallycaststv/email/render";
 import { Hono } from "hono";
 import { createMiddleware } from "hono/factory";
 import { Resend } from "resend";
@@ -11,6 +11,7 @@ import * as HttpStatusCodes from "stoker/http-status-codes";
 import { z } from "zod";
 
 import { isPlatformAdminUser } from "../lib/admin";
+import { EMAIL_FROM } from "../lib/email";
 import type { AppEnv } from "../lib/types";
 import { requireAuth } from "../middleware/auth";
 
@@ -74,7 +75,7 @@ export const emailsRouter = new Hono<AppEnv>()
     const resend = new Resend(apiKey);
     const { data, error } = await resend.emails.send(
       {
-        from: "RallyCasts <dinks@rallycasts.com>",
+        from: EMAIL_FROM,
         html,
         subject,
         text,

@@ -2,7 +2,7 @@ import { createAuth } from "@rallycaststv/auth";
 import {
   renderResetPasswordEmail,
   renderWelcomeEmail,
-} from "@rallycaststv/email";
+} from "@rallycaststv/email/render";
 import { sentry } from "@sentry/hono/cloudflare";
 import { Hono } from "hono";
 import type { Context } from "hono";
@@ -16,6 +16,7 @@ import { Resend } from "resend";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 import notFound from "stoker/middlewares/not-found";
 
+import { EMAIL_FROM } from "./lib/email";
 import type { AppEnv } from "./lib/types";
 import { protectMutations, protectWebSocket } from "./middleware/security";
 import { adminRouter } from "./routes/admin";
@@ -120,8 +121,6 @@ const getEmailSender = (c: Context<AppEnv>) => {
   return new Resend(apiKey);
 };
 
-const FROM_EMAIL = "RallyCasts <dinks@rallycasts.com>";
-
 const routes = app
   .get("/", (c) =>
     c.json({ service: "rallycaststv-api", status: "ok" }, HttpStatusCodes.OK)
@@ -165,7 +164,7 @@ const routes = app
 
         const { error } = await resend.emails.send(
           {
-            from: FROM_EMAIL,
+            from: EMAIL_FROM,
             html,
             subject: "Reset your RallyCasts password",
             text,
@@ -199,7 +198,7 @@ const routes = app
 
         const { error } = await resend.emails.send(
           {
-            from: FROM_EMAIL,
+            from: EMAIL_FROM,
             html,
             subject: "Verify your RallyCasts email",
             text,
