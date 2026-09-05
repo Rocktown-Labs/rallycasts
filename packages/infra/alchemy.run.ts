@@ -131,6 +131,7 @@ const muxTokenId = optionalSecret("MUX_TOKEN_ID");
 const muxSigningKeyId = optionalSecret("MUX_SIGNING_KEY_ID");
 const muxSigningKeySecret = optionalSecret("MUX_SIGNING_KEY_SECRET");
 const muxWebhookSecret = optionalSecret("MUX_WEBHOOK_SECRET");
+const e2eSeedToken = isProd ? undefined : optionalSecret("E2E_SEED_TOKEN");
 const radarWebhookSecret = optionalSecret("RADAR_WEBHOOK_SECRET");
 const r2AccessKeyId = optionalSecret("R2_ACCESS_KEY_ID");
 const r2SecretAccessKey = optionalSecret("R2_SECRET_ACCESS_KEY");
@@ -248,6 +249,7 @@ export const server = await Worker("rallycasts-server", {
     CHAT_ROOMS: chatRooms,
     CORS_ORIGIN: corsOrigin,
     DB: db,
+    E2E_SEED_TOKEN: e2eSeedToken,
     EVENT_ACTIVITY_QUEUE: eventActivityQueue,
     EVENT_COORDINATOR: eventCoordinator,
     GEOFENCE_EVENTS: geofenceQueue,

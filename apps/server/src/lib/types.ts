@@ -31,6 +31,7 @@ export interface AppEnv {
     CORS_ORIGIN?: string;
     EVENT_ACTIVITY_QUEUE?: Queue<EventActivityMessage>;
     EVENT_COORDINATOR: DurableObjectNamespace;
+    E2E_SEED_TOKEN?: string;
     GITHUB_CLIENT_ID?: string;
     GITHUB_CLIENT_SECRET?: string;
     GOOGLE_CLIENT_ID?: string;

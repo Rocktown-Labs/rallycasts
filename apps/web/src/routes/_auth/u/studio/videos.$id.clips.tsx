@@ -10,10 +10,10 @@ import { apiClient } from "@/lib/api-client";
 import { readApiJson } from "@/lib/hooks/api";
 
 export const Route = createFileRoute("/_auth/u/studio/videos/$id/clips")({
-  component: VideoClipperPage,
+  component: () => <VideoClipperPage />,
 });
 
-function VideoClipperPage() {
+const VideoClipperPage = () => {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const [startTime, setStartTime] = useState(0);
@@ -172,4 +172,4 @@ function VideoClipperPage() {
       </div>
     </main>
   );
-}
+};

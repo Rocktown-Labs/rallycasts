@@ -29,6 +29,8 @@
     "dev:caster": "turbo -F caster dev",
     "dev:web": "turbo -F web dev",
     "dev:server": "turbo -F server dev",
+    "e2e": "playwright test",
+    "e2e:fixture": "bash scripts/e2e/create-video-fixture.sh",
     "db:generate": "turbo -F @rallycaststv/db db:generate",
     "db:studio": "turbo -F @rallycaststv/db db:studio",
     "deploy": "turbo -F @rallycaststv/infra deploy",
@@ -45,6 +47,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "catalog:",
+    "@playwright/test": "1.55.0",
     "@rallycaststv/config": "workspace:*",
     "@types/node": "^22.13.14",
     "lefthook": "latest",
