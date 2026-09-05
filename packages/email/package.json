@@ -25,7 +25,7 @@
     "@rallycaststv/config": "workspace:*",
     "@types/react": "^19.2.6",
     "@types/react-dom": "^19.2.3",
-    "react-email": "^4.0.7",
+    "react-email": "^6.9.3",
     "typescript": "catalog:"
   }
 }

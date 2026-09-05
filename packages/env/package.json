@@ -19,7 +19,7 @@
   "devDependencies": {
     "@rallycaststv/config": "workspace:*",
     "@rallycaststv/infra": "workspace:*",
-    "@types/node": "^22.13.14",
+    "@types/node": "^26.4.1",
     "typescript": "catalog:"
   }
 }
