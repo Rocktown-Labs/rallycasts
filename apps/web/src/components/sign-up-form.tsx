@@ -35,7 +35,7 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
     },
     onSubmit: async ({ value }) => {
       const { data, error } = await authClient.signUp.email({
-        callbackURL: "/onboarding",
+        callbackURL: new URL("/onboarding", window.location.origin).toString(),
         email: value.email,
         name: value.name,
         password: value.password,
