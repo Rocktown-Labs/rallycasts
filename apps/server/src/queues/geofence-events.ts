@@ -24,7 +24,14 @@ export default {
         await processGeofenceEvent(message.body, env);
         message.ack();
       } catch (error) {
-        console.error("Failed to process geofence event:", error);
+        console.error({
+          attempts: message.attempts,
+          error: error instanceof Error ? error.message : "unknown error",
+          event: "queue_message_failed",
+          messageId: message.id,
+          queue: batch.queue,
+          worker: "geofence-events",
+        });
         message.retry();
       }
     }
