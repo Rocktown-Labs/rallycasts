@@ -1,5 +1,7 @@
 import { Resend } from "resend";
 
+export const EMAIL_FROM = "RallyCasts <noreply@dinks.rallycasts.com>";
+
 export interface SendEmailOptions {
   from: string;
   html: string;
