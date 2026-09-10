@@ -20,7 +20,7 @@
     "better-auth": "catalog:",
     "dotenv": "catalog:",
     "drizzle-orm": "0.45.2",
-    "hono": "4.12.34",
+    "hono": "4.13.5",
     "resend": "^6.12.4",
     "stoker": "^2.0.1",
     "zod": "catalog:"
