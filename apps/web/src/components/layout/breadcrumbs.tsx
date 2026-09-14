@@ -2,13 +2,16 @@ import { cn } from "@rallycaststv/ui/lib/utils";
 import { Link, useMatches } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
 
-const breadcrumbLabels = new Map<string, string>([
+export const breadcrumbLabels = new Map<string, string>([
   ["/", "rallycasts"],
   ["/trending", "trending"],
   ["/players", "players"],
   ["/events", "events"],
   ["/casters", "casters"],
-  ["/events/organizers", "organizers"],
+  ["/events/organizers", "hosts"],
+  ["/organizers", "hosts"],
+  ["/events/organizers/new", "new"],
+  ["/events/organizers/manage", "manage"],
   ["/shop", "shop"],
   ["/videos", "videos"],
   ["/u/me", "me"],
@@ -31,29 +34,52 @@ const breadcrumbLabels = new Map<string, string>([
   ["/onboarding", "onboarding"],
 ]);
 
-const humanize = (value: string) => value.replaceAll("-", " ");
+export const humanize = (value: string) => value.replaceAll("-", " ");
 
-export default function Breadcrumbs() {
-  const matches = useMatches();
+export function getVisiblePathnames(rawPathnames: string[]): string[] {
   const pathnames = [
     ...new Set(
-      matches
+      rawPathnames
         // Remove trailing slash
-        .map((match) => match.pathname.replace(/\/$/u, ""))
+        .map((pathname) => pathname.replace(/\/$/u, ""))
         .filter((pathname) => pathname !== "")
     ),
   ];
 
   const hasUserSubRoute = pathnames.some((p) => p.startsWith("/u/"));
-  const visiblePathnames = pathnames.filter((pathname) => {
+  const hasOrganizersRoute = pathnames.some(
+    (p) => p === "/events/organizers" || p.startsWith("/events/organizers/")
+  );
+
+  if (hasOrganizersRoute && !pathnames.includes("/events/organizers")) {
+    const firstSubIndex = pathnames.findIndex((p) =>
+      p.startsWith("/events/organizers/")
+    );
+    if (firstSubIndex === -1) {
+      pathnames.push("/events/organizers");
+    } else {
+      pathnames.splice(firstSubIndex, 0, "/events/organizers");
+    }
+  }
+
+  return pathnames.filter((pathname) => {
     if (pathname === "/") {
       return false;
     }
     if (pathname === "/u" && hasUserSubRoute) {
       return false;
     }
+    if (pathname === "/events" && hasOrganizersRoute) {
+      return false;
+    }
     return true;
   });
+}
+
+export default function Breadcrumbs() {
+  const matches = useMatches();
+  const rawPathnames = matches.map((match) => match.pathname);
+  const visiblePathnames = getVisiblePathnames(rawPathnames);
 
   return (
     <nav
@@ -69,7 +95,7 @@ export default function Breadcrumbs() {
         return (
           <div key={pathname} className="flex min-w-0 items-center gap-1.5">
             {index > 0 ? (
-              <ChevronRight className="size-4 text-muted-foreground" />
+              <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
             ) : null}
             <Link
               to={pathname}

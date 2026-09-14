@@ -36,33 +36,38 @@ export function OrganizersPage() {
             <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#bcdf21]">
               Tournament hosts
             </p>
-            <h1 className="mt-2 text-4xl font-black">Organizations</h1>
+            <h1 className="mt-2 text-4xl font-black">
+              Host events on RallyCasts
+            </h1>
             <p className="mt-2 max-w-2xl text-sm text-white/70">
-              Follow clubs, leagues, facilities, and official RallyCasts events
-              without confusing the organizer identity with its owner’s player
-              profile.
+              Follow clubs, leagues, facilities, and official tournaments—or get
+              a host account to organize your own. On RallyCasts, you can be a
+              player, host, or rallycaster.
             </p>
           </div>
-          {session?.user ? (
-            <Link to="/events/organizers/new">
-              <Button className="bg-[#bcdf21] text-black hover:bg-[#d3f34b]">
-                <Plus className="size-4" /> Create organization
-              </Button>
-            </Link>
-          ) : null}
+          <Link to={session?.user ? "/events/organizers/new" : "/login"}>
+            <Button className="bg-[#bcdf21] text-black hover:bg-[#d3f34b]">
+              <Plus className="size-4" /> Get a host account
+            </Button>
+          </Link>
         </div>
       </section>
 
       <Input
-        aria-label="Search organizations"
+        aria-label="Search hosts"
         className="max-w-xl"
         onChange={(event) => setQuery(event.target.value)}
-        placeholder="Search organizations, cities, or states"
+        placeholder="Search hosts, clubs, cities, or states"
         value={query}
       />
 
       {isLoading ? (
         <div className="h-52 animate-pulse rounded-xl bg-muted" />
+      ) : null}
+      {!isLoading && organizations.length === 0 ? (
+        <p className="rounded-2xl border border-dashed p-12 text-center text-sm text-muted-foreground">
+          No hosts found matching your search.
+        </p>
       ) : null}
       <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {organizations.map((organization) => (
@@ -100,8 +105,7 @@ export function OrganizersPage() {
               </div>
             </div>
             <p className="mt-4 line-clamp-3 text-sm text-muted-foreground">
-              {organization.bio ??
-                "Tournament and pickleball community organizer."}
+              {organization.bio ?? "Tournament and pickleball community host."}
             </p>
           </Link>
         ))}
