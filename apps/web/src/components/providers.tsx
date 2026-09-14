@@ -1,4 +1,5 @@
 import { AuthProvider } from "@better-auth-ui/react";
+import { env } from "@rallycaststv/env/web";
 import { useNavigate } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 
@@ -11,6 +12,8 @@ export default function Providers({ children }: { children: ReactNode }) {
   return (
     <AuthProvider
       authClient={authClient}
+      baseURL={env.VITE_SERVER_URL}
+      multipleAccountsPerProvider={false}
       navigate={({ replace, to }) => {
         if (/^https?:\/\//u.test(to)) {
           window.location.assign(to);

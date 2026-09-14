@@ -1,3 +1,4 @@
+import { useRequestPasswordReset } from "@better-auth-ui/react";
 import { Button } from "@rallycaststv/ui/components/button";
 import {
   Card,
@@ -14,6 +15,7 @@ import { toast } from "sonner";
 import z from "zod";
 
 import { authClient } from "@/lib/auth-client";
+import { getAuthErrorMessage } from "@/lib/auth-errors";
 
 import Loader from "./loader";
 
@@ -24,51 +26,30 @@ const ForgotPasswordForm = ({
 }) => {
   const { isPending } = authClient.useSession();
   const [sent, setSent] = useState(false);
+  const requestPasswordReset = useRequestPasswordReset(authClient, {
+    onError: (error) => toast.error(getAuthErrorMessage(error)),
+    onSuccess: () => {
+      setSent(true);
+      toast.success("Check your email for a reset link");
+    },
+  });
 
   const form = useForm({
     defaultValues: {
       email: "",
     },
     onSubmit: async ({ value }) => {
-      await authClient.requestPasswordReset(
-        {
+      try {
+        await requestPasswordReset.mutateAsync({
           email: value.email,
           redirectTo: new URL(
             "/reset-password",
             window.location.origin
           ).toString(),
-        },
-        {
-          onError: (error: unknown) => {
-            let message = "Failed to send reset link";
-            if (error instanceof Error) {
-              const { message: errorMessage } = error;
-              message = errorMessage;
-            } else if (
-              typeof error === "object" &&
-              error !== null &&
-              "error" in error
-            ) {
-              const nestedError = error.error;
-              if (
-                typeof nestedError === "object" &&
-                nestedError !== null &&
-                "message" in nestedError
-              ) {
-                const { message: nestedMessage } = nestedError;
-                if (typeof nestedMessage === "string") {
-                  message = nestedMessage;
-                }
-              }
-            }
-            toast.error(message);
-          },
-          onSuccess: () => {
-            setSent(true);
-            toast.success("Check your email for a reset link");
-          },
-        }
-      );
+        });
+      } catch {
+        // The mutation handler presents the Better Auth error to the user.
+      }
     },
     validators: {
       onSubmit: z.object({
@@ -177,9 +158,13 @@ const ForgotPasswordForm = ({
                 <Button
                   type="submit"
                   className="w-full h-9 mt-2 text-xs font-semibold rounded-md bg-primary text-brand-yellow hover:bg-primary/95 transition-all shadow-md"
-                  disabled={!canSubmit || isSubmitting}
+                  disabled={
+                    !canSubmit || isSubmitting || requestPasswordReset.isPending
+                  }
                 >
-                  {isSubmitting ? "Sending..." : "Send Reset Link"}
+                  {isSubmitting || requestPasswordReset.isPending
+                    ? "Sending..."
+                    : "Send Reset Link"}
                 </Button>
               )}
             </form.Subscribe>
