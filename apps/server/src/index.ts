@@ -239,6 +239,7 @@ const routes = app
   .route("/api/v1/stripe", stripeRouter)
   .route("/api/v1/mux", muxRouter)
   .route("/api/v1/organizations", organizationsRouter)
+  .route("/api/v1/hosts", organizationsRouter)
   .route("/api/v1/upload", uploadRouter)
   .route("/api/v1/emails", emailsRouter)
   .route("/api/v1/admin", adminRouter)

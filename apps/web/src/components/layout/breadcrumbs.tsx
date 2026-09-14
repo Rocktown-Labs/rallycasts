@@ -8,6 +8,10 @@ export const breadcrumbLabels = new Map<string, string>([
   ["/players", "players"],
   ["/events", "events"],
   ["/casters", "casters"],
+  ["/events/hosts", "hosts"],
+  ["/events/hosts/new", "new"],
+  ["/events/hosts/manage", "manage"],
+  ["/hosts", "hosts"],
   ["/events/organizers", "hosts"],
   ["/organizers", "hosts"],
   ["/events/organizers/new", "new"],
@@ -47,18 +51,30 @@ export function getVisiblePathnames(rawPathnames: string[]): string[] {
   ];
 
   const hasUserSubRoute = pathnames.some((p) => p.startsWith("/u/"));
-  const hasOrganizersRoute = pathnames.some(
-    (p) => p === "/events/organizers" || p.startsWith("/events/organizers/")
+  const hasHostsRoute = pathnames.some(
+    (p) =>
+      p === "/events/hosts" ||
+      p.startsWith("/events/hosts/") ||
+      p === "/events/organizers" ||
+      p.startsWith("/events/organizers/")
   );
 
-  if (hasOrganizersRoute && !pathnames.includes("/events/organizers")) {
-    const firstSubIndex = pathnames.findIndex((p) =>
-      p.startsWith("/events/organizers/")
+  if (
+    hasHostsRoute &&
+    !pathnames.includes("/events/hosts") &&
+    !pathnames.includes("/events/organizers")
+  ) {
+    const firstSubIndex = pathnames.findIndex(
+      (p) =>
+        p.startsWith("/events/hosts/") || p.startsWith("/events/organizers/")
     );
+    const targetParent = pathnames.some((p) => p.startsWith("/events/hosts/"))
+      ? "/events/hosts"
+      : "/events/organizers";
     if (firstSubIndex === -1) {
-      pathnames.push("/events/organizers");
+      pathnames.push(targetParent);
     } else {
-      pathnames.splice(firstSubIndex, 0, "/events/organizers");
+      pathnames.splice(firstSubIndex, 0, targetParent);
     }
   }
 
@@ -69,7 +85,7 @@ export function getVisiblePathnames(rawPathnames: string[]): string[] {
     if (pathname === "/u" && hasUserSubRoute) {
       return false;
     }
-    if (pathname === "/events" && hasOrganizersRoute) {
+    if (pathname === "/events" && hasHostsRoute) {
       return false;
     }
     return true;

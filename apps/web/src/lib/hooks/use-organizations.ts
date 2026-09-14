@@ -6,14 +6,14 @@ import { readApiJson } from "./api";
 
 export const useOrganizations = () =>
   useQuery({
-    queryFn: () => readApiJson(apiClient.api.v1.organizations.$get()),
+    queryFn: () => readApiJson(apiClient.api.v1.hosts.$get()),
     queryKey: ["organizations"],
   });
 
 export const useMyOrganizations = (enabled = true) =>
   useQuery({
     enabled,
-    queryFn: () => readApiJson(apiClient.api.v1.organizations.me.$get()),
+    queryFn: () => readApiJson(apiClient.api.v1.hosts.me.$get()),
     queryKey: ["organizations", "me"],
   });
 
@@ -21,9 +21,7 @@ export const useOrganization = (slug: string) =>
   useQuery({
     enabled: slug.length > 0,
     queryFn: () =>
-      readApiJson(
-        apiClient.api.v1.organizations[":slug"].$get({ param: { slug } })
-      ),
+      readApiJson(apiClient.api.v1.hosts[":slug"].$get({ param: { slug } })),
     queryKey: ["organization", slug],
   });
 
@@ -39,7 +37,7 @@ export const useUpdateOrganization = (slug: string) => {
       state?: string;
     }) =>
       readApiJson(
-        apiClient.api.v1.organizations[":slug"].$patch({
+        apiClient.api.v1.hosts[":slug"].$patch({
           json,
           param: { slug },
         })
@@ -50,6 +48,7 @@ export const useUpdateOrganization = (slug: string) => {
       await queryClient.invalidateQueries({
         queryKey: ["organizations", "me"],
       });
+      await queryClient.invalidateQueries({ queryKey: ["hosts"] });
     },
   });
 };
@@ -60,7 +59,7 @@ export const useAddOrganizationMember = (slug: string) => {
   return useMutation({
     mutationFn: (json: { role: "admin" | "editor"; username: string }) =>
       readApiJson(
-        apiClient.api.v1.organizations[":slug"].members.$post({
+        apiClient.api.v1.hosts[":slug"].members.$post({
           json,
           param: { slug },
         })
@@ -70,6 +69,13 @@ export const useAddOrganizationMember = (slug: string) => {
       await queryClient.invalidateQueries({
         queryKey: ["organizations", "me"],
       });
+      await queryClient.invalidateQueries({ queryKey: ["hosts"] });
     },
   });
 };
+
+export const useHosts = useOrganizations;
+export const useMyHosts = useMyOrganizations;
+export const useHost = useOrganization;
+export const useUpdateHost = useUpdateOrganization;
+export const useAddHostMember = useAddOrganizationMember;

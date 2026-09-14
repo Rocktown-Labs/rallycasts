@@ -11,7 +11,7 @@ import { readApiJson } from "@/lib/hooks/api";
 
 export const Route = createFileRoute("/_auth/organizers/new")({
   beforeLoad: () => {
-    throw redirect({ to: "/events/organizers/new" });
+    throw redirect({ to: "/events/hosts/new" });
   },
 });
 
@@ -36,7 +36,7 @@ export function CreateOrganizationPage() {
       const trimmedSlug = slug.trim();
 
       return readApiJson(
-        apiClient.api.v1.organizations.$post({
+        apiClient.api.v1.hosts.$post({
           json: {
             bio: bio.trim() || undefined,
             city: city.trim() || undefined,
@@ -54,10 +54,11 @@ export function CreateOrganizationPage() {
     },
     onSuccess: async (result) => {
       await queryClient.invalidateQueries({ queryKey: ["organizations"] });
+      await queryClient.invalidateQueries({ queryKey: ["hosts"] });
       toast.success("Organization created");
       await navigate({
         params: { slug: result.organization.slug },
-        to: "/events/organizers/$slug/manage",
+        to: "/events/hosts/$slug/manage",
       });
     },
   });
@@ -111,7 +112,7 @@ export function CreateOrganizationPage() {
             value={slug}
           />
           <span className="text-xs text-muted-foreground">
-            rallycasts.com/events/organizers/{slug || "your-org"}
+            rallycasts.com/events/hosts/{slug || "your-org"}
           </span>
         </label>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -146,3 +147,5 @@ export function CreateOrganizationPage() {
     </main>
   );
 }
+
+export const CreateHostPage = CreateOrganizationPage;

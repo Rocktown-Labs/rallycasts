@@ -30,15 +30,13 @@ export const Route = createFileRoute("/_auth/organizers/$slug/manage")({
   beforeLoad: ({ params }) => {
     throw redirect({
       params: { slug: params.slug },
-      to: "/events/organizers/$slug/manage",
+      to: "/events/hosts/$slug/manage",
     });
   },
 });
 
 const getOrganization = (slug: string) =>
-  readApiJson(
-    apiClient.api.v1.organizations[":slug"].$get({ param: { slug } })
-  );
+  readApiJson(apiClient.api.v1.hosts[":slug"].$get({ param: { slug } }));
 
 type OrganizationData = Awaited<ReturnType<typeof getOrganization>>;
 
@@ -95,7 +93,7 @@ const ManageOrganizationEditor = ({
       }
 
       return readApiJson(
-        apiClient.api.v1.organizations[":slug"].$patch({
+        apiClient.api.v1.hosts[":slug"].$patch({
           json: {
             bio: bio.trim() || undefined,
             city: city.trim() || undefined,
@@ -122,7 +120,7 @@ const ManageOrganizationEditor = ({
   const addMember = useMutation({
     mutationFn: () =>
       readApiJson(
-        apiClient.api.v1.organizations[":slug"].members.$post({
+        apiClient.api.v1.hosts[":slug"].members.$post({
           json: { role: "editor", username: memberUsername },
           param: { slug },
         })
@@ -184,7 +182,7 @@ const ManageOrganizationEditor = ({
   const publishPost = useMutation({
     mutationFn: () =>
       readApiJson(
-        apiClient.api.v1.organizations[":slug"].posts.$post({
+        apiClient.api.v1.hosts[":slug"].posts.$post({
           json: { content: organizationPost },
           param: { slug },
         })
@@ -198,7 +196,7 @@ const ManageOrganizationEditor = ({
   const attachVideo = useMutation({
     mutationFn: (videoId: string) =>
       readApiJson(
-        apiClient.api.v1.organizations[":slug"].videos.$post({
+        apiClient.api.v1.hosts[":slug"].videos.$post({
           json: { videoId },
           param: { slug },
         })
@@ -231,7 +229,7 @@ const ManageOrganizationEditor = ({
           </p>
           <h1 className="text-3xl font-black">Manage {organization.name}</h1>
         </div>
-        <Link params={{ slug }} to="/events/organizers/$slug">
+        <Link params={{ slug }} to="/events/hosts/$slug">
           <Button variant="outline">View public page</Button>
         </Link>
       </header>
@@ -505,3 +503,5 @@ const ManageOrganizationEditor = ({
     </main>
   );
 };
+
+export const ManageHostPage = ManageOrganizationPage;

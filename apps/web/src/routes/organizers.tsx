@@ -11,7 +11,7 @@ import { readApiJson } from "@/lib/hooks/api";
 
 export const Route = createFileRoute("/organizers")({
   beforeLoad: () => {
-    throw redirect({ to: "/events/organizers" });
+    throw redirect({ to: "/events/hosts" });
   },
 });
 
@@ -19,8 +19,8 @@ export function OrganizersPage() {
   const [query, setQuery] = useState("");
   const { data: session } = authClient.useSession();
   const { data, isLoading } = useQuery({
-    queryFn: () => readApiJson(apiClient.api.v1.organizations.$get()),
-    queryKey: ["organizations"],
+    queryFn: () => readApiJson(apiClient.api.v1.hosts.$get()),
+    queryKey: ["hosts"],
   });
   const organizations = (data?.organizations ?? []).filter((organization) =>
     `${organization.name} ${organization.city ?? ""} ${organization.state ?? ""}`
@@ -45,7 +45,7 @@ export function OrganizersPage() {
               player, host, or rallycaster.
             </p>
           </div>
-          <Link to={session?.user ? "/events/organizers/new" : "/login"}>
+          <Link to={session?.user ? "/events/hosts/new" : "/login"}>
             <Button className="bg-[#bcdf21] text-black hover:bg-[#d3f34b]">
               <Plus className="size-4" /> Get a host account
             </Button>
@@ -75,7 +75,7 @@ export function OrganizersPage() {
             className="group rounded-2xl border bg-card p-5 transition hover:border-primary/50 hover:shadow-lg"
             key={organization.id}
             params={{ slug: organization.slug }}
-            to="/events/organizers/$slug"
+            to="/events/hosts/$slug"
           >
             <div className="flex items-start gap-4">
               <div className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-xl bg-primary/10 text-primary">
@@ -113,3 +113,5 @@ export function OrganizersPage() {
     </main>
   );
 }
+
+export const HostsPage = OrganizersPage;

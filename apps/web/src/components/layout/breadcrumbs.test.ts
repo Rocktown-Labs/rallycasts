@@ -3,17 +3,34 @@ import { describe, expect, it } from "vitest";
 import { breadcrumbLabels, getVisiblePathnames, humanize } from "./breadcrumbs";
 
 describe("breadcrumbs", () => {
-  it("maps /events/organizers to hosts", () => {
+  it("maps /events/hosts and /events/organizers to hosts", () => {
+    expect(breadcrumbLabels.get("/events/hosts")).toBe("hosts");
+    expect(breadcrumbLabels.get("/hosts")).toBe("hosts");
     expect(breadcrumbLabels.get("/events/organizers")).toBe("hosts");
     expect(breadcrumbLabels.get("/organizers")).toBe("hosts");
   });
 
-  it("omits /events and shows only /events/organizers on the organizers index", () => {
-    const visible = getVisiblePathnames(["/", "/events", "/events/organizers"]);
-    expect(visible).toEqual(["/events/organizers"]);
+  it("omits /events and shows only /events/hosts on the hosts index", () => {
+    const visible = getVisiblePathnames(["/", "/events", "/events/hosts"]);
+    expect(visible).toEqual(["/events/hosts"]);
   });
 
-  it("omits /events and shows hosts > [slug] on an organizer profile", () => {
+  it("omits /events and shows hosts > [slug] on a host profile", () => {
+    const visible = getVisiblePathnames([
+      "/",
+      "/events",
+      "/events/hosts",
+      "/events/hosts/rallycasts",
+    ]);
+    expect(visible).toEqual(["/events/hosts", "/events/hosts/rallycasts"]);
+  });
+
+  it("injects /events/hosts when navigating to /events/hosts/new", () => {
+    const visible = getVisiblePathnames(["/", "/events/hosts/new"]);
+    expect(visible).toEqual(["/events/hosts", "/events/hosts/new"]);
+  });
+
+  it("supports legacy /events/organizers routes", () => {
     const visible = getVisiblePathnames([
       "/",
       "/events",
@@ -24,11 +41,6 @@ describe("breadcrumbs", () => {
       "/events/organizers",
       "/events/organizers/rallycasts",
     ]);
-  });
-
-  it("injects /events/organizers when navigating to /events/organizers/new", () => {
-    const visible = getVisiblePathnames(["/", "/events/organizers/new"]);
-    expect(visible).toEqual(["/events/organizers", "/events/organizers/new"]);
   });
 
   it("retains /events for standard event routes", () => {
