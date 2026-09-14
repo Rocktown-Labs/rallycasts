@@ -161,7 +161,7 @@ const routes = app
           resetUrl: url,
           username: user.name,
         });
-        const text = `Hi ${user.name},\n\nWe received a request to reset your RallyCasts password. Visit this link to reset it:\n\n${url}\n\nThis link expires in 1 hour.\n\nIf you did not request this, you can safely ignore this email.`;
+        const text = `Hi ${user.name},\n\nGet back in the game: we received a request to reset your RallyCasts password.\n\nChoose a new password here:\n${url}\n\nThis secure link expires in 1 hour. If you did not request this, you can safely ignore this email.`;
 
         const { error } = await resend.emails.send(
           {
@@ -195,7 +195,7 @@ const routes = app
           username: user.name,
           verificationUrl: url,
         });
-        const text = `Welcome to RallyCasts, ${user.name}!\n\nPlease verify your email address by visiting:\n\n${url}\n\nIf you did not create an account, you can safely ignore this email.`;
+        const text = `Welcome to the RallyCasts rally, ${user.name}!\n\nVerify your email to join the pickleball community and follow your next match:\n${url}\n\nIf you did not create this account, you can safely ignore this email.`;
 
         const { error } = await resend.emails.send(
           {

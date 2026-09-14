@@ -19,12 +19,45 @@ import { authClient } from "@/lib/auth-client";
 
 import Loader from "./loader";
 
+const signInWithGoogle = async () => {
+  const { error } = await authClient.signIn.social({
+    callbackURL: new URL("/onboarding", window.location.origin).toString(),
+    provider: "google",
+  });
+
+  if (error) {
+    toast.error(error.message || error.statusText);
+  }
+};
+
 const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
   const navigate = useNavigate({
     from: "/",
   });
   const { isPending } = authClient.useSession();
+  const [isResending, setIsResending] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState("");
   const [verificationSent, setVerificationSent] = useState(false);
+
+  const resendVerification = async () => {
+    if (!verificationEmail || isResending) {
+      return;
+    }
+
+    setIsResending(true);
+    const { error } = await authClient.sendVerificationEmail({
+      callbackURL: new URL("/onboarding", window.location.origin).toString(),
+      email: verificationEmail,
+    });
+    setIsResending(false);
+
+    if (error) {
+      toast.error(error.message || error.statusText);
+      return;
+    }
+
+    toast.success("A fresh verification link is on its way");
+  };
 
   const form = useForm({
     defaultValues: {
@@ -52,6 +85,7 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
         return;
       }
 
+      setVerificationEmail(value.email);
       setVerificationSent(true);
       toast.success("Check your email to verify your account");
     },
@@ -86,8 +120,16 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-center text-sm text-muted-foreground">
-              If you do not see it, check your spam folder.
+              If you do not see it, check your spam folder. You can also send a
+              fresh link.
             </p>
+            <Button
+              onClick={() => void resendVerification()}
+              disabled={isResending}
+              className="h-9 w-full rounded-md bg-primary text-xs font-semibold text-brand-yellow hover:bg-primary/95"
+            >
+              {isResending ? "Sending..." : "Resend Verification Email"}
+            </Button>
             <Button
               onClick={onSwitchToSignIn}
               variant="outline"
@@ -118,6 +160,19 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => void signInWithGoogle()}
+            className="h-9 w-full rounded-md text-xs font-semibold"
+          >
+            Continue with Google
+          </Button>
+          <div className="my-4 flex items-center gap-3 text-[10px] text-muted-foreground">
+            <div className="h-px flex-1 bg-border" />
+            <span>OR SIGN UP WITH EMAIL</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
           <form
             onSubmit={(e) => {
               e.preventDefault();
