@@ -106,7 +106,16 @@ jobs:
             fi
             if ! printf "%s" "$R2_BUCKETS" | jq -e --arg bucket "$R2_BUCKET_NAME" 'any(.result.buckets[]?; .name == $bucket)' >/dev/null; then
               echo "Production R2 bucket is missing; creating it."
-              bun x wrangler r2 bucket create "$R2_BUCKET_NAME"
+              if ! CREATE_BUCKET_OUTPUT="$(bun x wrangler r2 bucket create "$R2_BUCKET_NAME" 2>&1)"; then
+                printf '%s\n' "$CREATE_BUCKET_OUTPUT"
+                if ! printf '%s' "$CREATE_BUCKET_OUTPUT" | grep -q "already exists, and you own it"; then
+                  echo "ERROR: Could not create the production R2 bucket."
+                  exit 1
+                fi
+                echo "Production R2 bucket already exists; continuing."
+              else
+                printf '%s\n' "$CREATE_BUCKET_OUTPUT"
+              fi
             fi
 
             ZONE_NAME="rallycasts.com"
