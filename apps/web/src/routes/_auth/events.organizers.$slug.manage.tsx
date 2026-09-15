@@ -1,13 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
-
-import { ManageOrganizationPage } from "./organizers.$slug.manage";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_auth/events/organizers/$slug/manage")({
-  component: () => <ManageOrganizationRoute />,
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      params: { slug: params.slug },
+      to: "/events/hosts/$slug/manage",
+    });
+  },
 });
-
-const ManageOrganizationRoute = () => {
-  const { slug } = Route.useParams();
-
-  return <ManageOrganizationPage slug={slug} />;
-};

@@ -24,6 +24,7 @@ import {
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import LinkedAccounts from "@/components/auth/linked-accounts";
 import { apiClient } from "@/lib/api-client";
 import { mapGooglePlaceToCourtSuggestion } from "@/lib/google-places";
 import type { CourtSuggestion } from "@/lib/google-places";
@@ -705,20 +706,7 @@ function SettingsPage() {
             </Link>
           </CardContent>
         </Card>
-        <Card className="rounded-xl">
-          <CardHeader>
-            <CardTitle className="text-lg">Account settings</CardTitle>
-            <CardDescription>
-              More notification, privacy, billing, and login controls will live
-              here as they come online.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button className="rounded-lg" disabled variant="outline">
-              Coming soon
-            </Button>
-          </CardContent>
-        </Card>
+        <LinkedAccounts />
       </div>
     </main>
   );

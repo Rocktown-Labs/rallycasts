@@ -15,6 +15,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PlayersRouteImport } from './routes/players'
 import { Route as OrganizersRouteImport } from './routes/organizers'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as HostsRouteImport } from './routes/hosts'
 import { Route as EventsRouteImport } from './routes/events'
 import { Route as CastersRouteImport } from './routes/casters'
 import { Route as AuthRouteRouteImport } from './routes/_auth/route'
@@ -26,7 +27,9 @@ import { Route as VideosIdRouteImport } from './routes/videos.$id'
 import { Route as VenuesIdRouteImport } from './routes/venues.$id'
 import { Route as PlayersUsernameRouteImport } from './routes/players.$username'
 import { Route as OrganizersSlugRouteImport } from './routes/organizers.$slug'
+import { Route as HostsSlugRouteImport } from './routes/hosts.$slug'
 import { Route as EventsOrganizersRouteImport } from './routes/events.organizers'
+import { Route as EventsHostsRouteImport } from './routes/events.hosts'
 import { Route as EventsIdRouteImport } from './routes/events.$id'
 import { Route as CastersIdRouteImport } from './routes/casters.$id'
 import { Route as AuthURouteImport } from './routes/_auth/u'
@@ -34,6 +37,7 @@ import { Route as AuthOnboardingRouteImport } from './routes/_auth/onboarding'
 import { Route as EventsIdIndexRouteImport } from './routes/events.$id.index'
 import { Route as AuthUIndexRouteImport } from './routes/_auth/u/index'
 import { Route as EventsOrganizersSlugRouteImport } from './routes/events.organizers.$slug'
+import { Route as EventsHostsSlugRouteImport } from './routes/events.hosts.$slug'
 import { Route as EventsIdPlayersRouteImport } from './routes/events.$id.players'
 import { Route as EventsIdMatchesRouteImport } from './routes/events.$id.matches'
 import { Route as EventsIdLocationsRouteImport } from './routes/events.$id.locations'
@@ -75,8 +79,10 @@ import { Route as AuthUCastsApprovedRouteImport } from './routes/_auth/u/casts/a
 import { Route as AuthUCastsAllRouteImport } from './routes/_auth/u/casts/all'
 import { Route as AuthOrganizersSlugManageRouteImport } from './routes/_auth/organizers.$slug.manage'
 import { Route as AuthEventsOrganizersNewRouteImport } from './routes/_auth/events.organizers.new'
+import { Route as AuthEventsHostsNewRouteImport } from './routes/_auth/events.hosts.new'
 import { Route as AuthUStudioVideosIdRouteImport } from './routes/_auth/u/studio/videos.$id'
 import { Route as AuthEventsOrganizersSlugManageRouteImport } from './routes/_auth/events.organizers.$slug.manage'
+import { Route as AuthEventsHostsSlugManageRouteImport } from './routes/_auth/events.hosts.$slug.manage'
 import { Route as AuthUStudioVideosIdClipsRouteImport } from './routes/_auth/u/studio/videos.$id.clips'
 
 const TrendingRoute = TrendingRouteImport.update({
@@ -107,6 +113,11 @@ const OrganizersRoute = OrganizersRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HostsRoute = HostsRouteImport.update({
+  id: '/hosts',
+  path: '/hosts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EventsRoute = EventsRouteImport.update({
@@ -163,9 +174,19 @@ const OrganizersSlugRoute = OrganizersSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => OrganizersRoute,
 } as any)
+const HostsSlugRoute = HostsSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => HostsRoute,
+} as any)
 const EventsOrganizersRoute = EventsOrganizersRouteImport.update({
   id: '/organizers',
   path: '/organizers',
+  getParentRoute: () => EventsRoute,
+} as any)
+const EventsHostsRoute = EventsHostsRouteImport.update({
+  id: '/hosts',
+  path: '/hosts',
   getParentRoute: () => EventsRoute,
 } as any)
 const EventsIdRoute = EventsIdRouteImport.update({
@@ -202,6 +223,11 @@ const EventsOrganizersSlugRoute = EventsOrganizersSlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
   getParentRoute: () => EventsOrganizersRoute,
+} as any)
+const EventsHostsSlugRoute = EventsHostsSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => EventsHostsRoute,
 } as any)
 const EventsIdPlayersRoute = EventsIdPlayersRouteImport.update({
   id: '/players',
@@ -411,6 +437,11 @@ const AuthEventsOrganizersNewRoute = AuthEventsOrganizersNewRouteImport.update({
   path: '/events/organizers/new',
   getParentRoute: () => AuthRouteRoute,
 } as any)
+const AuthEventsHostsNewRoute = AuthEventsHostsNewRouteImport.update({
+  id: '/events/hosts/new',
+  path: '/events/hosts/new',
+  getParentRoute: () => AuthRouteRoute,
+} as any)
 const AuthUStudioVideosIdRoute = AuthUStudioVideosIdRouteImport.update({
   id: '/studio/videos/$id',
   path: '/studio/videos/$id',
@@ -420,6 +451,12 @@ const AuthEventsOrganizersSlugManageRoute =
   AuthEventsOrganizersSlugManageRouteImport.update({
     id: '/events/organizers/$slug/manage',
     path: '/events/organizers/$slug/manage',
+    getParentRoute: () => AuthRouteRoute,
+  } as any)
+const AuthEventsHostsSlugManageRoute =
+  AuthEventsHostsSlugManageRouteImport.update({
+    id: '/events/hosts/$slug/manage',
+    path: '/events/hosts/$slug/manage',
     getParentRoute: () => AuthRouteRoute,
   } as any)
 const AuthUStudioVideosIdClipsRoute =
@@ -433,6 +470,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/casters': typeof CastersRouteWithChildren
   '/events': typeof EventsRouteWithChildren
+  '/hosts': typeof HostsRouteWithChildren
   '/login': typeof LoginRoute
   '/organizers': typeof OrganizersRouteWithChildren
   '/players': typeof PlayersRouteWithChildren
@@ -443,7 +481,9 @@ export interface FileRoutesByFullPath {
   '/u': typeof AuthURouteWithChildren
   '/casters/$id': typeof CastersIdRoute
   '/events/$id': typeof EventsIdRouteWithChildren
+  '/events/hosts': typeof EventsHostsRouteWithChildren
   '/events/organizers': typeof EventsOrganizersRouteWithChildren
+  '/hosts/$slug': typeof HostsSlugRoute
   '/organizers/$slug': typeof OrganizersSlugRoute
   '/players/$username': typeof PlayersUsernameRoute
   '/venues/$id': typeof VenuesIdRoute
@@ -466,9 +506,11 @@ export interface FileRoutesByFullPath {
   '/events/$id/locations': typeof EventsIdLocationsRoute
   '/events/$id/matches': typeof EventsIdMatchesRoute
   '/events/$id/players': typeof EventsIdPlayersRoute
+  '/events/hosts/$slug': typeof EventsHostsSlugRoute
   '/events/organizers/$slug': typeof EventsOrganizersSlugRoute
   '/u/': typeof AuthUIndexRoute
   '/events/$id/': typeof EventsIdIndexRoute
+  '/events/hosts/new': typeof AuthEventsHostsNewRoute
   '/events/organizers/new': typeof AuthEventsOrganizersNewRoute
   '/organizers/$slug/manage': typeof AuthOrganizersSlugManageRoute
   '/u/casts/all': typeof AuthUCastsAllRoute
@@ -495,12 +537,14 @@ export interface FileRoutesByFullPath {
   '/u/profile/': typeof AuthUProfileIndexRoute
   '/u/studio/': typeof AuthUStudioIndexRoute
   '/u/videos/': typeof AuthUVideosIndexRoute
+  '/events/hosts/$slug/manage': typeof AuthEventsHostsSlugManageRoute
   '/events/organizers/$slug/manage': typeof AuthEventsOrganizersSlugManageRoute
   '/u/studio/videos/$id': typeof AuthUStudioVideosIdRouteWithChildren
   '/u/studio/videos/$id/clips': typeof AuthUStudioVideosIdClipsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/hosts': typeof HostsRouteWithChildren
   '/login': typeof LoginRoute
   '/organizers': typeof OrganizersRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
@@ -508,7 +552,9 @@ export interface FileRoutesByTo {
   '/trending': typeof TrendingRoute
   '/onboarding': typeof AuthOnboardingRoute
   '/casters/$id': typeof CastersIdRoute
+  '/events/hosts': typeof EventsHostsRouteWithChildren
   '/events/organizers': typeof EventsOrganizersRouteWithChildren
+  '/hosts/$slug': typeof HostsSlugRoute
   '/organizers/$slug': typeof OrganizersSlugRoute
   '/players/$username': typeof PlayersUsernameRoute
   '/venues/$id': typeof VenuesIdRoute
@@ -527,9 +573,11 @@ export interface FileRoutesByTo {
   '/events/$id/locations': typeof EventsIdLocationsRoute
   '/events/$id/matches': typeof EventsIdMatchesRoute
   '/events/$id/players': typeof EventsIdPlayersRoute
+  '/events/hosts/$slug': typeof EventsHostsSlugRoute
   '/events/organizers/$slug': typeof EventsOrganizersSlugRoute
   '/u': typeof AuthUIndexRoute
   '/events/$id': typeof EventsIdIndexRoute
+  '/events/hosts/new': typeof AuthEventsHostsNewRoute
   '/events/organizers/new': typeof AuthEventsOrganizersNewRoute
   '/organizers/$slug/manage': typeof AuthOrganizersSlugManageRoute
   '/u/casts/all': typeof AuthUCastsAllRoute
@@ -556,6 +604,7 @@ export interface FileRoutesByTo {
   '/u/profile': typeof AuthUProfileIndexRoute
   '/u/studio': typeof AuthUStudioIndexRoute
   '/u/videos': typeof AuthUVideosIndexRoute
+  '/events/hosts/$slug/manage': typeof AuthEventsHostsSlugManageRoute
   '/events/organizers/$slug/manage': typeof AuthEventsOrganizersSlugManageRoute
   '/u/studio/videos/$id': typeof AuthUStudioVideosIdRouteWithChildren
   '/u/studio/videos/$id/clips': typeof AuthUStudioVideosIdClipsRoute
@@ -566,6 +615,7 @@ export interface FileRoutesById {
   '/_auth': typeof AuthRouteRouteWithChildren
   '/casters': typeof CastersRouteWithChildren
   '/events': typeof EventsRouteWithChildren
+  '/hosts': typeof HostsRouteWithChildren
   '/login': typeof LoginRoute
   '/organizers': typeof OrganizersRouteWithChildren
   '/players': typeof PlayersRouteWithChildren
@@ -576,7 +626,9 @@ export interface FileRoutesById {
   '/_auth/u': typeof AuthURouteWithChildren
   '/casters/$id': typeof CastersIdRoute
   '/events/$id': typeof EventsIdRouteWithChildren
+  '/events/hosts': typeof EventsHostsRouteWithChildren
   '/events/organizers': typeof EventsOrganizersRouteWithChildren
+  '/hosts/$slug': typeof HostsSlugRoute
   '/organizers/$slug': typeof OrganizersSlugRoute
   '/players/$username': typeof PlayersUsernameRoute
   '/venues/$id': typeof VenuesIdRoute
@@ -599,9 +651,11 @@ export interface FileRoutesById {
   '/events/$id/locations': typeof EventsIdLocationsRoute
   '/events/$id/matches': typeof EventsIdMatchesRoute
   '/events/$id/players': typeof EventsIdPlayersRoute
+  '/events/hosts/$slug': typeof EventsHostsSlugRoute
   '/events/organizers/$slug': typeof EventsOrganizersSlugRoute
   '/_auth/u/': typeof AuthUIndexRoute
   '/events/$id/': typeof EventsIdIndexRoute
+  '/_auth/events/hosts/new': typeof AuthEventsHostsNewRoute
   '/_auth/events/organizers/new': typeof AuthEventsOrganizersNewRoute
   '/_auth/organizers/$slug/manage': typeof AuthOrganizersSlugManageRoute
   '/_auth/u/casts/all': typeof AuthUCastsAllRoute
@@ -628,6 +682,7 @@ export interface FileRoutesById {
   '/_auth/u/profile/': typeof AuthUProfileIndexRoute
   '/_auth/u/studio/': typeof AuthUStudioIndexRoute
   '/_auth/u/videos/': typeof AuthUVideosIndexRoute
+  '/_auth/events/hosts/$slug/manage': typeof AuthEventsHostsSlugManageRoute
   '/_auth/events/organizers/$slug/manage': typeof AuthEventsOrganizersSlugManageRoute
   '/_auth/u/studio/videos/$id': typeof AuthUStudioVideosIdRouteWithChildren
   '/_auth/u/studio/videos/$id/clips': typeof AuthUStudioVideosIdClipsRoute
@@ -638,6 +693,7 @@ export interface FileRouteTypes {
     | '/'
     | '/casters'
     | '/events'
+    | '/hosts'
     | '/login'
     | '/organizers'
     | '/players'
@@ -648,7 +704,9 @@ export interface FileRouteTypes {
     | '/u'
     | '/casters/$id'
     | '/events/$id'
+    | '/events/hosts'
     | '/events/organizers'
+    | '/hosts/$slug'
     | '/organizers/$slug'
     | '/players/$username'
     | '/venues/$id'
@@ -671,9 +729,11 @@ export interface FileRouteTypes {
     | '/events/$id/locations'
     | '/events/$id/matches'
     | '/events/$id/players'
+    | '/events/hosts/$slug'
     | '/events/organizers/$slug'
     | '/u/'
     | '/events/$id/'
+    | '/events/hosts/new'
     | '/events/organizers/new'
     | '/organizers/$slug/manage'
     | '/u/casts/all'
@@ -700,12 +760,14 @@ export interface FileRouteTypes {
     | '/u/profile/'
     | '/u/studio/'
     | '/u/videos/'
+    | '/events/hosts/$slug/manage'
     | '/events/organizers/$slug/manage'
     | '/u/studio/videos/$id'
     | '/u/studio/videos/$id/clips'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/hosts'
     | '/login'
     | '/organizers'
     | '/reset-password'
@@ -713,7 +775,9 @@ export interface FileRouteTypes {
     | '/trending'
     | '/onboarding'
     | '/casters/$id'
+    | '/events/hosts'
     | '/events/organizers'
+    | '/hosts/$slug'
     | '/organizers/$slug'
     | '/players/$username'
     | '/venues/$id'
@@ -732,9 +796,11 @@ export interface FileRouteTypes {
     | '/events/$id/locations'
     | '/events/$id/matches'
     | '/events/$id/players'
+    | '/events/hosts/$slug'
     | '/events/organizers/$slug'
     | '/u'
     | '/events/$id'
+    | '/events/hosts/new'
     | '/events/organizers/new'
     | '/organizers/$slug/manage'
     | '/u/casts/all'
@@ -761,6 +827,7 @@ export interface FileRouteTypes {
     | '/u/profile'
     | '/u/studio'
     | '/u/videos'
+    | '/events/hosts/$slug/manage'
     | '/events/organizers/$slug/manage'
     | '/u/studio/videos/$id'
     | '/u/studio/videos/$id/clips'
@@ -770,6 +837,7 @@ export interface FileRouteTypes {
     | '/_auth'
     | '/casters'
     | '/events'
+    | '/hosts'
     | '/login'
     | '/organizers'
     | '/players'
@@ -780,7 +848,9 @@ export interface FileRouteTypes {
     | '/_auth/u'
     | '/casters/$id'
     | '/events/$id'
+    | '/events/hosts'
     | '/events/organizers'
+    | '/hosts/$slug'
     | '/organizers/$slug'
     | '/players/$username'
     | '/venues/$id'
@@ -803,9 +873,11 @@ export interface FileRouteTypes {
     | '/events/$id/locations'
     | '/events/$id/matches'
     | '/events/$id/players'
+    | '/events/hosts/$slug'
     | '/events/organizers/$slug'
     | '/_auth/u/'
     | '/events/$id/'
+    | '/_auth/events/hosts/new'
     | '/_auth/events/organizers/new'
     | '/_auth/organizers/$slug/manage'
     | '/_auth/u/casts/all'
@@ -832,6 +904,7 @@ export interface FileRouteTypes {
     | '/_auth/u/profile/'
     | '/_auth/u/studio/'
     | '/_auth/u/videos/'
+    | '/_auth/events/hosts/$slug/manage'
     | '/_auth/events/organizers/$slug/manage'
     | '/_auth/u/studio/videos/$id'
     | '/_auth/u/studio/videos/$id/clips'
@@ -842,6 +915,7 @@ export interface RootRouteChildren {
   AuthRouteRoute: typeof AuthRouteRouteWithChildren
   CastersRoute: typeof CastersRouteWithChildren
   EventsRoute: typeof EventsRouteWithChildren
+  HostsRoute: typeof HostsRouteWithChildren
   LoginRoute: typeof LoginRoute
   OrganizersRoute: typeof OrganizersRouteWithChildren
   PlayersRoute: typeof PlayersRouteWithChildren
@@ -894,6 +968,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hosts': {
+      id: '/hosts'
+      path: '/hosts'
+      fullPath: '/hosts'
+      preLoaderRoute: typeof HostsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/events': {
@@ -973,11 +1054,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrganizersSlugRouteImport
       parentRoute: typeof OrganizersRoute
     }
+    '/hosts/$slug': {
+      id: '/hosts/$slug'
+      path: '/$slug'
+      fullPath: '/hosts/$slug'
+      preLoaderRoute: typeof HostsSlugRouteImport
+      parentRoute: typeof HostsRoute
+    }
     '/events/organizers': {
       id: '/events/organizers'
       path: '/organizers'
       fullPath: '/events/organizers'
       preLoaderRoute: typeof EventsOrganizersRouteImport
+      parentRoute: typeof EventsRoute
+    }
+    '/events/hosts': {
+      id: '/events/hosts'
+      path: '/hosts'
+      fullPath: '/events/hosts'
+      preLoaderRoute: typeof EventsHostsRouteImport
       parentRoute: typeof EventsRoute
     }
     '/events/$id': {
@@ -1028,6 +1123,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/events/organizers/$slug'
       preLoaderRoute: typeof EventsOrganizersSlugRouteImport
       parentRoute: typeof EventsOrganizersRoute
+    }
+    '/events/hosts/$slug': {
+      id: '/events/hosts/$slug'
+      path: '/$slug'
+      fullPath: '/events/hosts/$slug'
+      preLoaderRoute: typeof EventsHostsSlugRouteImport
+      parentRoute: typeof EventsHostsRoute
     }
     '/events/$id/players': {
       id: '/events/$id/players'
@@ -1316,6 +1418,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthEventsOrganizersNewRouteImport
       parentRoute: typeof AuthRouteRoute
     }
+    '/_auth/events/hosts/new': {
+      id: '/_auth/events/hosts/new'
+      path: '/events/hosts/new'
+      fullPath: '/events/hosts/new'
+      preLoaderRoute: typeof AuthEventsHostsNewRouteImport
+      parentRoute: typeof AuthRouteRoute
+    }
     '/_auth/u/studio/videos/$id': {
       id: '/_auth/u/studio/videos/$id'
       path: '/studio/videos/$id'
@@ -1328,6 +1437,13 @@ declare module '@tanstack/react-router' {
       path: '/events/organizers/$slug/manage'
       fullPath: '/events/organizers/$slug/manage'
       preLoaderRoute: typeof AuthEventsOrganizersSlugManageRouteImport
+      parentRoute: typeof AuthRouteRoute
+    }
+    '/_auth/events/hosts/$slug/manage': {
+      id: '/_auth/events/hosts/$slug/manage'
+      path: '/events/hosts/$slug/manage'
+      fullPath: '/events/hosts/$slug/manage'
+      preLoaderRoute: typeof AuthEventsHostsSlugManageRouteImport
       parentRoute: typeof AuthRouteRoute
     }
     '/_auth/u/studio/videos/$id/clips': {
@@ -1475,8 +1591,10 @@ interface AuthRouteRouteChildren {
   AuthOnboardingRoute: typeof AuthOnboardingRoute
   AuthURoute: typeof AuthURouteWithChildren
   AuthOrganizersNewRoute: typeof AuthOrganizersNewRoute
+  AuthEventsHostsNewRoute: typeof AuthEventsHostsNewRoute
   AuthEventsOrganizersNewRoute: typeof AuthEventsOrganizersNewRoute
   AuthOrganizersSlugManageRoute: typeof AuthOrganizersSlugManageRoute
+  AuthEventsHostsSlugManageRoute: typeof AuthEventsHostsSlugManageRoute
   AuthEventsOrganizersSlugManageRoute: typeof AuthEventsOrganizersSlugManageRoute
 }
 
@@ -1484,8 +1602,10 @@ const AuthRouteRouteChildren: AuthRouteRouteChildren = {
   AuthOnboardingRoute: AuthOnboardingRoute,
   AuthURoute: AuthURouteWithChildren,
   AuthOrganizersNewRoute: AuthOrganizersNewRoute,
+  AuthEventsHostsNewRoute: AuthEventsHostsNewRoute,
   AuthEventsOrganizersNewRoute: AuthEventsOrganizersNewRoute,
   AuthOrganizersSlugManageRoute: AuthOrganizersSlugManageRoute,
+  AuthEventsHostsSlugManageRoute: AuthEventsHostsSlugManageRoute,
   AuthEventsOrganizersSlugManageRoute: AuthEventsOrganizersSlugManageRoute,
 }
 
@@ -1526,6 +1646,18 @@ const EventsIdRouteWithChildren = EventsIdRoute._addFileChildren(
   EventsIdRouteChildren,
 )
 
+interface EventsHostsRouteChildren {
+  EventsHostsSlugRoute: typeof EventsHostsSlugRoute
+}
+
+const EventsHostsRouteChildren: EventsHostsRouteChildren = {
+  EventsHostsSlugRoute: EventsHostsSlugRoute,
+}
+
+const EventsHostsRouteWithChildren = EventsHostsRoute._addFileChildren(
+  EventsHostsRouteChildren,
+)
+
 interface EventsOrganizersRouteChildren {
   EventsOrganizersSlugRoute: typeof EventsOrganizersSlugRoute
 }
@@ -1539,18 +1671,30 @@ const EventsOrganizersRouteWithChildren =
 
 interface EventsRouteChildren {
   EventsIdRoute: typeof EventsIdRouteWithChildren
+  EventsHostsRoute: typeof EventsHostsRouteWithChildren
   EventsOrganizersRoute: typeof EventsOrganizersRouteWithChildren
   EventsIndexRoute: typeof EventsIndexRoute
 }
 
 const EventsRouteChildren: EventsRouteChildren = {
   EventsIdRoute: EventsIdRouteWithChildren,
+  EventsHostsRoute: EventsHostsRouteWithChildren,
   EventsOrganizersRoute: EventsOrganizersRouteWithChildren,
   EventsIndexRoute: EventsIndexRoute,
 }
 
 const EventsRouteWithChildren =
   EventsRoute._addFileChildren(EventsRouteChildren)
+
+interface HostsRouteChildren {
+  HostsSlugRoute: typeof HostsSlugRoute
+}
+
+const HostsRouteChildren: HostsRouteChildren = {
+  HostsSlugRoute: HostsSlugRoute,
+}
+
+const HostsRouteWithChildren = HostsRoute._addFileChildren(HostsRouteChildren)
 
 interface OrganizersRouteChildren {
   OrganizersSlugRoute: typeof OrganizersSlugRoute
@@ -1582,6 +1726,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRouteRoute: AuthRouteRouteWithChildren,
   CastersRoute: CastersRouteWithChildren,
   EventsRoute: EventsRouteWithChildren,
+  HostsRoute: HostsRouteWithChildren,
   LoginRoute: LoginRoute,
   OrganizersRoute: OrganizersRouteWithChildren,
   PlayersRoute: PlayersRouteWithChildren,

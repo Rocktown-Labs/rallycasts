@@ -11,7 +11,7 @@ export const Route = createFileRoute("/organizers/$slug")({
   beforeLoad: ({ params }) => {
     throw redirect({
       params: { slug: params.slug },
-      to: "/events/organizers/$slug",
+      to: "/events/hosts/$slug",
     });
   },
 });
@@ -20,9 +20,7 @@ export function OrganizationProfilePage({ slug }: { slug: string }) {
   const { data: session } = authClient.useSession();
   const { data, isLoading } = useQuery({
     queryFn: () =>
-      readApiJson(
-        apiClient.api.v1.organizations[":slug"].$get({ param: { slug } })
-      ),
+      readApiJson(apiClient.api.v1.hosts[":slug"].$get({ param: { slug } })),
     queryKey: ["organization", slug],
   });
   if (isLoading) {
@@ -70,7 +68,7 @@ export function OrganizationProfilePage({ slug }: { slug: string }) {
             </div>
           </div>
           {canManage ? (
-            <Link params={{ slug }} to="/events/organizers/$slug/manage">
+            <Link params={{ slug }} to="/events/hosts/$slug/manage">
               <Button>Manage organization</Button>
             </Link>
           ) : null}
@@ -163,3 +161,5 @@ export function OrganizationProfilePage({ slug }: { slug: string }) {
     </main>
   );
 }
+
+export const HostProfilePage = OrganizationProfilePage;

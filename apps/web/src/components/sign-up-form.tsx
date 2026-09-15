@@ -1,3 +1,8 @@
+import {
+  useSendVerificationEmail,
+  useSignInSocial,
+  useSignUpEmail,
+} from "@better-auth-ui/react";
 import { Button } from "@rallycaststv/ui/components/button";
 import {
   Card,
@@ -16,6 +21,7 @@ import { toast } from "sonner";
 import z from "zod";
 
 import { authClient } from "@/lib/auth-client";
+import { getAuthErrorMessage } from "@/lib/auth-errors";
 
 import Loader from "./loader";
 
@@ -24,7 +30,42 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
     from: "/",
   });
   const { isPending } = authClient.useSession();
+  const [isResending, setIsResending] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState("");
   const [verificationSent, setVerificationSent] = useState(false);
+  const signUpEmail = useSignUpEmail(authClient, {
+    onError: (error) => toast.error(getAuthErrorMessage(error)),
+  });
+  const signInSocial = useSignInSocial(authClient, {
+    onError: (error) => toast.error(getAuthErrorMessage(error)),
+  });
+  const sendVerificationEmail = useSendVerificationEmail(authClient);
+
+  const signInWithGoogle = () => {
+    signInSocial.mutate({
+      callbackURL: new URL("/onboarding", window.location.origin).toString(),
+      provider: "google",
+    });
+  };
+
+  const resendVerification = async () => {
+    if (!verificationEmail || isResending) {
+      return;
+    }
+
+    setIsResending(true);
+    try {
+      await sendVerificationEmail.mutateAsync({
+        callbackURL: new URL("/onboarding", window.location.origin).toString(),
+        email: verificationEmail,
+      });
+      toast.success("A fresh verification link is on its way");
+    } catch (error) {
+      toast.error(getAuthErrorMessage(error));
+    } finally {
+      setIsResending(false);
+    }
+  };
 
   const form = useForm({
     defaultValues: {
@@ -34,26 +75,29 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
       password: "",
     },
     onSubmit: async ({ value }) => {
-      const { data, error } = await authClient.signUp.email({
-        callbackURL: new URL("/onboarding", window.location.origin).toString(),
-        email: value.email,
-        name: value.name,
-        password: value.password,
-      });
+      try {
+        const data = await signUpEmail.mutateAsync({
+          callbackURL: new URL(
+            "/onboarding",
+            window.location.origin
+          ).toString(),
+          email: value.email,
+          name: value.name,
+          password: value.password,
+        });
 
-      if (error) {
-        toast.error(error.message || error.statusText);
-        return;
+        if (data.token) {
+          navigate({ to: "/onboarding" });
+          toast.success("Sign up successful");
+          return;
+        }
+
+        setVerificationEmail(value.email);
+        setVerificationSent(true);
+        toast.success("Check your email to verify your account");
+      } catch {
+        // The mutation handler presents the Better Auth error to the user.
       }
-
-      if (data?.token) {
-        navigate({ to: "/onboarding" });
-        toast.success("Sign up successful");
-        return;
-      }
-
-      setVerificationSent(true);
-      toast.success("Check your email to verify your account");
     },
     validators: {
       onSubmit: z.object({
@@ -86,8 +130,16 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-center text-sm text-muted-foreground">
-              If you do not see it, check your spam folder.
+              If you do not see it, check your spam folder. You can also send a
+              fresh link.
             </p>
+            <Button
+              onClick={() => void resendVerification()}
+              disabled={isResending}
+              className="h-9 w-full rounded-md bg-primary text-xs font-semibold text-brand-yellow hover:bg-primary/95"
+            >
+              {isResending ? "Sending..." : "Resend Verification Email"}
+            </Button>
             <Button
               onClick={onSwitchToSignIn}
               variant="outline"
@@ -118,6 +170,20 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={signInWithGoogle}
+            disabled={signInSocial.isPending}
+            className="h-9 w-full rounded-md text-xs font-semibold"
+          >
+            {signInSocial.isPending ? "Connecting..." : "Continue with Google"}
+          </Button>
+          <div className="my-4 flex items-center gap-3 text-[10px] text-muted-foreground">
+            <div className="h-px flex-1 bg-border" />
+            <span>OR SIGN UP WITH EMAIL</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -310,9 +376,11 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
                 <Button
                   type="submit"
                   className="w-full h-9 mt-2 text-xs font-semibold rounded-md bg-primary text-brand-yellow hover:bg-primary/95 transition-all shadow-md"
-                  disabled={!canSubmit || isSubmitting}
+                  disabled={!canSubmit || isSubmitting || signUpEmail.isPending}
                 >
-                  {isSubmitting ? "Creating Account..." : "Sign Up"}
+                  {isSubmitting || signUpEmail.isPending
+                    ? "Creating Account..."
+                    : "Sign Up"}
                 </Button>
               )}
             </form.Subscribe>

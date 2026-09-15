@@ -66,8 +66,8 @@ export const emailsRouter = new Hono<AppEnv>()
           });
     const text =
       template === "welcome"
-        ? `Welcome to RallyCasts, ${username}!`
-        : `Hi ${username}, we received a request to reset your RallyCasts password.`;
+        ? `Welcome to the RallyCasts rally, ${username}! Your next pickleball match starts here.`
+        : `Hi ${username}, get back in the game: we received a request to reset your RallyCasts password.`;
     const recipients = Array.isArray(to) ? to : [to];
     const idempotencyKey =
       c.req.header("Idempotency-Key") ??

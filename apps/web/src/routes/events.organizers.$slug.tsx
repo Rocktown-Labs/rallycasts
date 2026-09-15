@@ -1,13 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
-
-import { OrganizationProfilePage } from "./organizers.$slug";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/events/organizers/$slug")({
-  component: OrganizationProfileRoute,
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      params: { slug: params.slug },
+      to: "/events/hosts/$slug",
+    });
+  },
 });
-
-function OrganizationProfileRoute() {
-  const { slug } = Route.useParams();
-
-  return <OrganizationProfilePage slug={slug} />;
-}

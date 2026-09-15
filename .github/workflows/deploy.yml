@@ -12,7 +12,6 @@ concurrency:
 
 env:
   STAGE: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || (github.ref == 'refs/heads/master' && 'prod' || github.ref_name) }}
-  ALCHEMY_STATE_FORCE_UPDATE: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
 
 jobs:
   deploy:
@@ -325,6 +324,9 @@ jobs:
             printf 'authoritative DNS:\n%s\npublic DNS:\n%s\n' "$AUTHORITATIVE_DNS_RESPONSE" "$PUBLIC_DNS_RESPONSE"
             rm -f "$CUSTOM_DOMAIN_RESPONSE"
           fi
+          # Rotate the shared v1 state-service token without forcing a Worker
+          # replacement. A forced re-upload can race the secret deployment and
+          # make the state store reject the same token used by this job.
           printf "%s" "$ALCHEMY_STATE_TOKEN" | bun x wrangler secret put STATE_TOKEN --name alchemy-state-service
           cd packages/infra && bun x alchemy deploy --stage ${{ env.STAGE }}
         env:
@@ -335,6 +337,8 @@ jobs:
           CLOUDFLARE_EMAIL: ${{ secrets.CLOUDFLARE_EMAIL }}
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
           E2E_SEED_TOKEN: ${{ secrets.E2E_SEED_TOKEN }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
           MUX_SIGNING_KEY_ID: ${{ secrets.MUX_SIGNING_KEY_ID }}
           MUX_SIGNING_KEY_SECRET: ${{ secrets.MUX_SIGNING_KEY_SECRET }}

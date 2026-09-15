@@ -2,13 +2,20 @@ import { cn } from "@rallycaststv/ui/lib/utils";
 import { Link, useMatches } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
 
-const breadcrumbLabels = new Map<string, string>([
+export const breadcrumbLabels = new Map<string, string>([
   ["/", "rallycasts"],
   ["/trending", "trending"],
   ["/players", "players"],
   ["/events", "events"],
   ["/casters", "casters"],
-  ["/events/organizers", "organizers"],
+  ["/events/hosts", "hosts"],
+  ["/events/hosts/new", "new"],
+  ["/events/hosts/manage", "manage"],
+  ["/hosts", "hosts"],
+  ["/events/organizers", "hosts"],
+  ["/organizers", "hosts"],
+  ["/events/organizers/new", "new"],
+  ["/events/organizers/manage", "manage"],
   ["/shop", "shop"],
   ["/videos", "videos"],
   ["/u/me", "me"],
@@ -31,29 +38,64 @@ const breadcrumbLabels = new Map<string, string>([
   ["/onboarding", "onboarding"],
 ]);
 
-const humanize = (value: string) => value.replaceAll("-", " ");
+export const humanize = (value: string) => value.replaceAll("-", " ");
 
-export default function Breadcrumbs() {
-  const matches = useMatches();
+export function getVisiblePathnames(rawPathnames: string[]): string[] {
   const pathnames = [
     ...new Set(
-      matches
+      rawPathnames
         // Remove trailing slash
-        .map((match) => match.pathname.replace(/\/$/u, ""))
+        .map((pathname) => pathname.replace(/\/$/u, ""))
         .filter((pathname) => pathname !== "")
     ),
   ];
 
   const hasUserSubRoute = pathnames.some((p) => p.startsWith("/u/"));
-  const visiblePathnames = pathnames.filter((pathname) => {
+  const hasHostsRoute = pathnames.some(
+    (p) =>
+      p === "/events/hosts" ||
+      p.startsWith("/events/hosts/") ||
+      p === "/events/organizers" ||
+      p.startsWith("/events/organizers/")
+  );
+
+  if (
+    hasHostsRoute &&
+    !pathnames.includes("/events/hosts") &&
+    !pathnames.includes("/events/organizers")
+  ) {
+    const firstSubIndex = pathnames.findIndex(
+      (p) =>
+        p.startsWith("/events/hosts/") || p.startsWith("/events/organizers/")
+    );
+    const targetParent = pathnames.some((p) => p.startsWith("/events/hosts/"))
+      ? "/events/hosts"
+      : "/events/organizers";
+    if (firstSubIndex === -1) {
+      pathnames.push(targetParent);
+    } else {
+      pathnames.splice(firstSubIndex, 0, targetParent);
+    }
+  }
+
+  return pathnames.filter((pathname) => {
     if (pathname === "/") {
       return false;
     }
     if (pathname === "/u" && hasUserSubRoute) {
       return false;
     }
+    if (pathname === "/events" && hasHostsRoute) {
+      return false;
+    }
     return true;
   });
+}
+
+export default function Breadcrumbs() {
+  const matches = useMatches();
+  const rawPathnames = matches.map((match) => match.pathname);
+  const visiblePathnames = getVisiblePathnames(rawPathnames);
 
   return (
     <nav
@@ -69,7 +111,7 @@ export default function Breadcrumbs() {
         return (
           <div key={pathname} className="flex min-w-0 items-center gap-1.5">
             {index > 0 ? (
-              <ChevronRight className="size-4 text-muted-foreground" />
+              <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
             ) : null}
             <Link
               to={pathname}

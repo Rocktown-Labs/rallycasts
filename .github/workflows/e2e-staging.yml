@@ -16,7 +16,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       STAGE: staging
-      ALCHEMY_STATE_FORCE_UPDATE: "true"
       E2E_BASE_URL: https://rallycasts-web-staging.rocktown-labs.workers.dev
       E2E_API_URL: https://rallycasts-server-staging.rocktown-labs.workers.dev
       E2E_RUN_MUX_UPLOAD: "true"

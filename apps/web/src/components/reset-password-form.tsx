@@ -1,3 +1,4 @@
+import { useResetPassword } from "@better-auth-ui/react";
 import { Button } from "@rallycaststv/ui/components/button";
 import {
   Card,
@@ -15,6 +16,7 @@ import { toast } from "sonner";
 import z from "zod";
 
 import { authClient } from "@/lib/auth-client";
+import { getAuthErrorMessage } from "@/lib/auth-errors";
 
 import Loader from "./loader";
 
@@ -23,6 +25,13 @@ const ResetPasswordForm = () => {
   const { token } = useSearch({ from: "/reset-password" });
   const { isPending } = authClient.useSession();
   const [done, setDone] = useState(false);
+  const resetPassword = useResetPassword(authClient, {
+    onError: (error) => toast.error(getAuthErrorMessage(error)),
+    onSuccess: () => {
+      setDone(true);
+      toast.success("Password reset successfully");
+    },
+  });
 
   const form = useForm({
     defaultValues: {
@@ -35,21 +44,14 @@ const ResetPasswordForm = () => {
         return;
       }
 
-      await authClient.resetPassword(
-        {
+      try {
+        await resetPassword.mutateAsync({
           newPassword: value.password,
           token,
-        },
-        {
-          onError: (error) => {
-            toast.error(error.error.message || error.error.statusText);
-          },
-          onSuccess: () => {
-            setDone(true);
-            toast.success("Password reset successfully");
-          },
-        }
-      );
+        });
+      } catch {
+        // The mutation handler presents the Better Auth error to the user.
+      }
     },
     validators: {
       onSubmit: z
@@ -228,9 +230,13 @@ const ResetPasswordForm = () => {
                 <Button
                   type="submit"
                   className="w-full h-9 mt-2 text-xs font-semibold rounded-md bg-primary text-brand-yellow hover:bg-primary/95 transition-all shadow-md"
-                  disabled={!canSubmit || isSubmitting}
+                  disabled={
+                    !canSubmit || isSubmitting || resetPassword.isPending
+                  }
                 >
-                  {isSubmitting ? "Resetting..." : "Reset Password"}
+                  {isSubmitting || resetPassword.isPending
+                    ? "Resetting..."
+                    : "Reset Password"}
                 </Button>
               )}
             </form.Subscribe>

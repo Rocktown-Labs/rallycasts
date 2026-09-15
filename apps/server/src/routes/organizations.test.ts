@@ -177,4 +177,25 @@ describe("organizations API", () => {
     );
     expect(updateResponse.status).toBe(404);
   });
+
+  it("serves the hosts API via /api/v1/hosts", async () => {
+    const owner = await signUp("Host Route User");
+    const slug = `host-alias-${crypto.randomUUID().slice(0, 8)}`;
+
+    const createResponse = await jsonRequest("/api/v1/hosts", owner.cookie, {
+      city: "Austin",
+      name: "Host Route Organization",
+      slug,
+      state: "TX",
+    });
+    expect(createResponse.status).toBe(201);
+
+    const listResponse = await app.request("/api/v1/hosts", {}, env);
+    expect(listResponse.status).toBe(200);
+    await expect(listResponse.json()).resolves.toMatchObject({
+      organizations: expect.arrayContaining([
+        expect.objectContaining({ slug }),
+      ]),
+    });
+  });
 });

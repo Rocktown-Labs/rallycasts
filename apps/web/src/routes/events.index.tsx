@@ -99,14 +99,14 @@ function LocalOrganizersSection({
       <div className="flex items-center justify-between">
         <div>
           <h2 className="flex items-center gap-2 text-xl font-bold tracking-tight text-foreground">
-            <Building2 className="size-5 text-primary" /> Local Organizers
+            <Building2 className="size-5 text-primary" /> Local Hosts
           </h2>
           <p className="mt-1 text-xs text-muted-foreground">
             Clubs, leagues, and hosts creating events near {userState}.
           </p>
         </div>
         <Link
-          to="/events/organizers"
+          to="/events/hosts"
           className="rounded-md px-3 py-2 text-xs font-semibold text-primary hover:bg-muted hover:text-primary/80"
         >
           View All
@@ -119,7 +119,7 @@ function LocalOrganizersSection({
               className="group w-72 shrink-0 rounded-lg border border-border bg-card p-4 shadow-sm transition-colors hover:border-primary/40"
               key={organization.id}
               params={{ slug: organization.slug }}
-              to="/events/organizers/$slug"
+              to="/events/hosts/$slug"
             >
               <div className="flex items-start gap-3">
                 <div className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-lg bg-primary/10 text-primary">
@@ -150,7 +150,7 @@ function LocalOrganizersSection({
               </div>
               <p className="mt-3 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
                 {organization.bio ??
-                  "Tournament and pickleball community organizer."}
+                  "Tournament and pickleball community host."}
               </p>
             </Link>
           ))}
@@ -158,8 +158,8 @@ function LocalOrganizersSection({
       ) : (
         <EmptyState
           icon={<Building2 className="size-5" />}
-          message="Organizations will appear here as local hosts create their profiles."
-          title="No organizers yet"
+          message="Hosts will appear here as local clubs and organizers create their profiles."
+          title="No hosts yet"
         />
       )}
     </div>
