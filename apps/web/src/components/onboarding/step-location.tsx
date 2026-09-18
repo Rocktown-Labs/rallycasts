@@ -1,11 +1,14 @@
 import { debounce } from "@tanstack/pacer";
+import { useStore } from "@tanstack/react-form";
 import {
+  Building2,
   Check,
   CheckCircle2,
   Compass,
   Loader2,
   MapPin,
   Search,
+  Sparkles,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -15,7 +18,7 @@ import { mapGooglePlaceToCourtSuggestion } from "@/lib/google-places";
 import { useGeolocation, usePlaceSearch } from "@/lib/hooks";
 import { withForm } from "@/lib/hooks/onboarding-form";
 
-import { wizardFormOpts } from "./shared-form";
+import { US_STATES, wizardFormOpts } from "./shared-form";
 
 export const StepLocation = withForm({
   ...wizardFormOpts,
@@ -31,7 +34,17 @@ export const StepLocation = withForm({
     const [stateError, setStateError] = useState<string | null>(null);
     const [courtError, setCourtError] = useState<string | null>(null);
 
+    // Reactive subscription to form location values
+    const locationValues = useStore(
+      form.store,
+      (state) => state.values.location
+    );
+    const homeCourtName = locationValues.homeCourtName || "";
+    const homeCity = locationValues.homeCity || "";
+    const homeState = locationValues.homeState || "";
+
     const {
+      error: geoError,
       isLoading: isGeoLoading,
       location: geoLoc,
       requestLocation,
@@ -57,10 +70,6 @@ export const StepLocation = withForm({
 
     const { data, isFetching } = usePlaceSearch(debouncedQuery);
 
-    const homeCourtName = form.getFieldValue("location.homeCourtName") || "";
-    const homeCity = form.getFieldValue("location.homeCity") || "";
-    const homeState = form.getFieldValue("location.homeState") || "";
-
     const suggestions = useMemo(
       () => (data?.places ?? []).map(mapGooglePlaceToCourtSuggestion),
       [data?.places]
@@ -73,7 +82,10 @@ export const StepLocation = withForm({
         setCityError(null);
       }
       if (addr.stateCode) {
-        form.setFieldValue("location.homeState", addr.stateCode);
+        form.setFieldValue(
+          "location.homeState",
+          addr.stateCode.toUpperCase().slice(0, 2)
+        );
         setStateError(null);
       }
       form.setFieldValue("location.homeLatitude", addr.latitude);
@@ -85,18 +97,34 @@ export const StepLocation = withForm({
       toast.success(`Home court pinned: ${addr.addressLabel}`);
     };
 
+    const selectCustomCourt = (courtName: string) => {
+      const trimmed = courtName.trim();
+      if (!trimmed) {
+        return;
+      }
+      form.setFieldValue("location.homeCourtName", trimmed);
+      setCourtError(null);
+      setSearchQuery("");
+      setShowDropdown(false);
+      toast.success(`Home court set: ${trimmed}`);
+    };
+
     const handleUseCurrentLocation = () => {
+      toast.info("Detecting your location via GPS and network...");
       requestLocation();
     };
 
-    // When geolocation finishes, pre-populate City/State and trigger nearby search
+    // When geolocation arrives, pre-populate City/State and trigger nearby search
     useEffect(() => {
       if (geoLoc?.city) {
         form.setFieldValue("location.homeCity", geoLoc.city);
         setCityError(null);
       }
       if (geoLoc?.stateCode) {
-        form.setFieldValue("location.homeState", geoLoc.stateCode);
+        form.setFieldValue(
+          "location.homeState",
+          geoLoc.stateCode.toUpperCase().slice(0, 2)
+        );
         setStateError(null);
       }
       if (geoLoc?.lat && geoLoc?.lng) {
@@ -111,24 +139,42 @@ export const StepLocation = withForm({
       }
     }, [geoLoc, form, homeCourtName]);
 
+    useEffect(() => {
+      if (geoError) {
+        toast.error(`Location detection: ${geoError}`);
+      }
+    }, [geoError]);
+
     const handleContinue = () => {
       let hasError = false;
 
-      if (homeCity.trim()) {
+      const trimmedCity = homeCity.trim();
+      const trimmedState = homeState.trim().toUpperCase();
+      let courtName = homeCourtName.trim();
+
+      if (trimmedCity) {
         setCityError(null);
       } else {
         setCityError("City is required");
         hasError = true;
       }
 
-      if (homeState.trim()) {
+      if (/^[A-Z]{2}$/u.test(trimmedState)) {
         setStateError(null);
       } else {
-        setStateError("State code is required (e.g. AR, CA, TX)");
+        setStateError(
+          "State code must be exactly 2 uppercase letters (e.g. AR, CA, NY)"
+        );
         hasError = true;
       }
 
-      if (homeCourtName.trim()) {
+      // If user typed a court name in the search box but didn't click "Select", auto-use what they entered
+      if (!courtName && searchQuery.trim()) {
+        courtName = searchQuery.trim();
+        form.setFieldValue("location.homeCourtName", courtName);
+      }
+
+      if (courtName) {
         setCourtError(null);
       } else {
         setCourtError("Please search and select your home court or park");
@@ -136,7 +182,9 @@ export const StepLocation = withForm({
       }
 
       if (hasError) {
-        toast.error("Please fill in your home city, state, and home court.");
+        toast.error(
+          "Please provide your home city, 2-letter state code, and home court."
+        );
         return;
       }
 
@@ -165,22 +213,30 @@ export const StepLocation = withForm({
               </div>
 
               {/* Quick Geolocation button */}
-              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/80 bg-muted/20 p-3">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Compass className="size-4 text-primary shrink-0" />
-                  <span>
-                    Auto-detect your location for instant court matching
-                  </span>
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 p-3.5 shadow-xs">
+                <div className="flex items-center gap-2.5 text-xs text-foreground/80">
+                  <div className="rounded-lg bg-primary/10 p-1.5 text-primary">
+                    <Compass className="size-4 shrink-0" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground">
+                      Instant court matching
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Auto-detect city and state from your current device
+                      location
+                    </p>
+                  </div>
                 </div>
                 <button
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-background border border-border/80 px-3 py-1.5 text-xs font-semibold hover:border-primary/50 hover:bg-accent transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-background border border-border/80 px-3.5 py-1.5 text-xs font-semibold hover:border-primary/50 hover:bg-accent transition-colors cursor-pointer shadow-xs"
                   disabled={isGeoLoading}
                   onClick={handleUseCurrentLocation}
                   type="button"
                 >
                   {isGeoLoading ? (
                     <>
-                      <Loader2 className="size-3.5 animate-spin" />
+                      <Loader2 className="size-3.5 animate-spin text-primary" />
                       Locating...
                     </>
                   ) : (
@@ -198,8 +254,9 @@ export const StepLocation = withForm({
                   {(field) => (
                     <field.FormInput
                       error={cityError ?? undefined}
+                      icon={Building2}
                       label="Home City"
-                      placeholder="e.g. Little Rock"
+                      placeholder="e.g. Searcy"
                       required={true}
                     />
                   )}
@@ -208,13 +265,24 @@ export const StepLocation = withForm({
                   {(field) => (
                     <field.FormInput
                       error={stateError ?? undefined}
-                      hint="2-letter state code"
+                      hint="2-letter postal code (e.g. AR, CA, NY)"
+                      icon={MapPin}
                       label="Home State"
-                      placeholder="e.g. AR"
+                      list="us-states-datalist"
+                      maxLength={2}
+                      placeholder="AR"
                       required={true}
+                      uppercase={true}
                     />
                   )}
                 </form.AppField>
+                <datalist id="us-states-datalist">
+                  {US_STATES.map((state) => (
+                    <option key={state.code} value={state.code}>
+                      {state.name} ({state.code})
+                    </option>
+                  ))}
+                </datalist>
               </div>
 
               {/* Real Address & Court Search via Google Places API (Debounced via TanStack Pacer) */}
@@ -244,11 +312,11 @@ export const StepLocation = withForm({
                   <Search className="absolute left-3 top-3 size-4 text-muted-foreground pointer-events-none" />
                   <input
                     aria-label="Search courts"
-                    className="h-10 w-full rounded-lg border border-input bg-background/50 pl-9 pr-3 py-1 text-xs font-medium transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring"
+                    className="h-10 w-full rounded-xl border border-input bg-background/50 pl-9 pr-3 py-1 text-xs sm:text-sm font-medium transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring"
                     id="court-search-input"
                     onChange={(e) => handleSearchInput(e.target.value)}
                     onFocus={() => setShowDropdown(true)}
-                    placeholder="Type park or court name (e.g. Crestwood Park, Kanis Park)..."
+                    placeholder="Type park or court name (e.g. Berryhill Park, Crestwood Park)..."
                     type="text"
                     value={searchQuery}
                   />
@@ -258,13 +326,14 @@ export const StepLocation = withForm({
                   <p className="text-xs text-destructive">{courtError}</p>
                 )}
 
-                {/* Dropdown with Google Places Results */}
-                {showDropdown && debouncedQuery.length >= 3 && (
+                {/* Dropdown with Google Places Results or Custom Court Option */}
+                {showDropdown && debouncedQuery.length >= 2 && (
                   <div className="absolute z-30 w-full mt-1 rounded-xl border border-border bg-popover text-popover-foreground shadow-xl max-h-64 overflow-y-auto divide-y divide-border/40">
                     {renderCourtSuggestions({
                       debouncedQuery,
                       isFetching,
                       onSelectCourt: selectCourt,
+                      onSelectCustom: selectCustomCourt,
                       suggestions,
                     })}
                   </div>
@@ -277,19 +346,20 @@ export const StepLocation = withForm({
                   <div className="flex items-start gap-3 min-w-0">
                     <CheckCircle2 className="size-5 text-primary shrink-0 mt-0.5" />
                     <div className="min-w-0 space-y-0.5">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-primary flex items-center gap-1">
+                        <Sparkles className="size-3 text-brand-yellow" />
                         Pinned Home Court
                       </p>
                       <p className="text-sm font-bold text-foreground truncate">
                         {homeCourtName}
                       </p>
                       <p className="text-xs text-muted-foreground truncate">
-                        {homeCity}, {homeState}
+                        {[homeCity, homeState].filter(Boolean).join(", ")}
                       </p>
                     </div>
                   </div>
                   <button
-                    className="text-xs text-muted-foreground hover:text-foreground underline shrink-0 cursor-pointer"
+                    className="text-xs text-muted-foreground hover:text-foreground underline shrink-0 cursor-pointer font-medium"
                     onClick={() => {
                       form.setFieldValue("location.homeCourtName", "");
                       setSearchQuery("");
@@ -331,11 +401,13 @@ function renderCourtSuggestions({
   debouncedQuery,
   isFetching,
   onSelectCourt,
+  onSelectCustom,
   suggestions,
 }: {
   debouncedQuery: string;
   isFetching: boolean;
   onSelectCourt: (addr: CourtSuggestion) => void;
+  onSelectCustom: (courtName: string) => void;
   suggestions: CourtSuggestion[];
 }) {
   if (isFetching) {
@@ -349,9 +421,18 @@ function renderCourtSuggestions({
 
   if (suggestions.length === 0) {
     return (
-      <div className="p-4 text-xs text-muted-foreground text-center">
-        No venues found matching "{debouncedQuery}". Try another park or street
-        name.
+      <div className="p-4 text-xs text-center space-y-2.5">
+        <p className="text-muted-foreground">
+          No venues found matching "{debouncedQuery}".
+        </p>
+        <button
+          className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 border border-primary/30 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors cursor-pointer"
+          onClick={() => onSelectCustom(debouncedQuery)}
+          type="button"
+        >
+          <MapPin className="size-3.5" />
+          Use "{debouncedQuery}" as my home court
+        </button>
       </div>
     );
   }
@@ -379,6 +460,15 @@ function renderCourtSuggestions({
           </span>
         </button>
       ))}
+      <div className="p-2.5 border-t border-border/40 text-center bg-muted/20">
+        <button
+          className="text-xs text-primary hover:underline font-medium cursor-pointer"
+          onClick={() => onSelectCustom(debouncedQuery)}
+          type="button"
+        >
+          Can't find it? Use "{debouncedQuery}" as my home court
+        </button>
+      </div>
     </>
   );
 }

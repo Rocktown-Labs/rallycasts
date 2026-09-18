@@ -80,13 +80,9 @@ export function useGeolocation(enabled = true): {
 } {
   const [location, setLocation] = useState<GeoLocation | undefined>();
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(enabled);
 
   const requestLocation = useCallback(() => {
-    if (!enabled) {
-      setIsLoading(false);
-      return () => null;
-    }
     if (typeof window === "undefined") {
       setIsLoading(false);
       return () => null;
@@ -165,9 +161,14 @@ export function useGeolocation(enabled = true): {
     return () => {
       cancelled = true;
     };
-  }, [enabled]);
+  }, []);
 
-  useEffect(() => requestLocation(), [requestLocation]);
+  useEffect(() => {
+    if (enabled) {
+      return requestLocation();
+    }
+    setIsLoading(false);
+  }, [enabled, requestLocation]);
 
   return { error, isLoading, location, requestLocation };
 }

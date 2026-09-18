@@ -129,4 +129,32 @@ describe("useGeolocation", () => {
     expect(result.current.location).toBeUndefined();
     expect(result.current.error).toBe("Location permission denied");
   });
+
+  it("does not auto-fetch on mount when disabled, but fetches successfully on manual request", async () => {
+    vi.mocked(Radar.ipGeocode).mockResolvedValue({
+      address: {
+        city: "Searcy",
+        latitude: 35.25,
+        longitude: -91.74,
+        stateCode: "AR",
+      },
+    } as Awaited<ReturnType<typeof Radar.ipGeocode>>);
+
+    const { result } = renderHook(() => useGeolocation(false));
+
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.location).toBeUndefined();
+    expect(Radar.ipGeocode).not.toHaveBeenCalled();
+
+    result.current.requestLocation();
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.location).toEqual({
+      city: "Searcy",
+      label: "Searcy, AR",
+      lat: 35.25,
+      lng: -91.74,
+      stateCode: "AR",
+    });
+  });
 });
