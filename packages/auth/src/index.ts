@@ -28,6 +28,30 @@ const getCookieDomain = (url: string) => {
   // Do not set a parent-domain cookie for preview or public-suffix hosts.
 };
 
+const getWebBaseUrl = () => {
+  if (env.CORS_ORIGIN) {
+    const origins = env.CORS_ORIGIN.split(",")
+      .map((origin: string) => origin.trim())
+      .filter(Boolean);
+    const prodOrigin = origins.find(
+      (origin: string) =>
+        !origin.includes("localhost") && !origin.includes("127.0.0.1")
+    );
+    if (prodOrigin) {
+      return prodOrigin;
+    }
+    if (origins[0]) {
+      return origins[0];
+    }
+  }
+
+  if (isLocalUrl(env.BETTER_AUTH_URL)) {
+    return "http://localhost:3000";
+  }
+
+  return "https://rallycasts.com";
+};
+
 const getSocialProviders = () => ({
   github:
     env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET
@@ -41,7 +65,6 @@ const getSocialProviders = () => ({
       ? {
           clientId: env.GOOGLE_CLIENT_ID,
           clientSecret: env.GOOGLE_CLIENT_SECRET,
-          requireEmailVerification: true,
         }
       : undefined,
 });
@@ -72,6 +95,13 @@ export const createAuth = (
   const db = createDb(database);
 
   return betterAuth({
+    account: {
+      accountLinking: {
+        enabled: true,
+        requireLocalEmailVerified: false,
+        trustedProviders: ["google", "github"],
+      },
+    },
     advanced: {
       defaultCookieAttributes: {
         domain: getCookieDomain(env.BETTER_AUTH_URL),
@@ -95,6 +125,9 @@ export const createAuth = (
       autoSendOnSignUp: true,
       sendOnSignIn: true,
       sendVerificationEmail: emailCallbacks?.sendVerificationEmail,
+    },
+    onAPIError: {
+      errorURL: `${getWebBaseUrl()}/error`,
     },
     plugins: [
       expo(),

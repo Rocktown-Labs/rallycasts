@@ -123,6 +123,10 @@ const LinkedAccounts = () => {
                   "/u/settings",
                   window.location.origin
                 ).toString(),
+                errorCallbackURL: new URL(
+                  "/u/settings",
+                  window.location.origin
+                ).toString(),
                 provider: "google",
               })
             }

@@ -5,9 +5,12 @@ import {
   createRootRouteWithContext,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import type { ReactNode } from "react";
 import { z } from "zod";
 
 import AppShell from "@/components/layout/app-shell";
+import { CourtError } from "@/components/layout/court-error";
+import { CourtNotFound } from "@/components/layout/court-not-found";
 import Providers from "@/components/providers";
 
 import appCss from "../index.css?url";
@@ -16,6 +19,11 @@ export type RouterAppContext = Record<string, never>;
 
 export const Route = createRootRouteWithContext<RouterAppContext>()({
   component: RootDocument,
+  errorComponent: ({ error, reset }) => (
+    <RootDocument>
+      <CourtError error={error} reset={reset} />
+    </RootDocument>
+  ),
   head: () => ({
     links: [
       {
@@ -36,12 +44,17 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
       },
     ],
   }),
+  notFoundComponent: () => (
+    <RootDocument>
+      <CourtNotFound />
+    </RootDocument>
+  ),
   validateSearch: z.object({
     q: z.string().optional(),
   }),
 });
 
-function RootDocument() {
+function RootDocument({ children }: { children?: ReactNode } = {}) {
   return (
     <html lang="en" className="dark">
       <head>
@@ -49,7 +62,7 @@ function RootDocument() {
       </head>
       <body>
         <Providers>
-          <AppShell />
+          <AppShell>{children}</AppShell>
         </Providers>
         <Toaster richColors />
         <TanStackRouterDevtools position="bottom-left" />
