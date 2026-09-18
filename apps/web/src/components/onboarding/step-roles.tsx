@@ -1,3 +1,5 @@
+import { Check, Sparkles, Trophy, Tv, Users } from "lucide-react";
+
 import { withForm } from "@/lib/hooks/onboarding-form";
 
 import { wizardFormOpts } from "./shared-form";
@@ -9,16 +11,39 @@ export const StepRoles = withForm({
     setStep: (() => null) as (step: number) => void,
     step: 3,
   },
-  render: function render({ form, onFinish: _onFinish, setStep }) {
-    const accountTier = form.getFieldValue("roles.accountTier");
+  render: function render({ form, onFinish, setStep }) {
+    const accountTier = form.getFieldValue("roles.accountTier") || "free";
+
+    const rolesList = [
+      {
+        description:
+          "Play games, track your DUPR rating, challenge opponents, and request court recordings.",
+        icon: Users,
+        key: "isPlayer" as const,
+        label: "Player",
+      },
+      {
+        description:
+          "Host tournaments, manage club leagues, publish brackets, and schedule live event casts.",
+        icon: Trophy,
+        key: "isOrganizer" as const,
+        label: "Host",
+      },
+      {
+        description:
+          "Stream matches live, record play-by-play commentary, and publish featured video highlights.",
+        icon: Tv,
+        key: "isCaster" as const,
+        label: "Caster",
+      },
+    ];
+
+    const handleFormSubmit = () => {
+      onFinish();
+    };
 
     return (
-      <form.FormGroup
-        name="roles"
-        onGroupSubmit={() => {
-          form.handleSubmit();
-        }}
-      >
+      <form.FormGroup name="roles" onGroupSubmit={handleFormSubmit}>
         {(formGroup) => (
           <form
             onSubmit={(e) => {
@@ -28,142 +53,146 @@ export const StepRoles = withForm({
             }}
           >
             <div className="space-y-6">
-              <div className="space-y-2">
-                <h2 className="text-xl font-bold">How do you participate?</h2>
-                <p className="text-sm text-muted-foreground">
-                  Select the roles that fit you. You can change these anytime in
-                  settings.
+              <div className="space-y-1">
+                <h2 className="text-xl font-bold tracking-tight">
+                  How do you participate in RallyCasts?
+                </h2>
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  Select your roles on the platform. You can be a player, host,
+                  or caster, and update these anytime in your account settings.
                 </p>
               </div>
 
-              {/* Role Toggles */}
-              <div className="space-y-3">
-                {[
-                  {
-                    description:
-                      "Play games, track ratings, challenge other players, and request recordings.",
-                    key: "isPlayer" as const,
-                    label: "Player",
-                  },
-                  {
-                    description:
-                      "Host tournaments, manage leagues, and publish brackets.",
-                    key: "isOrganizer" as const,
-                    label: "Organizer",
-                  },
-                  {
-                    description:
-                      "Stream, record commentary, and publish featured content.",
-                    key: "isCaster" as const,
-                    label: "Caster",
-                  },
-                ].map((role) => {
-                  const value = form.getFieldValue(`roles.${role.key}`);
-                  return (
-                    <button
-                      className={`w-full flex items-start gap-3 rounded-xl border p-4 text-left transition-all hover:border-primary/40 ${
-                        value
-                          ? "border-primary bg-primary/5"
-                          : "border-border bg-card"
-                      }`}
-                      key={role.key}
-                      onClick={() =>
-                        form.setFieldValue(`roles.${role.key}`, !value)
-                      }
-                      type="button"
-                    >
-                      <div
-                        className={`mt-0.5 size-5 rounded border flex items-center justify-center shrink-0 transition-colors ${
+              {/* Role Selection Toggles */}
+              <div className="space-y-2.5">
+                <span className="text-sm font-medium">Community roles</span>
+                <div className="space-y-2.5">
+                  {rolesList.map((role) => {
+                    const value = Boolean(
+                      form.getFieldValue(`roles.${role.key}`)
+                    );
+                    const Icon = role.icon;
+                    return (
+                      <button
+                        className={`w-full flex items-start gap-3.5 rounded-xl border p-4 text-left transition-all cursor-pointer ${
                           value
-                            ? "bg-primary border-primary text-primary-foreground"
-                            : "border-input bg-background"
+                            ? "border-primary bg-primary/10 shadow-xs ring-1 ring-primary/40"
+                            : "border-border/70 bg-card/60 hover:border-primary/50 hover:bg-muted/30"
                         }`}
+                        key={role.key}
+                        onClick={() =>
+                          form.setFieldValue(`roles.${role.key}`, !value)
+                        }
+                        type="button"
                       >
-                        {value && (
-                          <svg
-                            className="size-3.5"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth={3}
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              d="M5 12l5 5L20 7"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
+                        <div
+                          className={`mt-0.5 size-5 rounded-md border flex items-center justify-center shrink-0 transition-colors ${
+                            value
+                              ? "bg-primary border-primary text-primary-foreground"
+                              : "border-input bg-background/50"
+                          }`}
+                        >
+                          {value && <Check className="size-3.5 stroke-[3]" />}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <Icon
+                              className={`size-4 ${
+                                value ? "text-primary" : "text-muted-foreground"
+                              }`}
                             />
-                          </svg>
-                        )}
-                      </div>
-                      <div>
-                        <span className="block text-sm font-bold">
-                          {role.label}
-                        </span>
-                        <span className="block text-xs text-muted-foreground mt-0.5">
-                          {role.description}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
+                            <span className="text-sm font-bold text-foreground">
+                              {role.label}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                            {role.description}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Plan Selection */}
-              <div className="space-y-3">
-                <label className="text-sm font-medium" htmlFor="plan-select">
-                  Choose your plan
-                </label>
+              <div className="space-y-2.5">
+                <span className="text-sm font-medium">
+                  Choose your account tier
+                </span>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <button
-                    className={`relative rounded-xl border p-4 text-left transition-all hover:border-primary/40 ${
+                    className={`relative rounded-xl border p-4 text-left transition-all cursor-pointer ${
                       accountTier === "free"
-                        ? "border-primary bg-primary/5 ring-1 ring-primary"
-                        : "border-border bg-card"
+                        ? "border-primary bg-primary/10 shadow-xs ring-2 ring-primary/40"
+                        : "border-border/70 bg-card/60 hover:border-primary/50 hover:bg-muted/30"
                     }`}
                     onClick={() =>
                       form.setFieldValue("roles.accountTier", "free")
                     }
                     type="button"
                   >
-                    <span className="block text-sm font-bold">Free</span>
-                    <span className="block text-xs text-muted-foreground mt-1">
-                      Player profile, local discovery, event browsing, and basic
-                      recordings.
-                    </span>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-bold text-foreground">
+                        Standard Free
+                      </span>
+                      {accountTier === "free" && (
+                        <span className="rounded-full bg-primary text-primary-foreground p-0.5">
+                          <Check className="size-2.5 stroke-[3]" />
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Player profile, local court discovery, community match
+                      scores, and video browsing.
+                    </p>
                   </button>
+
                   <button
-                    className={`relative rounded-xl border p-4 text-left transition-all hover:border-primary/40 ${
+                    className={`relative rounded-xl border p-4 text-left transition-all cursor-pointer ${
                       accountTier === "premium"
-                        ? "border-primary bg-primary/5 ring-1 ring-primary"
-                        : "border-border bg-card"
+                        ? "border-primary bg-primary/10 shadow-xs ring-2 ring-primary/40"
+                        : "border-border/70 bg-card/60 hover:border-primary/50 hover:bg-muted/30"
                     }`}
                     onClick={() =>
                       form.setFieldValue("roles.accountTier", "premium")
                     }
                     type="button"
                   >
-                    <span className="block text-sm font-bold">Premium</span>
-                    <span className="block text-xs text-muted-foreground mt-1">
-                      Everything in Free plus unlimited uploads, advanced
-                      analytics, and priority casting.
-                    </span>
-                    <span className="absolute top-3 right-3 text-[10px] font-bold uppercase tracking-wider bg-brand-yellow text-black px-1.5 py-0.5 rounded">
-                      Coming Soon
-                    </span>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                        <Sparkles className="size-3.5 text-brand-yellow" />
+                        Premium Tier
+                      </span>
+                      <span className="rounded-full bg-brand-yellow/20 border border-brand-yellow/40 px-2 py-0.2 text-[10px] font-bold uppercase tracking-wider text-brand-yellow">
+                        Coming Soon
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Unlimited match uploads, advanced player stats, and
+                      priority video casting coverage.
+                    </p>
                   </button>
                 </div>
               </div>
 
-              <div className="flex justify-between">
+              {/* Navigation buttons */}
+              <div className="flex items-center justify-between pt-2">
                 <button
-                  className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-4 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+                  className="inline-flex h-10 items-center justify-center rounded-xl border border-input bg-background/50 px-5 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground cursor-pointer"
                   onClick={() => setStep(2)}
                   type="button"
                 >
                   Back
                 </button>
                 <form.AppForm>
-                  <form.SubmitButton>Finish Setup</form.SubmitButton>
+                  <button
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-primary px-7 text-sm font-bold text-primary-foreground shadow-xs transition-all hover:bg-primary/90 hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+                    type="submit"
+                  >
+                    Take the Court & Finish Setup
+                    <Check className="size-4 stroke-[3]" />
+                  </button>
                 </form.AppForm>
               </div>
             </div>

@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@rallycaststv/ui/components/card";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Check } from "lucide-react";
+import { Activity, Check, MapPin, ShieldCheck, User } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -16,12 +16,13 @@ import { StepRoles } from "@/components/onboarding/step-roles";
 import { authClient } from "@/lib/auth-client";
 import { useOnboarding } from "@/lib/hooks";
 import { useAppForm } from "@/lib/hooks/onboarding-form";
+import { parseDateOfBirth } from "@/lib/onboarding-profile";
 
 const STEPS = [
-  { label: "Profile" },
-  { label: "Location" },
-  { label: "Game" },
-  { label: "Roles" },
+  { description: "Handle & avatar", icon: User, label: "Profile" },
+  { description: "Home venue", icon: MapPin, label: "Location" },
+  { description: "Rating & style", icon: Activity, label: "Game" },
+  { description: "Platform roles", icon: ShieldCheck, label: "Roles" },
 ];
 
 function OnboardingPage() {
@@ -48,11 +49,16 @@ function OnboardingPage() {
         }
         const bio = bioParts.join(" ") || undefined;
 
+        // Calculate real age from parsed DOB
+        const parsedDob = v.profile.dob
+          ? parseDateOfBirth(v.profile.dob)
+          : null;
+        const calculatedAge = parsedDob?.age ?? 0;
+
         // Submit onboarding profile
         await onboarding.mutateAsync({
           accountTier: v.roles.accountTier,
-          // Age parsing from DOB can be added here when needed
-          age: 0,
+          age: calculatedAge,
           bio,
           homeCity: v.location.homeCity,
           homeCourtName: v.location.homeCourtName,
@@ -67,7 +73,7 @@ function OnboardingPage() {
           skillLevel: v.game.skillLevel,
         });
 
-        toast.success("Welcome to RallyCasts!");
+        toast.success("Welcome to RallyCasts! Your feed is ready.");
         navigate({ to: "/u/me" });
       } catch (error) {
         const message =
@@ -88,62 +94,97 @@ function OnboardingPage() {
     }
   };
 
+  const progressPercent = Math.round(((step + 1) / STEPS.length) * 100);
+
   return (
-    <div className="mx-auto max-w-4xl space-y-8 px-4 py-6">
-      <div className="text-center md:text-left">
-        <p className="text-sm font-semibold text-primary uppercase tracking-wider">
-          RallyCasts setup
-        </p>
-        <h1 className="mt-2 text-3xl md:text-4xl font-extrabold tracking-tight">
+    <div className="relative mx-auto max-w-3xl space-y-8 px-4 py-8">
+      {/* Ambient background glow */}
+      <div className="pointer-events-none absolute inset-0 -z-10 flex items-center justify-center">
+        <div className="size-96 rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute size-72 rounded-full bg-brand-yellow/5 blur-2xl" />
+      </div>
+
+      {/* Header */}
+      <div className="space-y-2 text-center md:text-left">
+        <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 border border-primary/30 px-3 py-1 text-xs font-bold uppercase tracking-wider text-primary">
+          <span>🎾 RallyCasts Setup</span>
+          <span className="text-primary/60">•</span>
+          <span>Takes 60 seconds</span>
+        </div>
+        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
           Build the pickleball feed you wish already existed.
         </h1>
-        <p className="text-muted-foreground text-sm max-w-2xl mt-2">
-          RallyCasts is video-first, local-first, and player-first. This takes a
-          minute, then your courts, clips, players, and events start lining up.
+        <p className="text-muted-foreground text-xs sm:text-sm max-w-2xl">
+          RallyCasts is video-first, local-first, and player-first. Personalize
+          your courts, tournament brackets, clips, and local community.
         </p>
       </div>
 
-      {/* Progress Indicators */}
-      <div className="relative">
-        <div className="absolute top-5 left-0 w-full h-0.5 bg-border -z-10" />
-        <div className="grid grid-cols-4 gap-2 text-center">
+      {/* Progress Bar & Steps Bar */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span className="font-semibold text-foreground">
+            Step {step + 1} of {STEPS.length}: {STEPS[step]?.label}
+          </span>
+          <span className="font-mono text-primary font-bold">
+            {progressPercent}% Complete
+          </span>
+        </div>
+
+        {/* Progress Bar Line */}
+        <div className="h-1.5 w-full rounded-full bg-border/60 overflow-hidden">
+          <div
+            className="h-full bg-linear-to-r from-primary to-brand-yellow transition-all duration-300 ease-out"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+
+        {/* Interactive Step Nodes */}
+        <div className="grid grid-cols-4 gap-2">
           {STEPS.map((item, index) => {
             const isCompleted = index < step;
             const isActive = index === step;
-            let circleClass =
-              "bg-background border-border text-muted-foreground";
+            const Icon = item.icon;
+
+            let nodeClass =
+              "bg-muted/40 border-border/80 text-muted-foreground";
             if (isCompleted) {
-              circleClass =
-                "bg-primary border-primary text-primary-foreground shadow";
+              nodeClass =
+                "bg-primary border-primary text-primary-foreground shadow-xs";
             } else if (isActive) {
-              circleClass =
-                "bg-background border-primary text-primary ring-4 ring-primary/20 scale-105";
+              nodeClass =
+                "bg-background border-primary text-primary ring-4 ring-primary/20 scale-[1.03]";
             }
+
             return (
               <button
-                className="flex flex-col items-center group cursor-pointer focus:outline-none disabled:cursor-not-allowed"
-                disabled={index >= step}
+                className={`flex flex-col items-center group transition-all text-center ${
+                  index < step ? "cursor-pointer" : "cursor-default"
+                }`}
+                disabled={index > step}
                 key={item.label}
                 onClick={() => handleStepClick(index)}
                 type="button"
               >
                 <div
-                  className={`size-10 rounded-full flex items-center justify-center border-2 text-xs font-bold transition-all ${circleClass}`}
+                  className={`size-9 sm:size-10 rounded-xl flex items-center justify-center border-2 text-xs font-bold transition-all ${nodeClass}`}
                 >
                   {isCompleted ? (
                     <Check className="size-4 stroke-[3]" />
                   ) : (
-                    index + 1
+                    <Icon className="size-4" />
                   )}
                 </div>
                 <span
-                  className={`mt-2 text-[10px] sm:text-xs font-medium truncate max-w-[70px] sm:max-w-none ${
-                    isActive
-                      ? "text-primary font-bold"
-                      : "text-muted-foreground group-hover:text-foreground"
-                  }`}
+                  className={`mt-1.5 text-[11px] font-semibold truncate max-w-[70px] sm:max-w-none ${getStepLabelColor(
+                    isActive,
+                    isCompleted
+                  )}`}
                 >
                   {item.label}
+                </span>
+                <span className="hidden sm:block text-[10px] text-muted-foreground truncate">
+                  {item.description}
                 </span>
               </button>
             );
@@ -151,8 +192,9 @@ function OnboardingPage() {
         </div>
       </div>
 
-      <Card className="rounded-xl border border-border shadow-md bg-card overflow-hidden">
-        <CardContent className="p-6 md:p-8">
+      {/* Main Card with Step Content */}
+      <Card className="rounded-2xl border border-border/80 shadow-xl bg-card/90 backdrop-blur-md overflow-hidden">
+        <CardContent className="p-6 sm:p-8">
           {step === 0 && <StepProfile form={form} setStep={setStep} step={0} />}
           {step === 1 && (
             <StepLocation form={form} setStep={setStep} step={1} />
@@ -175,3 +217,13 @@ function OnboardingPage() {
 export const Route = createFileRoute("/_auth/onboarding")({
   component: OnboardingPage,
 });
+
+function getStepLabelColor(isActive: boolean, isCompleted: boolean): string {
+  if (isActive) {
+    return "text-primary font-bold";
+  }
+  if (isCompleted) {
+    return "text-foreground";
+  }
+  return "text-muted-foreground";
+}
