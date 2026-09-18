@@ -17,7 +17,9 @@ import { Route as OrganizersRouteImport } from './routes/organizers'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as HostsRouteImport } from './routes/hosts'
 import { Route as EventsRouteImport } from './routes/events'
+import { Route as ErrorRouteImport } from './routes/error'
 import { Route as CastersRouteImport } from './routes/casters'
+import { Route as SplatRouteImport } from './routes/$'
 import { Route as AuthRouteRouteImport } from './routes/_auth/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PlayersIndexRouteImport } from './routes/players.index'
@@ -125,9 +127,19 @@ const EventsRoute = EventsRouteImport.update({
   path: '/events',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ErrorRoute = ErrorRouteImport.update({
+  id: '/error',
+  path: '/error',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CastersRoute = CastersRouteImport.update({
   id: '/casters',
   path: '/casters',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SplatRoute = SplatRouteImport.update({
+  id: '/$',
+  path: '/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRouteRoute = AuthRouteRouteImport.update({
@@ -468,7 +480,9 @@ const AuthUStudioVideosIdClipsRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/$': typeof SplatRoute
   '/casters': typeof CastersRouteWithChildren
+  '/error': typeof ErrorRoute
   '/events': typeof EventsRouteWithChildren
   '/hosts': typeof HostsRouteWithChildren
   '/login': typeof LoginRoute
@@ -544,6 +558,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/$': typeof SplatRoute
+  '/error': typeof ErrorRoute
   '/hosts': typeof HostsRouteWithChildren
   '/login': typeof LoginRoute
   '/organizers': typeof OrganizersRouteWithChildren
@@ -613,7 +629,9 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_auth': typeof AuthRouteRouteWithChildren
+  '/$': typeof SplatRoute
   '/casters': typeof CastersRouteWithChildren
+  '/error': typeof ErrorRoute
   '/events': typeof EventsRouteWithChildren
   '/hosts': typeof HostsRouteWithChildren
   '/login': typeof LoginRoute
@@ -691,7 +709,9 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/$'
     | '/casters'
+    | '/error'
     | '/events'
     | '/hosts'
     | '/login'
@@ -767,6 +787,8 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/$'
+    | '/error'
     | '/hosts'
     | '/login'
     | '/organizers'
@@ -835,7 +857,9 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_auth'
+    | '/$'
     | '/casters'
+    | '/error'
     | '/events'
     | '/hosts'
     | '/login'
@@ -913,7 +937,9 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRouteRoute: typeof AuthRouteRouteWithChildren
+  SplatRoute: typeof SplatRoute
   CastersRoute: typeof CastersRouteWithChildren
+  ErrorRoute: typeof ErrorRoute
   EventsRoute: typeof EventsRouteWithChildren
   HostsRoute: typeof HostsRouteWithChildren
   LoginRoute: typeof LoginRoute
@@ -984,11 +1010,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EventsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/error': {
+      id: '/error'
+      path: '/error'
+      fullPath: '/error'
+      preLoaderRoute: typeof ErrorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/casters': {
       id: '/casters'
       path: '/casters'
       fullPath: '/casters'
       preLoaderRoute: typeof CastersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$': {
+      id: '/$'
+      path: '/$'
+      fullPath: '/$'
+      preLoaderRoute: typeof SplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_auth': {
@@ -1724,7 +1764,9 @@ const PlayersRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRouteRoute: AuthRouteRouteWithChildren,
+  SplatRoute: SplatRoute,
   CastersRoute: CastersRouteWithChildren,
+  ErrorRoute: ErrorRoute,
   EventsRoute: EventsRouteWithChildren,
   HostsRoute: HostsRouteWithChildren,
   LoginRoute: LoginRoute,

@@ -51,6 +51,7 @@ const SignInForm = ({ onSwitchToSignUp }: { onSwitchToSignUp: () => void }) => {
   const signInWithGoogle = () => {
     signInSocial.mutate({
       callbackURL: new URL("/onboarding", window.location.origin).toString(),
+      errorCallbackURL: new URL("/login", window.location.origin).toString(),
       provider: "google",
     });
   };

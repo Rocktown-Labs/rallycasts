@@ -122,6 +122,30 @@ const getEmailSender = (c: Context<AppEnv>) => {
   return new Resend(apiKey);
 };
 
+const getWebOrigin = (c: Context<AppEnv>) => {
+  if (c.env.CORS_ORIGIN) {
+    const origins = c.env.CORS_ORIGIN.split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean);
+    const prodOrigin = origins.find(
+      (origin) => !origin.includes("localhost") && !origin.includes("127.0.0.1")
+    );
+    if (prodOrigin) {
+      return prodOrigin;
+    }
+    if (origins[0]) {
+      return origins[0];
+    }
+  }
+  if (
+    c.env.BETTER_AUTH_URL.includes("localhost") ||
+    c.env.BETTER_AUTH_URL.includes("127.0.0.1")
+  ) {
+    return "http://localhost:3000";
+  }
+  return "https://rallycasts.com";
+};
+
 const routes = app
   .get("/", (c) =>
     c.json({ service: "rallycaststv-api", status: "ok" }, HttpStatusCodes.OK)
@@ -142,6 +166,29 @@ const routes = app
         HttpStatusCodes.SERVICE_UNAVAILABLE
       );
     }
+  })
+  .get("/api/auth/error", (c) => {
+    const error = c.req.query("error") || "unknown_error";
+    const errorDescription = c.req.query("error_description");
+    const acceptHeader = c.req.header("accept") || "";
+
+    if (
+      acceptHeader.includes("text/html") ||
+      !acceptHeader.includes("application/json")
+    ) {
+      const webOrigin = getWebOrigin(c);
+      const redirectUrl = new URL("/error", webOrigin);
+      redirectUrl.searchParams.set("error", error);
+      if (errorDescription) {
+        redirectUrl.searchParams.set("error_description", errorDescription);
+      }
+      return c.redirect(redirectUrl.toString());
+    }
+
+    return c.json(
+      { error, error_description: errorDescription },
+      HttpStatusCodes.BAD_REQUEST
+    );
   })
   .on(["POST", "GET"], "/api/auth/*", (c) => {
     const resend = getEmailSender(c);
