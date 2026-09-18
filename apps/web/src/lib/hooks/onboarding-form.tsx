@@ -6,45 +6,95 @@ export const { fieldContext, useFieldContext, formContext, useFormContext } =
   createFormHookContexts();
 
 function FormInput({
+  className,
   error,
   hint,
+  icon: Icon,
   label,
+  list,
+  maxLength,
   placeholder,
   required,
   type = "text",
+  uppercase = false,
 }: {
+  className?: string;
   error?: string;
   hint?: string;
+  icon?: React.ComponentType<{ className?: string }>;
   label: string;
+  list?: string;
+  maxLength?: number;
   placeholder?: string;
   required?: boolean;
   type?: string;
+  uppercase?: boolean;
 }) {
   const field = useFieldContext<string>();
   const displayError = error || field.state.meta.errors[0]?.message;
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value;
+    if (uppercase) {
+      val = val.toUpperCase();
+    }
+    if (maxLength && val.length > maxLength) {
+      val = val.slice(0, maxLength);
+    }
+    field.handleChange(val);
+  };
+
+  let inputClassName = className || "";
+  if (Icon) {
+    inputClassName = `${inputClassName} pl-9`;
+  }
+  if (uppercase) {
+    inputClassName = `${inputClassName} uppercase tracking-wider font-mono font-semibold`;
+  }
+
   return (
     <div className="space-y-1.5">
-      <Label htmlFor={field.name} className="text-sm font-medium">
-        {label}
-        {required && (
-          <span aria-hidden="true" className="ml-1 font-bold text-destructive">
-            *
+      <Label
+        className="text-sm font-medium flex items-center justify-between"
+        htmlFor={field.name}
+      >
+        <span>
+          {label}
+          {required && (
+            <span
+              aria-hidden="true"
+              className="ml-1 font-bold text-destructive"
+            >
+              *
+            </span>
+          )}
+        </span>
+        {maxLength ? (
+          <span className="text-[10px] text-muted-foreground font-mono">
+            {field.state.value?.length ?? 0}/{maxLength}
           </span>
-        )}
+        ) : null}
       </Label>
       {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
-      <Input
-        aria-invalid={Boolean(displayError)}
-        aria-required={required}
-        id={field.name}
-        name={field.name}
-        onBlur={field.handleBlur}
-        onChange={(e) => field.handleChange(e.target.value)}
-        placeholder={placeholder}
-        type={type}
-        value={field.state.value}
-      />
+      <div className="relative">
+        {Icon && (
+          <Icon className="absolute left-3 top-2.5 size-4 text-muted-foreground pointer-events-none" />
+        )}
+        <Input
+          aria-invalid={Boolean(displayError)}
+          aria-required={required}
+          className={inputClassName.trim()}
+          id={field.name}
+          list={list}
+          maxLength={maxLength}
+          name={field.name}
+          onBlur={field.handleBlur}
+          onChange={handleChange}
+          placeholder={placeholder}
+          type={type}
+          value={field.state.value}
+        />
+      </div>
       {displayError && (
         <p className="text-xs text-destructive">{displayError}</p>
       )}

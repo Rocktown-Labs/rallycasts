@@ -1,4 +1,5 @@
 import { debounce } from "@tanstack/pacer";
+import { useStore } from "@tanstack/react-form";
 import {
   AlertCircle,
   Check,
@@ -55,6 +56,18 @@ const PRESET_AVATARS = [
     name: "Golden Pickle",
     start: "#fbbf24",
   },
+  {
+    emoji: "🍳",
+    end: "#f97316",
+    name: "Kitchen Fire",
+    start: "#fbbf24",
+  },
+  {
+    emoji: "🎯",
+    end: "#0284c7",
+    name: "Third Shot Drop",
+    start: "#38bdf8",
+  },
 ];
 
 function generateEmojiAvatar(
@@ -92,10 +105,11 @@ export const StepProfile = withForm({
     const [nameError, setNameError] = useState<string | null>(null);
     const [dobError, setDobError] = useState<string | null>(null);
 
-    const usernameValue = form.getFieldValue("profile.username") || "";
-    const nameValue = form.getFieldValue("profile.name") || "";
-    const dobValue = form.getFieldValue("profile.dob") || "";
-    const imageValue = form.getFieldValue("profile.image") || "";
+    const profileValues = useStore(form.store, (state) => state.values.profile);
+    const usernameValue = profileValues.username || "";
+    const nameValue = profileValues.name || "";
+    const dobValue = profileValues.dob || "";
+    const imageValue = profileValues.image || "";
 
     // Sync session data into form defaults on mount
     useEffect(() => {
@@ -313,7 +327,7 @@ export const StepProfile = withForm({
                     </button>
                   )}
                 </div>
-                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
+                <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
                   {PRESET_AVATARS.map((preset) => {
                     const svgDataUrl = generateEmojiAvatar(
                       preset.emoji,
@@ -321,14 +335,17 @@ export const StepProfile = withForm({
                       preset.end
                     );
                     const isSelected = imageValue === svgDataUrl;
+                    let avatarCardClass =
+                      "border-border/70 bg-card/60 hover:border-primary/50 hover:bg-muted/30";
+                    if (isSelected) {
+                      avatarCardClass =
+                        "border-primary bg-primary/10 shadow-xs ring-2 ring-primary/40 scale-[1.02]";
+                    }
+
                     return (
                       <button
                         key={preset.emoji}
-                        className={`group relative flex flex-col items-center gap-1.5 rounded-xl border p-2.5 transition-all cursor-pointer ${
-                          isSelected
-                            ? "border-primary bg-primary/10 shadow-xs ring-2 ring-primary/40 scale-[1.02]"
-                            : "border-border/70 bg-card/60 hover:border-primary/50 hover:bg-muted/30"
-                        }`}
+                        className={`group relative flex flex-col items-center gap-1.5 rounded-xl border p-2 transition-all cursor-pointer ${avatarCardClass}`}
                         onClick={() => {
                           form.setFieldValue("profile.image", svgDataUrl);
                         }}
@@ -336,18 +353,18 @@ export const StepProfile = withForm({
                         type="button"
                       >
                         <div
-                          className="size-11 rounded-full flex items-center justify-center text-xl shadow-xs transition-transform group-hover:scale-105"
+                          className="size-10 sm:size-11 rounded-full flex items-center justify-center text-lg sm:text-xl shadow-xs transition-transform group-hover:scale-105"
                           style={{
                             background: `linear-gradient(135deg, ${preset.start}, ${preset.end})`,
                           }}
                         >
                           <span className="select-none">{preset.emoji}</span>
                         </div>
-                        <span className="text-[11px] font-medium text-center truncate max-w-full text-muted-foreground group-hover:text-foreground">
+                        <span className="text-[10px] font-medium text-center truncate max-w-full text-muted-foreground group-hover:text-foreground">
                           {preset.name}
                         </span>
                         {isSelected && (
-                          <div className="absolute top-1.5 right-1.5 rounded-full bg-primary text-primary-foreground p-0.5 shadow-xs">
+                          <div className="absolute top-1 right-1 rounded-full bg-primary text-primary-foreground p-0.5 shadow-xs">
                             <Check className="size-2.5 stroke-[3]" />
                           </div>
                         )}

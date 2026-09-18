@@ -1,3 +1,4 @@
+import { useStore } from "@tanstack/react-form";
 import { Check, Sparkles } from "lucide-react";
 
 import { withForm } from "@/lib/hooks/onboarding-form";
@@ -7,14 +8,16 @@ import { wizardFormOpts } from "./shared-form";
 const SKILL_OPTIONS = [
   {
     badge: "DUPR ≤ 2.5",
+    badgeColor: "bg-emerald-500/15 border-emerald-500/30 text-emerald-400",
     description:
-      "Learning kitchen rules, scoring fundamentals, and groundstroke control.",
+      "Learning kitchen rules, scoring fundamentals, and basic groundstroke control.",
     icon: "🌱",
     label: "Beginner",
     value: "beginner" as const,
   },
   {
     badge: "DUPR 3.0 - 3.5",
+    badgeColor: "bg-sky-500/15 border-sky-500/30 text-sky-400",
     description:
       "Consistent dinking, developing third-shot drop, and directional control.",
     icon: "🎯",
@@ -23,6 +26,7 @@ const SKILL_OPTIONS = [
   },
   {
     badge: "DUPR 4.0 - 4.5",
+    badgeColor: "bg-amber-500/15 border-amber-500/30 text-amber-400",
     description:
       "Fast hands at the NVZ, shot stacking, reset volleys, and strategic aggression.",
     icon: "⚡",
@@ -31,6 +35,7 @@ const SKILL_OPTIONS = [
   },
   {
     badge: "DUPR 5.0+",
+    badgeColor: "bg-purple-500/15 border-purple-500/30 text-purple-400",
     description:
       "Tournament competitor, master of firefights, deception, and high-level play.",
     icon: "🏆",
@@ -56,15 +61,30 @@ export const StepGame = withForm({
     step: 2,
   },
   render: function render({ form, setStep }) {
-    const skillValue = form.getFieldValue("game.skillLevel") || "intermediate";
-    const bioValue = form.getFieldValue("game.bio") || "";
+    // Reactive subscription to game form values ensures instant re-rendering on selection
+    const gameValues = useStore(form.store, (state) => state.values.game);
+    const skillValue = gameValues.skillLevel || "intermediate";
+    const bioValue = gameValues.bio || "";
 
-    const addBioPrompt = (chip: string) => {
+    const toggleBioPrompt = (chip: string) => {
       const current = bioValue.trim();
-      if (!current) {
-        form.setFieldValue("game.bio", chip);
-      } else if (!current.includes(chip)) {
+      if (current.includes(chip)) {
+        // Remove chip if already selected
+        const cleaned = current
+          .replaceAll(
+            new RegExp(`(?:^|\\s*•\\s*)${escapeRegex(chip)}`, "gu"),
+            ""
+          )
+          .replaceAll(
+            new RegExp(`${escapeRegex(chip)}(?:\\s*•\\s*|$)`, "gu"),
+            ""
+          )
+          .trim();
+        form.setFieldValue("game.bio", cleaned);
+      } else if (current.length > 0) {
         form.setFieldValue("game.bio", `${current} • ${chip}`);
+      } else {
+        form.setFieldValue("game.bio", chip);
       }
     };
 
@@ -113,13 +133,16 @@ export const StepGame = withForm({
                 <div className="grid gap-3 sm:grid-cols-2">
                   {SKILL_OPTIONS.map((option) => {
                     const isSelected = skillValue === option.value;
+                    let cardClass =
+                      "border-border/70 bg-card/60 hover:border-primary/50 hover:bg-muted/30";
+                    if (isSelected) {
+                      cardClass =
+                        "border-primary bg-primary/10 shadow-xs ring-2 ring-primary/40 scale-[1.01]";
+                    }
+
                     return (
                       <button
-                        className={`group relative flex flex-col justify-between rounded-xl border p-4 text-left transition-all cursor-pointer ${
-                          isSelected
-                            ? "border-primary bg-primary/10 shadow-xs ring-2 ring-primary/40 scale-[1.01]"
-                            : "border-border/70 bg-card/60 hover:border-primary/50 hover:bg-muted/30"
-                        }`}
+                        className={`group relative flex flex-col justify-between rounded-xl border p-4 text-left transition-all cursor-pointer ${cardClass}`}
                         key={option.value}
                         onClick={() =>
                           form.setFieldValue("game.skillLevel", option.value)
@@ -136,7 +159,9 @@ export const StepGame = withForm({
                                 {option.label}
                               </span>
                             </div>
-                            <span className="rounded-full bg-brand-yellow/15 border border-brand-yellow/30 px-2 py-0.5 text-[10px] font-bold text-brand-yellow">
+                            <span
+                              className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${option.badgeColor}`}
+                            >
                               {option.badge}
                             </span>
                           </div>
@@ -160,30 +185,45 @@ export const StepGame = withForm({
               <div className="space-y-2.5">
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-medium" htmlFor="bio-input">
-                    Player bio & notes
+                    Player bio & style notes
                   </label>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-muted-foreground font-mono">
                     {bioValue.length}/500
                   </span>
                 </div>
 
-                {/* Quick Add Chips */}
+                {/* Quick Add / Toggle Chips */}
                 <div className="space-y-1.5">
                   <p className="text-[11px] text-muted-foreground flex items-center gap-1">
                     <Sparkles className="size-3 text-brand-yellow" />
-                    <span>Quick tap to add to your bio:</span>
+                    <span>Quick tap to toggle style tags:</span>
                   </p>
                   <div className="flex flex-wrap gap-1.5">
-                    {BIO_PROMPTS.map((prompt) => (
-                      <button
-                        className="rounded-lg border border-border/80 bg-background/60 px-2.5 py-1 text-xs text-muted-foreground hover:border-primary/50 hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
-                        key={prompt}
-                        onClick={() => addBioPrompt(prompt)}
-                        type="button"
-                      >
-                        + {prompt}
-                      </button>
-                    ))}
+                    {BIO_PROMPTS.map((prompt) => {
+                      const isActive = bioValue.includes(prompt);
+                      let chipClass =
+                        "border-border/80 bg-background/60 text-muted-foreground hover:border-primary/50 hover:text-foreground hover:bg-accent";
+                      if (isActive) {
+                        chipClass =
+                          "border-primary bg-primary/15 text-primary font-semibold shadow-2xs";
+                      }
+
+                      return (
+                        <button
+                          className={`rounded-lg border px-2.5 py-1 text-xs transition-colors cursor-pointer flex items-center gap-1 ${chipClass}`}
+                          key={prompt}
+                          onClick={() => toggleBioPrompt(prompt)}
+                          type="button"
+                        >
+                          {isActive ? (
+                            <Check className="size-3 stroke-[3]" />
+                          ) : (
+                            <span>+</span>
+                          )}
+                          <span>{prompt}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -225,3 +265,7 @@ export const StepGame = withForm({
     );
   },
 });
+
+function escapeRegex(string: string): string {
+  return string.replaceAll(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+}
