@@ -223,13 +223,24 @@ export const profileRouter = new Hono<AppEnv>()
       return c.json({ available: false }, HttpStatusCodes.BAD_REQUEST);
     }
 
+    const { user: authUser } = c.var.authSession;
     const db = createDb(c.env.DB);
     const allUsers = await db
-      .select({ username: user.username })
+      .select({ id: user.id, username: user.username })
       .from(user)
       .all();
+
+    const currentUser = allUsers.find((u) => u.id === authUser.id);
+    if (currentUser?.username?.toLowerCase() === usernameQuery) {
+      return c.json(
+        { available: true, isCurrent: true, source: "current_user" },
+        HttpStatusCodes.OK
+      );
+    }
+
+    const otherUsers = allUsers.filter((u) => u.id !== authUser.id);
     const bloom = new BloomFilter(1000, 3);
-    for (const u of allUsers) {
+    for (const u of otherUsers) {
       if (u.username) {
         bloom.add(u.username.toLowerCase());
       }
@@ -237,19 +248,19 @@ export const profileRouter = new Hono<AppEnv>()
 
     if (!bloom.has(usernameQuery)) {
       return c.json(
-        { available: true, source: "bloom_filter" },
+        { available: true, isCurrent: false, source: "bloom_filter" },
         HttpStatusCodes.OK
       );
     }
 
     const [existing] = await db
-      .select()
+      .select({ id: user.id })
       .from(user)
-      .where(eq(user.username, usernameQuery))
+      .where(and(eq(user.username, usernameQuery), ne(user.id, authUser.id)))
       .limit(1);
 
     return c.json(
-      { available: !existing, source: "database" },
+      { available: !existing, isCurrent: false, source: "database" },
       HttpStatusCodes.OK
     );
   })

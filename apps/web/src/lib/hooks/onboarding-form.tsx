@@ -6,32 +6,47 @@ export const { fieldContext, useFieldContext, formContext, useFormContext } =
   createFormHookContexts();
 
 function FormInput({
+  error,
+  hint,
   label,
   placeholder,
+  required,
   type = "text",
 }: {
+  error?: string;
+  hint?: string;
   label: string;
   placeholder?: string;
+  required?: boolean;
   type?: string;
 }) {
   const field = useFieldContext<string>();
+  const displayError = error || field.state.meta.errors[0]?.message;
 
   return (
-    <div className="space-y-2">
-      <Label htmlFor={field.name}>{label}</Label>
+    <div className="space-y-1.5">
+      <Label htmlFor={field.name} className="text-sm font-medium">
+        {label}
+        {required && (
+          <span aria-hidden="true" className="ml-1 font-bold text-destructive">
+            *
+          </span>
+        )}
+      </Label>
+      {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
       <Input
+        aria-invalid={Boolean(displayError)}
+        aria-required={required}
         id={field.name}
         name={field.name}
+        onBlur={field.handleBlur}
+        onChange={(e) => field.handleChange(e.target.value)}
         placeholder={placeholder}
         type={type}
         value={field.state.value}
-        onBlur={field.handleBlur}
-        onChange={(e) => field.handleChange(e.target.value)}
       />
-      {field.state.meta.errors.length > 0 && (
-        <p className="text-xs text-destructive">
-          {field.state.meta.errors[0]?.message}
-        </p>
+      {displayError && (
+        <p className="text-xs text-destructive">{displayError}</p>
       )}
     </div>
   );
