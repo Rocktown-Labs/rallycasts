@@ -17,14 +17,14 @@
     "check-types": "tsc -b"
   },
   "dependencies": {
-    "@react-email/components": "^0.0.36",
-    "react": "^19.2.6",
-    "react-dom": "^19.2.6"
+    "@react-email/components": "^1.0.12",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
   },
   "devDependencies": {
     "@rallycaststv/config": "workspace:*",
-    "@types/react": "^19.2.6",
-    "@types/react-dom": "^19.2.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "react-email": "^4.0.7",
     "typescript": "catalog:"
   }
