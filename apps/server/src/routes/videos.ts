@@ -178,6 +178,98 @@ const decodeVideoCursor = (cursor: string): VideoCursor | null => {
   }
 };
 
+const UUID_EXTRACT_REGEX =
+  /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/iu;
+
+export const slugifyVideoTitle = (title: string): string =>
+  title
+    .toLowerCase()
+    .trim()
+    .replaceAll(/[^a-z0-9]+/gu, "-")
+    .replaceAll(/^-+|-+$/gu, "");
+
+export async function resolveVideoId(
+  db: ReturnType<typeof createDb>,
+  idOrSlug: string
+): Promise<string> {
+  const [direct] = await db
+    .select({ id: video.id })
+    .from(video)
+    .where(and(eq(video.id, idOrSlug), ne(video.status, "deleted")))
+    .limit(1);
+
+  if (direct) {
+    return direct.id;
+  }
+
+  const uuidMatch = idOrSlug.match(UUID_EXTRACT_REGEX);
+  if (uuidMatch) {
+    const [uuidRecord] = await db
+      .select({ id: video.id })
+      .from(video)
+      .where(and(eq(video.id, uuidMatch[0]), ne(video.status, "deleted")))
+      .limit(1);
+    if (uuidRecord) {
+      return uuidRecord.id;
+    }
+  }
+
+  return idOrSlug;
+}
+
+async function findVideoByIdOrSlug(
+  db: ReturnType<typeof createDb>,
+  idOrSlug: string
+) {
+  // 1. Direct ID match first (covers exact UUIDs and any explicit ID)
+  const [directMatch] = await db
+    .select()
+    .from(video)
+    .where(and(eq(video.id, idOrSlug), ne(video.status, "deleted")))
+    .limit(1);
+
+  if (directMatch) {
+    return directMatch;
+  }
+
+  // 2. Slug ending with UUID
+  const uuidMatch = idOrSlug.match(UUID_EXTRACT_REGEX);
+  if (uuidMatch && uuidMatch[0] !== idOrSlug) {
+    const [uuidRecord] = await db
+      .select()
+      .from(video)
+      .where(and(eq(video.id, uuidMatch[0]), ne(video.status, "deleted")))
+      .limit(1);
+    if (uuidRecord) {
+      return uuidRecord;
+    }
+  }
+
+  // 3. Fallback to title slug match or prefix match
+  const normalizedSlug = slugifyVideoTitle(idOrSlug);
+
+  const candidates = await db
+    .select()
+    .from(video)
+    .where(ne(video.status, "deleted"))
+    .orderBy(desc(videoSortTimestamp))
+    .limit(100);
+
+  const matchedCandidate = candidates.find((cand) => {
+    const candSlug = slugifyVideoTitle(cand.title);
+    if (candSlug === normalizedSlug) {
+      return true;
+    }
+    if (cand.id.startsWith(idOrSlug)) {
+      return true;
+    }
+    const compoundSlug = `${candSlug}-${cand.id}`;
+    return compoundSlug === idOrSlug;
+  });
+
+  return matchedCandidate ?? null;
+}
+
 async function resolveVideosRelations(
   db: ReturnType<typeof createDb>,
   videosList: (typeof video.$inferSelect)[]
@@ -249,9 +341,10 @@ async function resolveVideosRelations(
 
     const resolvedOwner = userMap.get(v.ownerUserId) || null;
     const resolvedVenue = v.venueId ? venueMap.get(v.venueId) || null : null;
-    const resolvedTaggedUsers = parsedTaggedUserIds
-      .map((id) => userMap.get(id))
-      .filter(Boolean);
+    const resolvedTaggedUsers = parsedTaggedUserIds.flatMap((id) => {
+      const matched = userMap.get(id);
+      return matched ? [matched] : [];
+    });
 
     return {
       ...v,
@@ -739,23 +832,20 @@ export const videosRouter = new Hono<AppEnv>()
   )
   .get("/:id", async (c) => {
     const db = createDb(c.env.DB);
-    const id = c.req.param("id");
+    const idParam = c.req.param("id");
 
-    const [videoRecord] = await db
-      .select()
-      .from(video)
-      .where(and(eq(video.id, id), ne(video.status, "deleted")))
-      .limit(1);
+    const videoRecord = await findVideoByIdOrSlug(db, idParam);
 
     if (!videoRecord) {
       return c.json({ message: "Video not found" }, HttpStatusCodes.NOT_FOUND);
     }
 
+    const authSession = await createAuth(c.env.DB).api.getSession({
+      headers: c.req.raw.headers,
+    });
+    const viewerId = authSession?.user?.id;
+
     if (videoRecord.visibility !== "public") {
-      const authSession = await createAuth(c.env.DB).api.getSession({
-        headers: c.req.raw.headers,
-      });
-      const viewerId = authSession?.user?.id;
       const isOwner = viewerId === videoRecord.ownerUserId;
       if (!isOwner) {
         if (videoRecord.visibility === "friends" && viewerId) {
@@ -797,24 +887,51 @@ export const videosRouter = new Hono<AppEnv>()
         and(
           eq(video.status, "ready"),
           eq(video.visibility, "public"),
-          sql`${video.id} != ${id}`
+          sql`${video.id} != ${videoRecord.id}`
         )
       )
       .orderBy(desc(videoSortTimestamp))
       .limit(8);
-    const [resolvedList, relatedVideos] = await Promise.all([
+    const [resolvedList, relatedVideos, counts, userLike] = await Promise.all([
       resolveVideosRelations(db, [videoRecord]),
       resolveVideosRelations(db, relatedRecords),
+      db
+        .select({
+          comments: sql<number>`count(distinct ${videoComment.id})`,
+          likes: sql<number>`count(distinct ${videoLike.userId})`,
+        })
+        .from(video)
+        .leftJoin(videoLike, eq(videoLike.videoId, video.id))
+        .leftJoin(videoComment, eq(videoComment.videoId, video.id))
+        .where(eq(video.id, videoRecord.id))
+        .limit(1),
+      viewerId
+        ? db
+            .select()
+            .from(videoLike)
+            .where(
+              and(
+                eq(videoLike.videoId, videoRecord.id),
+                eq(videoLike.userId, viewerId)
+              )
+            )
+            .limit(1)
+        : Promise.resolve([]),
     ]);
     const [resolved] = resolvedList;
     if (!resolved) {
       return c.json({ message: "Video not found" }, HttpStatusCodes.NOT_FOUND);
     }
     const publicVideo = toPublicResolvedVideo(resolved);
+    const titleSlug = slugifyVideoTitle(videoRecord.title);
+    const slug = `${titleSlug}-${videoRecord.id}`;
     return c.json(
       {
+        hasLiked: Boolean(userLike[0]),
+        likesCount: Number(counts[0]?.likes ?? 0),
         owner: publicVideo.owner,
         relatedVideos: relatedVideos.map(toPublicResolvedVideo),
+        slug,
         taggedUsers: publicVideo.taggedUsers,
         venue: publicVideo.venue,
         video: {
@@ -830,7 +947,7 @@ export const videosRouter = new Hono<AppEnv>()
   .get("/:id/playback", requireAuth, requireVerifiedAuth, async (c) => {
     const db = createDb(c.env.DB);
     const { user: authUser } = c.var.authSession;
-    const id = c.req.param("id");
+    const id = await resolveVideoId(db, c.req.param("id"));
     const [record] = await db
       .select({
         muxPlaybackId: video.muxPlaybackId,
@@ -951,7 +1068,7 @@ export const videosRouter = new Hono<AppEnv>()
     async (c) => {
       const db = createDb(c.env.DB);
       const { user: authUser } = c.var.authSession;
-      const id = c.req.param("id");
+      const id = await resolveVideoId(db, c.req.param("id"));
       const data = c.req.valid("json");
       const [currentVideo] = await db
         .select({
@@ -1078,7 +1195,7 @@ export const videosRouter = new Hono<AppEnv>()
   .delete("/:id", requireAuth, async (c) => {
     const db = createDb(c.env.DB);
     const { user: authUser } = c.var.authSession;
-    const id = c.req.param("id");
+    const id = await resolveVideoId(db, c.req.param("id"));
     const [record] = await db
       .select()
       .from(video)
@@ -1118,7 +1235,7 @@ export const videosRouter = new Hono<AppEnv>()
   })
   .get("/:id/social", async (c) => {
     const db = createDb(c.env.DB);
-    const id = c.req.param("id");
+    const id = await resolveVideoId(db, c.req.param("id"));
     const [counts] = await db
       .select({
         comments: sql<number>`count(distinct ${videoComment.id})`,
@@ -1144,7 +1261,7 @@ export const videosRouter = new Hono<AppEnv>()
   .post("/:id/likes", requireAuth, async (c) => {
     const db = createDb(c.env.DB);
     const { user: authUser } = c.var.authSession;
-    const id = c.req.param("id");
+    const id = await resolveVideoId(db, c.req.param("id"));
     const [record] = await db
       .select()
       .from(video)
@@ -1184,7 +1301,7 @@ export const videosRouter = new Hono<AppEnv>()
   .delete("/:id/likes", requireAuth, async (c) => {
     const db = createDb(c.env.DB);
     const { user: authUser } = c.var.authSession;
-    const id = c.req.param("id");
+    const id = await resolveVideoId(db, c.req.param("id"));
 
     await db
       .delete(videoLike)
@@ -1194,7 +1311,7 @@ export const videosRouter = new Hono<AppEnv>()
   })
   .get("/:id/comments", async (c) => {
     const db = createDb(c.env.DB);
-    const id = c.req.param("id");
+    const id = await resolveVideoId(db, c.req.param("id"));
 
     const comments = await db
       .select({
@@ -1237,7 +1354,7 @@ export const videosRouter = new Hono<AppEnv>()
     async (c) => {
       const db = createDb(c.env.DB);
       const { user: authUser } = c.var.authSession;
-      const id = c.req.param("id");
+      const id = await resolveVideoId(db, c.req.param("id"));
       const { content } = c.req.valid("json");
 
       // Verify video exists first
@@ -1309,7 +1426,7 @@ export const videosRouter = new Hono<AppEnv>()
     async (c) => {
       const db = createDb(c.env.DB);
       const { user: authUser } = c.var.authSession;
-      const id = c.req.param("id");
+      const id = await resolveVideoId(db, c.req.param("id"));
       const commentId = c.req.param("commentId");
       const { pinned } = c.req.valid("json");
       const [record] = await db

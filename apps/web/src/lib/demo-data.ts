@@ -326,9 +326,12 @@ export const getDemoVideoDetail = (id: string) => {
   }
 
   return {
+    hasLiked: false,
     isDemo: true as const,
+    likesCount: 0,
     owner: video.owner ?? null,
     relatedVideos: demoVideos.filter((item) => item.id !== id).slice(0, 8),
+    slug: id,
     taggedUsers: video.taggedUsers ?? [],
     venue:
       demoVenues[

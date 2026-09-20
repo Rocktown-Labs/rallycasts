@@ -619,4 +619,57 @@ describe("videos API", () => {
     };
     expect(updatedVideo.publishedAt).toBeTruthy();
   });
+
+  it("resolves videos by readable slug and provides real like stats", async () => {
+    const owner = await signUp("Slug Video Owner");
+    const viewer = await signUp("Slug Video Viewer");
+    const videoId = crypto.randomUUID();
+
+    await env.DB.prepare(
+      "insert into video (id, owner_user_id, title, status, visibility) values (?, ?, ?, 'ready', 'public')"
+    )
+      .bind(videoId, owner.id, "LRAC Championship Final")
+      .run();
+
+    // Like the video as viewer
+    const likeRes = await jsonRequest(
+      `/api/v1/videos/lrac-championship-final-${videoId}/likes`,
+      viewer.cookie,
+      {},
+      "POST"
+    );
+    expect(likeRes.status).toBe(200);
+
+    // Fetch using compound slug as viewer
+    const slugResponse = await app.request(
+      `/api/v1/videos/lrac-championship-final-${videoId}`,
+      { headers: { Cookie: viewer.cookie } },
+      env
+    );
+    expect(slugResponse.status).toBe(200);
+    const slugBody = (await slugResponse.json()) as {
+      hasLiked: boolean;
+      likesCount: number;
+      slug: string;
+      video: { title: string };
+    };
+    expect(slugBody.video.title).toBe("LRAC Championship Final");
+    expect(slugBody.slug).toBe(`lrac-championship-final-${videoId}`);
+    expect(slugBody.likesCount).toBe(1);
+    expect(slugBody.hasLiked).toBe(true);
+
+    // Fetch using plain title slug
+    const titleSlugResponse = await app.request(
+      "/api/v1/videos/lrac-championship-final",
+      {},
+      env
+    );
+    expect(titleSlugResponse.status).toBe(200);
+    const titleSlugBody = (await titleSlugResponse.json()) as {
+      likesCount: number;
+      hasLiked: boolean;
+    };
+    expect(titleSlugBody.likesCount).toBe(1);
+    expect(titleSlugBody.hasLiked).toBe(false);
+  });
 });

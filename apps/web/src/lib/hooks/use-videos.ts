@@ -190,3 +190,46 @@ export const usePinVideoComment = (videoId: string) => {
     },
   });
 };
+
+export const slugify = (text: string): string =>
+  text
+    .toLowerCase()
+    .trim()
+    .replaceAll(/[^a-z0-9]+/gu, "-")
+    .replaceAll(/^-+|-+$/gu, "");
+
+export const getVideoSlug = (video: {
+  id: string;
+  title?: string | null;
+}): string => {
+  if (!video.title) {
+    return video.id;
+  }
+  const slug = slugify(video.title);
+  return slug ? `${slug}-${video.id}` : video.id;
+};
+
+export const useToggleVideoLike = (videoId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (shouldLike: boolean) => {
+      if (shouldLike) {
+        return await readApiJson(
+          apiClient.api.v1.videos[":id"].likes.$post({
+            param: { id: videoId },
+          })
+        );
+      }
+      return await readApiJson(
+        apiClient.api.v1.videos[":id"].likes.$delete({
+          param: { id: videoId },
+        })
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["videos", videoId] });
+      queryClient.invalidateQueries({ queryKey: ["videos"] });
+    },
+  });
+};

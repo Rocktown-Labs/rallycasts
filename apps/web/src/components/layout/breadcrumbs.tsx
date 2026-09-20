@@ -40,6 +40,9 @@ export const breadcrumbLabels = new Map<string, string>([
 
 export const humanize = (value: string) => value.replaceAll("-", " ");
 
+export const isUuidLike = (value: string): boolean =>
+  /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu.test(value);
+
 export function getVisiblePathnames(rawPathnames: string[]): string[] {
   const pathnames = [
     ...new Set(
@@ -51,6 +54,7 @@ export function getVisiblePathnames(rawPathnames: string[]): string[] {
   ];
 
   const hasUserSubRoute = pathnames.some((p) => p.startsWith("/u/"));
+  const hasVideoSubRoute = pathnames.some((p) => p.startsWith("/videos/"));
   const hasHostsRoute = pathnames.some(
     (p) =>
       p === "/events/hosts" ||
@@ -58,6 +62,15 @@ export function getVisiblePathnames(rawPathnames: string[]): string[] {
       p === "/events/organizers" ||
       p.startsWith("/events/organizers/")
   );
+
+  if (hasVideoSubRoute && !pathnames.includes("/videos")) {
+    const videoSubIndex = pathnames.findIndex((p) => p.startsWith("/videos/"));
+    if (videoSubIndex === -1) {
+      pathnames.push("/videos");
+    } else {
+      pathnames.splice(videoSubIndex, 0, "/videos");
+    }
+  }
 
   if (
     hasHostsRoute &&
@@ -86,6 +99,10 @@ export function getVisiblePathnames(rawPathnames: string[]): string[] {
       return false;
     }
     if (pathname === "/events" && hasHostsRoute) {
+      return false;
+    }
+    const lastSegment = pathname.split("/").findLast(Boolean) ?? "";
+    if (isUuidLike(lastSegment)) {
       return false;
     }
     return true;

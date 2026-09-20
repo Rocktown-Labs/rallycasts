@@ -148,7 +148,7 @@ describe("useGeolocation", () => {
 
     result.current.requestLocation();
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.location).toBeDefined());
     expect(result.current.location).toEqual({
       city: "Searcy",
       label: "Searcy, AR",

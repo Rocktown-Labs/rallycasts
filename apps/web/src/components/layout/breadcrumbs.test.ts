@@ -54,4 +54,20 @@ describe("breadcrumbs", () => {
   it("humanizes hyphenated slugs", () => {
     expect(humanize("searcy-pickleball-club")).toBe("searcy pickleball club");
   });
+
+  it("omits raw UUIDs and injects /videos for video detail route", () => {
+    const visible = getVisiblePathnames([
+      "/",
+      "/videos/64383cc5-683a-4412-9abe-682af2a78908",
+    ]);
+    expect(visible).toEqual(["/videos"]);
+  });
+
+  it("omits slug-with-uuid and retains /videos", () => {
+    const visible = getVisiblePathnames([
+      "/",
+      "/videos/lrac-tournament-64383cc5-683a-4412-9abe-682af2a78908",
+    ]);
+    expect(visible).toEqual(["/videos"]);
+  });
 });
