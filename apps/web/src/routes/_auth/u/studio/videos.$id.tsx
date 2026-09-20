@@ -2,11 +2,13 @@ import MuxPlayer from "@mux/mux-player-react/lazy";
 import { Button, buttonVariants } from "@rallycaststv/ui/components/button";
 import { cn } from "@rallycaststv/ui/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   Check,
   CircleAlert,
   Clock3,
+  Copy,
+  ExternalLink,
   Film,
   LoaderCircle,
   Lock,
@@ -14,6 +16,7 @@ import {
   Save,
   Scissors,
   Search,
+  Trash2,
   Users,
   X,
 } from "lucide-react";
@@ -21,6 +24,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { apiClient } from "@/lib/api-client";
+import { authClient } from "@/lib/auth-client";
 import { readApiJson } from "@/lib/hooks/api";
 import { useVideoUploadState } from "@/lib/video-upload-manager";
 
@@ -83,7 +87,9 @@ function StatusIcon({ status }: { status: keyof typeof statusCopy }) {
 // oxlint-disable-next-line complexity -- Studio combines upload, metadata, and playback states.
 function VideoStudioPage() {
   const { id } = Route.useParams();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { data: session } = authClient.useSession();
   const upload = useVideoUploadState(id);
   const videoQuery = useQuery({
     queryFn: () =>
@@ -104,7 +110,7 @@ function VideoStudioPage() {
   });
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [visibility, setVisibility] = useState<Visibility>("private");
+  const [visibility, setVisibility] = useState<Visibility>("public");
   const [initializedVideoId, setInitializedVideoId] = useState<string | null>(
     null
   );
@@ -112,6 +118,11 @@ function VideoStudioPage() {
   const [taggedPlayers, setTaggedPlayers] = useState<StudioPlayer[]>([]);
   const [placeQuery, setPlaceQuery] = useState("");
   const [selectedVenue, setSelectedVenue] = useState<StudioVenue | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [hasCopied, setHasCopied] = useState(false);
+  const [publishedVideoUrl, setPublishedVideoUrl] = useState("");
+
   const playersQuery = useQuery({
     enabled: playerQuery.trim().length > 1,
     queryFn: () =>
@@ -138,32 +149,62 @@ function VideoStudioPage() {
     setTitle(video.title);
     setDescription(video.description ?? "");
     setVisibility(video.visibility);
-    setTaggedPlayers(
-      (video.taggedUsers ?? []).filter(
-        (player): player is NonNullable<typeof player> => player !== null
-      )
+    const existingTagged = (video.taggedUsers ?? []).filter(
+      (player): player is NonNullable<typeof player> => player !== null
     );
+    if (existingTagged.length > 0) {
+      setTaggedPlayers(existingTagged);
+    } else if (session?.user) {
+      setTaggedPlayers([
+        {
+          id: session.user.id,
+          image: session.user.image,
+          name: session.user.name || "Me",
+          username:
+            (session.user as { username?: string | null }).username ?? null,
+        },
+      ]);
+    }
     setSelectedVenue(video.venue ?? null);
     setInitializedVideoId(video.id);
-  }, [initializedVideoId, video]);
+  }, [initializedVideoId, session?.user, video]);
 
   const saveVideo = useMutation({
-    mutationFn: (nextVisibility: Visibility) =>
+    mutationFn: (options?: { publish?: boolean; visibility?: Visibility }) =>
       readApiJson(
         apiClient.api.v1.videos[":id"].$patch({
           json: {
             description: description.trim() || undefined,
+            publish: options?.publish,
             taggedUserIds: taggedPlayers.map((player) => player.id),
             title: title.trim(),
             venueId: selectedVenue?.id ?? null,
-            visibility: nextVisibility,
+            visibility: options?.visibility ?? visibility,
           },
           param: { id },
         })
       ),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["video-studio", id] });
-      toast.success("Video details saved");
+    },
+  });
+
+  const deleteVideo = useMutation({
+    mutationFn: () =>
+      readApiJson(
+        apiClient.api.v1.videos[":id"].$delete({
+          param: { id },
+        })
+      ),
+    onError: (error) => {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete video"
+      );
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["video-studio"] });
+      toast.success("Video deleted");
+      await navigate({ to: "/u/studio" });
     },
   });
 
@@ -177,6 +218,7 @@ function VideoStudioPage() {
 
   const effectiveStatus = getEffectiveStatus(upload.phase, video.status);
   const isReady = isPublishableVideo(video);
+  const isPublished = Boolean(video.publishedAt);
   const playerResults = (playersQuery.data?.players ?? []).filter(
     (player) => !taggedPlayers.some((tagged) => tagged.id === player.id)
   );
@@ -207,16 +249,29 @@ function VideoStudioPage() {
       toast.error("A title is required.");
       return;
     }
-    await saveVideo.mutateAsync(visibility);
+    await saveVideo.mutateAsync({ visibility });
+    toast.success("Video details saved");
+    await navigate({ to: "/u/studio" });
   };
 
   const publish = async () => {
+    if (!title.trim()) {
+      toast.error("A title is required.");
+      return;
+    }
     if (!isReady) {
       toast.info("Publishing unlocks as soon as Mux finishes processing.");
       return;
     }
-    setVisibility("public");
-    await saveVideo.mutateAsync("public");
+    const targetVisibility = visibility === "private" ? "public" : visibility;
+    setVisibility(targetVisibility);
+    await saveVideo.mutateAsync({
+      publish: true,
+      visibility: targetVisibility,
+    });
+    setPublishedVideoUrl(`${window.location.origin}/videos/${id}`);
+    setShowSuccessModal(true);
+    toast.success("Video published!");
   };
 
   return (
@@ -228,27 +283,71 @@ function VideoStudioPage() {
           </p>
           <h1 className="mt-1 text-3xl font-bold">Video details</h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            className="rounded-lg text-destructive hover:bg-destructive/10 hover:text-destructive"
+            disabled={deleteVideo.isPending}
+            onClick={() => setShowDeleteModal(true)}
+            type="button"
+            variant="ghost"
+          >
+            <Trash2 className="size-4" /> Delete video
+          </Button>
           <Button
             className="rounded-lg"
             disabled={saveVideo.isPending}
             onClick={save}
+            type="button"
             variant="outline"
           >
-            <Save className="size-4" /> Save
-          </Button>
-          <Button
-            className="rounded-lg"
-            disabled={!isReady || saveVideo.isPending}
-            onClick={publish}
-          >
-            {visibility === "public" ? (
-              <Check className="size-4" />
+            {saveVideo.isPending ? (
+              <LoaderCircle className="size-4 animate-spin" />
             ) : (
-              <Lock className="size-4" />
+              <Save className="size-4" />
             )}
-            {visibility === "public" ? "Published" : "Publish"}
+            Save
           </Button>
+          {isPublished ? (
+            <div className="flex items-center gap-2">
+              <Button
+                className="rounded-lg"
+                onClick={() => {
+                  setPublishedVideoUrl(
+                    `${window.location.origin}/videos/${id}`
+                  );
+                  setShowSuccessModal(true);
+                }}
+                type="button"
+                variant="secondary"
+              >
+                <Check className="size-4 text-primary" /> Published
+              </Button>
+              <Link
+                className={cn(
+                  buttonVariants({ variant: "default" }),
+                  "rounded-lg"
+                )}
+                params={{ id }}
+                to="/videos/$id"
+              >
+                <ExternalLink className="size-4" /> View video
+              </Link>
+            </div>
+          ) : (
+            <Button
+              className="rounded-lg"
+              disabled={!isReady || saveVideo.isPending}
+              onClick={publish}
+              type="button"
+            >
+              {saveVideo.isPending ? (
+                <LoaderCircle className="size-4 animate-spin" />
+              ) : (
+                <Lock className="size-4" />
+              )}
+              Publish
+            </Button>
+          )}
         </div>
       </header>
 
@@ -426,7 +525,7 @@ function VideoStudioPage() {
                   <Scissors className="size-4" /> Open clipper
                 </Link>
               ) : (
-                <Button disabled variant="outline">
+                <Button disabled type="button" variant="outline">
                   <Scissors className="size-4" /> Processing
                 </Button>
               )}
@@ -495,12 +594,188 @@ function VideoStudioPage() {
               <option value="public">Public</option>
             </select>
             <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-              New uploads start private so processing never publishes an
-              unfinished video.
+              Videos default to public so the community can watch your play. You
+              can change this to friends only or private at any time.
             </p>
           </div>
         </aside>
       </div>
+
+      {showSuccessModal ? (
+        <div
+          aria-labelledby="success-modal-title"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm animate-in fade-in duration-200"
+        >
+          <div className="w-full max-w-lg rounded-2xl border bg-card p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b pb-4">
+              <div className="flex items-center gap-3">
+                <div className="grid size-10 place-items-center rounded-full bg-primary/10 text-primary">
+                  <Check className="size-6" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold" id="success-modal-title">
+                    Your RallyCast is Live!
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    Video published successfully to RallyCasts
+                  </p>
+                </div>
+              </div>
+              <button
+                aria-label="Close dialog"
+                className="rounded-lg p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                onClick={() => setShowSuccessModal(false)}
+                type="button"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+
+            <div className="mt-5 space-y-4">
+              <div className="rounded-xl border bg-muted/40 p-4 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold text-sm line-clamp-1">
+                    {title || video.title}
+                  </p>
+                  <span className="capitalize rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-semibold text-primary">
+                    {visibility}
+                  </span>
+                </div>
+                {selectedVenue ? (
+                  <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <MapPin className="size-3.5 text-primary shrink-0" />
+                    <span className="truncate">{selectedVenue.name}</span>
+                  </p>
+                ) : null}
+                {taggedPlayers.length > 0 ? (
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Users className="size-3.5 text-primary shrink-0" />
+                    <span className="truncate">
+                      {taggedPlayers.map((p) => p.name).join(", ")}
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="space-y-1.5">
+                <label
+                  className="text-xs font-semibold text-muted-foreground"
+                  htmlFor="share-video-url"
+                >
+                  Share Link
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    aria-label="Share video link"
+                    className="h-10 w-full rounded-lg border bg-background px-3 text-xs font-mono select-all outline-none focus:ring-2 focus:ring-primary"
+                    id="share-video-url"
+                    readOnly
+                    value={
+                      publishedVideoUrl ||
+                      `${window.location.origin}/videos/${id}`
+                    }
+                  />
+                  <Button
+                    className="shrink-0"
+                    onClick={async () => {
+                      const shareUrl =
+                        publishedVideoUrl ||
+                        `${window.location.origin}/videos/${id}`;
+                      await navigator.clipboard.writeText(shareUrl);
+                      setHasCopied(true);
+                      toast.success("Link copied to clipboard!");
+                      setTimeout(() => setHasCopied(false), 2500);
+                    }}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    {hasCopied ? (
+                      <Check className="size-3.5 text-primary" />
+                    ) : (
+                      <Copy className="size-3.5" />
+                    )}
+                    {hasCopied ? "Copied" : "Copy"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-3 pt-2">
+              <Button
+                onClick={() => {
+                  setShowSuccessModal(false);
+                  void navigate({ to: "/u/studio" });
+                }}
+                type="button"
+                variant="outline"
+              >
+                Back to Studio
+              </Button>
+              <Link
+                className={cn(
+                  buttonVariants({ variant: "default" }),
+                  "rounded-lg"
+                )}
+                params={{ id }}
+                to="/videos/$id"
+              >
+                <ExternalLink className="size-4" /> Watch Video
+              </Link>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {showDeleteModal ? (
+        <div
+          aria-labelledby="delete-modal-title"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm animate-in fade-in duration-200"
+        >
+          <div className="w-full max-w-md rounded-2xl border bg-card p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-start gap-4">
+              <div className="grid size-10 shrink-0 place-items-center rounded-full bg-destructive/15 text-destructive">
+                <Trash2 className="size-5" />
+              </div>
+              <div className="space-y-1">
+                <h2 className="text-lg font-bold" id="delete-modal-title">
+                  Delete this video?
+                </h2>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  This will permanently remove the video and all associated
+                  media from RallyCasts and Mux. This action cannot be undone.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <Button
+                disabled={deleteVideo.isPending}
+                onClick={() => setShowDeleteModal(false)}
+                type="button"
+                variant="outline"
+              >
+                Cancel
+              </Button>
+              <Button
+                disabled={deleteVideo.isPending}
+                onClick={() => deleteVideo.mutate()}
+                type="button"
+                variant="destructive"
+              >
+                {deleteVideo.isPending ? (
+                  <LoaderCircle className="size-4 animate-spin" />
+                ) : (
+                  <Trash2 className="size-4" />
+                )}
+                {deleteVideo.isPending ? "Deleting…" : "Delete Video"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

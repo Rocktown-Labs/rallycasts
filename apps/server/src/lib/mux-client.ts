@@ -98,7 +98,8 @@ export async function createMuxClip(
   endTime: number,
   tokenId: string,
   tokenSecret: string,
-  videoId: string
+  videoId: string,
+  playbackPolicy: "public" | "signed" = "public"
 ): Promise<{ assetId: string; playbackId: string | null; status: string }> {
   const response = await fetch(`${MUX_API_BASE}/assets`, {
     body: JSON.stringify({
@@ -110,7 +111,7 @@ export async function createMuxClip(
         },
       ],
       passthrough: videoId,
-      playback_policies: ["signed"],
+      playback_policies: [playbackPolicy],
       video_quality: "basic",
     }),
     headers: {
@@ -309,4 +310,23 @@ export async function getMuxUpload(
     assetId: data.data.asset_id,
     status: data.data.status,
   };
+}
+
+export async function deleteMuxAsset(
+  assetId: string,
+  tokenId: string,
+  tokenSecret: string
+): Promise<boolean> {
+  const response = await fetch(
+    `${MUX_API_BASE}/assets/${encodeURIComponent(assetId)}`,
+    {
+      headers: {
+        Authorization: `Basic ${btoa(`${tokenId}:${tokenSecret}`)}`,
+      },
+      method: "DELETE",
+      signal: AbortSignal.timeout(MUX_REQUEST_TIMEOUT_MS),
+    }
+  );
+
+  return response.ok || response.status === 404;
 }

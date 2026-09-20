@@ -1,4 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
+import { createAuth } from "@rallycaststv/auth";
 import { createDb } from "@rallycaststv/db";
 import { user } from "@rallycaststv/db/schema/auth";
 import {
@@ -10,7 +11,7 @@ import {
   videoComment,
   videoLike,
 } from "@rallycaststv/db/schema/domain";
-import { and, desc, eq, inArray, lt, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, lt, ne, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 import { z } from "zod";
@@ -20,6 +21,7 @@ import { createId } from "../lib/ids";
 import {
   createMuxClip,
   createMuxPlaybackToken,
+  deleteMuxAsset,
   replaceMuxAssetPlaybackPolicy,
 } from "../lib/mux-client";
 import { createNotification } from "../lib/notifications";
@@ -54,6 +56,8 @@ const updateVideoSchema = createVideoSchema.partial().extend({
   muxPlaybackId: z.string().optional(),
   muxStatus: z.string().optional(),
   muxUploadId: z.string().optional(),
+  publish: z.boolean().optional(),
+  publishedAt: z.coerce.date().nullable().optional(),
   r2Key: z.string().optional(),
   status: z
     .enum(["draft", "uploading", "processing", "ready", "failed", "deleted"])
@@ -721,12 +725,12 @@ export const videosRouter = new Hono<AppEnv>()
         mediaType: "short" as const,
         muxAssetId: muxClip.assetId,
         muxPlaybackId: muxClip.playbackId,
-        muxPlaybackPolicy: "signed" as const,
+        muxPlaybackPolicy: "public" as const,
         muxStatus: muxClip.status,
         ownerUserId: authUser.id,
         status: "processing" as const,
         title: data.title,
-        visibility: "private" as const,
+        visibility: "public" as const,
       };
 
       await db.insert(video).values(clip);
@@ -740,17 +744,50 @@ export const videosRouter = new Hono<AppEnv>()
     const [videoRecord] = await db
       .select()
       .from(video)
-      .where(
-        and(
-          eq(video.id, id),
-          eq(video.status, "ready"),
-          eq(video.visibility, "public")
-        )
-      )
+      .where(and(eq(video.id, id), ne(video.status, "deleted")))
       .limit(1);
 
     if (!videoRecord) {
       return c.json({ message: "Video not found" }, HttpStatusCodes.NOT_FOUND);
+    }
+
+    if (videoRecord.visibility !== "public") {
+      const authSession = await createAuth(c.env.DB).api.getSession({
+        headers: c.req.raw.headers,
+      });
+      const viewerId = authSession?.user?.id;
+      const isOwner = viewerId === videoRecord.ownerUserId;
+      if (!isOwner) {
+        if (videoRecord.visibility === "friends" && viewerId) {
+          const [friend] = await db
+            .select()
+            .from(friendship)
+            .where(
+              or(
+                and(
+                  eq(friendship.userId, viewerId),
+                  eq(friendship.requesterUserId, videoRecord.ownerUserId)
+                ),
+                and(
+                  eq(friendship.userId, videoRecord.ownerUserId),
+                  eq(friendship.requesterUserId, viewerId)
+                )
+              )
+            )
+            .limit(1);
+          if (!friend) {
+            return c.json(
+              { message: "Video not found" },
+              HttpStatusCodes.NOT_FOUND
+            );
+          }
+        } else {
+          return c.json(
+            { message: "Video not found" },
+            HttpStatusCodes.NOT_FOUND
+          );
+        }
+      }
     }
 
     const relatedRecords = await db
@@ -814,8 +851,8 @@ export const videosRouter = new Hono<AppEnv>()
     }
 
     if (
-      record.visibility === "public" &&
-      record.muxPlaybackPolicy === "public"
+      record.muxPlaybackId &&
+      (record.muxPlaybackPolicy === "public" || record.visibility === "public")
     ) {
       return c.json(
         {
@@ -827,43 +864,90 @@ export const videosRouter = new Hono<AppEnv>()
 
     const signingKeyId = c.env.MUX_SIGNING_KEY_ID;
     const signingKeySecret = c.env.MUX_SIGNING_KEY_SECRET;
-    if (!(signingKeyId && signingKeySecret)) {
-      return c.json(
-        { message: "Private playback is not configured" },
-        HttpStatusCodes.SERVICE_UNAVAILABLE
-      );
+
+    if (signingKeyId && signingKeySecret) {
+      try {
+        const token = await createMuxPlaybackToken(
+          record.muxPlaybackId,
+          signingKeyId,
+          signingKeySecret
+        );
+        return c.json(
+          {
+            playbackUrl: `https://stream.mux.com/${record.muxPlaybackId}.m3u8?token=${encodeURIComponent(token)}`,
+          },
+          HttpStatusCodes.OK
+        );
+      } catch (error) {
+        console.error(
+          JSON.stringify({
+            event: "mux_playback_token_failed",
+            message: error instanceof Error ? error.message : "unknown error",
+            videoId: id,
+          })
+        );
+      }
     }
 
-    try {
-      const token = await createMuxPlaybackToken(
-        record.muxPlaybackId,
-        signingKeyId,
-        signingKeySecret
-      );
-      return c.json(
-        {
-          playbackUrl: `https://stream.mux.com/${record.muxPlaybackId}.m3u8?token=${encodeURIComponent(token)}`,
-        },
-        HttpStatusCodes.OK
-      );
-    } catch (error) {
-      console.error(
-        JSON.stringify({
-          event: "mux_playback_token_failed",
-          message: error instanceof Error ? error.message : "unknown error",
-          videoId: id,
-        })
-      );
-      return c.json(
-        { message: "Private playback is unavailable" },
-        HttpStatusCodes.SERVICE_UNAVAILABLE
-      );
+    // Fallback for owner: if signing failed or wasn't configured and MUX API credentials exist, upgrade to public playback ID so owner can preview in Studio/Clipper
+    if (
+      record.ownerUserId === authUser.id &&
+      c.env.MUX_TOKEN_ID &&
+      c.env.MUX_TOKEN_SECRET
+    ) {
+      try {
+        const [videoRow] = await db
+          .select({ muxAssetId: video.muxAssetId })
+          .from(video)
+          .where(eq(video.id, id))
+          .limit(1);
+        if (videoRow?.muxAssetId) {
+          const publicPlaybackId = await replaceMuxAssetPlaybackPolicy(
+            videoRow.muxAssetId,
+            "public",
+            c.env.MUX_TOKEN_ID,
+            c.env.MUX_TOKEN_SECRET,
+            record.muxPlaybackId
+          );
+          await db
+            .update(video)
+            .set({
+              muxPlaybackId: publicPlaybackId,
+              muxPlaybackPolicy: "public",
+              updatedAt: new Date(),
+            })
+            .where(eq(video.id, id));
+          return c.json(
+            {
+              playbackUrl: `https://stream.mux.com/${publicPlaybackId}.m3u8`,
+            },
+            HttpStatusCodes.OK
+          );
+        }
+      } catch (fallbackError) {
+        console.error(
+          JSON.stringify({
+            event: "mux_playback_fallback_failed",
+            message:
+              fallbackError instanceof Error
+                ? fallbackError.message
+                : "unknown error",
+            videoId: id,
+          })
+        );
+      }
     }
+
+    return c.json(
+      { message: "Private playback is unavailable" },
+      HttpStatusCodes.SERVICE_UNAVAILABLE
+    );
   })
   .patch(
     "/:id",
     requireAuth,
     zValidator("json", updateVideoSchema),
+    // oxlint-disable-next-line complexity
     async (c) => {
       const db = createDb(c.env.DB);
       const { user: authUser } = c.var.authSession;
@@ -892,6 +976,7 @@ export const videosRouter = new Hono<AppEnv>()
         muxPlaybackId: _muxPlaybackId,
         muxStatus: _muxStatus,
         muxUploadId: _muxUploadId,
+        publish,
         r2Key: _r2Key,
         status: _status,
         taggedUserIds,
@@ -931,6 +1016,8 @@ export const videosRouter = new Hono<AppEnv>()
         .update(video)
         .set({
           ...rest,
+          ...(publish === true ? { publishedAt: new Date() } : {}),
+          ...(publish === false ? { publishedAt: null } : {}),
           ...(data.visibility && data.visibility !== "public"
             ? { thumbnailUrl: null }
             : {}),
@@ -988,6 +1075,47 @@ export const videosRouter = new Hono<AppEnv>()
       return c.json({ id, video: returnedVideo }, HttpStatusCodes.OK);
     }
   )
+  .delete("/:id", requireAuth, async (c) => {
+    const db = createDb(c.env.DB);
+    const { user: authUser } = c.var.authSession;
+    const id = c.req.param("id");
+    const [record] = await db
+      .select()
+      .from(video)
+      .where(and(eq(video.id, id), eq(video.ownerUserId, authUser.id)))
+      .limit(1);
+
+    if (!record || record.status === "deleted") {
+      return c.json({ message: "Video not found" }, HttpStatusCodes.NOT_FOUND);
+    }
+
+    await removeSearchDocument(db, c.env, "video", id);
+
+    if (record.muxAssetId && c.env.MUX_TOKEN_ID && c.env.MUX_TOKEN_SECRET) {
+      try {
+        await deleteMuxAsset(
+          record.muxAssetId,
+          c.env.MUX_TOKEN_ID,
+          c.env.MUX_TOKEN_SECRET
+        );
+      } catch (error) {
+        console.error(
+          JSON.stringify({
+            event: "mux_asset_deletion_failed",
+            message: error instanceof Error ? error.message : "unknown error",
+            videoId: id,
+          })
+        );
+      }
+    }
+
+    await db
+      .update(video)
+      .set({ status: "deleted", updatedAt: new Date() })
+      .where(eq(video.id, id));
+
+    return c.json({ id, message: "Video deleted" }, HttpStatusCodes.OK);
+  })
   .get("/:id/social", async (c) => {
     const db = createDb(c.env.DB);
     const id = c.req.param("id");
