@@ -26,6 +26,7 @@ import {
   scheduleSearchDocumentIndex,
   upsertSearchDocument,
 } from "../lib/search-index";
+import { sendTournamentNotification } from "../lib/tournament-notifications";
 import type { AppEnv } from "../lib/types";
 import { findOrCreateVenueFromGooglePlace } from "../lib/venues";
 import { requireAuth } from "../middleware/auth";
@@ -324,15 +325,12 @@ const refundCancelledEventPayments = async (
       `Stripe refunds failed for ${refundErrors.length} registration(s)`
     );
   }
-const DEMO_USERS = [
-  {
-    name: "Alex Morgan",
-    skillLevel: "advanced" as const,
-    username: "alex_dink",
-  },
+};
+
+const SEVEN_DEMO_USERS = [
   {
     name: "Marcus Vance",
-    skillLevel: "intermediate" as const,
+    skillLevel: "advanced" as const,
     username: "vance_pickle",
   },
   {
@@ -363,12 +361,57 @@ const DEMO_USERS = [
   { name: "Zach Taylor", skillLevel: "pro" as const, username: "zach_erne" },
 ] as const;
 
-async function seedDemoTournamentData(
+async function seedDemoUsers(
   db: ReturnType<typeof createDb>,
-  eventId: string
-) {
-  const playerIds: string[] = [];
-  for (const demoUser of DEMO_USERS) {
+  authUser?: {
+    displayUsername?: string | null;
+    email?: string | null;
+    id: string;
+    name?: string | null;
+    username?: string | null;
+  }
+): Promise<string[]> {
+  const primaryUserId = authUser?.id ?? "demo-cgstewart";
+  const primaryUserName =
+    authUser?.name ||
+    authUser?.displayUsername ||
+    authUser?.username ||
+    "CG Stewart";
+  const primaryUserEmail = authUser?.email || "cgstewart@rallycasts.com";
+  const primaryUserUsername = authUser?.username || "cgstewart";
+
+  if (!authUser) {
+    await db
+      .insert(userTable)
+      .values({
+        createdAt: new Date(),
+        displayUsername: primaryUserName,
+        email: primaryUserEmail,
+        emailVerified: true,
+        id: primaryUserId,
+        name: primaryUserName,
+        updatedAt: new Date(),
+        username: primaryUserUsername,
+      })
+      .onConflictDoNothing();
+  }
+
+  await db
+    .insert(userProfile)
+    .values({
+      accountTier: "premium",
+      homeCity: "Searcy",
+      homeState: "AR",
+      isPlayer: true,
+      onboardingStatus: "complete",
+      skillLevel: "pro",
+      userId: primaryUserId,
+    })
+    .onConflictDoNothing();
+
+  const playerIds: string[] = [primaryUserId];
+
+  for (const demoUser of SEVEN_DEMO_USERS) {
     const demoUserId = `demo-${demoUser.username}`;
     playerIds.push(demoUserId);
     await db
@@ -399,6 +442,111 @@ async function seedDemoTournamentData(
       .onConflictDoNothing();
   }
 
+  return playerIds;
+}
+
+function buildDemoBracketMatches(
+  eventId: string,
+  courtLabels: string[],
+  playerIds: string[]
+) {
+  const matches: (typeof eventMatch.$inferInsert)[] = [];
+  const qf1Id = createId();
+
+  // Quarterfinals (round 1)
+  matches.push(
+    {
+      courtLabel: courtLabels[0] ?? "Court 1",
+      createdAt: new Date(),
+      eventId,
+      id: qf1Id,
+      playerOneUserId: playerIds[0],
+      playerTwoUserId: playerIds[7],
+      round: 1,
+      scheduledAt: new Date(),
+      status: "scheduled",
+    },
+    {
+      courtLabel: courtLabels[1] ?? "Court 2",
+      createdAt: new Date(),
+      eventId,
+      id: createId(),
+      playerOneUserId: playerIds[3],
+      playerTwoUserId: playerIds[4],
+      round: 1,
+      scheduledAt: new Date(Date.now() + 600_000),
+      status: "scheduled",
+    },
+    {
+      courtLabel: courtLabels[2] ?? "Court 3",
+      createdAt: new Date(),
+      eventId,
+      id: createId(),
+      playerOneUserId: playerIds[1],
+      playerTwoUserId: playerIds[6],
+      round: 1,
+      scheduledAt: new Date(Date.now() + 1_200_000),
+      status: "scheduled",
+    },
+    {
+      courtLabel: courtLabels[3] ?? "Center Court",
+      createdAt: new Date(),
+      eventId,
+      id: createId(),
+      playerOneUserId: playerIds[2],
+      playerTwoUserId: playerIds[5],
+      round: 1,
+      scheduledAt: new Date(Date.now() + 1_800_000),
+      status: "scheduled",
+    },
+    // Semifinal 1 & 2 (round 2)
+    {
+      courtLabel: courtLabels[0] ?? "Court 1",
+      createdAt: new Date(),
+      eventId,
+      id: createId(),
+      round: 2,
+      scheduledAt: new Date(Date.now() + 3_600_000),
+      status: "scheduled",
+    },
+    {
+      courtLabel: courtLabels[1] ?? "Court 2",
+      createdAt: new Date(),
+      eventId,
+      id: createId(),
+      round: 2,
+      scheduledAt: new Date(Date.now() + 5_400_000),
+      status: "scheduled",
+    },
+    // Championship Final (round 3)
+    {
+      courtLabel: "Center Court",
+      createdAt: new Date(),
+      eventId,
+      id: createId(),
+      round: 3,
+      scheduledAt: new Date(Date.now() + 7_200_000),
+      status: "scheduled",
+    }
+  );
+
+  return { matches, qf1Id };
+}
+
+async function seedDemoTournamentData(
+  db: ReturnType<typeof createDb>,
+  eventId: string,
+  authUser?: {
+    displayUsername?: string | null;
+    email?: string | null;
+    id: string;
+    name?: string | null;
+    username?: string | null;
+  },
+  env?: { DB: D1Database; RESEND_API_KEY?: string }
+) {
+  const playerIds = await seedDemoUsers(db, authUser);
+
   await db.delete(eventMatch).where(eq(eventMatch.eventId, eventId));
   await db
     .delete(eventRegistration)
@@ -415,96 +563,25 @@ async function seedDemoTournamentData(
     });
   }
 
-  const courtLabels = ["Court 1", "Court 2", "Court 3", "Court 4"];
-  const qfPairings = [
-    {
-      p1: playerIds[0],
-      p1Score: 11,
-      p2: playerIds[7],
-      p2Score: 7,
-      status: "completed" as const,
-      winner: playerIds[0],
-    },
-    {
-      p1: playerIds[3],
-      p1Score: 9,
-      p2: playerIds[4],
-      p2Score: 11,
-      status: "completed" as const,
-      winner: playerIds[4],
-    },
-    {
-      p1: playerIds[1],
-      p1Score: undefined,
-      p2: playerIds[6],
-      p2Score: undefined,
-      status: "in_progress" as const,
-      winner: undefined,
-    },
-    {
-      p1: playerIds[2],
-      p1Score: undefined,
-      p2: playerIds[5],
-      p2Score: undefined,
-      status: "scheduled" as const,
-      winner: undefined,
-    },
-  ];
+  const [eventRecord] = await db
+    .select()
+    .from(event)
+    .where(eq(event.id, eventId))
+    .limit(1);
 
-  const matches: (typeof eventMatch.$inferInsert)[] = [];
+  const parsedCourts = JSON.parse(
+    eventRecord?.courtLabelsJson ?? "[]"
+  ) as string[];
+  const courtLabels =
+    parsedCourts.length >= 4
+      ? parsedCourts
+      : ["Court 1", "Court 2", "Court 3", "Center Court"];
 
-  for (let idx = 0; idx < qfPairings.length; idx += 1) {
-    const pairing = qfPairings[idx];
-    if (!pairing) {
-      continue;
-    }
-    matches.push({
-      courtLabel: courtLabels[idx % courtLabels.length],
-      createdAt: new Date(),
-      eventId,
-      id: createId(),
-      playerOneScore: pairing.p1Score,
-      playerOneUserId: pairing.p1,
-      playerTwoScore: pairing.p2Score,
-      playerTwoUserId: pairing.p2,
-      round: 1,
-      scheduledAt: new Date(Date.now() - 3_600_000 + idx * 1_800_000),
-      status: pairing.status,
-      winnerUserId: pairing.winner,
-    });
-  }
-
-  matches.push({
-    courtLabel: "Center Court",
-    createdAt: new Date(),
+  const { matches, qf1Id } = buildDemoBracketMatches(
     eventId,
-    id: createId(),
-    playerOneUserId: playerIds[0],
-    playerTwoUserId: playerIds[4],
-    round: 2,
-    scheduledAt: new Date(Date.now() + 3_600_000),
-    status: "scheduled",
-  });
-
-  matches.push({
-    courtLabel: "Court 2",
-    createdAt: new Date(),
-    eventId,
-    id: createId(),
-    round: 2,
-    scheduledAt: new Date(Date.now() + 5_400_000),
-    status: "scheduled",
-  });
-
-  matches.push({
-    courtLabel: "Championship Court",
-    createdAt: new Date(),
-    eventId,
-    id: createId(),
-    round: 3,
-    scheduledAt: new Date(Date.now() + 86_400_000),
-    status: "scheduled",
-  });
+    courtLabels,
+    playerIds
+  );
 
   await db.insert(eventMatch).values(matches);
   await db
@@ -512,7 +589,263 @@ async function seedDemoTournamentData(
     .set({ status: "published", updatedAt: new Date() })
     .where(eq(event.id, eventId));
 
+  if (env) {
+    await sendTournamentNotification({
+      db,
+      env,
+      eventId,
+      matchId: qf1Id,
+      targetUserId: playerIds[0],
+      type: "match_ready",
+    });
+  }
+
   return { matchesCount: matches.length, playersCount: playerIds.length };
+}
+
+async function advanceDemoQuarterfinals(
+  db: ReturnType<typeof createDb>,
+  env: { DB: D1Database; RESEND_API_KEY?: string },
+  eventId: string,
+  authUser: { id: string },
+  currentMatch: typeof eventMatch.$inferSelect
+) {
+  await db
+    .update(eventMatch)
+    .set({
+      playerOneScore: currentMatch.playerOneUserId === authUser.id ? 11 : 7,
+      playerTwoScore: currentMatch.playerOneUserId === authUser.id ? 7 : 11,
+      status: "completed",
+      updatedAt: new Date(),
+      winnerUserId: authUser.id,
+    })
+    .where(eq(eventMatch.id, currentMatch.id));
+
+  const otherQfs = await db
+    .select()
+    .from(eventMatch)
+    .where(
+      and(
+        eq(eventMatch.eventId, eventId),
+        eq(eventMatch.round, 1),
+        ne(eventMatch.id, currentMatch.id)
+      )
+    )
+    .orderBy(asc(eventMatch.createdAt));
+
+  if (otherQfs[0]) {
+    await db
+      .update(eventMatch)
+      .set({
+        playerOneScore: 9,
+        playerTwoScore: 11,
+        status: "completed",
+        updatedAt: new Date(),
+        winnerUserId: otherQfs[0].playerTwoUserId,
+      })
+      .where(eq(eventMatch.id, otherQfs[0].id));
+  }
+  if (otherQfs[1]) {
+    await db
+      .update(eventMatch)
+      .set({
+        playerOneScore: 11,
+        playerTwoScore: 6,
+        status: "completed",
+        updatedAt: new Date(),
+        winnerUserId: otherQfs[1].playerOneUserId,
+      })
+      .where(eq(eventMatch.id, otherQfs[1].id));
+  }
+  if (otherQfs[2]) {
+    await db
+      .update(eventMatch)
+      .set({
+        playerOneScore: 11,
+        playerTwoScore: 8,
+        status: "completed",
+        updatedAt: new Date(),
+        winnerUserId: otherQfs[2].playerOneUserId,
+      })
+      .where(eq(eventMatch.id, otherQfs[2].id));
+  }
+
+  const sfMatches = await db
+    .select()
+    .from(eventMatch)
+    .where(and(eq(eventMatch.eventId, eventId), eq(eventMatch.round, 2)))
+    .orderBy(asc(eventMatch.createdAt));
+
+  const sf1Opponent = otherQfs[0]?.playerTwoUserId ?? "demo-elena_drive";
+  if (sfMatches[0]) {
+    await db
+      .update(eventMatch)
+      .set({
+        courtLabel: "Court 1",
+        playerOneUserId: authUser.id,
+        playerTwoUserId: sf1Opponent,
+        status: "scheduled",
+        updatedAt: new Date(),
+      })
+      .where(eq(eventMatch.id, sfMatches[0].id));
+  }
+  if (sfMatches[1]) {
+    await db
+      .update(eventMatch)
+      .set({
+        courtLabel: "Court 2",
+        playerOneUserId: otherQfs[1]?.playerOneUserId ?? "demo-vance_pickle",
+        playerTwoUserId: otherQfs[2]?.playerOneUserId ?? "demo-sarah_smash",
+        status: "scheduled",
+        updatedAt: new Date(),
+      })
+      .where(eq(eventMatch.id, sfMatches[1].id));
+  }
+
+  await sendTournamentNotification({
+    db,
+    env,
+    eventId,
+    matchId: sfMatches[0]?.id,
+    targetUserId: authUser.id,
+    type: "match_ready",
+  });
+
+  return {
+    court: "Court 1",
+    message:
+      "Victory in Quarterfinals! Advanced to Semifinals. Match call notification and email sent.",
+    nextRound: 2,
+    opponent: "Elena Rostova",
+    success: true,
+  };
+}
+
+async function advanceDemoSemifinals(
+  db: ReturnType<typeof createDb>,
+  env: { DB: D1Database; RESEND_API_KEY?: string },
+  eventId: string,
+  authUser: { id: string },
+  currentMatch: typeof eventMatch.$inferSelect
+) {
+  await db
+    .update(eventMatch)
+    .set({
+      playerOneScore: currentMatch.playerOneUserId === authUser.id ? 11 : 8,
+      playerTwoScore: currentMatch.playerOneUserId === authUser.id ? 8 : 11,
+      status: "completed",
+      updatedAt: new Date(),
+      winnerUserId: authUser.id,
+    })
+    .where(eq(eventMatch.id, currentMatch.id));
+
+  const otherSf = await db
+    .select()
+    .from(eventMatch)
+    .where(
+      and(
+        eq(eventMatch.eventId, eventId),
+        eq(eventMatch.round, 2),
+        ne(eventMatch.id, currentMatch.id)
+      )
+    )
+    .limit(1);
+
+  if (otherSf[0]) {
+    await db
+      .update(eventMatch)
+      .set({
+        playerOneScore: 11,
+        playerTwoScore: 9,
+        status: "completed",
+        updatedAt: new Date(),
+        winnerUserId: otherSf[0].playerOneUserId ?? "demo-vance_pickle",
+      })
+      .where(eq(eventMatch.id, otherSf[0].id));
+  }
+
+  const [finalMatch] = await db
+    .select()
+    .from(eventMatch)
+    .where(and(eq(eventMatch.eventId, eventId), eq(eventMatch.round, 3)))
+    .limit(1);
+
+  const finalOpponent = otherSf[0]?.playerOneUserId ?? "demo-vance_pickle";
+  if (finalMatch) {
+    await db
+      .update(eventMatch)
+      .set({
+        courtLabel: "Center Court",
+        playerOneUserId: authUser.id,
+        playerTwoUserId: finalOpponent,
+        status: "scheduled",
+        updatedAt: new Date(),
+      })
+      .where(eq(eventMatch.id, finalMatch.id));
+  }
+
+  await sendTournamentNotification({
+    db,
+    env,
+    eventId,
+    matchId: finalMatch?.id,
+    targetUserId: authUser.id,
+    type: "match_ready",
+  });
+
+  return {
+    court: "Center Court",
+    message:
+      "Victory in Semifinals! Advanced to the Championship Final! Match call notification and email sent.",
+    nextRound: 3,
+    opponent: "Marcus Vance",
+    success: true,
+  };
+}
+
+async function advanceDemoFinals(
+  db: ReturnType<typeof createDb>,
+  env: { DB: D1Database; RESEND_API_KEY?: string },
+  eventId: string,
+  authUser: {
+    displayUsername?: string | null;
+    id: string;
+    name?: string | null;
+    username?: string | null;
+  },
+  currentMatch: typeof eventMatch.$inferSelect
+) {
+  await db
+    .update(eventMatch)
+    .set({
+      playerOneScore: currentMatch.playerOneUserId === authUser.id ? 11 : 9,
+      playerTwoScore: currentMatch.playerOneUserId === authUser.id ? 9 : 11,
+      status: "completed",
+      updatedAt: new Date(),
+      winnerUserId: authUser.id,
+    })
+    .where(eq(eventMatch.id, currentMatch.id));
+
+  await db
+    .update(event)
+    .set({ status: "completed", updatedAt: new Date() })
+    .where(eq(event.id, eventId));
+
+  await sendTournamentNotification({
+    db,
+    env,
+    eventId,
+    targetUserId: authUser.id,
+    type: "tournament_won",
+  });
+
+  return {
+    champion: authUser.name || authUser.username || "CG Stewart",
+    completed: true,
+    message:
+      "🏆 Championship Victory! You won the tournament! Celebration notification and email sent.",
+    success: true,
+  };
 }
 
 const isOrganizerUser = (db: ReturnType<typeof createDb>, userId: string) =>
@@ -943,15 +1276,130 @@ export const eventsRouter = new Hono<AppEnv>()
       );
     }
 
-    const result = await seedDemoTournamentData(db, id);
+    const result = await seedDemoTournamentData(db, id, authUser, c.env);
     return c.json(
       {
         matchesCount: result.matchesCount,
-        message: "Tournament seeded with 8 competitors and bracket generated!",
+        message: `Tournament seeded with 8 competitors including ${authUser.name || authUser.username || "you"} as Seed #1! Match assignment notification sent.`,
         playersCount: result.playersCount,
         success: true,
       },
       HttpStatusCodes.CREATED
+    );
+  })
+  .post("/:id/test-notification", requireAuth, async (c) => {
+    const db = createDb(c.env.DB);
+    const { user: authUser } = c.var.authSession;
+    const id = c.req.param("id");
+
+    const result = await sendTournamentNotification({
+      db,
+      env: c.env,
+      eventId: id,
+      targetUserId: authUser.id,
+      type: "match_ready",
+    });
+
+    if ("error" in result && result.error) {
+      return c.json(
+        { message: result.error, success: false },
+        HttpStatusCodes.BAD_REQUEST
+      );
+    }
+
+    const courtLabel =
+      "courtLabel" in result && result.courtLabel
+        ? result.courtLabel
+        : "Court 1";
+    const roundName =
+      "roundName" in result && result.roundName ? result.roundName : "Round";
+
+    return c.json(
+      {
+        court: courtLabel,
+        message: `Match call notification sent for ${courtLabel} (${roundName})!`,
+        round: roundName,
+        success: true,
+      },
+      HttpStatusCodes.OK
+    );
+  })
+  .post("/:id/advance-demo-round", requireAuth, async (c) => {
+    const db = createDb(c.env.DB);
+    const { user: authUser } = c.var.authSession;
+    const id = c.req.param("id");
+    const [record] = await db
+      .select()
+      .from(event)
+      .where(eq(event.id, id))
+      .limit(1);
+
+    if (!record) {
+      return c.json({ message: "Event not found" }, HttpStatusCodes.NOT_FOUND);
+    }
+
+    const userMatches = await db
+      .select()
+      .from(eventMatch)
+      .where(
+        and(
+          eq(eventMatch.eventId, id),
+          or(
+            eq(eventMatch.playerOneUserId, authUser.id),
+            eq(eventMatch.playerTwoUserId, authUser.id)
+          )
+        )
+      )
+      .orderBy(desc(eventMatch.round));
+
+    const currentMatch =
+      userMatches.find(
+        (m) => m.status === "scheduled" || m.status === "in_progress"
+      ) ?? userMatches[0];
+
+    if (!currentMatch) {
+      return c.json(
+        { message: "No match found for your player in this tournament" },
+        HttpStatusCodes.BAD_REQUEST
+      );
+    }
+
+    if (currentMatch.round === 1) {
+      const result = await advanceDemoQuarterfinals(
+        db,
+        c.env,
+        id,
+        authUser,
+        currentMatch
+      );
+      return c.json(result, HttpStatusCodes.OK);
+    }
+
+    if (currentMatch.round === 2) {
+      const result = await advanceDemoSemifinals(
+        db,
+        c.env,
+        id,
+        authUser,
+        currentMatch
+      );
+      return c.json(result, HttpStatusCodes.OK);
+    }
+
+    if (currentMatch.round === 3) {
+      const result = await advanceDemoFinals(
+        db,
+        c.env,
+        id,
+        authUser,
+        currentMatch
+      );
+      return c.json(result, HttpStatusCodes.OK);
+    }
+
+    return c.json(
+      { message: "Tournament already completed!", success: true },
+      HttpStatusCodes.OK
     );
   })
   .patch(

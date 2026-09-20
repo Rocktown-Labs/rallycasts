@@ -238,7 +238,88 @@ export const useSeedDemoEvent = (id: string) => {
       queryClient.invalidateQueries({ queryKey: ["events", id, "matches"] });
       queryClient.invalidateQueries({ queryKey: ["events", id, "live"] });
       queryClient.invalidateQueries({ queryKey: ["events", "mine"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
   });
 };
 
+export const useTestNotification = (id: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () =>
+      readApiJson<{
+        court: string;
+        message: string;
+        round: string;
+        success: boolean;
+      }>(
+        apiClient.api.v1.events[":id"]["test-notification"].$post({
+          param: { id },
+        })
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+};
+
+export const useAdvanceDemoRound = (id: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () =>
+      readApiJson<{
+        champion?: string;
+        completed?: boolean;
+        court?: string;
+        message: string;
+        nextRound?: number;
+        opponent?: string;
+        success: boolean;
+      }>(
+        apiClient.api.v1.events[":id"]["advance-demo-round"].$post({
+          param: { id },
+        })
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["events", id] });
+      queryClient.invalidateQueries({ queryKey: ["events", id, "bracket"] });
+      queryClient.invalidateQueries({ queryKey: ["events", id, "matches"] });
+      queryClient.invalidateQueries({ queryKey: ["events", id, "live"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+};
+
+export const useUpdateMatch = (eventId: string, matchId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (json: {
+      courtLabel?: string;
+      playerOneScore?: number;
+      playerTwoScore?: number;
+      scheduledAt?: string;
+      status?: "cancelled" | "completed" | "in_progress" | "scheduled";
+      winnerUserId?: string;
+    }) =>
+      readApiJson(
+        apiClient.api.v1.events[":id"].matches[":matchId"].$patch({
+          json,
+          param: { id: eventId, matchId },
+        })
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["events", eventId, "bracket"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["events", eventId, "matches"],
+      });
+      queryClient.invalidateQueries({ queryKey: ["events", eventId, "live"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+};
