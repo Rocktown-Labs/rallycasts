@@ -387,4 +387,179 @@ describe("GooglePlacesClient", () => {
       expect(url).toContain("maxWidthPx=400");
     });
   });
+
+  describe("isPickleballParkResult classifier", () => {
+    it("accepts venues with explicit pickleball in name", () => {
+      expect(
+        GooglePlacesClient.isPickleballParkResult({
+          address: "100 Warehouse Way, Kensett, AR",
+          latitude: 35.23,
+          longitude: -91.67,
+          name: "Warehouse Pickleball",
+          placeId: "warehouse_1",
+          types: ["sports_complex"],
+        })
+      ).toBe(true);
+
+      expect(
+        GooglePlacesClient.isPickleballParkResult({
+          address: "North Little Rock, AR",
+          latitude: 34.78,
+          longitude: -92.27,
+          name: "Burns Park Pickleball Courts",
+          placeId: "burns_pickleball",
+          types: ["park"],
+        })
+      ).toBe(true);
+    });
+
+    it("rejects non-pickleball sports venues like gyms, disc golf, track, and soccer", () => {
+      // Gym / Fitness
+      expect(
+        GooglePlacesClient.isPickleballParkResult({
+          address: "Searcy, AR",
+          latitude: 35.25,
+          longitude: -91.74,
+          name: "Marbles Fitness LLC",
+          placeId: "gym_1",
+          types: ["fitness_center", "sports_activity_location"],
+        })
+      ).toBe(false);
+
+      expect(
+        GooglePlacesClient.isPickleballParkResult({
+          address: "Searcy, AR",
+          latitude: 35.25,
+          longitude: -91.74,
+          name: "Planet Fitness",
+          placeId: "gym_2",
+          types: ["gym"],
+        })
+      ).toBe(false);
+
+      // Disc Golf
+      expect(
+        GooglePlacesClient.isPickleballParkResult({
+          address: "Searcy, AR",
+          latitude: 35.25,
+          longitude: -91.74,
+          name: "Harding University disc golf course",
+          placeId: "disc_golf_1",
+          types: ["park", "sports_activity_location"],
+        })
+      ).toBe(false);
+
+      // Track & Field
+      expect(
+        GooglePlacesClient.isPickleballParkResult({
+          address: "Searcy, AR",
+          latitude: 35.25,
+          longitude: -91.74,
+          name: "Ted Lloyd Track and Field",
+          placeId: "track_1",
+          types: ["athletic_field"],
+        })
+      ).toBe(false);
+
+      // Soccer Complex
+      expect(
+        GooglePlacesClient.isPickleballParkResult({
+          address: "Searcy, AR",
+          latitude: 35.25,
+          longitude: -91.74,
+          name: "Stevens Soccer Complex",
+          placeId: "soccer_1",
+          types: ["sports_complex"],
+        })
+      ).toBe(false);
+
+      // Martial arts / Grappling
+      expect(
+        GooglePlacesClient.isPickleballParkResult({
+          address: "Searcy, AR",
+          latitude: 35.25,
+          longitude: -91.74,
+          name: "263 Grappling Club",
+          placeId: "grappling_1",
+          types: ["sports_club"],
+        })
+      ).toBe(false);
+
+      expect(
+        GooglePlacesClient.isPickleballParkResult({
+          address: "Searcy, AR",
+          latitude: 35.25,
+          longitude: -91.74,
+          name: "Searcy Fitness Kickboxing",
+          placeId: "kickboxing_1",
+          types: ["fitness_center"],
+        })
+      ).toBe(false);
+
+      // Baseball
+      expect(
+        GooglePlacesClient.isPickleballParkResult({
+          address: "Searcy, AR",
+          latitude: 35.25,
+          longitude: -91.74,
+          name: "Harding Academy Baseball Field",
+          placeId: "baseball_1",
+          types: ["athletic_field"],
+        })
+      ).toBe(false);
+    });
+
+    it("accepts candidate municipal parks returned for pickleball query", () => {
+      expect(
+        GooglePlacesClient.isPickleballParkResult({
+          address: "Berryhill Rd, Searcy, AR",
+          isPickleballCandidate: true,
+          latitude: 35.25,
+          longitude: -91.74,
+          name: "Berryhill Park",
+          placeId: "berryhill_park",
+          types: ["park"],
+        })
+      ).toBe(true);
+    });
+
+    it("accepts parks where user reviews mention pickleball", () => {
+      expect(
+        GooglePlacesClient.isPickleballParkResult({
+          address: "123 Community Rd, Little Rock, AR",
+          latitude: 34.74,
+          longitude: -92.28,
+          name: "MacArthur Park",
+          placeId: "macarthur_park",
+          reviewsSnippet:
+            "Beautiful park! The new outdoor pickleball courts are well lit and maintained.",
+          types: ["park"],
+        })
+      ).toBe(true);
+    });
+
+    it("accepts tennis courts and racquet clubs as dual-sport candidate venues", () => {
+      expect(
+        GooglePlacesClient.isPickleballParkResult({
+          address: "Conway, AR",
+          latitude: 35.08,
+          longitude: -92.44,
+          name: "UCA Tennis Courts",
+          placeId: "uca_tennis",
+          types: ["tennis_court"],
+        })
+      ).toBe(true);
+
+      expect(
+        GooglePlacesClient.isPickleballParkResult({
+          address: "Little Rock, AR",
+          latitude: 34.75,
+          longitude: -92.36,
+          name: "Little Rock Racquet Club",
+          placeId: "lr_racquet",
+          types: ["sports_club"],
+        })
+      ).toBe(true);
+    });
+  });
 });

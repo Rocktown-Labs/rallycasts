@@ -17,6 +17,16 @@ describe("account navigation", () => {
         expect.objectContaining({ label: "Requests", to: "/u/casts/all" }),
       ])
     );
+    expect(accountNavItems).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: "Dashboard", to: "/u/me" }),
+      ])
+    );
+    expect(mobileAccountItems).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: "Dashboard", to: "/u/me" }),
+      ])
+    );
   });
 
   it("does not expose legacy recording request routes", () => {

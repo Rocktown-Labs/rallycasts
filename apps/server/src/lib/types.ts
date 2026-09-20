@@ -28,6 +28,7 @@ export interface AppEnv {
   Bindings: WranglerEnv & {
     ADS_ANALYTICS?: AnalyticsEngineDataset;
     ADS_EVENTS?: Queue<AppAdEventMessage>;
+    AI?: Ai;
     BETTER_AUTH_SECRET: string;
     BETTER_AUTH_URL: string;
     CHAT_ROOMS: DurableObjectNamespace;
@@ -35,6 +36,7 @@ export interface AppEnv {
     EVENT_ACTIVITY_QUEUE?: Queue<EventActivityMessage>;
     EVENT_COORDINATOR: DurableObjectNamespace;
     E2E_SEED_TOKEN?: string;
+    FIRECRAWL_API_KEY?: string;
     GITHUB_CLIENT_ID?: string;
     GITHUB_CLIENT_SECRET?: string;
     GOOGLE_CLIENT_ID?: string;

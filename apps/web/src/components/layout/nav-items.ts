@@ -39,6 +39,7 @@ export const adminNavItems = [
 ] as const;
 
 export const accountNavItems = [
+  { icon: LayoutDashboard, label: "Dashboard", to: "/u/me" },
   { icon: Video, label: "Your Videos", to: "/u/videos" },
   { icon: UploadCloud, label: "Studio", to: "/u/studio" },
   { icon: User, label: "Profile", to: "/u/profile" },

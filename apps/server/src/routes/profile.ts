@@ -1,7 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
 import { createDb } from "@rallycaststv/db";
 import { user } from "@rallycaststv/db/schema/auth";
-import { userProfile } from "@rallycaststv/db/schema/domain";
+import { userProfile, venue } from "@rallycaststv/db/schema/domain";
 import { and, eq, ne } from "drizzle-orm";
 import { Hono } from "hono";
 import type { Context } from "hono";
@@ -12,9 +12,11 @@ import { isPlatformAdminUser } from "../lib/admin";
 import { BloomFilter } from "../lib/bloom";
 import {
   scheduleSearchDocumentIndex,
+  syncVenueSearchDocument,
   upsertSearchDocument,
 } from "../lib/search-index";
 import type { AppEnv } from "../lib/types";
+import { discoverAndCacheAreaVenues } from "../lib/venue-discovery";
 import { requireAuth } from "../middleware/auth";
 
 const profileSchema = z.object({
@@ -215,6 +217,69 @@ const ensureAdminProfile = async (
   return profile;
 };
 
+async function syncOnboardingCourtAndVenues(
+  c: Context<AppEnv>,
+  db: ReturnType<typeof createDb>,
+  authUserId: string,
+  profile: typeof userProfile.$inferSelect
+) {
+  if (
+    typeof profile.homeLatitude !== "number" ||
+    typeof profile.homeLongitude !== "number"
+  ) {
+    return;
+  }
+
+  if (profile.homeCourtName) {
+    const trimmedCourtName = profile.homeCourtName.trim();
+    const existingVenue = await db
+      .select()
+      .from(venue)
+      .where(eq(venue.name, trimmedCourtName))
+      .limit(1);
+
+    if (existingVenue.length === 0) {
+      const newVenueId = crypto.randomUUID();
+      const addressLine1 = [profile.homeCity, profile.homeState]
+        .filter(Boolean)
+        .join(", ");
+      const [insertedVenue] = await db
+        .insert(venue)
+        .values({
+          addressLine1,
+          city: profile.homeCity ?? "Unknown",
+          courtCount: 6,
+          createdByUserId: authUserId,
+          id: newVenueId,
+          latitude: profile.homeLatitude,
+          longitude: profile.homeLongitude,
+          name: trimmedCourtName,
+          state: profile.homeState ?? "US",
+          venueType: "park",
+        })
+        .onConflictDoNothing()
+        .returning();
+
+      if (insertedVenue) {
+        await syncVenueSearchDocument(
+          () => c.executionCtx,
+          db,
+          c.env,
+          insertedVenue
+        );
+      }
+    }
+  }
+
+  await discoverAndCacheAreaVenues({
+    db,
+    env: c.env,
+    getExecutionContext: () => c.executionCtx,
+    lat: profile.homeLatitude,
+    lng: profile.homeLongitude,
+  });
+}
+
 export const profileRouter = new Hono<AppEnv>()
   .use(requireAuth)
   .get("/check-username", async (c) => {
@@ -373,7 +438,7 @@ export const profileRouter = new Hono<AppEnv>()
       await db.update(user).set(updateData).where(eq(user.id, authUser.id));
     }
 
-    // Filter out user fields from the profile update
+    // Filter out user fields and protected role flags from normal profile update
     const {
       accountTier: _accountTier,
       isCaster: _isCaster,
@@ -435,9 +500,9 @@ export const profileRouter = new Hono<AppEnv>()
     const isPlatformAdmin = await isPlatformAdminUser(db, authUser.id);
     const {
       accountTier: _accountTier,
-      isCaster: _isCaster,
-      isOrganizer: _isOrganizer,
-      isPlayer: _isPlayer,
+      isCaster,
+      isOrganizer,
+      isPlayer,
       onboardingStatus: requestedOnboardingStatus,
       ...onboardingData
     } = data;
@@ -453,6 +518,9 @@ export const profileRouter = new Hono<AppEnv>()
         isPlayer: true,
       }),
       ...onboardingData,
+      ...(typeof isCaster === "boolean" ? { isCaster } : {}),
+      ...(typeof isOrganizer === "boolean" ? { isOrganizer } : {}),
+      ...(typeof isPlayer === "boolean" ? { isPlayer } : {}),
     };
     const missingOnboardingFields = getMissingOnboardingFields(
       candidateProfile,
@@ -466,6 +534,9 @@ export const profileRouter = new Hono<AppEnv>()
         : ("pending" as const);
     const record = {
       ...onboardingData,
+      ...(typeof isCaster === "boolean" ? { isCaster } : {}),
+      ...(typeof isOrganizer === "boolean" ? { isOrganizer } : {}),
+      ...(typeof isPlayer === "boolean" ? { isPlayer } : {}),
       ...(isPlatformAdmin ? adminProfilePatch : { onboardingStatus }),
       updatedAt: new Date(),
       userId: authUser.id,
@@ -489,6 +560,10 @@ export const profileRouter = new Hono<AppEnv>()
       .limit(1);
     if (profile && userRecord) {
       await indexProfile(c, db, profile, userRecord);
+    }
+
+    if (profile) {
+      await syncOnboardingCourtAndVenues(c, db, authUser.id, profile);
     }
 
     return c.json({ profile }, HttpStatusCodes.OK);

@@ -2,6 +2,7 @@ import { Outlet } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 
+import { SetupGuide } from "../onboarding/setup-guide";
 import AppSidebar from "./app-sidebar";
 import MobileBottomNav from "./mobile-bottom-nav";
 import SiteHeader from "./site-header";
@@ -49,6 +50,7 @@ export default function AppShell({ children }: { children?: ReactNode } = {}) {
         </main>
       </div>
       <MobileBottomNav />
+      <SetupGuide />
     </div>
   );
 }

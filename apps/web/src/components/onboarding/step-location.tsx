@@ -48,7 +48,7 @@ export const StepLocation = withForm({
       isLoading: isGeoLoading,
       location: geoLoc,
       requestLocation,
-    } = useGeolocation(false);
+    } = useGeolocation(true);
 
     // Debounce venue search with TanStack Pacer to avoid spamming Google Places API
     const debouncedSetQuery = useMemo(

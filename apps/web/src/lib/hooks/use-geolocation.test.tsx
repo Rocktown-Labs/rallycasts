@@ -1,9 +1,13 @@
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Radar } from "@/lib/radar";
 
-import { useGeolocation } from "./use-geolocation";
+import {
+  BROWSING_LOCATION_KEY,
+  LOCATION_STORAGE_KEY,
+  useGeolocation,
+} from "./use-geolocation";
 
 vi.mock("@/lib/radar", () => ({
   Radar: {
@@ -59,6 +63,7 @@ const allowBrowserLocation = () => {
 describe("useGeolocation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.localStorage?.clear();
     rejectBrowserLocation();
   });
 
@@ -146,9 +151,12 @@ describe("useGeolocation", () => {
     expect(result.current.location).toBeUndefined();
     expect(Radar.ipGeocode).not.toHaveBeenCalled();
 
-    result.current.requestLocation();
+    act(() => {
+      result.current.requestLocation();
+    });
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.location).toBeDefined());
+    expect(result.current.isLoading).toBe(false);
     expect(result.current.location).toEqual({
       city: "Searcy",
       label: "Searcy, AR",
@@ -156,5 +164,96 @@ describe("useGeolocation", () => {
       lng: -91.74,
       stateCode: "AR",
     });
+  });
+
+  it("persists resolved location to localStorage", async () => {
+    vi.mocked(Radar.ipGeocode).mockResolvedValue({
+      address: {
+        city: "Searcy",
+        latitude: 35.2468,
+        longitude: -91.735,
+        stateCode: "AR",
+      },
+    } as Awaited<ReturnType<typeof Radar.ipGeocode>>);
+
+    const { result } = renderHook(() => useGeolocation());
+
+    await waitFor(() => expect(result.current.location).toBeDefined());
+
+    const stored = window.localStorage.getItem(LOCATION_STORAGE_KEY);
+    expect(stored).not.toBeNull();
+    expect(JSON.parse(stored as string)).toMatchObject({
+      city: "Searcy",
+      lat: 35.2468,
+      lng: -91.735,
+      stateCode: "AR",
+    });
+  });
+
+  it("initializes with stored location immediately without loading delay", () => {
+    const cachedLocation = {
+      city: "Searcy",
+      label: "Searcy, AR",
+      lat: 35.2468,
+      lng: -91.735,
+      stateCode: "AR",
+    };
+    window.localStorage.setItem(
+      LOCATION_STORAGE_KEY,
+      JSON.stringify(cachedLocation)
+    );
+
+    const { result } = renderHook(() => useGeolocation(false));
+
+    expect(result.current.location).toEqual(cachedLocation);
+    expect(result.current.currentLocation).toEqual(cachedLocation);
+    expect(result.current.isBrowsing).toBe(false);
+    expect(Radar.ipGeocode).not.toHaveBeenCalled();
+  });
+
+  it("supports trip-planning browsing location override and resetting", () => {
+    const homeLocation = {
+      city: "Searcy",
+      label: "Searcy, AR",
+      lat: 35.2468,
+      lng: -91.735,
+      stateCode: "AR",
+    };
+    window.localStorage.setItem(
+      LOCATION_STORAGE_KEY,
+      JSON.stringify(homeLocation)
+    );
+
+    const { result } = renderHook(() => useGeolocation(false));
+    expect(result.current.location).toEqual(homeLocation);
+
+    const travelLocation = {
+      city: "New York",
+      label: "New York, NY",
+      lat: 40.7128,
+      lng: -74.006,
+      stateCode: "NY",
+    };
+
+    act(() => {
+      result.current.setBrowsingLocation(travelLocation);
+    });
+
+    expect(result.current.isBrowsing).toBe(true);
+    expect(result.current.location).toEqual(travelLocation);
+    expect(result.current.browsingLocation).toEqual(travelLocation);
+    expect(result.current.currentLocation).toEqual(homeLocation);
+    expect(window.localStorage.getItem(BROWSING_LOCATION_KEY)).toContain(
+      "New York"
+    );
+
+    act(() => {
+      result.current.resetToCurrentLocation();
+    });
+
+    expect(result.current.isBrowsing).toBe(false);
+    expect(result.current.location).toEqual(homeLocation);
+    expect(result.current.browsingLocation).toBeUndefined();
+    expect(window.localStorage.getItem(BROWSING_LOCATION_KEY)).toBeNull();
   });
 });

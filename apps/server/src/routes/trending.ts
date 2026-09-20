@@ -15,6 +15,7 @@ import * as HttpStatusCodes from "stoker/http-status-codes";
 import { getDisplaySponsorships } from "../lib/ads";
 import { haversineDistance } from "../lib/geo";
 import { GooglePlacesClient } from "../lib/google-places";
+import { createId } from "../lib/ids";
 import { toPublicVenue, toPublicVideo } from "../lib/public-data";
 import type { AppEnv } from "../lib/types";
 
@@ -230,6 +231,103 @@ const sponsoredTrendingEvents = async (db: TrendingDb) => {
   }));
 };
 
+const fetchNearbyTrendingVenues = async (
+  c: Context<AppEnv>,
+  db: TrendingDb,
+  lat: number,
+  lng: number,
+  venueRadius: number,
+  venueFetchLimit: number
+): Promise<TrendingVenue[]> => {
+  // 1. Check local D1 database first within radius
+  const nearbyVenueCandidates = await db
+    .select()
+    .from(venue)
+    .where(
+      locationBounds(lat, lng, venueRadius, venue.latitude, venue.longitude)
+    )
+    .limit(MAX_LOCATION_CANDIDATES);
+
+  const dbVenues = nearbyVenueCandidates
+    .filter((row) =>
+      withinRadius(lat, lng, row.latitude, row.longitude, venueRadius)
+    )
+    .toSorted(byDistance(lat, lng))
+    .slice(0, venueFetchLimit)
+    .map((record) => ({
+      ...record,
+      distanceMiles: haversineDistance(
+        lat,
+        lng,
+        record.latitude ?? 0,
+        record.longitude ?? 0
+      ),
+      source: "rallycasts" as const,
+    }));
+
+  let googleVenues: GoogleDiscoveryVenue[] = [];
+
+  // 2. If D1 has no cached venues in this radius (or cached venues are older than 6 months),
+  // query Google Places to discover & cache them into D1.
+  const SIX_MONTHS_MS = 180 * 24 * 60 * 60 * 1000;
+  const isStale =
+    dbVenues.length > 0 &&
+    dbVenues.every((v) => {
+      const updated = v.updatedAt ? new Date(v.updatedAt).getTime() : 0;
+      return Date.now() - updated > SIX_MONTHS_MS;
+    });
+
+  if (dbVenues.length === 0 || isStale) {
+    googleVenues = await getGoogleDiscoveryVenues(
+      c,
+      lat,
+      lng,
+      venueRadius,
+      venueFetchLimit
+    );
+
+    // 3. Persist newly discovered venues to D1 so future visits within 50mi use cached data
+    if (googleVenues.length > 0) {
+      const existingGoogleIds = new Set(
+        nearbyVenueCandidates.flatMap((v) =>
+          v.googlePlaceId ? [v.googlePlaceId] : []
+        )
+      );
+      const toCache = googleVenues
+        .filter((gv) => !existingGoogleIds.has(gv.googlePlaceId))
+        .map((gv) => ({
+          addressLine1: gv.addressLine1 || null,
+          city: gv.city || null,
+          country: "US",
+          createdAt: new Date(),
+          googlePlaceId: gv.googlePlaceId,
+          id: createId(),
+          latitude: gv.latitude,
+          longitude: gv.longitude,
+          name: gv.name,
+          photoUrl: gv.photoUrl || null,
+          rating: gv.rating || null,
+          state: gv.state || null,
+          userRatingsTotal: gv.userRatingsTotal || null,
+          venueType: "park" as const,
+        }));
+
+      if (toCache.length > 0) {
+        try {
+          await db.insert(venue).values(toCache).onConflictDoNothing();
+        } catch (error) {
+          console.error(
+            "Failed to cache discovered Google venues to D1:",
+            error
+          );
+        }
+      }
+    }
+  }
+
+  return mergeTrendingVenues(dbVenues, googleVenues, venueFetchLimit);
+};
+
 export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
   const db = createDb(c.env.DB);
   const latParam = c.req.query("lat");
@@ -312,36 +410,14 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
   }[];
 
   if (hasLocation) {
-    // Nearby venues use the user-selected radius, mixing RallyCasts venues and Google Places parks.
-    const [nearbyVenueCandidates, googleVenues] = await Promise.all([
-      db
-        .select()
-        .from(venue)
-        .where(
-          locationBounds(lat, lng, venueRadius, venue.latitude, venue.longitude)
-        )
-        .limit(MAX_LOCATION_CANDIDATES),
-      getGoogleDiscoveryVenues(c, lat, lng, venueRadius, venueFetchLimit),
-    ]);
-
-    const dbVenues = nearbyVenueCandidates
-      .filter((row) =>
-        withinRadius(lat, lng, row.latitude, row.longitude, venueRadius)
-      )
-      .toSorted(byDistance(lat, lng))
-      .slice(0, venueFetchLimit)
-      .map((record) => ({
-        ...record,
-        distanceMiles: haversineDistance(
-          lat,
-          lng,
-          record.latitude ?? 0,
-          record.longitude ?? 0
-        ),
-        source: "rallycasts" as const,
-      }));
-
-    venues = mergeTrendingVenues(dbVenues, googleVenues, venueFetchLimit);
+    venues = await fetchNearbyTrendingVenues(
+      c,
+      db,
+      lat,
+      lng,
+      venueRadius,
+      venueFetchLimit
+    );
 
     // Nearby videos (broader, within 500 miles - state/region level)
     const nearbyVideoCandidates = await db

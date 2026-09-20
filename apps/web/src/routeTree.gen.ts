@@ -14,6 +14,7 @@ import { Route as ShopRouteImport } from './routes/shop'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PlayersRouteImport } from './routes/players'
 import { Route as OrganizersRouteImport } from './routes/organizers'
+import { Route as MeRouteImport } from './routes/me'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as HostsRouteImport } from './routes/hosts'
 import { Route as EventsRouteImport } from './routes/events'
@@ -110,6 +111,11 @@ const PlayersRoute = PlayersRouteImport.update({
 const OrganizersRoute = OrganizersRouteImport.update({
   id: '/organizers',
   path: '/organizers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MeRoute = MeRouteImport.update({
+  id: '/me',
+  path: '/me',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -486,6 +492,7 @@ export interface FileRoutesByFullPath {
   '/events': typeof EventsRouteWithChildren
   '/hosts': typeof HostsRouteWithChildren
   '/login': typeof LoginRoute
+  '/me': typeof MeRoute
   '/organizers': typeof OrganizersRouteWithChildren
   '/players': typeof PlayersRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
@@ -562,6 +569,7 @@ export interface FileRoutesByTo {
   '/error': typeof ErrorRoute
   '/hosts': typeof HostsRouteWithChildren
   '/login': typeof LoginRoute
+  '/me': typeof MeRoute
   '/organizers': typeof OrganizersRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/shop': typeof ShopRoute
@@ -635,6 +643,7 @@ export interface FileRoutesById {
   '/events': typeof EventsRouteWithChildren
   '/hosts': typeof HostsRouteWithChildren
   '/login': typeof LoginRoute
+  '/me': typeof MeRoute
   '/organizers': typeof OrganizersRouteWithChildren
   '/players': typeof PlayersRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
@@ -715,6 +724,7 @@ export interface FileRouteTypes {
     | '/events'
     | '/hosts'
     | '/login'
+    | '/me'
     | '/organizers'
     | '/players'
     | '/reset-password'
@@ -791,6 +801,7 @@ export interface FileRouteTypes {
     | '/error'
     | '/hosts'
     | '/login'
+    | '/me'
     | '/organizers'
     | '/reset-password'
     | '/shop'
@@ -863,6 +874,7 @@ export interface FileRouteTypes {
     | '/events'
     | '/hosts'
     | '/login'
+    | '/me'
     | '/organizers'
     | '/players'
     | '/reset-password'
@@ -943,6 +955,7 @@ export interface RootRouteChildren {
   EventsRoute: typeof EventsRouteWithChildren
   HostsRoute: typeof HostsRouteWithChildren
   LoginRoute: typeof LoginRoute
+  MeRoute: typeof MeRoute
   OrganizersRoute: typeof OrganizersRouteWithChildren
   PlayersRoute: typeof PlayersRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -987,6 +1000,13 @@ declare module '@tanstack/react-router' {
       path: '/organizers'
       fullPath: '/organizers'
       preLoaderRoute: typeof OrganizersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/me': {
+      id: '/me'
+      path: '/me'
+      fullPath: '/me'
+      preLoaderRoute: typeof MeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -1770,6 +1790,7 @@ const rootRouteChildren: RootRouteChildren = {
   EventsRoute: EventsRouteWithChildren,
   HostsRoute: HostsRouteWithChildren,
   LoginRoute: LoginRoute,
+  MeRoute: MeRoute,
   OrganizersRoute: OrganizersRouteWithChildren,
   PlayersRoute: PlayersRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,

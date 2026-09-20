@@ -8,12 +8,14 @@ export interface GooglePlaceResult {
   address: string;
   latitude: number;
   longitude: number;
+  editorialSummary?: string;
   isPickleballCandidate?: boolean;
+  openNow?: boolean;
   photoUrl?: string;
   rating?: number;
-  userRatingsTotal?: number;
+  reviewsSnippet?: string;
   types: string[];
-  openNow?: boolean;
+  userRatingsTotal?: number;
 }
 
 export interface GooglePlaceSearchResponse {
@@ -24,6 +26,9 @@ export interface GooglePlaceSearchResponse {
 export interface GooglePlace {
   id: string;
   displayName?: {
+    text?: string;
+  };
+  editorialSummary?: {
     text?: string;
   };
   formattedAddress?: string;
@@ -40,6 +45,11 @@ export interface GooglePlace {
   regularOpeningHours?: {
     openNow?: boolean;
   };
+  reviews?: {
+    text?: {
+      text?: string;
+    };
+  }[];
   types?: string[];
   userRatingCount?: number;
 }
@@ -48,22 +58,26 @@ const GOOGLE_PLACES_BASE_URL = "https://places.googleapis.com/v1";
 const SEARCH_FIELD_MASK = [
   "places.id",
   "places.displayName",
+  "places.editorialSummary",
   "places.formattedAddress",
   "places.location",
   "places.photos",
   "places.rating",
   "places.regularOpeningHours",
+  "places.reviews",
   "places.types",
   "places.userRatingCount",
 ].join(",");
 const DETAILS_FIELD_MASK = [
   "id",
   "displayName",
+  "editorialSummary",
   "formattedAddress",
   "location",
   "photos",
   "rating",
   "regularOpeningHours",
+  "reviews",
   "types",
   "userRatingCount",
 ].join(",");
@@ -101,13 +115,25 @@ const LODGING_PLACE_TYPES = new Set([
 ]);
 const PICKLEBALL_QUERY = "pickleball courts";
 const PICKLEBALL_SEARCH_RESULT_LIMIT = 20;
-const SPORTS_COURT_TYPES = new Set([
-  "athletic_field",
-  "sports_activity_location",
-  "sports_club",
-  "sports_complex",
-  "tennis_court",
+
+const DISALLOWED_PLACE_TYPES = new Set([
+  "fitness_center",
+  "gym",
+  "golf_course",
+  "stadium",
+  "bowling_alley",
+  "campground",
+  "store",
+  "lodging",
+  "martial_arts_school",
+  "amusement_park",
+  "rv_park",
+  "sporting_goods_store",
+  "swim_school",
 ]);
+
+const NON_PICKLEBALL_NAME_REGEX =
+  /\b(disc\s*golf|golf\s*(club|course|range)|soccer|baseball|football|track(\s*and|\s*&)?\s*field|grappling|kickboxing|martial\s*arts|karate|taekwondo|jiu\s*jitsu|boxing|planet\s*fitness|crossfit|fitness(\s*llc)?|outfitters|skate\s*park|ice\s*rink|hockey|pool|aquatic)\b/iu;
 
 export class GooglePlacesClient {
   private apiKey: string;
@@ -305,18 +331,49 @@ export class GooglePlacesClient {
     return deduped;
   }
 
-  private static isPickleballParkResult(place: GooglePlaceResult): boolean {
+  public static isPickleballParkResult(place: GooglePlaceResult): boolean {
     if (place.types.some((type) => LODGING_PLACE_TYPES.has(type))) {
       return false;
     }
 
-    const hasAllowedType = place.types.some((type) =>
-      SPORTS_COURT_TYPES.has(type)
-    );
     const searchableText = `${place.name} ${place.address}`.toLowerCase();
-    const hasPickleballSignal = searchableText.includes("pickleball");
+    const hasExplicitPickleballName =
+      searchableText.includes("pickleball") || searchableText.includes("padel");
 
-    return place.isPickleballCandidate || hasAllowedType || hasPickleballSignal;
+    if (hasExplicitPickleballName) {
+      return true;
+    }
+
+    if (place.types.some((type) => DISALLOWED_PLACE_TYPES.has(type))) {
+      return false;
+    }
+
+    if (NON_PICKLEBALL_NAME_REGEX.test(place.name)) {
+      return false;
+    }
+
+    const extraContent =
+      `${place.editorialSummary ?? ""} ${place.reviewsSnippet ?? ""}`.toLowerCase();
+    if (extraContent.includes("pickleball") || extraContent.includes("padel")) {
+      return true;
+    }
+
+    const isTennisOrRacquet =
+      place.types.includes("tennis_court") ||
+      /\b(tennis|racquet|racket)\b/iu.test(place.name);
+    if (isTennisOrRacquet) {
+      return true;
+    }
+
+    const isParkOrSportsComplex = place.types.some(
+      (type) =>
+        type === "park" ||
+        type === "city_park" ||
+        type === "sports_complex" ||
+        type === "sports_activity_location"
+    );
+
+    return Boolean(place.isPickleballCandidate && isParkOrSportsComplex);
   }
 
   private async postSearch(
@@ -348,8 +405,13 @@ export class GooglePlacesClient {
       throw new Error(`Google Places API result missing location: ${place.id}`);
     }
 
+    const reviewsSnippet = place.reviews
+      ?.flatMap((review) => (review.text?.text ? [review.text.text] : []))
+      .join(" ");
+
     return {
       address: place.formattedAddress || "",
+      editorialSummary: place.editorialSummary?.text,
       isPickleballCandidate: options?.isPickleballCandidate || undefined,
       latitude,
       longitude,
@@ -358,6 +420,7 @@ export class GooglePlacesClient {
       photoUrl,
       placeId: place.id,
       rating: place.rating,
+      reviewsSnippet: reviewsSnippet || undefined,
       types: place.types || [],
       userRatingsTotal: place.userRatingCount,
     };
