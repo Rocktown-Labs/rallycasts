@@ -554,4 +554,69 @@ describe("videos API", () => {
       isPinned: true,
     });
   });
+
+  it("deletes a video only when requested by the owner and removes it from discovery", async () => {
+    const owner = await signUp("Video Delete Owner");
+    const otherUser = await signUp("Video Other User");
+    const videoResponse = await jsonRequest("/api/v1/videos", owner.cookie, {
+      description: "Video to delete",
+      mediaType: "video",
+      title: "Temporary match",
+      visibility: "public",
+    });
+    expect(videoResponse.status).toBe(201);
+    const { video: createdVideo } = (await videoResponse.json()) as {
+      video: { id: string };
+    };
+
+    // Non-owner cannot delete
+    const unauthorizedDelete = await app.request(
+      `/api/v1/videos/${createdVideo.id}`,
+      { headers: { Cookie: otherUser.cookie }, method: "DELETE" },
+      env
+    );
+    expect(unauthorizedDelete.status).toBe(404);
+
+    // Owner can delete
+    const deleteResponse = await app.request(
+      `/api/v1/videos/${createdVideo.id}`,
+      { headers: { Cookie: owner.cookie }, method: "DELETE" },
+      env
+    );
+    expect(deleteResponse.status).toBe(200);
+
+    // Subsequent retrieval returns 404
+    const studioResponse = await app.request(
+      `/api/v1/videos/${createdVideo.id}/studio`,
+      { headers: { Cookie: owner.cookie } },
+      env
+    );
+    expect(studioResponse.status).toBe(404);
+  });
+
+  it("sets publishedAt when publish flag is passed in video patch", async () => {
+    const owner = await signUp("Publish Flag Owner");
+    const videoResponse = await jsonRequest("/api/v1/videos", owner.cookie, {
+      title: "Draft match",
+      visibility: "private",
+    });
+    const { video: createdVideo } = (await videoResponse.json()) as {
+      video: { id: string };
+    };
+
+    const patchResponse = await jsonRequest(
+      `/api/v1/videos/${createdVideo.id}`,
+      owner.cookie,
+      {
+        publish: true,
+        visibility: "public",
+      },
+      "PATCH"
+    );
+    expect(patchResponse.status).toBe(200);
+    const { video: updatedVideo } = (await patchResponse.json()) as {
+      video: { publishedAt: string | null };
+    };
+    expect(updatedVideo.publishedAt).toBeTruthy();
+  });
 });

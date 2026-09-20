@@ -2,8 +2,8 @@ import MuxPlayer from "@mux/mux-player-react/lazy";
 import { Button } from "@rallycaststv/ui/components/button";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Scissors } from "lucide-react";
-import { useState } from "react";
+import { ArrowLeft, LoaderCircle, Scissors } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { apiClient } from "@/lib/api-client";
@@ -38,6 +38,12 @@ const VideoClipperPage = () => {
     queryKey: ["video-playback", id],
   });
 
+  useEffect(() => {
+    if (source?.durationSeconds && source.durationSeconds > 0) {
+      setEndTime(Math.min(60, Math.floor(source.durationSeconds)));
+    }
+  }, [source?.durationSeconds]);
+
   const createClip = useMutation({
     mutationFn: () =>
       readApiJson(
@@ -65,7 +71,7 @@ const VideoClipperPage = () => {
     title.trim().length > 0 &&
     endTime > startTime &&
     clipLength <= 120 &&
-    endTime <= duration;
+    (duration === 0 || endTime <= duration);
 
   return (
     <main className="mx-auto max-w-6xl space-y-6">
@@ -74,6 +80,7 @@ const VideoClipperPage = () => {
           aria-label="Back to video details"
           onClick={() => window.history.back()}
           size="icon"
+          type="button"
           variant="outline"
         >
           <ArrowLeft className="size-4" />
@@ -88,17 +95,13 @@ const VideoClipperPage = () => {
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="overflow-hidden rounded-2xl border bg-black">
-          {playbackQuery.data?.playbackUrl ? (
-            <MuxPlayer
-              metadata={{ video_id: id, video_title: source.title }}
-              src={playbackQuery.data.playbackUrl}
-              style={{ aspectRatio: "16 / 9", width: "100%" }}
-            />
-          ) : (
-            <div className="grid aspect-video place-items-center text-sm text-white/70">
-              Preparing secure playback…
-            </div>
-          )}
+          <ClipperPreview
+            id={id}
+            isLoading={playbackQuery.isLoading}
+            playbackUrl={playbackQuery.data?.playbackUrl}
+            status={source.status}
+            title={source.title}
+          />
         </div>
 
         <aside className="rounded-2xl border bg-card p-5">
@@ -140,7 +143,7 @@ const VideoClipperPage = () => {
                 <input
                   aria-label="Clip end time in seconds"
                   className="mt-2 h-11 w-full rounded-lg border bg-background px-3 font-normal"
-                  max={duration}
+                  max={duration > 0 ? duration : undefined}
                   min={1}
                   onChange={(event) => setEndTime(event.target.valueAsNumber)}
                   type="number"
@@ -156,6 +159,7 @@ const VideoClipperPage = () => {
               className="w-full rounded-lg"
               disabled={!isValid || createClip.isPending}
               onClick={() => createClip.mutate()}
+              type="button"
             >
               <Scissors className="size-4" />
               {createClip.isPending ? "Creating clip…" : "Create clip"}
@@ -173,3 +177,49 @@ const VideoClipperPage = () => {
     </main>
   );
 };
+
+function ClipperPreview({
+  id,
+  isLoading,
+  playbackUrl,
+  status,
+  title,
+}: {
+  id: string;
+  isLoading: boolean;
+  playbackUrl?: string | null;
+  status: string;
+  title: string;
+}) {
+  if (playbackUrl) {
+    return (
+      <MuxPlayer
+        metadata={{ video_id: id, video_title: title }}
+        src={playbackUrl}
+        style={{ aspectRatio: "16 / 9", width: "100%" }}
+      />
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="grid aspect-video place-items-center text-sm text-white/70">
+        <span className="flex items-center gap-2">
+          <LoaderCircle className="size-5 animate-spin text-primary" />
+          Preparing secure playback…
+        </span>
+      </div>
+    );
+  }
+
+  const message =
+    status === "ready"
+      ? "Playback is unavailable. Please check back shortly."
+      : "Video is still processing on Mux. Clipping will be available once ready.";
+
+  return (
+    <div className="grid aspect-video place-items-center p-6 text-center text-sm text-white/70">
+      {message}
+    </div>
+  );
+}

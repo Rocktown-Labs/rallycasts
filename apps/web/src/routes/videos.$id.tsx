@@ -778,15 +778,6 @@ function VideoDetailPage() {
   const [hasLiked, setHasLiked] = useState(false);
   const [showSharePanel, setShowSharePanel] = useState(false);
 
-  if (videoLoading) {
-    return <VideoLoadingSkeleton />;
-  }
-
-  if (videoError || !videoData?.video) {
-    return <VideoNotFound />;
-  }
-
-  const { video, owner, venue, taggedUsers, relatedVideos } = videoData;
   const sortedComments = useMemo(
     () =>
       comments.toSorted((a, b) => {
@@ -802,6 +793,16 @@ function VideoDetailPage() {
       }),
     [comments]
   );
+
+  if (videoLoading) {
+    return <VideoLoadingSkeleton />;
+  }
+
+  if (videoError || !videoData?.video) {
+    return <VideoNotFound />;
+  }
+
+  const { video, owner, venue, taggedUsers, relatedVideos } = videoData;
   const canPinComments = Boolean(
     currentUser?.id && owner?.id && currentUser.id === owner.id
   );

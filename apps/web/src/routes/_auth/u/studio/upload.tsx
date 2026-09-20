@@ -53,7 +53,7 @@ function StudioUploadPage() {
           json: {
             mediaType: "video",
             title: title.trim(),
-            visibility: "private",
+            visibility: "public",
           },
         })
       );

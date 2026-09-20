@@ -69,7 +69,7 @@ const createMuxUploadSchema = z.object({
   description: z.string().max(2000).optional(),
   mediaType: z.enum(["video", "short"]).default("video"),
   title: z.string().trim().min(1).max(160),
-  visibility: z.enum(["public", "friends", "private"]).default("private"),
+  visibility: z.enum(["public", "friends", "private"]).default("public"),
 });
 
 const muxUploadStatusSchema = z.object({
@@ -131,10 +131,7 @@ export const uploadRouter = new Hono<AppEnv>()
       const videoId = createId();
 
       try {
-        const playbackPolicy =
-          data.visibility === "public"
-            ? ("public" as const)
-            : ("signed" as const);
+        const playbackPolicy = "public" as const;
         const { uploadId, uploadUrl } = await createMuxUploadUrl(
           tokenId,
           tokenSecret,
@@ -151,6 +148,7 @@ export const uploadRouter = new Hono<AppEnv>()
           muxUploadId: uploadId,
           ownerUserId: authUser.id,
           status: "uploading" as const,
+          taggedUserIds: JSON.stringify([authUser.id]),
           title: data.title,
           visibility: data.visibility,
         };
