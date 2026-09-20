@@ -7,6 +7,7 @@ import {
   eventPayment,
   eventRegistration,
   organizationMember,
+  userProfile,
 } from "@rallycaststv/db/schema/domain";
 import { and, asc, desc, eq, inArray, ne, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
@@ -323,7 +324,196 @@ const refundCancelledEventPayments = async (
       `Stripe refunds failed for ${refundErrors.length} registration(s)`
     );
   }
-};
+const DEMO_USERS = [
+  {
+    name: "Alex Morgan",
+    skillLevel: "advanced" as const,
+    username: "alex_dink",
+  },
+  {
+    name: "Marcus Vance",
+    skillLevel: "intermediate" as const,
+    username: "vance_pickle",
+  },
+  {
+    name: "Sarah Jenkins",
+    skillLevel: "pro" as const,
+    username: "sarah_smash",
+  },
+  {
+    name: "Dave Miller",
+    skillLevel: "intermediate" as const,
+    username: "dave_kitchen",
+  },
+  {
+    name: "Elena Rostova",
+    skillLevel: "advanced" as const,
+    username: "elena_drive",
+  },
+  {
+    name: "Carlos Mendez",
+    skillLevel: "intermediate" as const,
+    username: "carlos_lob",
+  },
+  {
+    name: "Chloe Bennett",
+    skillLevel: "advanced" as const,
+    username: "chloe_drop",
+  },
+  { name: "Zach Taylor", skillLevel: "pro" as const, username: "zach_erne" },
+] as const;
+
+async function seedDemoTournamentData(
+  db: ReturnType<typeof createDb>,
+  eventId: string
+) {
+  const playerIds: string[] = [];
+  for (const demoUser of DEMO_USERS) {
+    const demoUserId = `demo-${demoUser.username}`;
+    playerIds.push(demoUserId);
+    await db
+      .insert(userTable)
+      .values({
+        createdAt: new Date(),
+        displayUsername: demoUser.name,
+        email: `${demoUser.username}@rallycasts.demo`,
+        emailVerified: true,
+        id: demoUserId,
+        name: demoUser.name,
+        updatedAt: new Date(),
+        username: demoUser.username,
+      })
+      .onConflictDoNothing();
+
+    await db
+      .insert(userProfile)
+      .values({
+        accountTier: "free",
+        homeCity: "Searcy",
+        homeState: "AR",
+        isPlayer: true,
+        onboardingStatus: "complete",
+        skillLevel: demoUser.skillLevel,
+        userId: demoUserId,
+      })
+      .onConflictDoNothing();
+  }
+
+  await db.delete(eventMatch).where(eq(eventMatch.eventId, eventId));
+  await db
+    .delete(eventRegistration)
+    .where(eq(eventRegistration.eventId, eventId));
+
+  for (let index = 0; index < playerIds.length; index += 1) {
+    await db.insert(eventRegistration).values({
+      createdAt: new Date(Date.now() - (playerIds.length - index) * 60_000),
+      eventId,
+      id: createId(),
+      seed: index + 1,
+      status: "checked_in",
+      userId: playerIds[index] ?? "",
+    });
+  }
+
+  const courtLabels = ["Court 1", "Court 2", "Court 3", "Court 4"];
+  const qfPairings = [
+    {
+      p1: playerIds[0],
+      p1Score: 11,
+      p2: playerIds[7],
+      p2Score: 7,
+      status: "completed" as const,
+      winner: playerIds[0],
+    },
+    {
+      p1: playerIds[3],
+      p1Score: 9,
+      p2: playerIds[4],
+      p2Score: 11,
+      status: "completed" as const,
+      winner: playerIds[4],
+    },
+    {
+      p1: playerIds[1],
+      p1Score: undefined,
+      p2: playerIds[6],
+      p2Score: undefined,
+      status: "in_progress" as const,
+      winner: undefined,
+    },
+    {
+      p1: playerIds[2],
+      p1Score: undefined,
+      p2: playerIds[5],
+      p2Score: undefined,
+      status: "scheduled" as const,
+      winner: undefined,
+    },
+  ];
+
+  const matches: (typeof eventMatch.$inferInsert)[] = [];
+
+  for (let idx = 0; idx < qfPairings.length; idx += 1) {
+    const pairing = qfPairings[idx];
+    if (!pairing) {
+      continue;
+    }
+    matches.push({
+      courtLabel: courtLabels[idx % courtLabels.length],
+      createdAt: new Date(),
+      eventId,
+      id: createId(),
+      playerOneScore: pairing.p1Score,
+      playerOneUserId: pairing.p1,
+      playerTwoScore: pairing.p2Score,
+      playerTwoUserId: pairing.p2,
+      round: 1,
+      scheduledAt: new Date(Date.now() - 3_600_000 + idx * 1_800_000),
+      status: pairing.status,
+      winnerUserId: pairing.winner,
+    });
+  }
+
+  matches.push({
+    courtLabel: "Center Court",
+    createdAt: new Date(),
+    eventId,
+    id: createId(),
+    playerOneUserId: playerIds[0],
+    playerTwoUserId: playerIds[4],
+    round: 2,
+    scheduledAt: new Date(Date.now() + 3_600_000),
+    status: "scheduled",
+  });
+
+  matches.push({
+    courtLabel: "Court 2",
+    createdAt: new Date(),
+    eventId,
+    id: createId(),
+    round: 2,
+    scheduledAt: new Date(Date.now() + 5_400_000),
+    status: "scheduled",
+  });
+
+  matches.push({
+    courtLabel: "Championship Court",
+    createdAt: new Date(),
+    eventId,
+    id: createId(),
+    round: 3,
+    scheduledAt: new Date(Date.now() + 86_400_000),
+    status: "scheduled",
+  });
+
+  await db.insert(eventMatch).values(matches);
+  await db
+    .update(event)
+    .set({ status: "published", updatedAt: new Date() })
+    .where(eq(event.id, eventId));
+
+  return { matchesCount: matches.length, playersCount: playerIds.length };
+}
 
 const isOrganizerUser = (db: ReturnType<typeof createDb>, userId: string) =>
   isPlatformAdminUser(db, userId);
@@ -741,6 +931,29 @@ export const eventsRouter = new Hono<AppEnv>()
       return c.json({ matches }, HttpStatusCodes.CREATED);
     }
   )
+  .post("/:id/seed-demo", requireAuth, async (c) => {
+    const db = createDb(c.env.DB);
+    const { user: authUser } = c.var.authSession;
+    const id = c.req.param("id");
+    const record = await getManageableEvent(db, id, authUser.id);
+    if (!record) {
+      return c.json(
+        { message: "Event not found or unauthorized" },
+        HttpStatusCodes.NOT_FOUND
+      );
+    }
+
+    const result = await seedDemoTournamentData(db, id);
+    return c.json(
+      {
+        matchesCount: result.matchesCount,
+        message: "Tournament seeded with 8 competitors and bracket generated!",
+        playersCount: result.playersCount,
+        success: true,
+      },
+      HttpStatusCodes.CREATED
+    );
+  })
   .patch(
     "/:id/registrations/:registrationId",
     requireAuth,

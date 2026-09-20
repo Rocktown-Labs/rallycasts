@@ -219,3 +219,26 @@ export const useSubmitMatchScore = (eventId: string, matchId: string) => {
     },
   });
 };
+
+export const useSeedDemoEvent = (id: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () =>
+      readApiJson(
+        apiClient.api.v1.events[":id"]["seed-demo"].$post({
+          param: { id },
+        })
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["events", id] });
+      queryClient.invalidateQueries({ queryKey: ["events", id, "bracket"] });
+      queryClient.invalidateQueries({ queryKey: ["events", id, "players"] });
+      queryClient.invalidateQueries({ queryKey: ["events", id, "matches"] });
+      queryClient.invalidateQueries({ queryKey: ["events", id, "live"] });
+      queryClient.invalidateQueries({ queryKey: ["events", "mine"] });
+    },
+  });
+};
+

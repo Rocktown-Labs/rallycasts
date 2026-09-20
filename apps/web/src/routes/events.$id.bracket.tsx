@@ -1,7 +1,14 @@
 import { Button } from "@rallycaststv/ui/components/button";
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useParams } from "@tanstack/react-router";
-import { Award, CheckCircle2, Radio, Swords, Video } from "lucide-react";
+import {
+  Award,
+  CheckCircle2,
+  Radio,
+  Sparkles,
+  Swords,
+  Video,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { demoEnabled } from "@/lib/demo-data";
@@ -9,6 +16,7 @@ import {
   useCreateCastingJob,
   useEventBracket,
   useGenerateEventBracket,
+  useSeedDemoEvent,
 } from "@/lib/hooks";
 
 import { useEventContext } from "./events.$id";
@@ -107,6 +115,7 @@ function EventBracketTab() {
   const queryClient = useQueryClient();
   const { data } = useEventBracket(id);
   const generateBracket = useGenerateEventBracket(id);
+  const seedDemo = useSeedDemoEvent(id);
   const createCastingJob = useCreateCastingJob();
   const backendMatches = data?.matches ?? [];
   const roundNumbers = [
@@ -115,27 +124,24 @@ function EventBracketTab() {
   const hasRealBracket = backendMatches.length > 0;
   const previewRounds = demoEnabled ? demoRounds : [];
 
-  const generate = () => {
-    generateBracket.mutate(
-      { force: hasRealBracket },
-      {
-        onError: () =>
-          toast.error(
-            "Add at least two registered players before generating a bracket."
-          ),
-        onSuccess: async () => {
-          await queryClient.invalidateQueries({
-            queryKey: ["events", id, "bracket"],
-          });
-          toast.success(
-            "Bracket generated from player seeds and court assignments."
-          );
-        },
-      }
-    );
+  const generate = async () => {
+    try {
+      await generateBracket.mutateAsync();
+      await queryClient.invalidateQueries({
+        queryKey: ["events", id, "bracket"],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["events", id, "matches"],
+      });
+      toast.success("Bracket regenerated from checked-in seeds.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Unable to generate bracket"
+      );
+    }
   };
 
-  const showPreviewNotice = demoEnabled && !hasRealBracket;
+  const showPreviewNotice = !hasRealBracket && previewRounds.length > 0;
 
   const requestCaster = (matchId: string) => {
     createCastingJob.mutate(
@@ -153,8 +159,8 @@ function EventBracketTab() {
   };
 
   return (
-    <div className="space-y-7 animate-in fade-in duration-300">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="flex items-center gap-2 text-xl font-bold">
             <Award className="size-5 text-primary" /> Tournament bracket
@@ -164,9 +170,33 @@ function EventBracketTab() {
             receive their next court assignment.
           </p>
         </div>
-        <Button disabled={generateBracket.isPending} onClick={generate}>
-          {hasRealBracket ? "Regenerate from seeds" : "Generate live bracket"}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            className="gap-1.5 font-bold cursor-pointer"
+            disabled={seedDemo.isPending}
+            onClick={() => {
+              seedDemo.mutate(undefined, {
+                onError: (err) =>
+                  toast.error(
+                    err instanceof Error
+                      ? err.message
+                      : "Failed to seed demo tournament"
+                  ),
+                onSuccess: () =>
+                  toast.success(
+                    "Tournament seeded with 8 demo players and live bracket!"
+                  ),
+              });
+            }}
+            variant="outline"
+          >
+            <Sparkles className="size-4 text-primary" />
+            Seed 8 Demo Players & Live Bracket
+          </Button>
+          <Button disabled={generateBracket.isPending} onClick={generate}>
+            {hasRealBracket ? "Regenerate from seeds" : "Generate live bracket"}
+          </Button>
+        </div>
       </div>
 
       {showPreviewNotice ? (
