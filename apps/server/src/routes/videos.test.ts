@@ -425,7 +425,7 @@ describe("videos API", () => {
       video: {
         ownerUserId: owner.id,
         status: "uploading",
-        visibility: "private",
+        visibility: "public",
       },
     });
   });
