@@ -65,21 +65,23 @@ describe("trending venue discovery", () => {
     await expect(response.json()).resolves.toMatchObject({ venues: [] });
   });
 
-  it("returns Google Places pickleball parks for nearby trending venues", async () => {
-    vi.spyOn(GooglePlacesClient.prototype, "searchNearby").mockResolvedValue([
-      {
-        address: "Berryhill Rd, Searcy, AR",
-        isPickleballCandidate: true,
-        latitude: 35.2468,
-        longitude: -91.735,
-        name: "Berryhill Park",
-        openNow: true,
-        placeId: "berryhill-place",
-        rating: 4.7,
-        types: ["park"],
-        userRatingsTotal: 24,
-      },
-    ]);
+  it("returns Google Places pickleball parks and caches them into D1 for subsequent requests", async () => {
+    const searchSpy = vi
+      .spyOn(GooglePlacesClient.prototype, "searchNearby")
+      .mockResolvedValue([
+        {
+          address: "Berryhill Rd, Searcy, AR",
+          isPickleballCandidate: true,
+          latitude: 35.2468,
+          longitude: -91.735,
+          name: "Berryhill Park",
+          openNow: true,
+          placeId: "berryhill-place",
+          rating: 4.7,
+          types: ["park"],
+          userRatingsTotal: 24,
+        },
+      ]);
 
     const response = await app.request(
       "/api/v1/trending?lat=35.2468&lng=-91.735&radius=50",
@@ -99,6 +101,28 @@ describe("trending venue discovery", () => {
         }),
       ])
     );
+    expect(searchSpy).toHaveBeenCalledTimes(1);
+
+    // Second request: D1 now has Berryhill Park stored locally!
+    searchSpy.mockClear();
+    const cachedResponse = await app.request(
+      "/api/v1/trending?lat=35.2468&lng=-91.735&radius=50&venueLimit=1",
+      {},
+      { ...env, GOOGLE_PLACES_API_KEY: "google_test_key" }
+    );
+
+    expect(cachedResponse.status).toBe(200);
+    const cachedData = await cachedResponse.json();
+    expect(cachedData.venues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          googlePlaceId: "berryhill-place",
+          name: "Berryhill Park",
+          source: "rallycasts",
+        }),
+      ])
+    );
+    expect(searchSpy).not.toHaveBeenCalled();
   });
 
   it("prefers RallyCasts records while mixing and distance-sorting Google parks", () => {

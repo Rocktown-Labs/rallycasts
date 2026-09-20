@@ -1,6 +1,13 @@
 import { Card, CardContent } from "@rallycaststv/ui/components/card";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Activity, Check, MapPin, ShieldCheck, User } from "lucide-react";
+import {
+  Activity,
+  Check,
+  MapPin,
+  ShieldCheck,
+  Sparkles,
+  User,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -16,6 +23,7 @@ import { StepRoles } from "@/components/onboarding/step-roles";
 import { authClient } from "@/lib/auth-client";
 import { useOnboarding } from "@/lib/hooks";
 import { useAppForm } from "@/lib/hooks/onboarding-form";
+import { LOCATION_STORAGE_KEY } from "@/lib/hooks/use-geolocation";
 import { parseDateOfBirth } from "@/lib/onboarding-profile";
 
 const STEPS = [
@@ -25,15 +33,31 @@ const STEPS = [
   { description: "Platform roles", icon: ShieldCheck, label: "Roles" },
 ];
 
+function sleep(ms: number): Promise<void> {
+  // oxlint-disable-next-line promise/avoid-new -- standalone delay helper for onboarding completion animation
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve();
+    }, ms);
+  });
+}
+
 function OnboardingPage() {
   const navigate = useNavigate();
   const onboarding = useOnboarding();
   const [step, setStep] = useState(0);
+  const [isFinalizing, setIsFinalizing] = useState(false);
+  const [finalizingCity, setFinalizingCity] = useState("");
 
   const form = useAppForm({
     ...wizardFormOpts,
     onSubmit: async ({ value }) => {
       const v = value as WizardValues;
+      const targetArea = v.location.homeCity
+        ? `${v.location.homeCity}, ${v.location.homeState}`
+        : "your area";
+      setFinalizingCity(targetArea);
+      setIsFinalizing(true);
       try {
         // Update user name/image/username via Better Auth
         await authClient.updateUser({
@@ -73,9 +97,36 @@ function OnboardingPage() {
           skillLevel: v.game.skillLevel,
         });
 
+        // Persist the user's home location so all pages instantly know where they play
+        if (
+          typeof v.location.homeLatitude === "number" &&
+          typeof v.location.homeLongitude === "number"
+        ) {
+          try {
+            const loc = {
+              city: v.location.homeCity || undefined,
+              label: [v.location.homeCity, v.location.homeState]
+                .filter(Boolean)
+                .join(", "),
+              lat: v.location.homeLatitude,
+              lng: v.location.homeLongitude,
+              stateCode: v.location.homeState || undefined,
+            };
+            window.localStorage.setItem(
+              LOCATION_STORAGE_KEY,
+              JSON.stringify(loc)
+            );
+          } catch {
+            // Ignore storage write error
+          }
+        }
+
+        // Brief pause to allow the background geocache & embeddings to spin up
+        await sleep(1500);
         toast.success("Welcome to RallyCasts! Your feed is ready.");
         navigate({ to: "/u/me" });
       } catch (error) {
+        setIsFinalizing(false);
         const message =
           error instanceof Error
             ? error.message
@@ -195,18 +246,55 @@ function OnboardingPage() {
       {/* Main Card with Step Content */}
       <Card className="rounded-2xl border border-border/80 shadow-xl bg-card/90 backdrop-blur-md overflow-hidden">
         <CardContent className="p-6 sm:p-8">
-          {step === 0 && <StepProfile form={form} setStep={setStep} step={0} />}
-          {step === 1 && (
-            <StepLocation form={form} setStep={setStep} step={1} />
-          )}
-          {step === 2 && <StepGame form={form} setStep={setStep} step={2} />}
-          {step === 3 && (
-            <StepRoles
-              form={form}
-              onFinish={() => form.handleSubmit()}
-              setStep={setStep}
-              step={3}
-            />
+          {isFinalizing ? (
+            <div className="py-12 px-4 text-center space-y-6 animate-in fade-in zoom-in-95 duration-500">
+              <div className="relative mx-auto size-20">
+                <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
+                <div className="relative size-20 rounded-2xl bg-primary/10 border border-primary/30 flex items-center justify-center text-primary shadow-lg shadow-primary/10">
+                  <Sparkles className="size-9 text-primary animate-spin [animation-duration:4s]" />
+                </div>
+              </div>
+              <div className="space-y-2 max-w-md mx-auto">
+                <h3 className="text-xl font-bold tracking-tight text-foreground">
+                  Personalizing your pickleball hub...
+                </h3>
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  Discovering & geocaching courts within 50 miles of{" "}
+                  <span className="font-semibold text-foreground">
+                    {finalizingCity}
+                  </span>
+                  , indexing vector search embeddings, and building your feed.
+                </p>
+              </div>
+              <div className="max-w-xs mx-auto space-y-2">
+                <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                  <div className="h-full bg-primary animate-pulse w-full" />
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Setting up your Player Hub...
+                </p>
+              </div>
+            </div>
+          ) : (
+            <>
+              {step === 0 && (
+                <StepProfile form={form} setStep={setStep} step={0} />
+              )}
+              {step === 1 && (
+                <StepLocation form={form} setStep={setStep} step={1} />
+              )}
+              {step === 2 && (
+                <StepGame form={form} setStep={setStep} step={2} />
+              )}
+              {step === 3 && (
+                <StepRoles
+                  form={form}
+                  onFinish={() => form.handleSubmit()}
+                  setStep={setStep}
+                  step={3}
+                />
+              )}
+            </>
           )}
         </CardContent>
       </Card>
