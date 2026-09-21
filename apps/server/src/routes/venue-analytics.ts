@@ -1,6 +1,6 @@
 import { createDb } from "@rallycaststv/db";
 import { venue, venueVisit } from "@rallycaststv/db/schema/domain";
-import { and, count, eq, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 
@@ -145,7 +145,7 @@ export const venueAnalyticsRouter = new Hono<AppEnv>().get(
         )
       )
       .groupBy(sql`strftime('%H', ${venueVisit.enteredAt} / 1000, 'unixepoch')`)
-      .orderBy(sql`visits DESC`)
+      .orderBy(desc(count()))
       .limit(8);
 
     const monthStart = new Date();
@@ -164,7 +164,7 @@ export const venueAnalyticsRouter = new Hono<AppEnv>().get(
         )
       )
       .groupBy(sql`strftime('%w', ${venueVisit.enteredAt} / 1000, 'unixepoch')`)
-      .orderBy(sql`visits DESC`);
+      .orderBy(desc(count()));
 
     const rawHeatScore = Math.min(
       100,
