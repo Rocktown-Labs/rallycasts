@@ -42,7 +42,7 @@ describe("RadarClient", () => {
 
       expect(result).toEqual(mockResponse);
       expect(mockFetch).toHaveBeenCalledWith(
-        "https://api.radar.io/v1/venue/venue_123",
+        "https://api.radar.io/v1/geofences/venue/venue_123",
         expect.objectContaining({
           body: expect.any(String),
           headers: {
@@ -97,7 +97,7 @@ describe("RadarClient", () => {
 
       expect(result).toEqual(mockResponse);
       expect(mockFetch).toHaveBeenCalledWith(
-        "https://api.radar.io/v1/venue/venue_123",
+        "https://api.radar.io/v1/geofences/venue/venue_123",
         expect.objectContaining({
           headers: {
             Authorization: secretKey,

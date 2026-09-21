@@ -130,6 +130,14 @@ function getEffectiveLocation(
       stateCode,
     };
   }
+
+  return {
+    city: "Searcy",
+    label: "Searcy, AR",
+    lat: 35.2506,
+    lng: -91.7362,
+    stateCode: "AR",
+  };
 }
 
 function getProfileDisplay(profile: unknown) {
@@ -1015,7 +1023,13 @@ function VenuesGrid({
                     </span>
                   )}
                   <h3 className="font-bold text-base text-foreground truncate">
-                    {venue.name}
+                    <Link
+                      className="hover:text-primary transition-colors"
+                      params={{ id: venue.id }}
+                      to="/venues/$id"
+                    >
+                      {venue.name}
+                    </Link>
                   </h3>
                   <p className="text-xs text-muted-foreground truncate">
                     {[venue.city, venue.state].filter(Boolean).join(", ")}
@@ -1060,33 +1074,17 @@ function VenuesGrid({
                 <Navigation className="size-3 text-primary" />
                 Directions
               </a>
-              {"externalUrl" in venue &&
-              typeof venue.externalUrl === "string" &&
-              venue.externalUrl ? (
-                <a
-                  className={cn(
-                    buttonVariants({ size: "sm", variant: "ghost" }),
-                    "text-xs px-2.5 rounded-lg"
-                  )}
-                  href={venue.externalUrl}
-                  rel="noopener"
-                  target="_blank"
-                  title="Open external place link"
-                >
-                  <ExternalLink className="size-3.5 text-muted-foreground" />
-                </a>
-              ) : (
-                <Link
-                  className={cn(
-                    buttonVariants({ size: "sm", variant: "ghost" }),
-                    "text-xs px-2.5 rounded-lg"
-                  )}
-                  params={{ id: venue.id }}
-                  to="/venues/$id"
-                >
-                  <ArrowRight className="size-3.5 text-primary" />
-                </Link>
-              )}
+              <Link
+                className={cn(
+                  buttonVariants({ size: "sm", variant: "ghost" }),
+                  "text-xs px-2.5 rounded-lg"
+                )}
+                params={{ id: venue.id }}
+                title="View court details & heat"
+                to="/venues/$id"
+              >
+                <ArrowRight className="size-3.5 text-primary" />
+              </Link>
             </div>
           </div>
         );

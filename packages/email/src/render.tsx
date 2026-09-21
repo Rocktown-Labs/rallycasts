@@ -122,3 +122,78 @@ export function renderResetPasswordEmail(options: {
     )
   );
 }
+
+export function renderMatchCallEmail(options: {
+  courtLabel: string;
+  eventName: string;
+  matchUrl: string;
+  opponentName: string;
+  roundName: string;
+  username: string;
+}): Promise<string> {
+  const username = escapeHtml(options.username);
+  const courtLabel = escapeHtml(options.courtLabel);
+  const eventName = escapeHtml(options.eventName);
+  const opponentName = escapeHtml(options.opponentName);
+  const roundName = escapeHtml(options.roundName);
+
+  return Promise.resolve(
+    renderDocument(
+      `Match Ready: ${options.courtLabel} vs ${options.opponentName} — ${options.eventName}`,
+      `${renderEyebrow(`Court Assignment · ${roundName.toUpperCase()}`)}
+      <h1 style="margin:0;color:${TEXT_DARK};font-size:32px;line-height:40px;letter-spacing:-0.5px;">You're up on ${courtLabel}!</h1>
+      <p style="margin:16px 0 0;color:${TEXT_MUTED};font-size:16px;line-height:26px;">Hi ${username}, your next match in <strong>${eventName}</strong> has been called. Head over to your assigned court now.</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0;border-radius:14px;background:${SURFACE};border:1px solid #dbe8dd;">
+        <tr>
+          <td style="padding:16px 20px;border-bottom:1px solid #dbe8dd;">
+            <span style="display:block;color:${TEXT_MUTED};font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">Court</span>
+            <strong style="color:${BRAND_GREEN};font-size:18px;">${courtLabel}</strong>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:16px 20px;border-bottom:1px solid #dbe8dd;">
+            <span style="display:block;color:${TEXT_MUTED};font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">Opponent</span>
+            <strong style="color:${TEXT_DARK};font-size:16px;">${opponentName}</strong>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:16px 20px;">
+            <span style="display:block;color:${TEXT_MUTED};font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">Stage</span>
+            <strong style="color:${TEXT_DARK};font-size:15px;">${roundName}</strong>
+          </td>
+        </tr>
+      </table>
+      ${renderButton("View Match & Submit Scores", options.matchUrl)}
+      <p style="margin:16px 0 0;color:${TEXT_MUTED};font-size:13px;line-height:21px;">Once the match ends, enter game scores from the match screen to advance the live bracket.</p>`
+    )
+  );
+}
+
+export function renderTournamentWonEmail(options: {
+  eventName: string;
+  eventUrl: string;
+  username: string;
+}): Promise<string> {
+  const username = escapeHtml(options.username);
+  const eventName = escapeHtml(options.eventName);
+
+  return Promise.resolve(
+    renderDocument(
+      `🏆 Tournament Champion! Congratulations on winning ${options.eventName}`,
+      `${renderEyebrow("Championship Victory")}
+      <h1 style="margin:0;color:${TEXT_DARK};font-size:34px;line-height:42px;letter-spacing:-0.5px;">Congratulations, Champion ${username}!</h1>
+      <p style="margin:16px 0 0;color:${TEXT_MUTED};font-size:16px;line-height:27px;">You claimed 1st place in <strong>${eventName}</strong> after an incredible run through the tournament bracket!</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0;border-radius:14px;background:${SURFACE};border:2px solid ${BRAND_LIME};">
+        <tr>
+          <td align="center" style="padding:24px 20px;">
+            <span style="font-size:42px;line-height:48px;">🏆</span>
+            <h2 style="margin:8px 0 4px;color:${BRAND_GREEN};font-size:20px;">Tournament Champion</h2>
+            <p style="margin:0;color:${TEXT_MUTED};font-size:14px;">${eventName}</p>
+          </td>
+        </tr>
+      </table>
+      ${renderButton("View Final Bracket", options.eventUrl)}
+      <p style="margin:16px 0 0;color:${TEXT_MUTED};font-size:13px;line-height:21px;">Your championship match results and tournament record have been saved to your player profile.</p>`
+    )
+  );
+}

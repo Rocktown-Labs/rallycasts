@@ -1,6 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { createDb } from "@rallycaststv/db";
-import { event, venue } from "@rallycaststv/db/schema/domain";
+import { event, venue, venueVisit } from "@rallycaststv/db/schema/domain";
 import { and, desc, eq, like, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
@@ -11,6 +11,7 @@ import { syncVenueGeofence } from "../lib/geofence-sync";
 import { toPublicVenue } from "../lib/public-data";
 import { syncVenueSearchDocument } from "../lib/search-index";
 import type { AppEnv } from "../lib/types";
+import { findOrCreateVenueFromGooglePlace } from "../lib/venues";
 import { requireAuth } from "../middleware/auth";
 
 const searchPattern = (query: string | undefined) => `%${query ?? ""}%`;
@@ -141,11 +142,36 @@ export const venuesRouter = new Hono<AppEnv>()
   })
   .get("/:id", async (c) => {
     const db = createDb(c.env.DB);
-    const [record] = await db
+    const rawId = c.req.param("id");
+    const cleanGoogleId = rawId.startsWith("google:") ? rawId.slice(7) : rawId;
+
+    let [record] = await db
       .select()
       .from(venue)
-      .where(eq(venue.id, c.req.param("id")))
+      .where(or(eq(venue.id, rawId), eq(venue.googlePlaceId, cleanGoogleId)))
       .limit(1);
+
+    if (!record && c.env.GOOGLE_PLACES_API_KEY && cleanGoogleId.length > 5) {
+      try {
+        record = await findOrCreateVenueFromGooglePlace({
+          db,
+          env: c.env,
+          getExecutionContext: () => {
+            try {
+              return c.executionCtx;
+            } catch {
+              // Ignore
+            }
+          },
+          placeId: cleanGoogleId,
+        });
+      } catch (error) {
+        console.warn(
+          "Failed to find or create venue from Google Place:",
+          error
+        );
+      }
+    }
 
     if (!record) {
       return c.json({ message: "Venue not found" }, HttpStatusCodes.NOT_FOUND);
@@ -160,6 +186,143 @@ export const venuesRouter = new Hono<AppEnv>()
 
     return c.json(
       { events: venueEvents, venue: toPublicVenue(record) },
+      HttpStatusCodes.OK
+    );
+  })
+  .post("/:id/check-in", requireAuth, async (c) => {
+    const db = createDb(c.env.DB);
+    const { user: authUser } = c.var.authSession;
+    const rawId = c.req.param("id");
+    const cleanGoogleId = rawId.startsWith("google:") ? rawId.slice(7) : rawId;
+
+    let [record] = await db
+      .select()
+      .from(venue)
+      .where(or(eq(venue.id, rawId), eq(venue.googlePlaceId, cleanGoogleId)))
+      .limit(1);
+
+    if (!record && c.env.GOOGLE_PLACES_API_KEY && cleanGoogleId.length > 5) {
+      try {
+        record = await findOrCreateVenueFromGooglePlace({
+          db,
+          env: c.env,
+          getExecutionContext: () => {
+            try {
+              return c.executionCtx;
+            } catch {
+              // Ignore
+            }
+          },
+          placeId: cleanGoogleId,
+          userId: authUser.id,
+        });
+      } catch (error) {
+        console.warn("Failed to find or create venue during check-in:", error);
+      }
+    }
+
+    if (!record) {
+      return c.json({ message: "Venue not found" }, HttpStatusCodes.NOT_FOUND);
+    }
+
+    let activeCount = 1;
+    if (c.env.VENUE_PRESENCE) {
+      try {
+        const venuePresence: DurableObjectNamespace = c.env.VENUE_PRESENCE;
+        const doId = venuePresence.idFromName(record.id);
+        const presence = venuePresence.get(doId) as DurableObjectStub & {
+          userEntered: (userId: string) => Promise<{ count: number }>;
+        };
+        const result = await presence.userEntered(authUser.id);
+        activeCount = result.count;
+      } catch (error) {
+        console.warn("Failed to update VenuePresence DO:", error);
+      }
+    }
+
+    const visitId = crypto.randomUUID();
+    await db.insert(venueVisit).values({
+      enteredAt: new Date(),
+      id: visitId,
+      userId: authUser.id,
+      venueId: record.id,
+    });
+
+    return c.json(
+      {
+        activeCount,
+        isCheckedIn: true,
+        message: `Checked in to ${record.name}`,
+        venueId: record.id,
+      },
+      HttpStatusCodes.OK
+    );
+  })
+  .post("/:id/check-out", requireAuth, async (c) => {
+    const db = createDb(c.env.DB);
+    const { user: authUser } = c.var.authSession;
+    const rawId = c.req.param("id");
+    const cleanGoogleId = rawId.startsWith("google:") ? rawId.slice(7) : rawId;
+
+    const [record] = await db
+      .select()
+      .from(venue)
+      .where(or(eq(venue.id, rawId), eq(venue.googlePlaceId, cleanGoogleId)))
+      .limit(1);
+
+    if (!record) {
+      return c.json({ message: "Venue not found" }, HttpStatusCodes.NOT_FOUND);
+    }
+
+    let activeCount = 0;
+    if (c.env.VENUE_PRESENCE) {
+      try {
+        const venuePresence: DurableObjectNamespace = c.env.VENUE_PRESENCE;
+        const doId = venuePresence.idFromName(record.id);
+        const presence = venuePresence.get(doId) as DurableObjectStub & {
+          userExited: (userId: string) => Promise<{ count: number }>;
+        };
+        const result = await presence.userExited(authUser.id);
+        activeCount = result.count;
+      } catch (error) {
+        console.warn("Failed to update VenuePresence DO on checkout:", error);
+      }
+    }
+
+    const [latestVisit] = await db
+      .select()
+      .from(venueVisit)
+      .where(
+        and(
+          eq(venueVisit.userId, authUser.id),
+          eq(venueVisit.venueId, record.id)
+        )
+      )
+      .orderBy(desc(venueVisit.enteredAt))
+      .limit(1);
+
+    if (latestVisit) {
+      const exitedAt = new Date();
+      const durationMinutes = latestVisit.enteredAt
+        ? Math.round(
+            (exitedAt.getTime() - new Date(latestVisit.enteredAt).getTime()) /
+              60_000
+          )
+        : 0;
+
+      await db
+        .update(venueVisit)
+        .set({ durationMinutes, exitedAt })
+        .where(eq(venueVisit.id, latestVisit.id));
+    }
+
+    return c.json(
+      {
+        activeCount,
+        isCheckedIn: false,
+        message: `Checked out from ${record.name}`,
+        venueId: record.id,
+      },
       HttpStatusCodes.OK
     );
   });

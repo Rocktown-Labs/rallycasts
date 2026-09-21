@@ -83,6 +83,7 @@ export interface VenueCardData {
   id: string;
   name: string;
   openNow?: boolean;
+  photoUrl?: string | null;
   postalCode?: string | null;
   rating?: number | null;
   source?: "google_places" | "rallycasts";
@@ -500,30 +501,16 @@ export function ParkHeatCard({ venue }: { venue: VenueCardData }) {
     ? `${venue.rating.toFixed(1)} rating`
     : "discover";
   const statusLabel = getVenueStatusLabel(venue, isGoogleDiscovery);
-  const cardLink = isGoogleDiscovery ? (
-    <a
-      href={venue.externalUrl}
-      target="_blank"
-      rel="noopener"
-      className="block"
-    >
-      <ParkHeatHeader heatScore={heatScore} heatWidth={heatWidth} />
-    </a>
-  ) : (
+  const cardLink = (
     <Link to="/venues/$id" params={{ id: venue.id }} className="block">
-      <ParkHeatHeader heatScore={heatScore} heatWidth={heatWidth} />
+      <ParkHeatHeader
+        heatScore={heatScore}
+        heatWidth={heatWidth}
+        photoUrl={venue.photoUrl}
+      />
     </Link>
   );
-  const titleLink = isGoogleDiscovery ? (
-    <a
-      href={venue.externalUrl}
-      target="_blank"
-      rel="noopener"
-      className="hover:text-primary transition-colors"
-    >
-      {venue.name}
-    </a>
-  ) : (
+  const titleLink = (
     <Link
       to="/venues/$id"
       params={{ id: venue.id }}
@@ -566,7 +553,7 @@ const getVenueStatusLabel = (
   }
 
   if (venue.openNow === undefined) {
-    return "Maps";
+    return "Courts";
   }
 
   return venue.openNow ? "Open now" : "Check hours";
@@ -575,20 +562,30 @@ const getVenueStatusLabel = (
 function ParkHeatHeader({
   heatScore,
   heatWidth,
+  photoUrl,
 }: {
   heatScore: number;
   heatWidth: string;
+  photoUrl?: string | null;
 }) {
   return (
-    <div className="relative h-28 bg-[radial-gradient(circle_at_28%_40%,hsl(78_100%_60%/.55),transparent_24%),radial-gradient(circle_at_72%_36%,hsl(142_100%_18%/.9),transparent_28%),linear-gradient(135deg,hsl(142_100%_18%/.45),hsl(240_10%_4%/.2))] hover:opacity-95 transition-opacity">
+    <div className="relative h-28 overflow-hidden bg-[radial-gradient(circle_at_28%_40%,hsl(78_100%_60%/.55),transparent_24%),radial-gradient(circle_at_72%_36%,hsl(142_100%_18%/.9),transparent_28%),linear-gradient(135deg,hsl(142_100%_18%/.45),hsl(240_10%_4%/.2))] hover:opacity-95 transition-opacity">
+      {photoUrl ? (
+        <img
+          src={photoUrl}
+          alt=""
+          className="absolute inset-0 size-full object-cover opacity-60 mix-blend-overlay"
+        />
+      ) : null}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
       <div className="absolute inset-x-4 bottom-4">
-        <div className="h-2 overflow-hidden rounded-full bg-black/35">
+        <div className="h-2 overflow-hidden rounded-full bg-black/40">
           <div
             className="h-full rounded-full bg-brand-yellow"
             style={{ width: heatWidth }}
           />
         </div>
-        <p className="mt-2 text-xs font-semibold text-white">
+        <p className="mt-2 text-xs font-semibold text-white drop-shadow-xs">
           {heatScore}% heat
         </p>
       </div>

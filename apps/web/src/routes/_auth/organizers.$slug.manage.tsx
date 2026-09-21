@@ -14,6 +14,7 @@ import {
   FileVideo,
   Plus,
   Settings,
+  Sparkles,
   Users,
 } from "lucide-react";
 import type { FormEvent } from "react";
@@ -80,6 +81,7 @@ const ManageOrganizationEditor = ({
     null
   );
   const [organizationPost, setOrganizationPost] = useState("");
+  const [seedWithDemo, setSeedWithDemo] = useState(false);
   const { data: myVideosData } = useQuery({
     queryFn: () => readApiJson(apiClient.api.v1.videos.me.$get()),
     queryKey: ["videos", "me"],
@@ -131,6 +133,23 @@ const ManageOrganizationEditor = ({
       toast.success("Team member added");
     },
   });
+  const seedDemo = useMutation({
+    mutationFn: (eventId: string) =>
+      readApiJson(
+        apiClient.api.v1.events[":id"]["seed-demo"].$post({
+          param: { id: eventId },
+        })
+      ),
+    onSuccess: async (_, eventId) => {
+      await queryClient.invalidateQueries({ queryKey: ["organization", slug] });
+      await queryClient.invalidateQueries({ queryKey: ["events"] });
+      toast.success("Tournament populated with 8 demo players & live bracket!");
+      await navigate({
+        params: { id: eventId },
+        to: "/events/$id/bracket",
+      });
+    },
+  });
   const createTournament = useMutation({
     mutationFn: () =>
       readApiJson(
@@ -161,6 +180,27 @@ const ManageOrganizationEditor = ({
       setSelectedPlace(null);
       await queryClient.invalidateQueries({ queryKey: ["organization", slug] });
       await queryClient.invalidateQueries({ queryKey: ["events", "mine"] });
+
+      if (seedWithDemo) {
+        try {
+          await readApiJson(
+            apiClient.api.v1.events[":id"]["seed-demo"].$post({
+              param: { id: result.event.id },
+            })
+          );
+          toast.success(
+            "Tournament published and seeded with 8 demo competitors!"
+          );
+          await navigate({
+            params: { id: result.event.id },
+            to: "/events/$id/bracket",
+          });
+          return;
+        } catch {
+          // Fall through to regular navigate
+        }
+      }
+
       toast.success("Tournament published");
       await navigate({
         params: { id: result.event.id },
@@ -362,6 +402,20 @@ const ManageOrganizationEditor = ({
             onChange={(event) => setCourts(event.target.value)}
             value={courts}
           />
+          <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer text-foreground md:col-span-2">
+            <input
+              aria-label="Seed with demo players and bracket"
+              checked={seedWithDemo}
+              className="size-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
+              onChange={(event) => setSeedWithDemo(event.target.checked)}
+              type="checkbox"
+            />
+            <span className="flex items-center gap-1.5">
+              <Sparkles className="size-4 text-primary" />
+              Seed with 8 demo players & live bracket (instant bracket
+              verification)
+            </span>
+          </label>
           <Button
             className="md:col-span-2"
             disabled={createTournament.isPending}
@@ -428,6 +482,17 @@ const ManageOrganizationEditor = ({
                       Matches
                     </Button>
                   </Link>
+                  <Button
+                    className="rounded-md gap-1 text-primary border-primary/40 hover:bg-primary/10 cursor-pointer"
+                    disabled={seedDemo.isPending}
+                    onClick={() => seedDemo.mutate(item.id)}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    <Sparkles className="size-3.5" />
+                    Seed Demo Bracket
+                  </Button>
                 </div>
               </div>
             </div>

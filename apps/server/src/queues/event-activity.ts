@@ -1,20 +1,18 @@
 import { createDb } from "@rallycaststv/db";
 import { user } from "@rallycaststv/db/schema/auth";
-import {
-  event,
-  eventMatch,
-  eventRegistration,
-} from "@rallycaststv/db/schema/domain";
+import { event, eventRegistration } from "@rallycaststv/db/schema/domain";
 import { and, eq, ne } from "drizzle-orm";
 
 import type { EventActivityMessage } from "../lib/event-activity";
 import { createNotification } from "../lib/notifications";
+import { sendTournamentNotification } from "../lib/tournament-notifications";
 
 export { EventCoordinator } from "../durable-objects/event-coordinator";
 
 export interface Env {
   DB: D1Database;
   EVENT_ACTIVITY_QUEUE?: Queue<EventActivityMessage>;
+  RESEND_API_KEY?: string;
 }
 
 const getEventParticipants = (
@@ -115,28 +113,16 @@ const processEventActivity = async (
   }
 
   if (message.type === "event.match.assigned") {
-    const [match] = await db
-      .select()
-      .from(eventMatch)
-      .where(eq(eventMatch.id, message.matchId))
-      .limit(1);
-
-    const matchPlayerIds = [
-      match?.playerOneUserId,
-      match?.playerTwoUserId,
-    ].filter((userId): userId is string => typeof userId === "string");
-
-    for (const userId of matchPlayerIds) {
-      await createNotification(db, {
-        body: `Your match is ready in ${record.name}.`,
-        entityId: message.matchId,
-        entityType: "event",
-        href: `/events/${message.eventId}/matches`,
-        title: "Match assigned",
-        type: "event",
-        userId,
-      });
-    }
+    await sendTournamentNotification({
+      db,
+      env: {
+        DB: env.DB,
+        RESEND_API_KEY: env.RESEND_API_KEY,
+      },
+      eventId: message.eventId,
+      matchId: message.matchId,
+      type: "match_ready",
+    });
     return;
   }
 

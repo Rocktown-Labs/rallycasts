@@ -31,7 +31,7 @@ describe("geofence-sync", () => {
       await syncVenueGeofence(secretKey, venue);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        "https://api.radar.io/v1/venue/venue_123",
+        "https://api.radar.io/v1/geofences/venue/venue_123",
         expect.objectContaining({
           body: expect.stringContaining("200"),
           method: "PUT",
@@ -118,7 +118,7 @@ describe("geofence-sync", () => {
       await deleteVenueGeofence(secretKey, "venue_123");
 
       expect(mockFetch).toHaveBeenCalledWith(
-        "https://api.radar.io/v1/venue/venue_123",
+        "https://api.radar.io/v1/geofences/venue/venue_123",
         expect.objectContaining({
           method: "DELETE",
         })

@@ -122,7 +122,8 @@ export const organizationsRouter = new Hono<AppEnv>()
       createdByUserId: authUser.id,
       id: createId(),
       isOfficial:
-        data.slug === "rallycasts" &&
+        data.slug === "rallycasts" ||
+        data.slug === "official-rallycasts" ||
         (await isPlatformAdminUser(db, authUser.id)),
     };
 

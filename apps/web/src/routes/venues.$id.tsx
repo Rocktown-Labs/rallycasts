@@ -1,54 +1,30 @@
 import { Button } from "@rallycaststv/ui/components/button";
 import { Card, CardContent } from "@rallycaststv/ui/components/card";
-import { useQuery } from "@tanstack/react-query";
-import { useParams, Link, createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute, useParams } from "@tanstack/react-router";
 import {
-  MapPin,
-  Users,
-  Info,
-  ChevronLeft,
-  Calendar,
-  Flame,
-  Clock,
-  TrendingUp,
   Activity,
+  Calendar,
+  ChevronLeft,
+  Clock,
+  Flame,
+  Info,
+  MapPin,
   Radio,
+  TrendingUp,
+  Users,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import type { EventCardData, VenueCardData } from "@/components/rally/cards";
-import { apiClient } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
-import { useLocationConsent, useRadarTracking } from "@/lib/hooks";
-
-function venueQueryOptions(id: string) {
-  return {
-    queryFn: async () => {
-      const res = await apiClient.api.v1.venues[":id"].$get({
-        param: { id },
-      });
-      if (!res.ok) {
-        throw new Error("Failed to fetch venue");
-      }
-      return res.json();
-    },
-    queryKey: ["venue", id],
-  };
-}
-
-function venueAnalyticsQueryOptions(id: string) {
-  return {
-    queryFn: async () => {
-      const res = await apiClient.api.v1.venues[":id"].analytics.$get({
-        param: { id },
-      });
-      if (!res.ok) {
-        throw new Error("Failed to fetch venue analytics");
-      }
-      return res.json();
-    },
-    queryKey: ["venue", id, "analytics"],
-  };
-}
+import {
+  useLocationConsent,
+  useRadarTracking,
+  useVenue,
+  useVenueAnalytics,
+  useVenueCheckIn,
+  useVenueCheckOut,
+} from "@/lib/hooks";
 
 export const Route = createFileRoute("/venues/$id")({
   component: VenueDetailPage,
@@ -59,28 +35,29 @@ function PopularTimesChart({
 }: {
   peakHours: { hour: string | number; visits: number }[];
 }) {
-  const hours =
-    peakHours.length > 0
-      ? peakHours
-      : [
-          { hour: "6:00", visits: 15 },
-          { hour: "7:00", visits: 35 },
-          { hour: "8:00", visits: 55 },
-          { hour: "9:00", visits: 75 },
-          { hour: "10:00", visits: 85 },
-          { hour: "11:00", visits: 90 },
-          { hour: "12:00", visits: 80 },
-          { hour: "13:00", visits: 70 },
-          { hour: "14:00", visits: 85 },
-          { hour: "15:00", visits: 95 },
-          { hour: "16:00", visits: 88 },
-          { hour: "17:00", visits: 75 },
-          { hour: "18:00", visits: 60 },
-          { hour: "19:00", visits: 45 },
-          { hour: "20:00", visits: 30 },
-          { hour: "21:00", visits: 15 },
-        ];
-  const max = Math.max(...hours.map((t) => t.visits));
+  const hasVisits = peakHours.some((h) => h.visits > 0);
+
+  if (!hasVisits) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Clock className="size-4 text-primary" />
+          <h3 className="font-bold text-sm">Popular Times</h3>
+        </div>
+        <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 p-6 text-center">
+          <Clock className="size-6 text-muted-foreground/50 mx-auto mb-2" />
+          <p className="text-xs font-medium text-foreground">
+            No visits recorded yet this week
+          </p>
+          <p className="text-[11px] text-muted-foreground mt-1">
+            Check in below when you arrive to start heating up this court!
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const max = Math.max(...peakHours.map((t) => t.visits), 1);
 
   return (
     <div className="space-y-3">
@@ -89,8 +66,8 @@ function PopularTimesChart({
         <h3 className="font-bold text-sm">Popular Times</h3>
       </div>
       <div className="flex items-end gap-1 h-24">
-        {hours.map((time) => {
-          const height = max > 0 ? `${(time.visits / max) * 100}%` : "0%";
+        {peakHours.map((time) => {
+          const height = `${(time.visits / max) * 100}%`;
           const isPeak = time.visits >= max * 0.9;
           return (
             <div
@@ -128,19 +105,29 @@ function WeeklyActivityChart({
 }: {
   peakDays: { day: string; visits: number }[];
 }) {
-  const days =
-    peakDays.length > 0
-      ? peakDays
-      : [
-          { day: "Mon", visits: 42 },
-          { day: "Tue", visits: 58 },
-          { day: "Wed", visits: 65 },
-          { day: "Thu", visits: 48 },
-          { day: "Fri", visits: 72 },
-          { day: "Sat", visits: 95 },
-          { day: "Sun", visits: 88 },
-        ];
-  const max = Math.max(...days.map((t) => t.visits));
+  const hasVisits = peakDays.some((d) => d.visits > 0);
+
+  if (!hasVisits) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Activity className="size-4 text-primary" />
+          <h3 className="font-bold text-sm">Weekly Visits</h3>
+        </div>
+        <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 p-6 text-center">
+          <Activity className="size-6 text-muted-foreground/50 mx-auto mb-2" />
+          <p className="text-xs font-medium text-foreground">
+            No activity recorded this week
+          </p>
+          <p className="text-[11px] text-muted-foreground mt-1">
+            Weekly visits update automatically as players check in.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const max = Math.max(...peakDays.map((t) => t.visits), 1);
 
   return (
     <div className="space-y-3">
@@ -149,8 +136,8 @@ function WeeklyActivityChart({
         <h3 className="font-bold text-sm">Weekly Visits</h3>
       </div>
       <div className="flex items-end gap-2 h-20">
-        {days.map((day) => {
-          const height = max > 0 ? `${(day.visits / max) * 100}%` : "0%";
+        {peakDays.map((day) => {
+          const height = `${(day.visits / max) * 100}%`;
           const isPeak = day.visits >= max * 0.9;
           return (
             <div
@@ -204,31 +191,61 @@ function VenueHeader({
   venue,
   heatScore,
 }: {
-  venue: VenueCardData;
+  venue: VenueCardData & { photoUrl?: string | null };
   heatScore: number;
 }) {
   return (
-    <div>
+    <div className="space-y-4">
       <Link
         to="/"
-        className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mb-4"
+        className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mb-1"
       >
         <ChevronLeft className="size-3.5" /> Back to Home
       </Link>
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-xs bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full capitalize">
-          {venue.venueType || "park"}
-        </span>
-        <span className="text-xs bg-emerald-500/10 text-emerald-500 font-bold px-2 py-0.5 rounded-full">
-          Active Venue
-        </span>
-        <span className="text-xs bg-brand-yellow/10 text-brand-yellow font-bold px-2 py-0.5 rounded-full">
-          {heatScore}% Heat
-        </span>
-      </div>
-      <h1 className="text-3xl font-extrabold tracking-tight mt-2 text-foreground">
-        {venue.name}
-      </h1>
+
+      {venue.photoUrl ? (
+        <div className="relative h-48 sm:h-64 w-full rounded-2xl overflow-hidden border border-border/50 shadow-md">
+          <img
+            src={venue.photoUrl}
+            alt={venue.name}
+            className="size-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
+          <div className="absolute inset-x-6 bottom-5 space-y-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs bg-primary text-primary-foreground font-bold px-2.5 py-0.5 rounded-full capitalize shadow-xs">
+                {venue.venueType || "park"}
+              </span>
+              <span className="text-xs bg-emerald-500 text-white font-bold px-2.5 py-0.5 rounded-full shadow-xs">
+                Active Venue
+              </span>
+              <span className="text-xs bg-brand-yellow text-brand-dark font-bold px-2.5 py-0.5 rounded-full shadow-xs">
+                {heatScore}% Heat
+              </span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white drop-shadow-md">
+              {venue.name}
+            </h1>
+          </div>
+        </div>
+      ) : (
+        <div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full capitalize">
+              {venue.venueType || "park"}
+            </span>
+            <span className="text-xs bg-emerald-500/10 text-emerald-500 font-bold px-2 py-0.5 rounded-full">
+              Active Venue
+            </span>
+            <span className="text-xs bg-brand-yellow/10 text-brand-yellow font-bold px-2 py-0.5 rounded-full">
+              {heatScore}% Heat
+            </span>
+          </div>
+          <h1 className="text-3xl font-extrabold tracking-tight mt-2 text-foreground">
+            {venue.name}
+          </h1>
+        </div>
+      )}
     </div>
   );
 }
@@ -249,31 +266,32 @@ function VenueActivityCard({
       <CardContent className="p-5 space-y-5">
         <div className="flex items-center gap-2">
           <TrendingUp className="size-4 text-primary" />
-          <h3 className="font-bold text-sm">Live Activity</h3>
+          <h3 className="font-bold text-sm">Live Activity & Heat</h3>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <MetricStat
             icon={<Flame className="size-4" />}
             label="Heat Score"
             value={`${heatScore}%`}
-            trend="+5% from yesterday"
+            trend={heatScore >= 50 ? "High Activity" : undefined}
           />
           <MetricStat
             icon={<Users className="size-4" />}
             label="Active Now"
             value={`${activePlayers}`}
-            trend="3 in a match"
+            trend={activePlayers > 0 ? `${activePlayers} playing` : undefined}
           />
           <MetricStat
             icon={<Activity className="size-4" />}
             label="Visits Today"
             value={`${visitsToday}`}
-            trend="Peak at 3pm"
+            trend={visitsToday > 0 ? "Logged today" : undefined}
           />
           <MetricStat
             icon={<Radio className="size-4" />}
             label="This Week"
             value={`${visitsThisWeek}`}
+            trend={visitsThisWeek > 0 ? "Total check-ins" : undefined}
           />
         </div>
       </CardContent>
@@ -353,15 +371,19 @@ function VenueAnalyticsCard({
 function VenueSidebar({
   activePlayers,
   events,
-  locationSharingEnabled,
-  onEnableLocation,
+  isCheckedIn,
+  isCheckingInOut,
+  onCheckIn,
+  onCheckOut,
   venue,
 }: {
   venue: VenueCardData;
   events: EventCardData[];
   activePlayers: number;
-  locationSharingEnabled: boolean;
-  onEnableLocation: () => void;
+  isCheckedIn: boolean;
+  isCheckingInOut: boolean;
+  onCheckIn: () => void;
+  onCheckOut: () => void;
 }) {
   return (
     <div className="space-y-4">
@@ -391,20 +413,32 @@ function VenueSidebar({
       <Card className="border border-border/50 bg-card rounded-xl shadow-sm p-4 space-y-3">
         <div className="flex items-center gap-2">
           <Radio className="size-4 text-primary" />
-          <h3 className="font-bold text-xs">Radar Tracking</h3>
+          <h3 className="font-bold text-xs">Radar Geofence & Check-In</h3>
         </div>
         <p className="text-[10px] text-muted-foreground leading-relaxed">
-          Enable location tracking to see when friends are here, get popular
-          times, and earn park badges.
+          {isCheckedIn
+            ? "You are currently checked in at this court! Your presence is contributing to the live heat map."
+            : "Check in when you're playing at this court to connect with nearby players and update live court heat."}
         </p>
-        <Button
-          className="w-full rounded-md text-xs"
-          disabled={locationSharingEnabled}
-          onClick={onEnableLocation}
-          size="sm"
-        >
-          {locationSharingEnabled ? "Check-ins enabled" : "Enable Check-ins"}
-        </Button>
+        {isCheckedIn ? (
+          <Button
+            className="w-full rounded-md text-xs bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            disabled={isCheckingInOut}
+            onClick={onCheckOut}
+            size="sm"
+          >
+            {isCheckingInOut ? "Updating..." : "Leave Court / Check Out"}
+          </Button>
+        ) : (
+          <Button
+            className="w-full rounded-md text-xs font-semibold"
+            disabled={isCheckingInOut}
+            onClick={onCheckIn}
+            size="sm"
+          >
+            {isCheckingInOut ? "Checking in..." : "🎾 Check In & Play Here"}
+          </Button>
+        )}
       </Card>
 
       <Card className="border border-border/50 bg-card rounded-xl shadow-sm p-4 space-y-3">
@@ -499,12 +533,14 @@ function EventsSection({ events }: { events: EventCardData[] }) {
 // oxlint-disable-next-line complexity -- Venue detail combines analytics, consent, and loading states.
 function VenueDetailPage() {
   const { id } = useParams({ from: "/venues/$id" });
-  const { data, isLoading, error } = useQuery(venueQueryOptions(id));
-  const { data: analyticsData } = useQuery(venueAnalyticsQueryOptions(id));
+  const { data, isLoading, error } = useVenue(id);
+  const { data: analyticsData } = useVenueAnalytics(id);
+  const checkInMutation = useVenueCheckIn();
+  const checkOutMutation = useVenueCheckOut();
 
   const { data: session } = authClient.useSession();
   const userId = session?.user?.id;
-  const { grantConsent, hasConsent: hasLocationConsent } = useLocationConsent();
+  const { hasConsent: hasLocationConsent } = useLocationConsent();
   useRadarTracking(userId, hasLocationConsent);
 
   if (isLoading) {
@@ -539,6 +575,35 @@ function VenueDetailPage() {
   const activePlayers = analyticsData?.activeCount ?? 0;
   const visitsToday = analyticsData?.todayVisits ?? 0;
   const visitsThisWeek = analyticsData?.weekVisits ?? 0;
+  const isCheckedIn = Boolean(analyticsData?.isCheckedIn);
+  const isCheckingInOut =
+    checkInMutation.isPending || checkOutMutation.isPending;
+
+  const handleCheckIn = () => {
+    if (!session?.user) {
+      toast.error("Please sign in to check in at this venue");
+      return;
+    }
+    checkInMutation.mutate(id, {
+      onError: (err) => {
+        toast.error(err instanceof Error ? err.message : "Failed to check in");
+      },
+      onSuccess: (res) => {
+        toast.success(res?.message || "Checked in successfully!");
+      },
+    });
+  };
+
+  const handleCheckOut = () => {
+    checkOutMutation.mutate(id, {
+      onError: (err) => {
+        toast.error(err instanceof Error ? err.message : "Failed to check out");
+      },
+      onSuccess: (res) => {
+        toast.info(res?.message || "Checked out successfully");
+      },
+    });
+  };
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 space-y-6 animate-in fade-in duration-300">
@@ -562,8 +627,10 @@ function VenueDetailPage() {
           venue={venue}
           events={events}
           activePlayers={activePlayers}
-          locationSharingEnabled={hasLocationConsent && Boolean(userId)}
-          onEnableLocation={grantConsent}
+          isCheckedIn={isCheckedIn}
+          isCheckingInOut={isCheckingInOut}
+          onCheckIn={handleCheckIn}
+          onCheckOut={handleCheckOut}
         />
       </div>
       <EventsSection events={events} />

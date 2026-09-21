@@ -49,6 +49,85 @@ const runBackground = async (promise: Promise<unknown>) => {
   }
 };
 
+const updateExistingBracketMatches = async (
+  db: ReturnType<typeof createDb>,
+  env: EventCoordinatorEnv,
+  eventId: string,
+  existingNextMatches: (typeof eventMatch.$inferSelect)[],
+  winners: string[]
+) => {
+  for (let index = 0; index < winners.length; index += 2) {
+    const targetMatch = existingNextMatches[Math.floor(index / 2)];
+    if (!targetMatch) {
+      continue;
+    }
+    const playerOneUserId = winners[index];
+    const playerTwoUserId = winners[index + 1];
+    await db
+      .update(eventMatch)
+      .set({
+        playerOneUserId: playerOneUserId ?? targetMatch.playerOneUserId,
+        playerTwoUserId: playerTwoUserId ?? targetMatch.playerTwoUserId,
+        status: playerTwoUserId ? "scheduled" : targetMatch.status,
+        updatedAt: new Date(),
+        winnerUserId: playerTwoUserId ? undefined : playerOneUserId,
+      })
+      .where(eq(eventMatch.id, targetMatch.id));
+
+    if (playerOneUserId && playerTwoUserId) {
+      runBackground(
+        enqueueEventActivity(env.EVENT_ACTIVITY_QUEUE, {
+          eventId,
+          matchId: targetMatch.id,
+          type: "event.match.assigned",
+        })
+      );
+    }
+  }
+};
+
+const createNewBracketMatches = async (
+  db: ReturnType<typeof createDb>,
+  env: EventCoordinatorEnv,
+  record: typeof event.$inferSelect,
+  nextRound: number,
+  winners: string[]
+) => {
+  const courtLabels = JSON.parse(record.courtLabelsJson ?? "[]") as string[];
+  const nextMatches: (typeof eventMatch.$inferInsert)[] = [];
+  for (let index = 0; index < winners.length; index += 2) {
+    const playerOneUserId = winners[index];
+    if (!playerOneUserId) {
+      continue;
+    }
+    const playerTwoUserId = winners[index + 1];
+    nextMatches.push({
+      courtLabel:
+        courtLabels[Math.floor(index / 2) % courtLabels.length] ?? undefined,
+      eventId: record.id,
+      id: createId(),
+      playerOneUserId,
+      playerTwoUserId,
+      round: nextRound,
+      status: playerTwoUserId ? "scheduled" : "completed",
+      winnerUserId: playerTwoUserId ? undefined : playerOneUserId,
+    });
+  }
+  if (nextMatches.length === 0) {
+    return;
+  }
+  await db.insert(eventMatch).values(nextMatches);
+  for (const match of nextMatches) {
+    runBackground(
+      enqueueEventActivity(env.EVENT_ACTIVITY_QUEUE, {
+        eventId: record.id,
+        matchId: match.id,
+        type: "event.match.assigned",
+      })
+    );
+  }
+};
+
 const advanceSingleEliminationBracket = async (
   db: ReturnType<typeof createDb>,
   env: EventCoordinatorEnv,
@@ -86,49 +165,26 @@ const advanceSingleEliminationBracket = async (
     return;
   }
   const nextRound = completedMatch.round + 1;
-  const [existing] = await db
-    .select({ id: eventMatch.id })
+  const existingNextMatches = await db
+    .select()
     .from(eventMatch)
     .where(
       and(eq(eventMatch.eventId, record.id), eq(eventMatch.round, nextRound))
     )
-    .limit(1);
-  if (existing) {
-    return;
-  }
-  const courtLabels = JSON.parse(record.courtLabelsJson ?? "[]") as string[];
-  const nextMatches: (typeof eventMatch.$inferInsert)[] = [];
-  for (let index = 0; index < winners.length; index += 2) {
-    const playerOneUserId = winners[index];
-    if (!playerOneUserId) {
-      continue;
-    }
-    const playerTwoUserId = winners[index + 1];
-    nextMatches.push({
-      courtLabel:
-        courtLabels[Math.floor(index / 2) % courtLabels.length] ?? undefined,
-      eventId: record.id,
-      id: createId(),
-      playerOneUserId,
-      playerTwoUserId,
-      round: nextRound,
-      status: playerTwoUserId ? "scheduled" : "completed",
-      winnerUserId: playerTwoUserId ? undefined : playerOneUserId,
-    });
-  }
-  if (nextMatches.length === 0) {
-    return;
-  }
-  await db.insert(eventMatch).values(nextMatches);
-  for (const match of nextMatches) {
-    runBackground(
-      enqueueEventActivity(env.EVENT_ACTIVITY_QUEUE, {
-        eventId: record.id,
-        matchId: match.id,
-        type: "event.match.assigned",
-      })
+    .orderBy(asc(eventMatch.createdAt));
+
+  if (existingNextMatches.length > 0) {
+    await updateExistingBracketMatches(
+      db,
+      env,
+      record.id,
+      existingNextMatches,
+      winners
     );
+    return;
   }
+
+  await createNewBracketMatches(db, env, record, nextRound, winners);
 };
 
 export class EventCoordinator extends DurableObject<EventCoordinatorEnv> {
