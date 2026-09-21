@@ -2,6 +2,7 @@ import type { createDb } from "@rallycaststv/db";
 import { venue } from "@rallycaststv/db/schema/domain";
 
 import { byDistance, locationBounds, withinRadius } from "./geo";
+import { syncVenueGeofence } from "./geofence-sync";
 import { createGooglePlacesClient } from "./google-places";
 import { createId } from "./ids";
 import { syncVenueSearchDocument } from "./search-index";
@@ -129,6 +130,26 @@ export async function discoverAndCacheAreaVenues({
             "Failed to embed venue spot into search index:",
             embedError
           );
+        }
+      }
+
+      // 5. Establish geofences with Radar for accurate heat map tracking
+      if (env.RADAR_SECRET_KEY) {
+        for (const inserted of toInsert) {
+          try {
+            await syncVenueGeofence(env.RADAR_SECRET_KEY, {
+              courtCount: 0,
+              id: inserted.id,
+              latitude: inserted.latitude,
+              longitude: inserted.longitude,
+              name: inserted.name,
+            });
+          } catch (radarError) {
+            console.warn(
+              "Failed to sync discovered venue to Radar:",
+              radarError
+            );
+          }
         }
       }
     }

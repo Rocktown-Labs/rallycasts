@@ -37,7 +37,7 @@ export class RadarClient {
     radius: number;
     tag: string;
   }): Promise<{ meta: { code: number } }> {
-    return this.request(`/${params.tag}/${params.externalId}`, {
+    return this.request(`/geofences/${params.tag}/${params.externalId}`, {
       body: JSON.stringify({
         coordinates: params.coordinates,
         description: params.description,
@@ -56,7 +56,7 @@ export class RadarClient {
     tag: string,
     externalId: string
   ): Promise<{ meta: { code: number } }> {
-    return this.request(`/${tag}/${externalId}`, {
+    return this.request(`/geofences/${tag}/${externalId}`, {
       method: "DELETE",
     });
   }

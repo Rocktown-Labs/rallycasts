@@ -1,10 +1,13 @@
 import { zValidator } from "@hono/zod-validator";
 import { createDb } from "@rallycaststv/db";
+import { event, venue } from "@rallycaststv/db/schema/domain";
+import { and, desc, eq, or } from "drizzle-orm";
 import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 import { z } from "zod";
 
 import { createGooglePlacesClient } from "../lib/google-places";
+import { toPublicVenue } from "../lib/public-data";
 import type { AppEnv } from "../lib/types";
 import { findOrCreateVenueFromGooglePlace } from "../lib/venues";
 import { requireAuth } from "../middleware/auth";
@@ -132,4 +135,53 @@ export const placesRouter = new Hono<AppEnv>()
         );
       }
     }
-  );
+  )
+  .get("/:id", async (c) => {
+    const db = createDb(c.env.DB);
+    const rawId = c.req.param("id");
+    const cleanGoogleId = rawId.startsWith("google:") ? rawId.slice(7) : rawId;
+
+    let [record] = await db
+      .select()
+      .from(venue)
+      .where(or(eq(venue.id, rawId), eq(venue.googlePlaceId, cleanGoogleId)))
+      .limit(1);
+
+    if (!record && c.env.GOOGLE_PLACES_API_KEY && cleanGoogleId.length > 5) {
+      try {
+        record = await findOrCreateVenueFromGooglePlace({
+          db,
+          env: c.env,
+          getExecutionContext: () => {
+            try {
+              return c.executionCtx;
+            } catch {
+              // Ignore
+            }
+          },
+          placeId: cleanGoogleId,
+        });
+      } catch (error) {
+        console.warn(
+          "Failed to find or create venue from Google Place:",
+          error
+        );
+      }
+    }
+
+    if (!record) {
+      return c.json({ message: "Venue not found" }, HttpStatusCodes.NOT_FOUND);
+    }
+
+    const venueEvents = await db
+      .select()
+      .from(event)
+      .where(and(eq(event.venueId, record.id), eq(event.status, "published")))
+      .orderBy(desc(event.startsAt))
+      .limit(20);
+
+    return c.json(
+      { events: venueEvents, venue: toPublicVenue(record) },
+      HttpStatusCodes.OK
+    );
+  });

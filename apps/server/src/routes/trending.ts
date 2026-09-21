@@ -14,9 +14,11 @@ import * as HttpStatusCodes from "stoker/http-status-codes";
 
 import { getDisplaySponsorships } from "../lib/ads";
 import { haversineDistance } from "../lib/geo";
+import { syncVenueGeofence } from "../lib/geofence-sync";
 import { GooglePlacesClient } from "../lib/google-places";
 import { createId } from "../lib/ids";
 import { toPublicVenue, toPublicVideo } from "../lib/public-data";
+import { syncVenueSearchDocument } from "../lib/search-index";
 import type { AppEnv } from "../lib/types";
 
 const DEFAULT_VENUE_RADIUS = 50;
@@ -315,6 +317,38 @@ const fetchNearbyTrendingVenues = async (
       if (toCache.length > 0) {
         try {
           await db.insert(venue).values(toCache).onConflictDoNothing();
+
+          if (c.env.RADAR_SECRET_KEY) {
+            for (const v of toCache) {
+              try {
+                await syncVenueGeofence(c.env.RADAR_SECRET_KEY, {
+                  courtCount: 0,
+                  id: v.id,
+                  latitude: v.latitude,
+                  longitude: v.longitude,
+                  name: v.name,
+                });
+              } catch (radarError) {
+                console.warn("Failed to sync venue to Radar:", radarError);
+              }
+            }
+          }
+
+          for (const v of toCache) {
+            try {
+              await syncVenueSearchDocument(
+                () => c.executionCtx,
+                db,
+                c.env,
+                v as typeof venue.$inferSelect
+              );
+            } catch (searchError) {
+              console.warn(
+                "Failed to sync venue search document:",
+                searchError
+              );
+            }
+          }
         } catch (error) {
           console.error(
             "Failed to cache discovered Google venues to D1:",
@@ -612,6 +646,16 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
       .limit(6);
 
     venues = await db.select().from(venue).limit(venueFetchLimit);
+    if (venues.length === 0) {
+      venues = await fetchNearbyTrendingVenues(
+        c,
+        db,
+        35.2506,
+        -91.7362,
+        venueRadius,
+        venueFetchLimit
+      );
+    }
 
     players = await db
       .select({

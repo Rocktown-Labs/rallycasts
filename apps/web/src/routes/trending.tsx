@@ -40,6 +40,7 @@ import {
   useGeolocation,
   useInfiniteVideos,
   useLocationConsent,
+  useProfile,
   useRadarTracking,
   useTrending,
 } from "@/lib/hooks";
@@ -833,14 +834,60 @@ function TrendingPage() {
     location,
     requestLocation: requestLocationFromHook,
   } = useGeolocation(Boolean(session?.user) && hasLocationConsent);
-  const { data, isLoading } = useTrending(
-    session?.user ? location : undefined,
-    {
-      venueLimit,
-      venuePage: viewSection === "venues" ? venuePage : undefined,
-      venueRadius,
-    }
-  );
+  const { data: profileData } = useProfile();
+  const profile = profileData?.profile;
+  const homeLat =
+    profile &&
+    "homeLatitude" in profile &&
+    typeof profile.homeLatitude === "number"
+      ? profile.homeLatitude
+      : null;
+  const homeLng =
+    profile &&
+    "homeLongitude" in profile &&
+    typeof profile.homeLongitude === "number"
+      ? profile.homeLongitude
+      : null;
+
+  const effectiveLocation: GeoLocation =
+    (location?.lat && location?.lng ? location : undefined) ??
+    (homeLat !== null && homeLng !== null
+      ? {
+          city:
+            (profile &&
+            "homeCity" in profile &&
+            typeof profile.homeCity === "string"
+              ? profile.homeCity
+              : undefined) || undefined,
+          isFallback: false,
+          label:
+            (profile &&
+            "homeCity" in profile &&
+            typeof profile.homeCity === "string"
+              ? profile.homeCity
+              : undefined) || "Your Home Area",
+          lat: homeLat,
+          lng: homeLng,
+          stateCode:
+            (profile &&
+            "homeState" in profile &&
+            typeof profile.homeState === "string"
+              ? profile.homeState
+              : undefined) || undefined,
+        }
+      : {
+          city: "Searcy",
+          isFallback: true,
+          label: "Searcy, AR",
+          lat: 35.2506,
+          lng: -91.7362,
+          stateCode: "AR",
+        });
+  const { data, isLoading } = useTrending(effectiveLocation, {
+    venueLimit,
+    venuePage: viewSection === "venues" ? venuePage : undefined,
+    venueRadius,
+  });
   useRadarTracking(session?.user?.id, hasLocationConsent);
   const requestLocation = () => {
     if (!hasLocationConsent) {
@@ -869,7 +916,7 @@ function TrendingPage() {
   if (viewSection === "venues") {
     return (
       <VenuesViewSection
-        location={location || undefined}
+        location={effectiveLocation}
         onRadiusChange={handleVenueRadiusChange}
         page={venuePage}
         pagination={
@@ -891,7 +938,7 @@ function TrendingPage() {
       geoError={geoError}
       geoLoading={geoLoading}
       hasLocationConsent={hasLocationConsent}
-      location={location}
+      location={effectiveLocation}
       onVenueRadiusChange={handleVenueRadiusChange}
       requestLocation={requestLocation}
       venueRadius={venueRadius}

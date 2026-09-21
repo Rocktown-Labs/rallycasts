@@ -305,7 +305,9 @@ describe("places routes", () => {
       expect(response.status).toBe(201);
       expect(mockFetch).toHaveBeenCalledTimes(2);
       const [radarUrl, radarRequest] = mockFetch.mock.calls[1] ?? [];
-      expect(String(radarUrl)).toContain("https://api.radar.io/v1/venue/");
+      expect(String(radarUrl)).toContain(
+        "https://api.radar.io/v1/geofences/venue/"
+      );
       expect(radarRequest).toMatchObject({
         headers: expect.objectContaining({
           Authorization: "radar_secret_test",

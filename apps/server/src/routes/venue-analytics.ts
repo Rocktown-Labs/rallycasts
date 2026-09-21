@@ -1,12 +1,12 @@
 import { createDb } from "@rallycaststv/db";
-import { event, venue, venueVisit } from "@rallycaststv/db/schema/domain";
-import { and, count, eq, sql } from "drizzle-orm";
+import { venue, venueVisit } from "@rallycaststv/db/schema/domain";
+import { and, count, eq, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 
-import { isPlatformAdminUser } from "../lib/admin";
 import type { AppEnv } from "../lib/types";
-import { requireAuth } from "../middleware/auth";
+import { findOrCreateVenueFromGooglePlace } from "../lib/venues";
+import { optionalAuth } from "../middleware/auth";
 
 type VenuePresenceStub = DurableObjectStub & {
   getActiveUsers: () => Promise<{ enteredAt: string; userId: string }[]>;
@@ -14,39 +14,50 @@ type VenuePresenceStub = DurableObjectStub & {
 
 export const venueAnalyticsRouter = new Hono<AppEnv>().get(
   "/:id/analytics",
-  requireAuth,
+  optionalAuth,
+  // oxlint-disable-next-line complexity -- Handler aggregates real presence, visits, peak hours and peak days.
   async (c) => {
-    const venueId = c.req.param("id");
+    const rawId = c.req.param("id");
+    const cleanGoogleId = rawId.startsWith("google:") ? rawId.slice(7) : rawId;
     const db = createDb(c.env.DB);
-    const { user: authUser } = c.var.authSession;
-    const [venueRecord] = await db
-      .select({ createdByUserId: venue.createdByUserId })
+    const authUser = c.var.authSession?.user;
+
+    let [venueRecord] = await db
+      .select({ id: venue.id })
       .from(venue)
-      .where(eq(venue.id, venueId))
+      .where(or(eq(venue.id, rawId), eq(venue.googlePlaceId, cleanGoogleId)))
       .limit(1);
+
+    if (
+      !venueRecord &&
+      c.env.GOOGLE_PLACES_API_KEY &&
+      cleanGoogleId.length > 5
+    ) {
+      try {
+        const created = await findOrCreateVenueFromGooglePlace({
+          db,
+          env: c.env,
+          getExecutionContext: () => {
+            try {
+              return c.executionCtx;
+            } catch {
+              // Unit-test requests may not provide an execution context.
+            }
+          },
+          placeId: cleanGoogleId,
+          userId: authUser?.id,
+        });
+        venueRecord = { id: created.id };
+      } catch (error) {
+        console.warn("Could not find or create venue for analytics:", error);
+      }
+    }
 
     if (!venueRecord) {
       return c.json({ message: "Venue not found" }, HttpStatusCodes.NOT_FOUND);
     }
 
-    const isAdmin = await isPlatformAdminUser(db, authUser.id);
-    let canView = isAdmin || venueRecord.createdByUserId === authUser.id;
-    if (!canView) {
-      const [eventRecord] = await db
-        .select({ id: event.id })
-        .from(event)
-        .where(
-          and(
-            eq(event.venueId, venueId),
-            eq(event.organizerUserId, authUser.id)
-          )
-        )
-        .limit(1);
-      canView = Boolean(eventRecord);
-    }
-    if (!canView) {
-      return c.json({ message: "Forbidden" }, HttpStatusCodes.FORBIDDEN);
-    }
+    const venueId = venueRecord.id;
 
     const retentionCutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
     const retentionTask = (async () => {
@@ -69,11 +80,22 @@ export const venueAnalyticsRouter = new Hono<AppEnv>().get(
       // Unit-test requests may not provide an execution context.
     }
 
-    const venuePresence: DurableObjectNamespace = c.env.VENUE_PRESENCE;
-    const doId = venuePresence.idFromName(venueId);
-    const presence = venuePresence.get(doId) as VenuePresenceStub;
-    const activeUsers = await presence.getActiveUsers();
+    let activeUsers: { enteredAt: string; userId: string }[] = [];
+    if (c.env.VENUE_PRESENCE) {
+      try {
+        const venuePresence: DurableObjectNamespace = c.env.VENUE_PRESENCE;
+        const doId = venuePresence.idFromName(venueId);
+        const presence = venuePresence.get(doId) as VenuePresenceStub;
+        activeUsers = await presence.getActiveUsers();
+      } catch (error) {
+        console.warn("Failed to get venue active presence:", error);
+      }
+    }
+
     const activeCount = activeUsers.length;
+    const isCheckedIn = Boolean(
+      authUser && activeUsers.some((u) => u.userId === authUser.id)
+    );
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -124,7 +146,7 @@ export const venueAnalyticsRouter = new Hono<AppEnv>().get(
       )
       .groupBy(sql`strftime('%H', ${venueVisit.enteredAt} / 1000, 'unixepoch')`)
       .orderBy(sql`visits DESC`)
-      .limit(5);
+      .limit(8);
 
     const monthStart = new Date();
     monthStart.setDate(monthStart.getDate() - 30);
@@ -144,12 +166,12 @@ export const venueAnalyticsRouter = new Hono<AppEnv>().get(
       .groupBy(sql`strftime('%w', ${venueVisit.enteredAt} / 1000, 'unixepoch')`)
       .orderBy(sql`visits DESC`);
 
-    const heatScore = Math.min(
+    const rawHeatScore = Math.min(
       100,
       Math.round(
-        activeCount * 5 +
-          (todayVisits[0]?.count ?? 0) * 2 +
-          (weekVisits[0]?.count ?? 0) * 0.5
+        activeCount * 25 +
+          (todayVisits[0]?.count ?? 0) * 10 +
+          (weekVisits[0]?.count ?? 0) * 2
       )
     );
 
@@ -157,7 +179,8 @@ export const venueAnalyticsRouter = new Hono<AppEnv>().get(
       {
         activeCount,
         avgDurationMinutes: Math.round(durations[0]?.avgDuration ?? 0),
-        heatScore,
+        heatScore: rawHeatScore,
+        isCheckedIn,
         peakDays: peakDays.map((record) => ({
           day: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][
             Number.parseInt(record.day, 10)

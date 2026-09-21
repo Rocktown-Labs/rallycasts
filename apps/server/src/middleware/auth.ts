@@ -16,3 +16,17 @@ export const requireAuth = createMiddleware<AppEnv>(async (c, next) => {
   c.set("authSession", authSession);
   await next();
 });
+
+export const optionalAuth = createMiddleware<AppEnv>(async (c, next) => {
+  try {
+    const authSession = await createAuth(c.env.DB).api.getSession({
+      headers: c.req.raw.headers,
+    });
+    if (authSession) {
+      c.set("authSession", authSession);
+    }
+  } catch {
+    // Optional auth silently continues if unauthenticated
+  }
+  await next();
+});

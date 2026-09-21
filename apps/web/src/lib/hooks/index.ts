@@ -12,4 +12,5 @@ export * from "./use-places";
 export * from "./use-profile";
 export * from "./use-radar-tracking";
 export * from "./use-social";
+export * from "./use-venues";
 export * from "./use-videos";

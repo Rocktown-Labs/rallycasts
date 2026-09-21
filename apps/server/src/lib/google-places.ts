@@ -177,28 +177,45 @@ export class GooglePlacesClient {
       ),
     ]);
 
-    const data = await this.postSearch(
-      "/places:searchNearby",
-      SEARCH_FIELD_MASK,
-      {
-        includedTypes: [...EVENT_LOCATION_TYPES],
-        locationRestriction: {
-          circle: {
-            center: { latitude, longitude },
-            radius,
-          },
-        },
-        maxResultCount: PICKLEBALL_SEARCH_RESULT_LIMIT,
-        rankPreference: "DISTANCE",
+    const textResults: GooglePlaceResult[] = [];
+    let textError: unknown;
+    for (const result of textSearchResults) {
+      if (result.status === "fulfilled") {
+        textResults.push(...result.value);
+      } else {
+        textError = result.reason;
+        console.warn("Google Places text search query failed:", result.reason);
       }
-    );
+    }
 
-    return GooglePlacesClient.dedupePlaces([
-      ...textSearchResults.flatMap((result) =>
-        result.status === "fulfilled" ? result.value : []
-      ),
-      ...(data.places ?? []).map((place) => this.mapPlaceResult(place)),
-    ])
+    let nearbyPlaces: GooglePlaceResult[] = [];
+    try {
+      const data = await this.postSearch(
+        "/places:searchNearby",
+        SEARCH_FIELD_MASK,
+        {
+          includedTypes: [...EVENT_LOCATION_TYPES],
+          locationRestriction: {
+            circle: {
+              center: { latitude, longitude },
+              radius: Math.min(radius, 50_000),
+            },
+          },
+          maxResultCount: PICKLEBALL_SEARCH_RESULT_LIMIT,
+          rankPreference: "DISTANCE",
+        }
+      );
+      nearbyPlaces = (data.places ?? []).map((place) =>
+        this.mapPlaceResult(place, { isPickleballCandidate: true })
+      );
+    } catch (nearbyError) {
+      console.warn("Google Places searchNearby failed:", nearbyError);
+      if (textResults.length === 0 && textError) {
+        throw nearbyError;
+      }
+    }
+
+    return GooglePlacesClient.dedupePlaces([...textResults, ...nearbyPlaces])
       .filter((place) => GooglePlacesClient.isPickleballParkResult(place))
       .toSorted(
         (left, right) =>
@@ -237,13 +254,13 @@ export class GooglePlacesClient {
     }
 
     if (latitude !== undefined && longitude !== undefined) {
-      const locationCircle = {
+      const radiusMeters = Math.min(options?.radius ?? 50_000, 50_000);
+      body.locationRestriction = {
         circle: {
           center: { latitude, longitude },
-          radius: options?.radius ?? 50_000,
+          radius: radiusMeters,
         },
       };
-      body.locationBias = locationCircle;
       body.rankPreference = "DISTANCE";
     }
 
@@ -370,7 +387,11 @@ export class GooglePlacesClient {
         type === "park" ||
         type === "city_park" ||
         type === "sports_complex" ||
-        type === "sports_activity_location"
+        type === "sports_activity_location" ||
+        type === "athletic_field" ||
+        type === "recreation_center" ||
+        type === "playground" ||
+        type === "sports_club"
     );
 
     return Boolean(place.isPickleballCandidate && isParkOrSportsComplex);

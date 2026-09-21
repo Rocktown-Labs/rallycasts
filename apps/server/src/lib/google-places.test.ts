@@ -89,7 +89,7 @@ describe("GooglePlacesClient", () => {
         method: "POST",
       });
       expect(JSON.parse(requestInit.body as string)).toMatchObject({
-        locationBias: {
+        locationRestriction: {
           circle: {
             center: { latitude: 40.7128, longitude: -74.006 },
             radius: 50_000,
@@ -98,9 +98,6 @@ describe("GooglePlacesClient", () => {
         rankPreference: "DISTANCE",
         textQuery: "pickleball courts",
       });
-      expect(JSON.parse(requestInit.body as string)).not.toHaveProperty(
-        "locationRestriction"
-      );
       expect(
         mockFetch.mock.calls
           .map(([, init]) => JSON.parse(init.body as string))
@@ -268,7 +265,7 @@ describe("GooglePlacesClient", () => {
       });
     });
 
-    it("includes location bias when provided", async () => {
+    it("includes location restriction when provided", async () => {
       mockFetch.mockResolvedValueOnce({
         json: () => ({
           places: [],
@@ -280,7 +277,7 @@ describe("GooglePlacesClient", () => {
 
       const [[, requestInit]] = mockFetch.mock.calls;
       expect(JSON.parse(requestInit.body as string)).toMatchObject({
-        locationBias: {
+        locationRestriction: {
           circle: {
             center: { latitude: 40.7128, longitude: -74.006 },
             radius: 50_000,
