@@ -45,7 +45,7 @@ describe("CourtError", () => {
     ).toBeTruthy();
   });
 
-  it("renders kitchen fault messaging for unexpected runtime errors", () => {
+  it("renders clean error messaging for unexpected runtime errors", () => {
     const onReset = vi.fn();
     render(
       <CourtError
@@ -54,9 +54,9 @@ describe("CourtError", () => {
       />
     );
 
-    expect(screen.getByText("Foot Fault in the Kitchen")).toBeTruthy();
-    expect(screen.getByText(/Court Fault Detected/iu)).toBeTruthy();
-    expect(screen.getByText("Replay Point (Try Again)")).toBeTruthy();
+    expect(screen.getByText("Unable to Load Page")).toBeTruthy();
+    expect(screen.getByText(/Something Went Wrong/iu)).toBeTruthy();
+    expect(screen.getByText("Try Again")).toBeTruthy();
     expect(screen.getByText("Back to Home Court")).toBeTruthy();
   });
 });

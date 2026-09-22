@@ -21,6 +21,7 @@ import { z } from "zod";
 import { PlaceSearchPicker } from "@/components/places/place-search-picker";
 import type { SelectedPlace } from "@/components/places/place-search-picker";
 import { EmptyState, EventCard } from "@/components/rally/cards";
+import { authClient } from "@/lib/auth-client";
 import {
   useCreateEvent,
   useEvents,
@@ -71,11 +72,14 @@ interface OrganizationSummary {
 }
 
 const getOrganizerPreview = (
-  organizations: OrganizationSummary[],
+  organizations: OrganizationSummary[] | undefined,
   userCity: string | undefined,
   userState: string
 ) => {
-  const localOrganizations = organizations.filter((organization) => {
+  const safeOrganizations = (organizations ?? []).filter((org) =>
+    Boolean(org?.id && org?.slug)
+  );
+  const localOrganizations = safeOrganizations.filter((organization) => {
     const sameState = organization.state === userState;
     const sameCity =
       Boolean(userCity) && organization.city?.toLowerCase() === userCity;
@@ -83,7 +87,7 @@ const getOrganizerPreview = (
   });
 
   return (
-    localOrganizations.length > 0 ? localOrganizations : organizations
+    localOrganizations.length > 0 ? localOrganizations : safeOrganizations
   ).slice(0, 6);
 };
 
@@ -112,48 +116,50 @@ function LocalOrganizersSection({
           View All
         </Link>
       </div>
-      {organizations.length > 0 ? (
+      {organizations.some((org) => Boolean(org?.id && org?.slug)) ? (
         <HorizontalScroll>
-          {organizations.map((organization) => (
-            <Link
-              className="group w-72 shrink-0 rounded-lg border border-border bg-card p-4 shadow-sm transition-colors hover:border-primary/40"
-              key={organization.id}
-              params={{ slug: organization.slug }}
-              to="/events/hosts/$slug"
-            >
-              <div className="flex items-start gap-3">
-                <div className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-lg bg-primary/10 text-primary">
-                  {organization.logoUrl ? (
-                    <img
-                      alt={`${organization.name} logo`}
-                      className="size-full object-cover"
-                      src={organization.logoUrl}
-                    />
-                  ) : (
-                    <Building2 className="size-5" />
-                  )}
+          {organizations
+            .filter((org) => Boolean(org?.id && org?.slug))
+            .map((organization) => (
+              <Link
+                className="group w-72 shrink-0 rounded-lg border border-border bg-card p-4 shadow-sm transition-colors hover:border-primary/40"
+                key={organization.id}
+                params={{ slug: organization.slug }}
+                to="/events/hosts/$slug"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-lg bg-primary/10 text-primary">
+                    {organization.logoUrl ? (
+                      <img
+                        alt={`${organization.name} logo`}
+                        className="size-full object-cover"
+                        src={organization.logoUrl}
+                      />
+                    ) : (
+                      <Building2 className="size-5" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="flex items-center gap-1.5 truncate text-sm font-bold group-hover:text-primary">
+                      {organization.name}
+                      {organization.isOfficial ? (
+                        <BadgeCheck className="size-4 shrink-0 text-[#bcdf21]" />
+                      ) : null}
+                    </h3>
+                    <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                      <MapPin className="size-3" />
+                      {[organization.city, organization.state]
+                        .filter(Boolean)
+                        .join(", ") || "Location coming soon"}
+                    </p>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <h3 className="flex items-center gap-1.5 truncate text-sm font-bold group-hover:text-primary">
-                    {organization.name}
-                    {organization.isOfficial ? (
-                      <BadgeCheck className="size-4 shrink-0 text-[#bcdf21]" />
-                    ) : null}
-                  </h3>
-                  <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                    <MapPin className="size-3" />
-                    {[organization.city, organization.state]
-                      .filter(Boolean)
-                      .join(", ") || "Location coming soon"}
-                  </p>
-                </div>
-              </div>
-              <p className="mt-3 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-                {organization.bio ??
-                  "Tournament and pickleball community host."}
-              </p>
-            </Link>
-          ))}
+                <p className="mt-3 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                  {organization.bio ??
+                    "Tournament and pickleball community host."}
+                </p>
+              </Link>
+            ))}
         </HorizontalScroll>
       ) : (
         <EmptyState
@@ -167,11 +173,14 @@ function LocalOrganizersSection({
 }
 
 function EventsPage() {
+  const { data: session } = authClient.useSession();
   const { data: eventsData, isLoading: eventsLoading } = useEvents();
   const { data: profileData } = useProfile();
   const updateProfileMutation = useUpdateProfile();
   const createEventMutation = useCreateEvent();
-  const { data: organizationsData } = useMyOrganizations();
+  const { data: organizationsData } = useMyOrganizations(
+    Boolean(session?.user)
+  );
   const { data: publicOrganizationsData } = useOrganizations();
   const { location } = useGeolocation();
 
