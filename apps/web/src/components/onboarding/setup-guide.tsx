@@ -351,7 +351,7 @@ function SetupGuidePill({
   return (
     <button
       aria-label="Reopen setup guide"
-      className="fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-full border border-border/80 bg-card/95 px-3.5 py-2 shadow-2xl text-xs font-bold text-foreground hover:border-primary/50 transition-all backdrop-blur-md cursor-pointer hover:shadow-primary/10"
+      className="fixed bottom-20 right-4 z-50 flex items-center gap-2 rounded-full border border-border/80 bg-card/95 px-3.5 py-2 shadow-2xl text-xs font-bold text-foreground hover:border-primary/50 transition-all backdrop-blur-md cursor-pointer hover:shadow-primary/10 active:scale-95"
       onClick={onReopen}
       type="button"
     >
@@ -375,7 +375,7 @@ function SetupGuideMinimized({
   progressPercent: number;
 }) {
   return (
-    <div className="fixed bottom-4 right-4 z-50 w-80 sm:w-88 rounded-2xl border border-border/80 bg-card/95 backdrop-blur-md shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
+    <div className="fixed bottom-20 right-4 z-50 w-80 sm:w-88 rounded-2xl border border-border/80 bg-card/95 backdrop-blur-md shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
       <div className="h-1 w-full bg-muted overflow-hidden">
         <div
           className="h-full bg-primary transition-all duration-500"
@@ -458,7 +458,7 @@ function SetupGuideExpanded({
   totalCount: number;
 }) {
   return (
-    <div className="fixed bottom-4 right-4 z-50 w-88 sm:w-96 rounded-2xl border border-border/80 bg-card/95 backdrop-blur-md shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-200">
+    <div className="fixed bottom-20 right-4 z-50 w-88 sm:w-96 rounded-2xl border border-border/80 bg-card/95 backdrop-blur-md shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-200">
       <div className="h-1 w-full bg-muted overflow-hidden">
         <div
           className="h-full bg-primary transition-all duration-500"

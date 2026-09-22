@@ -11,6 +11,7 @@ import {
   MapPin,
   Navigation,
   Radio,
+  Star,
   TrendingUp,
   Users,
 } from "lucide-react";
@@ -200,7 +201,7 @@ function VenueHeader({
   venue,
   heatScore,
 }: {
-  venue: VenueCardData & { photoUrl?: string | null };
+  venue: VenueCardData & { photoUrl?: string | null; isHomeCourt?: boolean };
   heatScore: number;
 }) {
   return (
@@ -213,15 +214,21 @@ function VenueHeader({
       </Link>
 
       {venue.photoUrl ? (
-        <div className="relative h-48 sm:h-64 w-full rounded-2xl overflow-hidden border border-border/50 shadow-md">
+        <div className="relative h-56 sm:h-72 lg:h-84 w-full rounded-2xl overflow-hidden border border-border/50 shadow-md">
           <img
             src={venue.photoUrl}
             alt={venue.name}
             className="size-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
-          <div className="absolute inset-x-6 bottom-5 space-y-2">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+          <div className="absolute inset-x-6 bottom-6 space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
+              {venue.isHomeCourt ? (
+                <span className="inline-flex items-center gap-1 text-xs bg-[#bcdf21] text-black font-extrabold px-3 py-1 rounded-full shadow-xs">
+                  <Star className="size-3.5 fill-black" />
+                  Your Home Court
+                </span>
+              ) : null}
               <span className="text-xs bg-primary text-primary-foreground font-bold px-2.5 py-0.5 rounded-full capitalize shadow-xs">
                 {venue.venueType || "park"}
               </span>
@@ -232,19 +239,25 @@ function VenueHeader({
                 </span>
                 Active Venue
               </span>
-              <span className="text-xs bg-brand-yellow text-brand-dark font-bold px-2.5 py-0.5 rounded-full shadow-xs">
-                {heatScore}% Heat
-              </span>
+              {heatScore > 0 ? (
+                <span className="text-xs bg-brand-yellow text-brand-dark font-bold px-2.5 py-0.5 rounded-full shadow-xs">
+                  {heatScore}% Heat
+                </span>
+              ) : (
+                <span className="text-xs bg-white/20 text-white font-medium px-2.5 py-0.5 rounded-full shadow-xs">
+                  0% Heat • Quiet
+                </span>
+              )}
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white drop-shadow-md">
+            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white drop-shadow-md">
               {venue.name}
             </h1>
           </div>
         </div>
       ) : (
-        <div className="relative h-48 sm:h-56 w-full rounded-2xl overflow-hidden border border-border/50 bg-gradient-to-br from-emerald-950 via-slate-950 to-teal-950 p-6 flex flex-col justify-between shadow-md">
+        <div className="relative h-56 sm:h-72 lg:h-84 w-full rounded-2xl overflow-hidden border border-border/50 bg-gradient-to-br from-emerald-950 via-slate-950 to-teal-950 p-6 sm:p-8 flex flex-col justify-between shadow-md">
           {/* Subtle court line markings */}
-          <div className="pointer-events-none absolute inset-0 opacity-15 overflow-hidden">
+          <div className="pointer-events-none absolute inset-0 opacity-20 overflow-hidden">
             <svg
               className="w-full h-full text-emerald-300"
               xmlns="http://www.w3.org/2000/svg"
@@ -316,27 +329,34 @@ function VenueHeader({
                 Live Radar Monitored
               </span>
             </div>
-            {heatScore > 0 && (
+            {heatScore > 0 ? (
               <span className="text-xs font-bold text-brand-yellow flex items-center gap-1 bg-brand-yellow/15 px-2.5 py-1 rounded-full border border-brand-yellow/30">
                 <Flame className="size-3.5 fill-brand-yellow" />
                 {heatScore}% Heat
+              </span>
+            ) : (
+              <span className="text-xs text-white/70 bg-white/10 px-2.5 py-1 rounded-full border border-white/20">
+                Quiet
               </span>
             )}
           </div>
 
           <div className="relative z-10 space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
+              {venue.isHomeCourt ? (
+                <span className="inline-flex items-center gap-1 text-xs bg-[#bcdf21] text-black font-extrabold px-3 py-1 rounded-full shadow-xs">
+                  <Star className="size-3.5 fill-black" />
+                  Your Home Court
+                </span>
+              ) : null}
               <span className="text-xs bg-primary text-primary-foreground font-bold px-2.5 py-0.5 rounded-full capitalize shadow-xs">
                 {venue.venueType || "park"}
               </span>
               <span className="text-xs bg-emerald-500 text-white font-bold px-2.5 py-0.5 rounded-full shadow-xs">
                 Active Venue
               </span>
-              <span className="text-xs bg-brand-yellow text-brand-dark font-bold px-2.5 py-0.5 rounded-full shadow-xs">
-                {heatScore}% Heat
-              </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white drop-shadow-md">
+            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white drop-shadow-md">
               {venue.name}
             </h1>
           </div>
@@ -666,17 +686,17 @@ function VenueDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-8 space-y-6 animate-pulse">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-6 animate-pulse">
         <div className="h-6 w-24 bg-muted rounded" />
         <div className="h-10 w-96 bg-muted rounded" />
-        <div className="h-48 bg-muted rounded-xl" />
+        <div className="h-64 bg-muted rounded-2xl" />
       </div>
     );
   }
 
   if (error || !data?.venue) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-12 text-center space-y-4">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 text-center space-y-4">
         <h2 className="text-2xl font-bold text-destructive">Venue not found</h2>
         <p className="text-muted-foreground text-sm">
           The court or park you are looking for does not exist or has been
@@ -730,7 +750,7 @@ function VenueDetailPage() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6 space-y-6 animate-in fade-in duration-300">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 space-y-8 animate-in fade-in duration-300">
       <VenueHeader venue={venue} heatScore={heatScore} />
       <VenueActivityCard
         heatScore={heatScore}
@@ -738,7 +758,7 @@ function VenueDetailPage() {
         visitsToday={visitsToday}
         visitsThisWeek={visitsThisWeek}
       />
-      <div className="grid gap-6 md:grid-cols-[2fr_1fr]">
+      <div className="grid gap-8 lg:grid-cols-[2fr_1fr]">
         <div className="space-y-6">
           <VenueLocationCard venue={venue} />
           <VenueDescriptionCard venue={venue} />

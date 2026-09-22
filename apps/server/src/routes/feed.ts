@@ -11,7 +11,7 @@ import {
   video,
   videoLike,
 } from "@rallycaststv/db/schema/domain";
-import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, like, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 
@@ -259,11 +259,59 @@ export const feedRouter = new Hono<AppEnv>().get(
         .where(eq(event.status, "published"))
         .orderBy(desc(event.startsAt))
         .limit(FEED_CANDIDATE_LIMIT),
-      db
-        .select()
-        .from(venue)
-        .orderBy(desc(venue.updatedAt))
-        .limit(FEED_CANDIDATE_LIMIT),
+      (async () => {
+        const candidateVenues = new Map<string, typeof venue.$inferSelect>();
+
+        // 1. If user has homeCourtName, explicitly fetch it first
+        if (profile?.homeCourtName) {
+          const matching = await db
+            .select()
+            .from(venue)
+            .where(like(venue.name, `%${profile.homeCourtName}%`))
+            .limit(5);
+          for (const v of matching) {
+            candidateVenues.set(v.id, v);
+          }
+        }
+
+        // 2. If user has home coordinates, fetch nearby venues
+        if (
+          profile?.homeLatitude !== null &&
+          profile?.homeLatitude !== undefined &&
+          profile?.homeLongitude !== null &&
+          profile?.homeLongitude !== undefined
+        ) {
+          const lat = profile.homeLatitude;
+          const lng = profile.homeLongitude;
+          const distanceExpr = sql<number>`(3959 * acos(
+            cos(radians(${lat})) * cos(radians(${venue.latitude})) *
+            cos(radians(${venue.longitude}) - radians(${lng})) +
+            sin(radians(${lat})) * sin(radians(${venue.latitude}))
+          ))`;
+          const nearby = await db
+            .select()
+            .from(venue)
+            .orderBy(sql`${distanceExpr} ASC`)
+            .limit(FEED_CANDIDATE_LIMIT);
+          for (const v of nearby) {
+            candidateVenues.set(v.id, v);
+          }
+        }
+
+        // 3. Supplement with recently updated venues
+        if (candidateVenues.size < FEED_CANDIDATE_LIMIT) {
+          const recents = await db
+            .select()
+            .from(venue)
+            .orderBy(desc(venue.updatedAt))
+            .limit(FEED_CANDIDATE_LIMIT);
+          for (const v of recents) {
+            candidateVenues.set(v.id, v);
+          }
+        }
+
+        return [...candidateVenues.values()];
+      })(),
       db
         .select({
           bio: userProfile.bio,
@@ -416,25 +464,66 @@ export const feedRouter = new Hono<AppEnv>().get(
       };
     });
 
+    // oxlint-disable-next-line complexity -- Venue scoring aggregates distances, home court heuristics, and presence signals.
     const venues = activeVenues.map((record) => {
       const key = `venue:${record.id}`;
+      const distanceMiles =
+        profile?.homeLatitude !== null &&
+        profile?.homeLatitude !== undefined &&
+        profile?.homeLongitude !== null &&
+        profile?.homeLongitude !== undefined &&
+        record.latitude !== null &&
+        record.latitude !== undefined &&
+        record.longitude !== null &&
+        record.longitude !== undefined
+          ? haversineDistance(
+              profile.homeLatitude,
+              profile.homeLongitude,
+              record.latitude,
+              record.longitude
+            )
+          : null;
+
+      const isHomeCourt = Boolean(
+        (profile?.homeCourtName &&
+          (record.name
+            .toLowerCase()
+            .includes(profile.homeCourtName.toLowerCase()) ||
+            profile.homeCourtName
+              .toLowerCase()
+              .includes(record.name.toLowerCase()))) ||
+        (distanceMiles === null ? false : distanceMiles < 0.25)
+      );
+
       const signals = {
         engagement: engagementScore(record.userRatingsTotal ?? 0),
         freshness: freshnessScore(record.updatedAt ?? record.createdAt),
-        location: locationScore(
-          profile,
-          record.latitude,
-          record.longitude,
-          NEARBY_MILES
-        ),
+        location: isHomeCourt
+          ? 1
+          : locationScore(
+              profile,
+              record.latitude,
+              record.longitude,
+              NEARBY_MILES
+            ),
         semantic: semanticScores.get(key) ?? 0,
         social: 0,
       };
 
+      const publicVenue = toPublicVenue(record);
+
       return {
         ...rankItem(
           {
-            entity: toPublicVenue(record),
+            entity: {
+              ...publicVenue,
+              distanceMiles:
+                distanceMiles === null
+                  ? null
+                  : Math.round(distanceMiles * 10) / 10,
+              isFavorited: isHomeCourt,
+              isHomeCourt,
+            },
             entityType: "venue" as const,
             id: record.id,
             title: record.name,
@@ -503,8 +592,23 @@ export const feedRouter = new Hono<AppEnv>().get(
       };
     });
 
-    const items = [...videos, ...events, ...venues, ...players, ...posts]
-      .toSorted(byScoreThenFreshness)
+    const homeCourtVenues = venues.filter(
+      (v) => (v.entity as { isHomeCourt?: boolean }).isHomeCourt
+    );
+    const regularVenues = venues.filter(
+      (v) => !(v.entity as { isHomeCourt?: boolean }).isHomeCourt
+    );
+    const topNearbyVenues = regularVenues.slice(0, 8);
+
+    const otherItems = [
+      ...videos,
+      ...events,
+      ...topNearbyVenues,
+      ...players,
+      ...posts,
+    ].toSorted(byScoreThenFreshness);
+
+    const items = [...homeCourtVenues, ...otherItems]
       .slice(0, FEED_RESULT_LIMIT - MAX_SPONSORED_ITEMS)
       .map(({ sortDate: _sortDate, ...item }) => item);
 
