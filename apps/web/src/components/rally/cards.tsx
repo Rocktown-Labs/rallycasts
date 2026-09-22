@@ -635,13 +635,16 @@ export function CasterCard({ caster }: { caster: CasterCardData }) {
 }
 
 const formatDateRange = (start: Date, end: Date | null) => {
+  if (!start || Number.isNaN(start.getTime())) {
+    return "Date to be announced";
+  }
   const formatOptions: Intl.DateTimeFormatOptions = {
     day: "numeric",
     month: "short",
     year: "numeric",
   };
   const startStr = new Intl.DateTimeFormat("en", formatOptions).format(start);
-  if (!end) {
+  if (!end || Number.isNaN(end.getTime())) {
     return startStr;
   }
   const endStr = new Intl.DateTimeFormat("en", formatOptions).format(end);
@@ -649,7 +652,9 @@ const formatDateRange = (start: Date, end: Date | null) => {
 };
 
 export function EventCard({ event }: { event: EventCardData }) {
-  const startsAtDate = new Date(event.startsAt);
+  const startsAtDate = event.startsAt
+    ? new Date(event.startsAt)
+    : new Date(Number.NaN);
   const endsAtDate = event.endsAt ? new Date(event.endsAt) : null;
   const isRallyCastsHosted = event.hostType === "rallycasts";
 
@@ -664,11 +669,11 @@ export function EventCard({ event }: { event: EventCardData }) {
   };
 
   return (
-    <Card className="rounded-xl overflow-hidden border border-border/50 bg-card hover:border-primary/45 transition-all shadow-sm flex flex-col h-full group">
+    <Card className="rounded-xl overflow-hidden border border-border/50 bg-card hover:border-primary/45 transition-all duration-200 active:scale-[0.98] shadow-sm flex flex-col h-full group">
       {/* Banner image wrapper */}
       <Link
         to="/events/$id"
-        params={{ id: event.id }}
+        params={{ id: event.id || "upcoming" }}
         className="block relative aspect-video w-full overflow-hidden shrink-0 border-b border-border/30 cursor-pointer"
         style={{ background: itemDetails.banner }}
       >

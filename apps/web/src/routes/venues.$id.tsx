@@ -9,6 +9,7 @@ import {
   Flame,
   Info,
   MapPin,
+  Navigation,
   Radio,
   TrendingUp,
   Users,
@@ -44,13 +45,14 @@ function PopularTimesChart({
           <Clock className="size-4 text-primary" />
           <h3 className="font-bold text-sm">Popular Times</h3>
         </div>
-        <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 p-6 text-center">
-          <Clock className="size-6 text-muted-foreground/50 mx-auto mb-2" />
-          <p className="text-xs font-medium text-foreground">
+        <div className="rounded-xl border border-border/40 bg-muted/15 backdrop-blur-xs p-6 text-center">
+          <Clock className="size-6 text-muted-foreground/40 mx-auto mb-2" />
+          <p className="text-xs font-semibold text-foreground">
             No visits recorded yet this week
           </p>
-          <p className="text-[11px] text-muted-foreground mt-1">
-            Check in below when you arrive to start heating up this court!
+          <p className="text-[11px] text-muted-foreground mt-1 max-w-xs mx-auto">
+            Check in below when you arrive to heat up this court and log
+            activity for your community.
           </p>
         </div>
       </div>
@@ -65,35 +67,37 @@ function PopularTimesChart({
         <Clock className="size-4 text-primary" />
         <h3 className="font-bold text-sm">Popular Times</h3>
       </div>
-      <div className="flex items-end gap-1 h-24">
+      <div className="flex items-end gap-1 h-24 pt-2">
         {peakHours.map((time) => {
-          const height = `${(time.visits / max) * 100}%`;
+          const height = `${Math.max((time.visits / max) * 100, 4)}%`;
           const isPeak = time.visits >= max * 0.9;
           return (
             <div
               key={time.hour}
-              className="flex-1 flex flex-col items-center gap-1"
+              className="flex-1 flex flex-col items-center gap-1 group relative"
             >
               <div
-                className={`w-full rounded-t-sm transition-all ${
-                  isPeak ? "bg-primary" : "bg-primary/30"
+                className={`w-full rounded-t-md transition-all duration-200 ${
+                  isPeak
+                    ? "bg-primary group-hover:brightness-110"
+                    : "bg-primary/25 group-hover:bg-primary/45"
                 }`}
                 style={{ height }}
                 title={`${time.hour}: ${time.visits} visits`}
               />
-              <span className="text-[8px] text-muted-foreground">
+              <span className="text-[8px] text-muted-foreground font-mono">
                 {String(time.hour).split(":")[0]}
               </span>
             </div>
           );
         })}
       </div>
-      <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <span className="w-2 h-2 rounded-full bg-primary" /> Peak
+      <div className="flex items-center gap-3 text-[10px] text-muted-foreground pt-1">
+        <span className="flex items-center gap-1.5">
+          <span className="size-2 rounded-full bg-primary" /> Peak
         </span>
-        <span className="flex items-center gap-1">
-          <span className="w-2 h-2 rounded-full bg-primary/30" /> Average
+        <span className="flex items-center gap-1.5">
+          <span className="size-2 rounded-full bg-primary/25" /> Average
         </span>
       </div>
     </div>
@@ -114,13 +118,14 @@ function WeeklyActivityChart({
           <Activity className="size-4 text-primary" />
           <h3 className="font-bold text-sm">Weekly Visits</h3>
         </div>
-        <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 p-6 text-center">
-          <Activity className="size-6 text-muted-foreground/50 mx-auto mb-2" />
-          <p className="text-xs font-medium text-foreground">
+        <div className="rounded-xl border border-border/40 bg-muted/15 backdrop-blur-xs p-6 text-center">
+          <Activity className="size-6 text-muted-foreground/40 mx-auto mb-2" />
+          <p className="text-xs font-semibold text-foreground">
             No activity recorded this week
           </p>
-          <p className="text-[11px] text-muted-foreground mt-1">
-            Weekly visits update automatically as players check in.
+          <p className="text-[11px] text-muted-foreground mt-1 max-w-xs mx-auto">
+            Weekly visits update automatically as players check in via geofence
+            or app tap.
           </p>
         </div>
       </div>
@@ -135,23 +140,25 @@ function WeeklyActivityChart({
         <Activity className="size-4 text-primary" />
         <h3 className="font-bold text-sm">Weekly Visits</h3>
       </div>
-      <div className="flex items-end gap-2 h-20">
+      <div className="flex items-end gap-2 h-20 pt-2">
         {peakDays.map((day) => {
-          const height = `${(day.visits / max) * 100}%`;
+          const height = `${Math.max((day.visits / max) * 100, 6)}%`;
           const isPeak = day.visits >= max * 0.9;
           return (
             <div
               key={day.day}
-              className="flex-1 flex flex-col items-center gap-1"
+              className="flex-1 flex flex-col items-center gap-1 group relative"
             >
               <div
-                className={`w-full rounded-t-sm transition-all ${
-                  isPeak ? "bg-brand-yellow" : "bg-brand-yellow/30"
+                className={`w-full rounded-t-md transition-all duration-200 ${
+                  isPeak
+                    ? "bg-brand-yellow group-hover:brightness-110"
+                    : "bg-brand-yellow/30 group-hover:bg-brand-yellow/50"
                 }`}
                 style={{ height }}
                 title={`${day.day}: ${day.visits} visits`}
               />
-              <span className="text-[8px] text-muted-foreground">
+              <span className="text-[8px] text-muted-foreground font-medium">
                 {day.day}
               </span>
             </div>
@@ -174,14 +181,16 @@ function MetricStat({
   trend?: string;
 }) {
   return (
-    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
-      <div className="grid size-10 place-items-center rounded-full bg-primary/10 text-primary shrink-0">
+    <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border/40 hover:bg-muted/40 transition-colors">
+      <div className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary shrink-0">
         {icon}
       </div>
       <div>
         <p className="text-xs text-muted-foreground">{label}</p>
         <p className="text-sm font-bold">{value}</p>
-        {trend && <p className="text-[10px] text-emerald-500">{trend}</p>}
+        {trend && (
+          <p className="text-[10px] font-medium text-emerald-500">{trend}</p>
+        )}
       </div>
     </div>
   );
@@ -198,7 +207,7 @@ function VenueHeader({
     <div className="space-y-4">
       <Link
         to="/"
-        className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mb-1"
+        className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground active:scale-95 transition-all mb-1 font-medium"
       >
         <ChevronLeft className="size-3.5" /> Back to Home
       </Link>
@@ -216,7 +225,11 @@ function VenueHeader({
               <span className="text-xs bg-primary text-primary-foreground font-bold px-2.5 py-0.5 rounded-full capitalize shadow-xs">
                 {venue.venueType || "park"}
               </span>
-              <span className="text-xs bg-emerald-500 text-white font-bold px-2.5 py-0.5 rounded-full shadow-xs">
+              <span className="inline-flex items-center gap-1.5 text-xs bg-emerald-500 text-white font-bold px-2.5 py-0.5 rounded-full shadow-xs">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
+                </span>
                 Active Venue
               </span>
               <span className="text-xs bg-brand-yellow text-brand-dark font-bold px-2.5 py-0.5 rounded-full shadow-xs">
@@ -229,21 +242,104 @@ function VenueHeader({
           </div>
         </div>
       ) : (
-        <div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full capitalize">
-              {venue.venueType || "park"}
-            </span>
-            <span className="text-xs bg-emerald-500/10 text-emerald-500 font-bold px-2 py-0.5 rounded-full">
-              Active Venue
-            </span>
-            <span className="text-xs bg-brand-yellow/10 text-brand-yellow font-bold px-2 py-0.5 rounded-full">
-              {heatScore}% Heat
-            </span>
+        <div className="relative h-48 sm:h-56 w-full rounded-2xl overflow-hidden border border-border/50 bg-gradient-to-br from-emerald-950 via-slate-950 to-teal-950 p-6 flex flex-col justify-between shadow-md">
+          {/* Subtle court line markings */}
+          <div className="pointer-events-none absolute inset-0 opacity-15 overflow-hidden">
+            <svg
+              className="w-full h-full text-emerald-300"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 400 200"
+              preserveAspectRatio="none"
+              aria-hidden="true"
+            >
+              <rect
+                x="20"
+                y="20"
+                width="360"
+                height="160"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              />
+              <line
+                x1="200"
+                y1="20"
+                x2="200"
+                y2="180"
+                stroke="currentColor"
+                strokeWidth="3"
+              />
+              <line
+                x1="140"
+                y1="20"
+                x2="140"
+                y2="180"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeDasharray="4 2"
+              />
+              <line
+                x1="260"
+                y1="20"
+                x2="260"
+                y2="180"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeDasharray="4 2"
+              />
+              <line
+                x1="20"
+                y1="100"
+                x2="140"
+                y2="100"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              />
+              <line
+                x1="260"
+                y1="100"
+                x2="380"
+                y2="100"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              />
+            </svg>
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight mt-2 text-foreground">
-            {venue.name}
-          </h1>
+
+          <div className="relative z-10 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+              </span>
+              <span className="text-[11px] uppercase tracking-wider text-emerald-400/90 font-mono font-medium">
+                Live Radar Monitored
+              </span>
+            </div>
+            {heatScore > 0 && (
+              <span className="text-xs font-bold text-brand-yellow flex items-center gap-1 bg-brand-yellow/15 px-2.5 py-1 rounded-full border border-brand-yellow/30">
+                <Flame className="size-3.5 fill-brand-yellow" />
+                {heatScore}% Heat
+              </span>
+            )}
+          </div>
+
+          <div className="relative z-10 space-y-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs bg-primary text-primary-foreground font-bold px-2.5 py-0.5 rounded-full capitalize shadow-xs">
+                {venue.venueType || "park"}
+              </span>
+              <span className="text-xs bg-emerald-500 text-white font-bold px-2.5 py-0.5 rounded-full shadow-xs">
+                Active Venue
+              </span>
+              <span className="text-xs bg-brand-yellow text-brand-dark font-bold px-2.5 py-0.5 rounded-full shadow-xs">
+                {heatScore}% Heat
+              </span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white drop-shadow-md">
+              {venue.name}
+            </h1>
+          </div>
         </div>
       )}
     </div>
@@ -304,27 +400,50 @@ function VenueLocationCard({ venue }: { venue: VenueCardData }) {
     .filter(Boolean)
     .join(", ");
 
+  const mapQuery = encodeURIComponent(
+    [venue.name, venue.addressLine1, venue.city, venue.state]
+      .filter(Boolean)
+      .join(", ")
+  );
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${mapQuery}`;
+
   return (
-    <Card className="border border-border/50 bg-card rounded-xl shadow-sm">
+    <Card className="border border-border/50 bg-card rounded-xl shadow-xs">
       <CardContent className="p-6 space-y-6">
-        <div className="flex items-start gap-3.5">
-          <MapPin className="size-5 text-primary mt-0.5" />
-          <div>
-            <h3 className="font-semibold text-sm">Address</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {venue.addressLine1 || "No street address listed"}
-              {venue.addressLine2 ? `, ${venue.addressLine2}` : ""}
-            </p>
-            <p className="text-xs text-muted-foreground">{location}</p>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-3.5">
+            <div className="grid size-9 place-items-center rounded-lg bg-primary/10 text-primary shrink-0 mt-0.5">
+              <MapPin className="size-4.5" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-sm">Address & Directions</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {venue.addressLine1 || "No street address listed"}
+                {venue.addressLine2 ? `, ${venue.addressLine2}` : ""}
+              </p>
+              <p className="text-xs text-muted-foreground">{location}</p>
+            </div>
           </div>
+          <a
+            href={mapsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-border/60 bg-muted/30 hover:bg-muted active:scale-[0.97] transition-all text-foreground shrink-0 shadow-2xs"
+          >
+            <Navigation className="size-3 text-primary" />
+            Directions
+          </a>
         </div>
 
-        <div className="flex items-start gap-3.5">
-          <Users className="size-5 text-primary mt-0.5" />
+        <div className="flex items-start gap-3.5 pt-2 border-t border-border/30">
+          <div className="grid size-9 place-items-center rounded-lg bg-emerald-500/10 text-emerald-500 shrink-0 mt-0.5">
+            <Users className="size-4.5" />
+          </div>
           <div>
             <h3 className="font-semibold text-sm">Court Configuration</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {venue.courtCount ?? 0} active pickleball courts available
+              {venue.courtCount ?? 0} active pickleball court
+              {(venue.courtCount ?? 0) === 1 ? "" : "s"} available
             </p>
           </div>
         </div>
@@ -335,7 +454,7 @@ function VenueLocationCard({ venue }: { venue: VenueCardData }) {
 
 function VenueDescriptionCard({ venue }: { venue: VenueCardData }) {
   return (
-    <Card className="border border-border/50 bg-card rounded-xl shadow-sm">
+    <Card className="border border-border/50 bg-card rounded-xl shadow-xs">
       <CardContent className="p-6 space-y-3">
         <h3 className="font-bold text-base flex items-center gap-1.5">
           <Info className="size-4 text-primary" /> Court Details
@@ -357,7 +476,7 @@ function VenueAnalyticsCard({
   peakDays: { day: string; visits: number }[];
 }) {
   return (
-    <Card className="border border-border/50 bg-card rounded-xl shadow-sm">
+    <Card className="border border-border/50 bg-card rounded-xl shadow-xs">
       <CardContent className="p-6 space-y-6">
         <PopularTimesChart peakHours={peakHours} />
         <div className="border-t border-border/30 pt-4">
@@ -387,7 +506,7 @@ function VenueSidebar({
 }) {
   return (
     <div className="space-y-4">
-      <Card className="border border-border/50 bg-card rounded-xl shadow-sm p-4 text-center space-y-4">
+      <Card className="border border-border/50 bg-card rounded-xl shadow-xs p-4 text-center space-y-4">
         <h3 className="font-bold text-sm">Active Events</h3>
         <p className="text-xs text-muted-foreground">
           {events.length} tournament
@@ -401,7 +520,7 @@ function VenueSidebar({
                 key={evt.id}
                 to="/events/$id"
                 params={{ id: evt.id }}
-                className="block text-xs text-primary hover:underline text-left"
+                className="block text-xs text-primary hover:underline text-left font-medium active:scale-[0.98] transition-all"
               >
                 {evt.name}
               </Link>
@@ -410,7 +529,7 @@ function VenueSidebar({
         )}
       </Card>
 
-      <Card className="border border-border/50 bg-card rounded-xl shadow-sm p-4 space-y-3">
+      <Card className="border border-border/50 bg-card rounded-xl shadow-xs p-4 space-y-3">
         <div className="flex items-center gap-2">
           <Radio className="size-4 text-primary" />
           <h3 className="font-bold text-xs">Radar Geofence & Check-In</h3>
@@ -422,7 +541,7 @@ function VenueSidebar({
         </p>
         {isCheckedIn ? (
           <Button
-            className="w-full rounded-md text-xs bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            className="w-full rounded-lg text-xs bg-destructive text-destructive-foreground hover:bg-destructive/90 active:scale-[0.97] transition-all duration-150 shadow-2xs"
             disabled={isCheckingInOut}
             onClick={onCheckOut}
             size="sm"
@@ -431,7 +550,7 @@ function VenueSidebar({
           </Button>
         ) : (
           <Button
-            className="w-full rounded-md text-xs font-semibold"
+            className="w-full rounded-lg text-xs font-semibold active:scale-[0.97] transition-all duration-150 shadow-2xs"
             disabled={isCheckingInOut}
             onClick={onCheckIn}
             size="sm"
@@ -441,7 +560,7 @@ function VenueSidebar({
         )}
       </Card>
 
-      <Card className="border border-border/50 bg-card rounded-xl shadow-sm p-4 space-y-3">
+      <Card className="border border-border/50 bg-card rounded-xl shadow-xs p-4 space-y-3">
         <div className="flex items-center gap-2">
           <Users className="size-4 text-primary" />
           <h3 className="font-bold text-xs">Active Players</h3>
@@ -454,7 +573,7 @@ function VenueSidebar({
         <div className="flex -space-x-2">
           {Array.from({ length: Math.min(activePlayers, 5) }, (_, index) => (
             <div
-              className="grid size-8 place-items-center rounded-full border-2 border-card bg-muted text-xs font-bold"
+              className="grid size-8 place-items-center rounded-full border-2 border-card bg-muted text-xs font-bold shadow-2xs"
               key={index}
               title="Active player"
             >
@@ -462,7 +581,7 @@ function VenueSidebar({
             </div>
           ))}
           {activePlayers > 5 && (
-            <div className="grid size-8 place-items-center rounded-full border-2 border-card bg-muted text-xs text-muted-foreground">
+            <div className="grid size-8 place-items-center rounded-full border-2 border-card bg-muted text-xs text-muted-foreground shadow-2xs">
               +{activePlayers - 5}
             </div>
           )}
@@ -494,14 +613,16 @@ function EventsSection({ events }: { events: EventCardData[] }) {
             return (
               <Card
                 key={evt.id}
-                className="border border-border/50 bg-card hover:bg-muted/30 transition-all rounded-lg p-4 w-72 shrink-0"
+                className="border border-border/50 bg-card hover:bg-muted/20 hover:border-primary/40 active:scale-[0.98] transition-all rounded-xl p-4 w-72 shrink-0 shadow-2xs"
               >
-                <div className="flex justify-between items-start">
+                <div className="flex justify-between items-start gap-2">
                   <div>
                     <span className="text-[10px] bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full capitalize">
                       {evt.eventType?.replace("_", " ") ?? "open play"}
                     </span>
-                    <h4 className="font-bold text-sm mt-1.5">{evt.name}</h4>
+                    <h4 className="font-bold text-sm mt-1.5 line-clamp-1">
+                      {evt.name}
+                    </h4>
                     <p className="text-xs text-muted-foreground mt-1">
                       {dateStr}
                     </p>
@@ -510,7 +631,7 @@ function EventsSection({ events }: { events: EventCardData[] }) {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="text-xs rounded-md"
+                      className="text-xs rounded-lg active:scale-[0.97] transition-all shrink-0"
                     >
                       Details
                     </Button>
@@ -521,7 +642,7 @@ function EventsSection({ events }: { events: EventCardData[] }) {
           })}
         </div>
       ) : (
-        <p className="text-xs text-muted-foreground bg-muted/20 border border-border/50 rounded-lg p-6 text-center">
+        <p className="text-xs text-muted-foreground bg-muted/20 border border-border/50 rounded-xl p-6 text-center">
           No upcoming tournaments or open play sessions are scheduled here at
           this time.
         </p>
@@ -562,7 +683,10 @@ function VenueDetailPage() {
           removed.
         </p>
         <Link to="/">
-          <Button variant="outline" className="rounded-md text-xs mt-4">
+          <Button
+            variant="outline"
+            className="rounded-lg text-xs mt-4 active:scale-[0.97] transition-all"
+          >
             Back to Home
           </Button>
         </Link>
