@@ -1,5 +1,6 @@
 import { Button } from "@rallycaststv/ui/components/button";
 import { Input } from "@rallycaststv/ui/components/input";
+import { cn } from "@rallycaststv/ui/lib/utils";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   CalendarClock,
@@ -56,6 +57,8 @@ const statusMatchesRoute = (
   return jobStatus === "completed";
 };
 
+const STANDARD_HOURLY_RATE = 25;
+
 function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
   const [place, setPlace] = useState("");
   const [court, setCourt] = useState("");
@@ -63,9 +66,11 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
   const [requestedHours, setRequestedHours] = useState("1");
-  const [budget, setBudget] = useState("25");
   const [paymentSplit, setPaymentSplit] = useState<"host" | "split">("host");
   const [notes, setNotes] = useState("");
+
+  const hours = Number.parseFloat(requestedHours) || 1;
+  const totalPrice = hours * STANDARD_HOURLY_RATE;
 
   const submitRequest = (event: FormEvent) => {
     event.preventDefault();
@@ -82,6 +87,7 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
       `Place: ${place.trim()}`,
       court.trim() ? `Court: ${court.trim()}` : null,
       participants.trim() ? `Players: ${participants.trim()}` : null,
+      `Duration: ${hours} hour${hours === 1 ? "" : "s"} ($${totalPrice.toFixed(2)} total @ $${STANDARD_HOURLY_RATE}/hr)`,
       `Payment: ${
         paymentSplit === "host"
           ? "Requester pays the full casting cost"
@@ -96,15 +102,17 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
       endsAt: endsAt ? new Date(endsAt).toISOString() : null,
       id: crypto.randomUUID(),
       notes: requestDetails,
-      priceCents: Math.round(Number(budget || "25") * 100),
-      requestedHours: Number.parseFloat(requestedHours) || 1,
+      priceCents: Math.round(totalPrice * 100),
+      requestedHours: hours,
       startsAt: new Date(startsAt).toISOString(),
       status: "requested",
     };
 
     try {
       castingJobsCollection.insert(newJob);
-      toast.success("Casting request created.");
+      toast.success(
+        `Casting request created for ${hours} hour${hours === 1 ? "" : "s"}.`
+      );
       onClose();
     } catch {
       toast.error("Could not create casting request.");
@@ -116,12 +124,12 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold">
-            Request a Caster (On-Demand Camera)
+            Order a Caster by the Hour (On-Demand Camera)
           </h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Request a certified caster like an Uber. They show up, record your
-            match with court audio, and deliver the footage for your private
-            review & approval.
+            Order on-court recording hours like an Uber. A certified caster
+            shows up to your park with a 4K rig and directional mics, records
+            your match, and delivers footage for your private review & approval.
           </p>
         </div>
         <Button
@@ -204,7 +212,7 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
           className="grid gap-2 text-sm font-semibold"
           htmlFor="casting-hours"
         >
-          Requested hours
+          Requested hours ($25/hr)
           <Input
             id="casting-hours"
             min="0.5"
@@ -214,23 +222,40 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
             value={requestedHours}
           />
         </label>
-        <label
-          className="grid gap-2 text-sm font-semibold"
-          htmlFor="casting-budget"
-        >
+        <div className="grid gap-2 text-sm font-semibold">
           <span className="flex items-center gap-2">
             <Wallet className="size-4 text-primary" />
-            Standard Match Rate ($)
+            Total Estimated Cost
           </span>
-          <Input
-            id="casting-budget"
-            min="0"
-            onChange={(event) => setBudget(event.target.value)}
-            step="1"
-            type="number"
-            value={budget}
-          />
-        </label>
+          <div className="flex h-9 items-center justify-between rounded-lg border border-border bg-muted/40 px-3 text-sm">
+            <span className="font-bold text-foreground">
+              ${totalPrice.toFixed(2)}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {hours} hr{hours === 1 ? "" : "s"} @ ${STANDARD_HOURLY_RATE}/hr
+            </span>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 md:col-span-2">
+          <span className="text-xs text-muted-foreground mr-1">
+            Quick select hours:
+          </span>
+          {[1, 1.5, 2, 3, 4].map((hrs) => (
+            <button
+              key={hrs}
+              type="button"
+              className={cn(
+                "rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer",
+                hours === hrs
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border bg-muted/20 hover:border-primary/50 text-foreground"
+              )}
+              onClick={() => setRequestedHours(String(hrs))}
+            >
+              {hrs} {hrs === 1 ? "hr" : "hrs"} (${hrs * STANDARD_HOURLY_RATE})
+            </button>
+          ))}
+        </div>
         <label
           className="grid gap-2 text-sm font-semibold md:col-span-2"
           htmlFor="casting-participants"

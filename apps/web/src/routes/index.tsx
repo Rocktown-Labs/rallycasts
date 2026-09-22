@@ -505,12 +505,12 @@ function RequestCasterFeature() {
             <span className="flex size-7 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-500">
               <Radio className="size-4.5 text-emerald-500 animate-pulse" />
             </span>
-            Request a Caster (On-Demand Court Camera)
+            Order a Caster by the Hour (On-Demand Camera)
           </h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Request an on-court camera like an Uber. A verified caster shows up
-            to your park, records your match with court audio, and delivers the
-            footage for your private review & approval.
+            Request an on-court camera like an Uber. Order hours for your match
+            or tournament—a verified caster shows up to your park, records your
+            session, and delivers footage for your private review & approval.
           </p>
         </div>
         <Link
@@ -529,19 +529,21 @@ function RequestCasterFeature() {
               <span>LIVE DISPATCH ACTIVE</span>
             </div>
             <h3 className="text-xl font-extrabold tracking-tight sm:text-2xl text-foreground">
-              Request a Caster to Your Court
+              Order On-Court Recording Hours
             </h3>
             <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Playing a match or challenge right now? An on-demand caster will
-              show up to your park with a stabilized 4K rig and directional
-              court mics. Flat standard rate across the board—you review and
-              approve the recording before it is published.
+              Playing a match or tournament? Order a caster for 1, 2, or custom
+              hours. Dispatched like an Uber, a nearby caster shows up to your
+              court with a stabilized 4K rig and directional court mics. You
+              review and approve the recording before it is published.
             </p>
             <div className="flex flex-wrap items-center gap-4 pt-1 text-xs text-muted-foreground">
               <span className="font-semibold text-foreground flex items-center gap-1">
-                <span className="text-emerald-500 font-bold">$25</span> flat
-                match rate
+                <span className="text-emerald-500 font-bold">$25 / hr</span>{" "}
+                standard rate
               </span>
+              <span>•</span>
+              <span>Order 1, 2, or custom hours</span>
               <span>•</span>
               <span>Fair platform split</span>
               <span>•</span>
@@ -554,7 +556,7 @@ function RequestCasterFeature() {
                 size="lg"
                 className="w-full rounded-xl font-bold text-xs sm:text-sm cursor-pointer shadow-xs"
               >
-                <Video className="mr-1.5 size-4" /> Request a Caster Now
+                <Video className="mr-1.5 size-4" /> Order Caster Hours Now
               </Button>
             </Link>
             <Link to="/u/casts/all">

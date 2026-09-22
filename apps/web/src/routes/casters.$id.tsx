@@ -96,10 +96,12 @@ function CasterDetailPage() {
               <div className="flex items-start gap-3.5">
                 <DollarSign className="size-5 text-emerald-500 mt-0.5" />
                 <div>
-                  <h3 className="font-semibold text-sm">Standard Match Rate</h3>
+                  <h3 className="font-semibold text-sm">
+                    Standard Hourly Rate
+                  </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    $25 flat fee per match • Standard platform rate & split
-                    across the board
+                    $25 / hour standard rate • Platform split & order by the
+                    hour
                   </p>
                 </div>
               </div>
@@ -151,7 +153,7 @@ function CasterDetailPage() {
             <div className="rounded-lg bg-muted/40 p-3 space-y-2 text-xs">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Standard Rate:</span>
-                <span className="font-bold text-foreground">$25 / match</span>
+                <span className="font-bold text-foreground">$25 / hour</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Review Guarantee:</span>
@@ -162,7 +164,7 @@ function CasterDetailPage() {
             </div>
             <Link to="/u/casts/new" className="block">
               <Button className="w-full rounded-lg text-xs font-semibold py-5 flex items-center justify-center gap-1.5 cursor-pointer">
-                <Calendar className="size-4" /> Request Caster
+                <Calendar className="size-4" /> Order Caster Hours
               </Button>
             </Link>
             <p className="text-[11px] text-muted-foreground text-center">

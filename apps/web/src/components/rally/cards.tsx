@@ -854,7 +854,7 @@ export function CasterCard({ caster }: { caster: CasterCardData }) {
         </p>
         <div className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2 text-xs">
           <span className="font-semibold text-foreground">
-            $25 standard rate
+            $25 / hr standard rate
           </span>
           <span className="text-muted-foreground">
             Private review & approval
