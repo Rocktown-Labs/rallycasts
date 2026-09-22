@@ -5,6 +5,7 @@ import {
   DurableObjectNamespace,
   Queue,
   R2Bucket,
+  RateLimit,
   TanStackStart,
   VectorizeIndex,
   Worker,
@@ -127,6 +128,8 @@ const radarSecretKey = optionalSecret("RADAR_SECRET_KEY");
 const radarPublishableKey = process.env.VITE_RADAR_PUBLISHABLE_KEY ?? "";
 const fourthwallStorefrontUrl =
   process.env.VITE_FOURTHWALL_STOREFRONT_URL ?? "";
+const fourthwallStorefrontToken =
+  process.env.VITE_FOURTHWALL_STOREFRONT_TOKEN ?? "";
 const muxTokenSecret = optionalSecret("MUX_TOKEN_SECRET");
 const muxTokenId = optionalSecret("MUX_TOKEN_ID");
 const muxSigningKeyId = optionalSecret("MUX_SIGNING_KEY_ID");
@@ -144,6 +147,20 @@ const resendWebhookSecret = optionalSecret("RESEND_WEBHOOK_SECRET");
 const stripeSecretKey = optionalSecret("STRIPE_SECRET_KEY");
 const stripeWebhookSecret = optionalSecret("STRIPE_WEBHOOK_SECRET");
 const sentryDsn = optionalSecret("SENTRY_DSN");
+
+// Demo tournament endpoints (seed-demo, advance-demo-round) never run in prod.
+const allowDemoEndpoints = isProd ? undefined : "true";
+
+// Baseline throttle for the whole API; strict tier for auth and expensive
+// anonymous endpoints (search, places, trending).
+const apiRateLimiter = RateLimit({
+  namespace_id: 1101,
+  simple: { limit: 600, period: 60 },
+});
+const strictRateLimiter = RateLimit({
+  namespace_id: 1102,
+  simple: { limit: 60, period: 60 },
+});
 
 const mediaBucket = r2BucketName
   ? await R2Bucket("media-v4", {
@@ -284,6 +301,7 @@ export const server = await Worker("rallycasts-server", {
   bindings: filterMissingBindings({
     ADS_ANALYTICS: adsAnalytics,
     ADS_EVENTS: adsQueue,
+    ALLOW_DEMO_ENDPOINTS: allowDemoEndpoints,
     BETTER_AUTH_SECRET: betterAuthSecret,
     BETTER_AUTH_URL: betterAuthUrl,
     CHAT_ROOMS: chatRooms,
@@ -311,6 +329,8 @@ export const server = await Worker("rallycasts-server", {
     R2_SECRET_ACCESS_KEY: r2SecretAccessKey,
     RADAR_SECRET_KEY: radarSecretKey,
     RADAR_WEBHOOK_SECRET: radarWebhookSecret,
+    RATE_LIMITER: apiRateLimiter,
+    RATE_LIMITER_STRICT: strictRateLimiter,
     RESEND_API_KEY: resendApiKey,
     RESEND_WEBHOOK_SECRET: resendWebhookSecret,
     SEARCH_INDEX: searchIndex,
@@ -346,6 +366,7 @@ export const web = await TanStackStart("rallycasts-web", {
     GOOGLE_PLACES_API_KEY: googlePlacesApiKey,
     RADAR_SECRET_KEY: radarSecretKey,
     SENTRY_DSN: sentryDsn,
+    VITE_FOURTHWALL_STOREFRONT_TOKEN: fourthwallStorefrontToken,
     VITE_FOURTHWALL_STOREFRONT_URL: fourthwallStorefrontUrl,
     VITE_RADAR_PUBLISHABLE_KEY: radarPublishableKey,
     VITE_SENTRY_DSN: sentryDsn,

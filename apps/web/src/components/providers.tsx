@@ -4,6 +4,7 @@ import { useNavigate } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 
 import { authClient } from "@/lib/auth-client";
+import { CartProvider } from "@/lib/cart";
 import { queryClient } from "@/lib/query-client";
 
 export default function Providers({ children }: { children: ReactNode }) {
@@ -26,7 +27,7 @@ export default function Providers({ children }: { children: ReactNode }) {
       redirectTo="/u"
       socialProviders={["google"]}
     >
-      {children}
+      <CartProvider>{children}</CartProvider>
     </AuthProvider>
   );
 }

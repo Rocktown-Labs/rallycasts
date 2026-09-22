@@ -14,6 +14,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
+import { useSidebar } from "@/components/layout/sidebar-context";
 import {
   EmptyState,
   EventCard,
@@ -157,22 +158,15 @@ function HomeFeedView({
     for (const video of allVideos) {
       const isShort =
         video.mediaType === "short" ||
-        (video.durationSeconds !== undefined &&
-          video.durationSeconds !== null &&
-          video.durationSeconds > 0 &&
-          video.durationSeconds <= 180);
+        ((video.durationSeconds ?? 0) > 0 &&
+          (video.durationSeconds ?? 0) <= 60 &&
+          video.title.toLowerCase().includes("clip"));
 
-      if (isShort && shorts.length < 10) {
+      if (isShort) {
         shorts.push(video);
       } else {
         landscape.push(video);
       }
-    }
-
-    // Ensure we have at least a few clips in the shelf for showcase if available
-    if (shorts.length < 3 && landscape.length > 4) {
-      const moved = landscape.splice(-2, 2);
-      shorts.push(...moved);
     }
 
     return { landscapeVideos: landscape, shortsVideos: shorts };
@@ -251,8 +245,13 @@ function HomeFeedView({
     );
   }
 
-  const featuredLandscape = landscapeVideos.slice(0, 4);
-  const moreLandscape = landscapeVideos.slice(4);
+  const { collapsed: sidebarCollapsed } = useSidebar();
+  const videoGridClass = sidebarCollapsed
+    ? "grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+    : "grid gap-6 sm:grid-cols-2 lg:grid-cols-3";
+
+  const featuredLandscape = landscapeVideos.slice(0, sidebarCollapsed ? 8 : 6);
+  const moreLandscape = landscapeVideos.slice(sidebarCollapsed ? 8 : 6);
 
   return (
     <div className="space-y-14">
@@ -276,7 +275,7 @@ function HomeFeedView({
         </div>
 
         {featuredLandscape.length > 0 ? (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className={videoGridClass}>
             {featuredLandscape.map((video) => (
               <VideoCard key={video.id} video={video} />
             ))}
@@ -311,7 +310,7 @@ function HomeFeedView({
               See all matches →
             </Link>
           </div>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className={videoGridClass}>
             {moreLandscape.map((video) => (
               <VideoCard key={video.id} video={video} />
             ))}

@@ -15,7 +15,7 @@ import { and, desc, eq, inArray, like, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 
-import { getDisplaySponsorships } from "../lib/ads";
+import { getDisplaySponsorships, signDisplayTracking } from "../lib/ads";
 import { generateEmbedding } from "../lib/embeddings";
 import { haversineDistance } from "../lib/geo";
 import { toPublicVenue, toPublicVideo } from "../lib/public-data";
@@ -637,13 +637,17 @@ export const feedRouter = new Hono<AppEnv>().get(
       skillLevel: profile?.skillLevel ?? null,
       state: profile?.homeState ?? null,
     });
-    const sponsoredItems = sponsorships
-      .slice(0, MAX_SPONSORED_ITEMS)
-      .map((sponsorship) => ({
+    const sponsoredItems = await Promise.all(
+      sponsorships.slice(0, MAX_SPONSORED_ITEMS).map(async (sponsorship) => ({
         entity: {
           ...sponsorship.event,
           adCampaignId: sponsorship.campaign.id,
           adCreativeId: sponsorship.creative.id,
+          adTracking: await signDisplayTracking(
+            c.env.BETTER_AUTH_SECRET,
+            sponsorship.campaign.id,
+            sponsorship.creative.id
+          ),
           location: "",
           sponsored: true as const,
         },
@@ -659,7 +663,8 @@ export const feedRouter = new Hono<AppEnv>().get(
           social: 0,
         },
         title: sponsorship.event.name,
-      }));
+      }))
+    );
     // Fixed slots keep sponsored placement deterministic and auditable.
     for (const [slot, item] of [
       [3, sponsoredItems[0]],

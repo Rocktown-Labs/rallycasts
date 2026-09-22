@@ -113,7 +113,7 @@ const LODGING_PLACE_TYPES = new Set([
   "resort_hotel",
   "rv_park",
 ]);
-const PICKLEBALL_QUERY = "pickleball courts";
+const PICKLEBALL_QUERY = "pickleball";
 const PICKLEBALL_SEARCH_RESULT_LIMIT = 20;
 
 const DISALLOWED_PLACE_TYPES = new Set([

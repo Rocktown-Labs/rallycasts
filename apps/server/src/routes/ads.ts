@@ -245,13 +245,14 @@ export const adsRouter = new Hono<AppEnv>()
   .post("/impressions", async (c) => {
     const db = createDb(c.env.DB);
     const body = (await c.req.json().catch(() => null)) as {
-      campaignId?: string;
-      creativeId?: string;
+      c?: string;
+      cr?: string;
       eid?: string;
-      placement?: string;
+      exp?: string;
+      sig?: string;
     } | null;
-    const decision = await validateDisplayBeacon(db, body);
-    if (!decision) {
+    const signed = await verifySignedDisplayBeacon(c, db, body, "impression");
+    if (!signed) {
       return c.json(
         { message: "Invalid impression" },
         HttpStatusCodes.BAD_REQUEST
@@ -259,8 +260,8 @@ export const adsRouter = new Hono<AppEnv>()
     }
     await enqueueAdEvent(c, c.env, db, {
       at: Date.now(),
-      campaignId: decision.campaign.id,
-      creativeId: decision.creative.id,
+      campaignId: signed.campaign.id,
+      creativeId: signed.creative.id,
       eid: typeof body?.eid === "string" && body.eid ? body.eid : createId(),
       kind: "impression",
       placement: "display",
@@ -270,19 +271,20 @@ export const adsRouter = new Hono<AppEnv>()
   .post("/clicks", async (c) => {
     const db = createDb(c.env.DB);
     const body = (await c.req.json().catch(() => null)) as {
-      campaignId?: string;
-      creativeId?: string;
+      c?: string;
+      cr?: string;
       eid?: string;
-      placement?: string;
+      exp?: string;
+      sig?: string;
     } | null;
-    const decision = await validateDisplayBeacon(db, body);
-    if (!decision) {
+    const signed = await verifySignedDisplayBeacon(c, db, body, "click");
+    if (!signed) {
       return c.json({ message: "Invalid click" }, HttpStatusCodes.BAD_REQUEST);
     }
     await enqueueAdEvent(c, c.env, db, {
       at: Date.now(),
-      campaignId: decision.campaign.id,
-      creativeId: decision.creative.id,
+      campaignId: signed.campaign.id,
+      creativeId: signed.creative.id,
       eid: typeof body?.eid === "string" && body.eid ? body.eid : createId(),
       kind: "click",
       placement: "display",
@@ -999,18 +1001,38 @@ const validateCreatives = async (
   return { creatives: validated, ok: true };
 };
 
-const validateDisplayBeacon = async (
+/**
+ * Display beacons must carry the HMAC-signed params issued with the sponsored
+ * payload (see signDisplayTracking); unsigned campaign/creative IDs are
+ * rejected so spend cannot be forged.
+ */
+const verifySignedDisplayBeacon = async (
+  c: { env: AppEnv["Bindings"] },
   db: Db,
   body:
-    | { campaignId?: string; creativeId?: string; placement?: string }
+    | { c?: string; cr?: string; exp?: string; sig?: string }
     | null
-    | undefined
+    | undefined,
+  kind: "click" | "impression"
 ) => {
   if (
     !body ||
-    typeof body.campaignId !== "string" ||
-    typeof body.creativeId !== "string"
+    typeof body.c !== "string" ||
+    typeof body.cr !== "string" ||
+    typeof body.exp !== "string" ||
+    typeof body.sig !== "string"
   ) {
+    return null;
+  }
+  const verified = await verifyBeaconParams(c.env.BETTER_AUTH_SECRET, {
+    c: body.c,
+    cr: body.cr,
+    ev: kind,
+    exp: body.exp,
+    p: "display",
+    sig: body.sig,
+  });
+  if (!verified) {
     return null;
   }
   const [row] = await db
@@ -1019,8 +1041,8 @@ const validateDisplayBeacon = async (
     .innerJoin(adCreative, eq(adCreative.campaignId, adCampaign.id))
     .where(
       and(
-        eq(adCampaign.id, body.campaignId),
-        eq(adCreative.id, body.creativeId),
+        eq(adCampaign.id, body.c),
+        eq(adCreative.id, body.cr),
         eq(adCampaign.status, "active"),
         eq(adCreative.status, "active")
       )

@@ -1,3 +1,8 @@
+import type { createDb } from "@rallycaststv/db";
+import { user } from "@rallycaststv/db/schema/auth";
+import { video } from "@rallycaststv/db/schema/domain";
+import { eq } from "drizzle-orm";
+
 export const DEFAULT_SHOWCASE_VIDEO = {
   createdAt: "2026-09-20T01:42:52.534Z",
   description: null,
@@ -39,3 +44,71 @@ export const DEFAULT_SHOWCASE_VIDEO = {
 };
 
 export const DEFAULT_SHOWCASE_VIDEOS = [DEFAULT_SHOWCASE_VIDEO];
+
+export async function ensureShowcaseVideoInDb(
+  db: ReturnType<typeof createDb>,
+  videoId: string
+) {
+  const showcase = DEFAULT_SHOWCASE_VIDEOS.find((v) => v.id === videoId);
+  if (!showcase) {
+    return null;
+  }
+
+  try {
+    const [existingUser] = await db
+      .select({ id: user.id })
+      .from(user)
+      .where(eq(user.id, showcase.ownerUserId))
+      .limit(1);
+
+    if (!existingUser) {
+      await db
+        .insert(user)
+        .values({
+          createdAt: new Date(showcase.createdAt),
+          displayUsername: showcase.owner.displayUsername,
+          email: "cameron@rallycasts.com",
+          emailVerified: true,
+          id: showcase.owner.id,
+          image: showcase.owner.image,
+          name: showcase.owner.name,
+          updatedAt: new Date(showcase.updatedAt),
+          username: showcase.owner.username,
+        })
+        .onConflictDoNothing();
+    }
+
+    const [existingVideo] = await db
+      .select({ id: video.id })
+      .from(video)
+      .where(eq(video.id, showcase.id))
+      .limit(1);
+
+    if (!existingVideo) {
+      await db
+        .insert(video)
+        .values({
+          createdAt: new Date(showcase.createdAt),
+          description: showcase.description,
+          durationSeconds: showcase.durationSeconds,
+          id: showcase.id,
+          mediaType: showcase.mediaType,
+          muxPlaybackId: showcase.muxPlaybackId,
+          muxPlaybackPolicy: "public",
+          muxStatus: "ready",
+          ownerUserId: showcase.ownerUserId,
+          publishedAt: new Date(showcase.publishedAt),
+          status: showcase.status,
+          taggedUserIds: JSON.stringify(showcase.taggedUserIds),
+          title: showcase.title,
+          updatedAt: new Date(showcase.updatedAt),
+          visibility: showcase.visibility,
+        })
+        .onConflictDoNothing();
+    }
+  } catch (error) {
+    console.warn("Could not ensure showcase video in DB:", error);
+  }
+
+  return showcase;
+}

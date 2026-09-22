@@ -96,7 +96,7 @@ describe("GooglePlacesClient", () => {
           },
         },
         rankPreference: "DISTANCE",
-        textQuery: "pickleball courts",
+        textQuery: "pickleball",
       });
       expect(
         mockFetch.mock.calls

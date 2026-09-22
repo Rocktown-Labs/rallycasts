@@ -5,10 +5,12 @@ import type { ReactNode } from "react";
 import { SetupGuide } from "../onboarding/setup-guide";
 import AppSidebar from "./app-sidebar";
 import MobileBottomNav from "./mobile-bottom-nav";
+import { SidebarContext } from "./sidebar-context";
 import SiteHeader from "./site-header";
 
 export default function AppShell({ children }: { children?: ReactNode } = {}) {
   const [collapsed, setCollapsed] = useState(false);
+  const toggleSidebar = () => setCollapsed((value) => !value);
 
   useEffect(() => {
     const promptedKey = "rallycasts-location-prompted";
@@ -38,19 +40,21 @@ export default function AppShell({ children }: { children?: ReactNode } = {}) {
   }, []);
 
   return (
-    <div className="flex min-h-svh bg-background text-foreground">
-      <AppSidebar
-        collapsed={collapsed}
-        onToggle={() => setCollapsed((value) => !value)}
-      />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <SiteHeader />
-        <main className="min-w-0 flex-1 overflow-x-hidden px-4 pb-24 pt-6 md:px-8 md:pb-10">
-          {children ?? <Outlet />}
-        </main>
+    <SidebarContext.Provider value={{ collapsed, setCollapsed, toggleSidebar }}>
+      <div className="flex min-h-svh bg-background text-foreground">
+        <AppSidebar collapsed={collapsed} onToggle={toggleSidebar} />
+        <div
+          className="flex min-w-0 flex-1 flex-col"
+          data-sidebar-collapsed={collapsed}
+        >
+          <SiteHeader />
+          <main className="min-w-0 flex-1 overflow-x-hidden px-4 pb-24 pt-6 md:px-8 md:pb-10">
+            {children ?? <Outlet />}
+          </main>
+        </div>
+        <MobileBottomNav />
+        <SetupGuide />
       </div>
-      <MobileBottomNav />
-      <SetupGuide />
-    </div>
+    </SidebarContext.Provider>
   );
 }

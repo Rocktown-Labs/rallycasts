@@ -12,6 +12,7 @@ const defaultServerUrl =
 
 export const env = createEnv({
   client: {
+    VITE_FOURTHWALL_STOREFRONT_TOKEN: z.string().optional(),
     VITE_FOURTHWALL_STOREFRONT_URL: z.url().optional(),
     VITE_RADAR_PUBLISHABLE_KEY: z.string().optional(),
     VITE_SENTRY_DSN: z.string().optional(),

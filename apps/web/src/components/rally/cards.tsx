@@ -341,29 +341,8 @@ export function VideoCard({ video }: { video: VideoCardData }) {
 
   return (
     <div className="group flex flex-col min-w-0 w-full animate-in fade-in duration-300 relative">
-      {/* Thumbnail with Tagged Overlay */}
-      <div className="relative">
-        <VideoThumbnail video={video} imageUrl={imageUrl} />
-        {video.taggedUsers && video.taggedUsers.length > 0 && (
-          <div className="absolute left-2 top-2 flex flex-wrap gap-1 z-10">
-            {video.taggedUsers
-              .filter((user): user is NonNullable<typeof user> => user !== null)
-              .map((u) => (
-                <Link
-                  key={u.id}
-                  to="/players/$username"
-                  params={{
-                    username: u.username ?? u.displayUsername ?? "player",
-                  }}
-                  className="rounded-full bg-black/75 hover:bg-primary text-white px-2 py-0.5 text-[9px] font-semibold transition-colors flex items-center gap-1 backdrop-blur-xs shadow-sm border border-white/10"
-                >
-                  <span className="inline-block size-1 rounded-full bg-[#bcdf21]" />
-                  <span>{u.name ?? "Player"}</span>
-                </Link>
-              ))}
-          </div>
-        )}
-      </div>
+      {/* Thumbnail */}
+      <VideoThumbnail imageUrl={imageUrl} video={video} />
 
       {/* Content Area */}
       <div className="mt-2.5 flex gap-3 px-1">
@@ -723,7 +702,7 @@ export function RallyClipCard({ video }: { video: VideoCardData }) {
   const imageUrl =
     video.thumbnailUrl ??
     (video.muxPlaybackId
-      ? `https://image.mux.com/${video.muxPlaybackId}/thumbnail.webp?time=1`
+      ? `https://image.mux.com/${video.muxPlaybackId}/thumbnail.webp?time=1&aspect_ratio=9:16&fit_mode=smartcrop`
       : null);
 
   const viewsCount =

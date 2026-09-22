@@ -18,6 +18,7 @@ import notFound from "stoker/middlewares/not-found";
 
 import { EMAIL_FROM } from "./lib/email";
 import type { AppEnv } from "./lib/types";
+import { rateLimit } from "./middleware/rate-limit";
 import { protectMutations, protectWebSocket } from "./middleware/security";
 import { adminRouter } from "./routes/admin";
 import { adsRouter } from "./routes/ads";
@@ -95,6 +96,17 @@ app.use("/webhooks/*", bodyLimit({ maxSize: 1 * 1024 * 1024 }));
 app.use("/api/auth/*", protectMutations);
 app.use("/api/v1/*", protectMutations);
 app.use("/api/v1/*", protectWebSocket);
+// Baseline per-client throttle for the whole API; expensive anonymous
+// endpoints and auth get the strict limiter.
+app.use("/api/auth/*", rateLimit("RATE_LIMITER_STRICT", "auth"));
+app.use("/api/v1/search", rateLimit("RATE_LIMITER_STRICT", "search"));
+app.use("/api/v1/places/*", rateLimit("RATE_LIMITER_STRICT", "places"));
+app.use("/api/v1/trending", rateLimit("RATE_LIMITER_STRICT", "trending"));
+app.use(
+  "/api/v1/profile/check-username",
+  rateLimit("RATE_LIMITER_STRICT", "check-username")
+);
+app.use("/api/v1/*", rateLimit("RATE_LIMITER", "api"));
 app.use("/api/v1/*", async (c, next) => {
   await next();
   c.header("Cache-Control", "no-store");

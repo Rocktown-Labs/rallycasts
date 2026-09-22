@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 
 import Breadcrumbs from "@/components/layout/breadcrumbs";
+import CartButton from "@/components/layout/cart-button";
 import NotificationButton from "@/components/layout/notification-button";
 import SearchForm from "@/components/layout/search-form";
 import ThemeToggle from "@/components/layout/theme-toggle";
@@ -17,6 +18,7 @@ export default function SiteHeader() {
         </div>
         <SearchForm />
         <div className="flex justify-end gap-1">
+          <CartButton />
           <NotificationButton />
           <ThemeToggle />
         </div>
