@@ -5,6 +5,7 @@ import {
   CalendarClock,
   MapPin,
   PlusCircle,
+  ShieldCheck,
   Users,
   Wallet,
   XCircle,
@@ -62,7 +63,7 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
   const [requestedHours, setRequestedHours] = useState("1");
-  const [budget, setBudget] = useState("0");
+  const [budget, setBudget] = useState("25");
   const [paymentSplit, setPaymentSplit] = useState<"host" | "split">("host");
   const [notes, setNotes] = useState("");
 
@@ -95,7 +96,7 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
       endsAt: endsAt ? new Date(endsAt).toISOString() : null,
       id: crypto.randomUUID(),
       notes: requestDetails,
-      priceCents: Math.round(Number(budget || "0") * 100),
+      priceCents: Math.round(Number(budget || "25") * 100),
       requestedHours: Number.parseFloat(requestedHours) || 1,
       startsAt: new Date(startsAt).toISOString(),
       status: "requested",
@@ -114,10 +115,13 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
     <section className="rounded-xl border border-primary/30 bg-card p-5">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold">Request a RallyCaster</h2>
+          <h2 className="text-lg font-bold">
+            Request a Caster (On-Demand Camera)
+          </h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Tell us where, when, and who is playing so a caster knows exactly
-            what they are covering.
+            Request a certified caster like an Uber. They show up, record your
+            match with court audio, and deliver the footage for your private
+            review & approval.
           </p>
         </div>
         <Button
@@ -130,6 +134,18 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
         </Button>
       </div>
       <form className="grid gap-4 md:grid-cols-2" onSubmit={submitRequest}>
+        <div className="rounded-lg border border-primary/20 bg-primary/5 p-3.5 text-xs text-muted-foreground md:col-span-2 flex items-start gap-2.5">
+          <ShieldCheck className="size-4 text-emerald-500 shrink-0 mt-0.5" />
+          <p>
+            <strong className="text-foreground">
+              Private Review & Approval:
+            </strong>{" "}
+            Once the caster finishes recording and uploads the match, the
+            footage is delivered directly to your account. You have complete
+            approval before the match or clips are published to your profile or
+            the public feed.
+          </p>
+        </div>
         <label
           className="grid gap-2 text-sm font-semibold"
           htmlFor="casting-place"
@@ -204,13 +220,13 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
         >
           <span className="flex items-center gap-2">
             <Wallet className="size-4 text-primary" />
-            Budget
+            Standard Match Rate ($)
           </span>
           <Input
             id="casting-budget"
             min="0"
             onChange={(event) => setBudget(event.target.value)}
-            step="0.01"
+            step="1"
             type="number"
             value={budget}
           />

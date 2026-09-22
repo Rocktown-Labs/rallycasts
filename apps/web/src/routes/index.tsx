@@ -11,12 +11,12 @@ import {
   Radio,
   Sparkles,
   Users,
+  Video,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 import {
-  CasterCard,
   EmptyState,
   EventCard,
   ParkHeatCard,
@@ -25,20 +25,13 @@ import {
   VideoCard,
 } from "@/components/rally/cards";
 import type {
-  CasterCardData,
   EventCardData,
   PlayerCardData,
   VenueCardData,
   VideoCardData,
 } from "@/components/rally/cards";
 import { authClient } from "@/lib/auth-client";
-import {
-  useCasters,
-  useHomeFeed,
-  useProfile,
-  useTrending,
-  useVideos,
-} from "@/lib/hooks";
+import { useHomeFeed, useProfile, useTrending, useVideos } from "@/lib/hooks";
 
 export const Route = createFileRoute("/")({
   component: HomeComponent,
@@ -112,7 +105,6 @@ function HomeFeedView({
   const homeFeed = useHomeFeed(isPersonalized);
   const latestVideosQuery = useVideos();
   const trendingQuery = useTrending();
-  const castersQuery = useCasters();
   const profileQuery = useProfile();
 
   const isLoading =
@@ -242,8 +234,6 @@ function HomeFeedView({
     [rawFeedItems]
   );
 
-  const castersList: CasterCardData[] = castersQuery.data?.casters ?? [];
-
   if (isLoading) {
     return (
       <FeedSectionShell isLoading={true} title="Featured Highlights">
@@ -295,8 +285,8 @@ function HomeFeedView({
         <NearbyParksSection venues={venuesList} />
       ) : null}
 
-      {/* 4. Live on Court & Casters Shelf */}
-      {castersList.length > 0 ? <CastersShelf casters={castersList} /> : null}
+      {/* 4. Request a Caster (On-Demand Court Camera) */}
+      <RequestCasterFeature />
 
       {/* 5. Community Feed / Upcoming Events */}
       {communityItems.length > 0 ? (
@@ -506,32 +496,84 @@ function NearbyParksSection({ venues }: { venues: VenueCardData[] }) {
   );
 }
 
-function CastersShelf({ casters }: { casters: CasterCardData[] }) {
+function RequestCasterFeature() {
   return (
-    <section className="space-y-4">
+    <section className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="flex items-center gap-2 text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-            <Radio className="size-5 text-emerald-500 animate-pulse" />
-            Live on Court & Casters
+            <span className="flex size-7 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-500">
+              <Radio className="size-4.5 text-emerald-500 animate-pulse" />
+            </span>
+            Request a Caster (On-Demand Court Camera)
           </h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Book local RallyCasts casters to livestream and film your matches
-            with clean court audio.
+            Request an on-court camera like an Uber. A verified caster shows up
+            to your park, records your match with court audio, and delivers the
+            footage for your private review & approval.
           </p>
         </div>
         <Link
           to="/casters"
           className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors px-2 py-1"
         >
-          View all casters →
+          Become a caster →
         </Link>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {casters.slice(0, 3).map((caster) => (
-          <CasterCard key={caster.userId} caster={caster} />
-        ))}
+      <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-linear-to-br from-card to-muted/40 p-5 sm:p-6 shadow-xs">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-2 max-w-2xl">
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-500">
+              <span className="size-2 rounded-full bg-emerald-500 animate-ping" />
+              <span>LIVE DISPATCH ACTIVE</span>
+            </div>
+            <h3 className="text-xl font-extrabold tracking-tight sm:text-2xl text-foreground">
+              Request a Caster to Your Court
+            </h3>
+            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+              Playing a match or challenge right now? An on-demand caster will
+              show up to your park with a stabilized 4K rig and directional
+              court mics. Flat standard rate across the board—you review and
+              approve the recording before it is published.
+            </p>
+            <div className="flex flex-wrap items-center gap-4 pt-1 text-xs text-muted-foreground">
+              <span className="font-semibold text-foreground flex items-center gap-1">
+                <span className="text-emerald-500 font-bold">$25</span> flat
+                match rate
+              </span>
+              <span>•</span>
+              <span>Fair platform split</span>
+              <span>•</span>
+              <span>Private review guarantee</span>
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row lg:flex-col gap-2.5 shrink-0">
+            <Link to="/u/casts/new">
+              <Button
+                size="lg"
+                className="w-full rounded-xl font-bold text-xs sm:text-sm cursor-pointer shadow-xs"
+              >
+                <Video className="mr-1.5 size-4" /> Request a Caster Now
+              </Button>
+            </Link>
+            <Link to="/u/casts/all">
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full rounded-xl text-xs sm:text-sm cursor-pointer"
+              >
+                My Requests & Reviews
+              </Button>
+            </Link>
+            <Link
+              to="/casters"
+              className="text-center text-[11px] text-muted-foreground hover:text-primary transition-colors pt-0.5"
+            >
+              Want to earn casting matches? Sign up here →
+            </Link>
+          </div>
+        </div>
       </div>
     </section>
   );

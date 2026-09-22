@@ -16,6 +16,7 @@ import {
   Flame,
   MapPin,
   Play,
+  ShieldCheck,
   Star,
   Trophy,
   Users,
@@ -824,37 +825,57 @@ export function RallyClipCard({ video }: { video: VideoCardData }) {
 
 export function CasterCard({ caster }: { caster: CasterCardData }) {
   return (
-    <Card className="rounded-lg">
-      <CardHeader>
-        <CardTitle>
-          <Link
-            to="/casters/$id"
-            params={{ id: caster.userId }}
-            className="hover:text-primary transition-colors"
-          >
-            {caster.displayName ?? "RallyCasts Caster"}
-          </Link>
-        </CardTitle>
-        <CardDescription>{caster.status ?? "available"}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <p className="line-clamp-2 text-sm text-muted-foreground">
-          {caster.bio ??
-            "Ready to capture matches, highlights, and tournament runs."}
-        </p>
-        <div className="flex items-center justify-between text-sm">
-          <span>{formatMoney(caster.hourlyRateCents)}/hr</span>
-          <span>{caster.serviceRadiusMiles ?? 25} mi radius</span>
+    <Card className="rounded-xl border border-border/60 bg-card hover:border-primary/40 transition-colors shadow-xs">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className="text-base">
+            <Link
+              to="/casters/$id"
+              params={{ id: caster.userId }}
+              className="hover:text-primary transition-colors inline-flex items-center gap-1.5"
+            >
+              <span>{caster.displayName ?? "RallyCasts Caster"}</span>
+              <ShieldCheck className="size-4 text-emerald-500" />
+            </Link>
+          </CardTitle>
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-500">
+            <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            On Duty
+          </span>
         </div>
-        <div className="flex gap-2">
-          <Button className="flex-1 rounded-md text-xs">Request caster</Button>
+        <CardDescription className="text-xs">
+          On-Demand Camera • {caster.serviceRadiusMiles ?? 25} mi dispatch range
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3.5">
+        <p className="line-clamp-2 text-xs text-muted-foreground leading-relaxed">
+          {caster.bio ??
+            "Certified on-court caster. Arrives with 4K stabilized camera and court audio to record and livestream your match."}
+        </p>
+        <div className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2 text-xs">
+          <span className="font-semibold text-foreground">
+            $25 standard rate
+          </span>
+          <span className="text-muted-foreground">
+            Private review & approval
+          </span>
+        </div>
+        <div className="flex gap-2 pt-1">
+          <Link to="/u/casts/new" className="flex-1">
+            <Button className="w-full rounded-lg text-xs font-semibold cursor-pointer">
+              Request to Court
+            </Button>
+          </Link>
           <Link
             to="/casters/$id"
             params={{ id: caster.userId }}
             className="flex-1"
           >
-            <Button variant="outline" className="w-full rounded-md text-xs">
-              View Info
+            <Button
+              variant="outline"
+              className="w-full rounded-lg text-xs cursor-pointer"
+            >
+              Caster Info
             </Button>
           </Link>
         </div>
@@ -976,7 +997,47 @@ export function EventCard({ event }: { event: EventCardData }) {
   );
 }
 
+const getJobStatusBadge = (status?: string | null) => {
+  if (status === "completed") {
+    return {
+      className: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+      label: "Approved & Published",
+    };
+  }
+  if (status === "uploading") {
+    return {
+      className:
+        "bg-blue-500/15 text-blue-600 dark:text-blue-400 animate-pulse",
+      label: "Footage Ready • Awaiting Your Review",
+    };
+  }
+  if (status === "recording") {
+    return {
+      className: "bg-red-500/15 text-red-500 animate-pulse",
+      label: "Recording Live on Court",
+    };
+  }
+  if (status === "arrived") {
+    return {
+      className: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+      label: "Caster Arrived at Court",
+    };
+  }
+  if (status === "accepted") {
+    return {
+      className: "bg-purple-500/15 text-purple-600 dark:text-purple-400",
+      label: "Caster Dispatched & En Route",
+    };
+  }
+  return {
+    className: "bg-brand-yellow/20 text-foreground",
+    label: status ?? "Finding Nearby Caster...",
+  };
+};
+
 export function RequestCard({ job }: { job: CastingJobCardData }) {
+  const badge = getJobStatusBadge(job.status);
+
   return (
     <Card className="rounded-lg">
       <CardContent className="grid gap-4 md:grid-cols-[1fr_auto_auto] md:items-center">
@@ -993,12 +1054,10 @@ export function RequestCard({ job }: { job: CastingJobCardData }) {
         <span
           className={cn(
             "w-fit rounded-full px-3 py-1 text-xs font-semibold",
-            job.status === "completed"
-              ? "bg-blue-500/15 text-blue-500"
-              : "bg-brand-yellow text-black"
+            badge.className
           )}
         >
-          {job.status ?? "requested"}
+          {badge.label}
         </span>
       </CardContent>
     </Card>
