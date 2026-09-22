@@ -19,6 +19,7 @@ import { getDisplaySponsorships } from "../lib/ads";
 import { generateEmbedding } from "../lib/embeddings";
 import { haversineDistance } from "../lib/geo";
 import { toPublicVenue, toPublicVideo } from "../lib/public-data";
+import { DEFAULT_SHOWCASE_VIDEO } from "../lib/showcase-videos";
 import type { AppEnv } from "../lib/types";
 import { requireAuth } from "../middleware/auth";
 
@@ -429,6 +430,25 @@ export const feedRouter = new Hono<AppEnv>().get(
         sortDate: row.video.publishedAt ?? row.video.createdAt,
       };
     });
+
+    if (videos.length === 0) {
+      videos.push({
+        entity: DEFAULT_SHOWCASE_VIDEO,
+        entityType: "video" as const,
+        id: DEFAULT_SHOWCASE_VIDEO.id,
+        reason: "Featured match on RallyCasts",
+        score: 0.95,
+        signals: {
+          engagement: 0.8,
+          freshness: 0.9,
+          location: 0.5,
+          semantic: 0.5,
+          social: 0,
+        },
+        sortDate: new Date(DEFAULT_SHOWCASE_VIDEO.publishedAt),
+        title: DEFAULT_SHOWCASE_VIDEO.title,
+      });
+    }
 
     const events = upcomingEvents.map((row) => {
       const key = `event:${row.event.id}`;

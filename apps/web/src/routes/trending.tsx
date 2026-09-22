@@ -487,7 +487,9 @@ function VideosViewSection() {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
     useInfiniteVideos();
   const videos: VideoCardData[] =
-    data?.pages.flatMap((page) => page?.videos ?? []) ?? [];
+    data?.pages.flatMap(
+      (page) => (page?.videos ?? []) as unknown as VideoCardData[]
+    ) ?? [];
 
   useEffect(() => {
     const target = loadMoreRef.current;

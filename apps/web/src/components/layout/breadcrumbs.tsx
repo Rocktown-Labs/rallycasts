@@ -130,10 +130,10 @@ export default function Breadcrumbs() {
             <Link
               to={pathname}
               className={cn(
-                "inline-flex h-7 items-center justify-center rounded-lg px-2.5 text-xs font-medium transition-all duration-150 active:scale-97",
+                "inline-flex h-7 items-center justify-center rounded-full px-3.5 text-xs font-semibold transition-all duration-150 active:scale-97",
                 isLast
-                  ? "bg-muted/80 text-foreground font-semibold shadow-xs"
-                  : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                  ? "bg-[#183e1c] text-[#bcdf21] border border-[#2d6833] shadow-xs hover:bg-[#1f4e24] hover:text-[#d4f842]"
+                  : "text-muted-foreground hover:bg-muted/50 hover:text-foreground px-2.5"
               )}
             >
               <span className="truncate max-w-36">{label}</span>

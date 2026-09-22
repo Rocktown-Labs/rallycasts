@@ -31,6 +31,7 @@ import {
   scheduleSearchDocumentIndex,
   upsertSearchDocument,
 } from "../lib/search-index";
+import { DEFAULT_SHOWCASE_VIDEOS } from "../lib/showcase-videos";
 import type { AppEnv } from "../lib/types";
 import { requireAuth } from "../middleware/auth";
 import { requireVerifiedAuth } from "../middleware/security";
@@ -315,11 +316,16 @@ export const videosRouter = new Hono<AppEnv>()
     const resolved = await resolveVideosRelations(db, page);
     const lastVideo = page.at(-1);
 
+    const resultVideos =
+      resolved.length === 0 && !cursor
+        ? DEFAULT_SHOWCASE_VIDEOS
+        : resolved.map(toPublicResolvedVideo);
+
     return c.json(
       {
         nextCursor:
           hasNextPage && lastVideo ? encodeVideoCursor(lastVideo) : null,
-        videos: resolved.map(toPublicResolvedVideo),
+        videos: resultVideos,
       },
       HttpStatusCodes.OK
     );
@@ -748,6 +754,24 @@ export const videosRouter = new Hono<AppEnv>()
       .limit(1);
 
     if (!videoRecord) {
+      const showcase = DEFAULT_SHOWCASE_VIDEOS.find((v) => v.id === id);
+      if (showcase) {
+        return c.json(
+          {
+            owner: showcase.owner,
+            relatedVideos: [] as typeof DEFAULT_SHOWCASE_VIDEOS,
+            taggedUsers: showcase.taggedUsers,
+            venue: showcase.venue,
+            video: {
+              ...showcase,
+              owner: undefined,
+              taggedUsers: undefined,
+              venue: undefined,
+            },
+          },
+          HttpStatusCodes.OK
+        );
+      }
       return c.json({ message: "Video not found" }, HttpStatusCodes.NOT_FOUND);
     }
 

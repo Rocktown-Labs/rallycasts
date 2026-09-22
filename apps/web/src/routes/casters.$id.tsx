@@ -100,7 +100,7 @@ function CasterDetailPage() {
                     Standard Hourly Rate
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    $25 / hour standard rate • Platform split & order by the
+                    $20 / hour standard rate • Platform split & order by the
                     hour
                   </p>
                 </div>
@@ -153,7 +153,7 @@ function CasterDetailPage() {
             <div className="rounded-lg bg-muted/40 p-3 space-y-2 text-xs">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Standard Rate:</span>
-                <span className="font-bold text-foreground">$25 / hour</span>
+                <span className="font-bold text-foreground">$20 / hour</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Review Guarantee:</span>

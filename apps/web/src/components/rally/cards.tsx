@@ -713,9 +713,6 @@ function ParkHeatHeader({
             <Flame className={cn("size-3", isHot && "fill-[#bcdf21]")} />
             {isHot ? `${heatScore}% heat` : "0% heat • Quiet"}
           </span>
-          <span className="text-[10px] text-white/60 font-mono">
-            Radar Monitored
-          </span>
         </div>
       </div>
     </div>

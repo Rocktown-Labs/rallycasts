@@ -4,6 +4,7 @@ import { Link, createFileRoute, useParams } from "@tanstack/react-router";
 import {
   Activity,
   Calendar,
+  Camera,
   ChevronLeft,
   Clock,
   Flame,
@@ -233,10 +234,7 @@ function VenueHeader({
                 {venue.venueType || "park"}
               </span>
               <span className="inline-flex items-center gap-1.5 text-xs bg-emerald-500 text-white font-bold px-2.5 py-0.5 rounded-full shadow-xs">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
-                </span>
+                <span className="size-2 rounded-full bg-white" />
                 Active Venue
               </span>
               {heatScore > 0 ? (
@@ -321,12 +319,9 @@ function VenueHeader({
 
           <div className="relative z-10 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
-              </span>
+              <span className="size-2.5 rounded-full bg-emerald-400" />
               <span className="text-[11px] uppercase tracking-wider text-emerald-400/90 font-mono font-medium">
-                Live Radar Monitored
+                Live Court
               </span>
             </div>
             {heatScore > 0 ? (
@@ -578,6 +573,26 @@ function VenueSidebar({
             {isCheckingInOut ? "Checking in..." : "🎾 Check In & Play Here"}
           </Button>
         )}
+      </Card>
+
+      <Card className="border border-primary/20 bg-primary/5 rounded-xl shadow-xs p-4 space-y-2.5">
+        <div className="flex items-center gap-2">
+          <Camera className="size-4 text-primary" />
+          <h3 className="font-bold text-xs">Request Caster to this Court</h3>
+        </div>
+        <p className="text-[11px] text-muted-foreground leading-relaxed">
+          Order an on-demand court camera for your match or tournament at{" "}
+          {venue.name}.
+        </p>
+        <Link to="/u/casts/new">
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full rounded-lg text-xs font-semibold cursor-pointer border-primary/40 hover:bg-primary/10"
+          >
+            Order Caster ($20/hr)
+          </Button>
+        </Link>
       </Card>
 
       <Card className="border border-border/50 bg-card rounded-xl shadow-xs p-4 space-y-3">

@@ -8,10 +8,8 @@ import {
   Flame,
   MapPin,
   MessageSquare,
-  Radio,
   Sparkles,
   Users,
-  Video,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
@@ -31,6 +29,7 @@ import type {
   VideoCardData,
 } from "@/components/rally/cards";
 import { authClient } from "@/lib/auth-client";
+import { demoVideos } from "@/lib/demo-data";
 import { useHomeFeed, useProfile, useTrending, useVideos } from "@/lib/hooks";
 
 export const Route = createFileRoute("/")({
@@ -134,6 +133,16 @@ function HomeFeedView({
       if (!seen.has(v.id)) {
         seen.add(v.id);
         list.push(v);
+      }
+    }
+
+    // Ensure videos are always displayed even if DB is fresh or unseeded
+    if (list.length === 0) {
+      for (const v of demoVideos) {
+        if (!seen.has(v.id)) {
+          seen.add(v.id);
+          list.push(v);
+        }
       }
     }
 
@@ -242,6 +251,9 @@ function HomeFeedView({
     );
   }
 
+  const featuredLandscape = landscapeVideos.slice(0, 4);
+  const moreLandscape = landscapeVideos.slice(4);
+
   return (
     <div className="space-y-14">
       {/* 1. Main Featured Matches (Landscape 16:9 shelf) */}
@@ -263,9 +275,9 @@ function HomeFeedView({
           </Link>
         </div>
 
-        {landscapeVideos.length > 0 ? (
+        {featuredLandscape.length > 0 ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {landscapeVideos.slice(0, 8).map((video) => (
+            {featuredLandscape.map((video) => (
               <VideoCard key={video.id} video={video} />
             ))}
           </div>
@@ -280,13 +292,37 @@ function HomeFeedView({
       {/* 2. Rallies & Clips (Shorts Shelf - Portrait 9:16) */}
       {shortsVideos.length > 0 ? <ShortsShelf videos={shortsVideos} /> : null}
 
-      {/* 3. Courts & Parks Near You (Home court prioritized first) */}
+      {/* 3. More Matches & Highlights */}
+      {moreLandscape.length > 0 ? (
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+                More Matches & Highlights
+              </h2>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Community open play recordings, kitchen battles, and clinics.
+              </p>
+            </div>
+            <Link
+              to="/trending"
+              className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors px-2 py-1"
+            >
+              See all matches →
+            </Link>
+          </div>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {moreLandscape.map((video) => (
+              <VideoCard key={video.id} video={video} />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {/* 4. Courts & Parks Near You (Home court prioritized first, below videos) */}
       {venuesList.length > 0 ? (
         <NearbyParksSection venues={venuesList} />
       ) : null}
-
-      {/* 4. Request a Caster (On-Demand Court Camera) */}
-      <RequestCasterFeature />
 
       {/* 5. Community Feed / Upcoming Events */}
       {communityItems.length > 0 ? (
@@ -491,91 +527,6 @@ function NearbyParksSection({ venues }: { venues: VenueCardData[] }) {
             <ParkHeatCard venue={venue} />
           </div>
         ))}
-      </div>
-    </section>
-  );
-}
-
-function RequestCasterFeature() {
-  return (
-    <section className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="flex items-center gap-2 text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-            <span className="flex size-7 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-500">
-              <Radio className="size-4.5 text-emerald-500 animate-pulse" />
-            </span>
-            Order a Caster by the Hour (On-Demand Camera)
-          </h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Request an on-court camera like an Uber. Order hours for your match
-            or tournament—a verified caster shows up to your park, records your
-            session, and delivers footage for your private review & approval.
-          </p>
-        </div>
-        <Link
-          to="/casters"
-          className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors px-2 py-1"
-        >
-          Become a caster →
-        </Link>
-      </div>
-
-      <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-linear-to-br from-card to-muted/40 p-5 sm:p-6 shadow-xs">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-500">
-              <span className="size-2 rounded-full bg-emerald-500 animate-ping" />
-              <span>LIVE DISPATCH ACTIVE</span>
-            </div>
-            <h3 className="text-xl font-extrabold tracking-tight sm:text-2xl text-foreground">
-              Order On-Court Recording Hours
-            </h3>
-            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Playing a match or tournament? Order a caster for 1, 2, or custom
-              hours. Dispatched like an Uber, a nearby caster shows up to your
-              court with a stabilized 4K rig and directional court mics. You
-              review and approve the recording before it is published.
-            </p>
-            <div className="flex flex-wrap items-center gap-4 pt-1 text-xs text-muted-foreground">
-              <span className="font-semibold text-foreground flex items-center gap-1">
-                <span className="text-emerald-500 font-bold">$25 / hr</span>{" "}
-                standard rate
-              </span>
-              <span>•</span>
-              <span>Order 1, 2, or custom hours</span>
-              <span>•</span>
-              <span>Fair platform split</span>
-              <span>•</span>
-              <span>Private review guarantee</span>
-            </div>
-          </div>
-          <div className="flex flex-col sm:flex-row lg:flex-col gap-2.5 shrink-0">
-            <Link to="/u/casts/new">
-              <Button
-                size="lg"
-                className="w-full rounded-xl font-bold text-xs sm:text-sm cursor-pointer shadow-xs"
-              >
-                <Video className="mr-1.5 size-4" /> Order Caster Hours Now
-              </Button>
-            </Link>
-            <Link to="/u/casts/all">
-              <Button
-                variant="outline"
-                size="lg"
-                className="w-full rounded-xl text-xs sm:text-sm cursor-pointer"
-              >
-                My Requests & Reviews
-              </Button>
-            </Link>
-            <Link
-              to="/casters"
-              className="text-center text-[11px] text-muted-foreground hover:text-primary transition-colors pt-0.5"
-            >
-              Want to earn casting matches? Sign up here →
-            </Link>
-          </div>
-        </div>
       </div>
     </section>
   );
