@@ -28,6 +28,20 @@ However, there are **two critical issues and several high/medium issues** that s
 
 ---
 
+## Remediation Status (2026-09-23)
+
+All **P0 items are fixed** on `feat/home-youtube-layout-venue-slugs-desktop` (PR #51):
+
+1. **C1** — `POST /ads/impressions` and `/ads/clicks` now reject unsigned requests; they require the HMAC-signed beacon params (`c`, `cr`, `exp`, `sig`) issued with sponsored payloads via the new `signDisplayTracking` helper, attached as `adTracking` to sponsored results in feed, search, and trending. (`apps/server/src/routes/ads.ts`, `apps/server/src/lib/ads.ts`)
+2. **C2** — Rate limiting added via Cloudflare rate-limit bindings: a baseline 600 req/min per client on `/api/v1/*`, and a strict 60 req/min tier on `/api/auth/*`, `/api/v1/search`, `/api/v1/places/*`, `/api/v1/trending`, and `/api/v1/profile/check-username`. (`apps/server/src/middleware/rate-limit.ts`, `apps/server/src/index.ts`, `packages/infra/alchemy.run.ts`)
+3. **H1/M2/M3** — `seed-demo` and `advance-demo-round` return 404 unless the `ALLOW_DEMO_ENDPOINTS` binding is set (never in prod); `test-notification` now requires event management rights via `getManageableEvent`. (`apps/server/src/routes/events.ts`)
+4. **H2** — `requireLocalEmailVerified: true` in `packages/auth/src/index.ts`.
+5. **H3** — `verifyBeaconParams` now uses constant-time `crypto.subtle.verify` instead of a hand-rolled byte loop. (`apps/server/src/lib/ads.ts`)
+
+P1/P2 items remain open.
+
+---
+
 ## Critical
 
 ### C1. Unauthenticated ad event ingestion allows arbitrary budget drain
