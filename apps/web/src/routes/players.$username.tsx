@@ -7,6 +7,7 @@ import {
   Link,
   createFileRoute,
   redirect,
+  useNavigate,
 } from "@tanstack/react-router";
 import {
   MapPin,
@@ -114,6 +115,7 @@ interface PlayerHeaderProps {
   onOpenChallenge: () => void;
   onOpenDM: () => void;
   isOwnProfile: boolean;
+  currentUser?: { id: string } | null;
 }
 
 interface PlayerHeaderActionsProps {
@@ -128,6 +130,7 @@ interface PlayerHeaderActionsProps {
   handleLike: () => void;
   onOpenDM: () => void;
   onOpenChallenge: () => void;
+  currentUser?: { id: string } | null;
 }
 
 function PlayerHeaderActions({
@@ -142,13 +145,29 @@ function PlayerHeaderActions({
   handleLike,
   onOpenDM,
   onOpenChallenge,
+  currentUser,
 }: PlayerHeaderActionsProps) {
+  const navigate = useNavigate();
+
   return (
     <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-2">
       {!isOwnProfile && (
         <>
           <Button
-            onClick={handleFriendAction}
+            onClick={() => {
+              if (!currentUser) {
+                toast.error("Please log in to add friends.", {
+                  action: {
+                    label: "Log In",
+                    onClick: () => {
+                      void navigate({ to: "/login" });
+                    },
+                  },
+                });
+                return;
+              }
+              handleFriendAction();
+            }}
             variant={friendStatus === "friends" ? "default" : "outline"}
             className="rounded-lg text-xs font-semibold px-4 flex items-center gap-1.5 transition-all cursor-pointer"
           >
@@ -157,6 +176,17 @@ function PlayerHeaderActions({
 
           <Button
             onClick={() => {
+              if (!currentUser) {
+                toast.error("Please log in to follow players.", {
+                  action: {
+                    label: "Log In",
+                    onClick: () => {
+                      void navigate({ to: "/login" });
+                    },
+                  },
+                });
+                return;
+              }
               setIsFollowing(!isFollowing);
               toast.success(
                 isFollowing
@@ -171,7 +201,20 @@ function PlayerHeaderActions({
           </Button>
 
           <Button
-            onClick={handleLike}
+            onClick={() => {
+              if (!currentUser) {
+                toast.error("Please log in to like profiles.", {
+                  action: {
+                    label: "Log In",
+                    onClick: () => {
+                      void navigate({ to: "/login" });
+                    },
+                  },
+                });
+                return;
+              }
+              handleLike();
+            }}
             variant="outline"
             className="rounded-lg text-xs font-semibold px-3 flex items-center justify-center cursor-pointer"
             aria-label="Like profile"
@@ -225,6 +268,7 @@ function PlayerHeader({
   onOpenChallenge,
   onOpenDM,
   isOwnProfile,
+  currentUser,
 }: PlayerHeaderProps) {
   const handleLike = () => {
     if (isLiked) {
@@ -335,6 +379,7 @@ function PlayerHeader({
           handleLike={handleLike}
           onOpenDM={onOpenDM}
           onOpenChallenge={onOpenChallenge}
+          currentUser={currentUser}
         />
       </div>
     </div>
@@ -1440,6 +1485,7 @@ function PlayerProfilePage() {
           setShowDMModal(true);
         }}
         isOwnProfile={Boolean(isOwnProfile)}
+        currentUser={currentUser}
       />
 
       <div className="grid grid-cols-3 gap-4 text-center">

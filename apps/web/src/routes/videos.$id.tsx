@@ -1,7 +1,12 @@
 import { Button } from "@rallycaststv/ui/components/button";
 import { Card, CardContent } from "@rallycaststv/ui/components/card";
 import { Input } from "@rallycaststv/ui/components/input";
-import { useParams, Link, createFileRoute } from "@tanstack/react-router";
+import {
+  useParams,
+  Link,
+  createFileRoute,
+  useNavigate,
+} from "@tanstack/react-router";
 import {
   ChevronLeft,
   Video as VideoIcon,
@@ -178,6 +183,7 @@ function VideoNotFound() {
 
 interface VideoMetaHeaderProps {
   video: {
+    id: string;
     title: string;
     description: string | null;
     createdAt: string | Date;
@@ -185,12 +191,14 @@ interface VideoMetaHeaderProps {
     venueId: string | null;
   };
   owner: {
+    id?: string | null;
     name?: string | null;
     username?: string | null;
     displayUsername?: string | null;
     image?: string | null;
   } | null;
   isSubscribed: boolean;
+  isOwnChannel?: boolean;
   likesCount: number;
   hasLiked: boolean;
   viewsCount: number;
@@ -219,6 +227,7 @@ function VideoMetaHeader({
   video,
   owner,
   isSubscribed,
+  isOwnChannel = false,
   likesCount,
   hasLiked,
   viewsCount,
@@ -295,14 +304,25 @@ function VideoMetaHeader({
               )}
             </div>
           </div>
-          <Button
-            disabled={isDemo}
-            onClick={handleSubscribeToggle}
-            variant={isSubscribed ? "secondary" : "default"}
-            className="rounded-full text-xs font-bold px-5 h-9 ml-4 active:scale-[0.97] transition-all touch-manipulation select-none"
-          >
-            {subscriptionLabel}
-          </Button>
+          {isOwnChannel ? (
+            <Link to="/u/studio/videos/$id" params={{ id: video.id }}>
+              <Button
+                variant="outline"
+                className="rounded-full text-xs font-bold px-4 h-9 ml-4 active:scale-[0.97] transition-all touch-manipulation select-none"
+              >
+                Manage video
+              </Button>
+            </Link>
+          ) : (
+            <Button
+              disabled={isDemo}
+              onClick={handleSubscribeToggle}
+              variant={isSubscribed ? "secondary" : "default"}
+              className="rounded-full text-xs font-bold px-5 h-9 ml-4 active:scale-[0.97] transition-all touch-manipulation select-none"
+            >
+              {subscriptionLabel}
+            </Button>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -459,6 +479,7 @@ function CommentsSection({
   canPinComments,
   isReadOnly,
 }: CommentsSectionProps) {
+  const navigate = useNavigate();
   const [replyingCommentId, setReplyingCommentId] = useState<string | null>(
     null
   );
@@ -557,7 +578,14 @@ function CommentsSection({
                         type="button"
                         onClick={() => {
                           if (!currentUser) {
-                            toast.error("Log in to reply to comments.");
+                            toast.error("Log in to reply to comments.", {
+                              action: {
+                                label: "Log In",
+                                onClick: () => {
+                                  void navigate({ to: "/login" });
+                                },
+                              },
+                            });
                             return;
                           }
                           if (isReplying) {
@@ -915,6 +943,7 @@ function VideoSharePanel({
 // oxlint-disable-next-line complexity
 function VideoDetailPage() {
   const { id } = useParams({ from: "/videos/$id" });
+  const navigate = useNavigate();
   const isDemoVideo = id.startsWith("demo-video-");
   const { data: session } = authClient.useSession();
   const currentUser = session?.user;
@@ -944,7 +973,37 @@ function VideoDetailPage() {
   }, [id, isDemoVideo, recordViewMutation]);
 
   const [commentText, setCommentText] = useState("");
-  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [subscribedCreatorIds, setSubscribedCreatorIds] = useState<string[]>(
+    () => {
+      if (typeof window === "undefined" || !currentUser?.id) {
+        return [];
+      }
+      try {
+        const stored = localStorage.getItem(
+          `rallycasts_subscriptions_${currentUser.id}`
+        );
+        return stored ? (JSON.parse(stored) as string[]) : [];
+      } catch {
+        return [];
+      }
+    }
+  );
+
+  useEffect(() => {
+    if (!currentUser?.id) {
+      setSubscribedCreatorIds([]);
+      return;
+    }
+    try {
+      const stored = localStorage.getItem(
+        `rallycasts_subscriptions_${currentUser.id}`
+      );
+      setSubscribedCreatorIds(stored ? (JSON.parse(stored) as string[]) : []);
+    } catch {
+      setSubscribedCreatorIds([]);
+    }
+  }, [currentUser?.id]);
+
   const [optimisticLiked, setOptimisticLiked] = useState<boolean | null>(null);
   const [optimisticLikesDelta, setOptimisticLikesDelta] = useState(0);
   const [showSharePanel, setShowSharePanel] = useState(false);
@@ -986,16 +1045,58 @@ function VideoDetailPage() {
   }
 
   const { video, owner, venue, taggedUsers, relatedVideos } = videoData;
-  const canPinComments = Boolean(
+  const isOwnChannel = Boolean(
     currentUser?.id && owner?.id && currentUser.id === owner.id
+  );
+  const canPinComments = isOwnChannel;
+
+  const isSubscribed = Boolean(
+    currentUser?.id && owner?.id && subscribedCreatorIds.includes(owner.id)
   );
 
   const handleSubscribeToggle = () => {
-    setIsSubscribed(!isSubscribed);
-    if (isSubscribed) {
-      toast.info(`Unsubscribed from ${owner?.name || "creator"}`);
-    } else {
+    if (isDemoVideo) {
+      toast.info("Subscriptions are disabled for demo videos.");
+      return;
+    }
+    if (!currentUser) {
+      toast.error("Log in to subscribe to this channel.", {
+        action: {
+          label: "Log In",
+          onClick: () => {
+            void navigate({ to: "/login" });
+          },
+        },
+      });
+      return;
+    }
+    if (!owner?.id) {
+      return;
+    }
+    if (currentUser.id === owner.id) {
+      toast.info("You cannot subscribe to your own channel.");
+      return;
+    }
+
+    const nextSubscribed = !isSubscribed;
+    const nextList = nextSubscribed
+      ? [...subscribedCreatorIds, owner.id]
+      : subscribedCreatorIds.filter((cid) => cid !== owner.id);
+
+    setSubscribedCreatorIds(nextList);
+    try {
+      localStorage.setItem(
+        `rallycasts_subscriptions_${currentUser.id}`,
+        JSON.stringify(nextList)
+      );
+    } catch {
+      // ignore localStorage errors
+    }
+
+    if (nextSubscribed) {
       toast.success(`Subscribed to ${owner?.name || "creator"}`);
+    } else {
+      toast.info(`Unsubscribed from ${owner?.name || "creator"}`);
     }
   };
 
@@ -1005,7 +1106,14 @@ function VideoDetailPage() {
       return;
     }
     if (!currentUser) {
-      toast.error("Log in to like this video.");
+      toast.error("Log in to like this video.", {
+        action: {
+          label: "Log In",
+          onClick: () => {
+            void navigate({ to: "/login" });
+          },
+        },
+      });
       return;
     }
     if (hasLiked) {
@@ -1155,6 +1263,7 @@ function VideoDetailPage() {
             video={video}
             owner={owner}
             isSubscribed={isSubscribed}
+            isOwnChannel={isOwnChannel}
             likesCount={likesCount}
             hasLiked={hasLiked}
             viewsCount={viewsCount}
