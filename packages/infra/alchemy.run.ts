@@ -126,10 +126,12 @@ const googleClientSecret = optionalSecret("GOOGLE_CLIENT_SECRET");
 const googlePlacesApiKey = optionalSecret("GOOGLE_PLACES_API_KEY");
 const radarSecretKey = optionalSecret("RADAR_SECRET_KEY");
 const radarPublishableKey = process.env.VITE_RADAR_PUBLISHABLE_KEY ?? "";
-const fourthwallStorefrontUrl =
-  process.env.VITE_FOURTHWALL_STOREFRONT_URL ?? "";
-const fourthwallStorefrontToken =
-  process.env.VITE_FOURTHWALL_STOREFRONT_TOKEN ?? "";
+const fourthwallStorefrontUrl = optionalPlainEnv(
+  "VITE_FOURTHWALL_STOREFRONT_URL"
+);
+const fourthwallStorefrontToken = optionalPlainEnv(
+  "VITE_FOURTHWALL_STOREFRONT_TOKEN"
+);
 const muxTokenSecret = optionalSecret("MUX_TOKEN_SECRET");
 const muxTokenId = optionalSecret("MUX_TOKEN_ID");
 const muxSigningKeyId = optionalSecret("MUX_SIGNING_KEY_ID");

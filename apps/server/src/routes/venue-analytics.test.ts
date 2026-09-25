@@ -37,11 +37,12 @@ describe("venue analytics route", () => {
       venueType: "park",
     });
 
-    const now = Date.now();
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
     await db.insert(venueVisit).values([
       {
         durationMinutes: 45,
-        enteredAt: new Date(now - 1000 * 60 * 30),
+        enteredAt: new Date(startOfToday.getTime() + 1000 * 60 * 30),
         id: crypto.randomUUID(),
         source: "checkin",
         userId: testUserId1,
@@ -49,7 +50,7 @@ describe("venue analytics route", () => {
       },
       {
         durationMinutes: 60,
-        enteredAt: new Date(now - 1000 * 60 * 60 * 2),
+        enteredAt: new Date(startOfToday.getTime() + 1000 * 60 * 60),
         id: crypto.randomUUID(),
         source: "geofence",
         userId: testUserId2,
