@@ -50,15 +50,15 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "catalog:",
-    "@playwright/test": "1.55.1",
+    "@playwright/test": "1.63.0",
     "@rallycaststv/config": "workspace:*",
-    "@types/node": "^22.13.14",
+    "@types/node": "^26.6.2",
     "lefthook": "latest",
     "oxfmt": "latest",
     "oxlint": "latest",
-    "turbo": "^2.8.12",
+    "turbo": "^2.11.2",
     "typescript": "catalog:",
-    "ultracite": "7.8.1"
+    "ultracite": "7.12.0"
   },
   "overrides": {
     "@hono/node-server": "^1.19.15",
