@@ -19,6 +19,10 @@ type SecretBinding<N extends string> = Partial<
 
 // v1 parity: a missing/empty env var means "binding absent" so workers boot
 // degraded (e.g. "Stripe is not configured") instead of failing the deploy.
+// NOTE: v1's requiredSecret() never actually threw in CI (empty workflow
+// vars took the inherit path), so even BETTER_AUTH_SECRET and the Gemini
+// key stay tolerant here. Runtime code already handles absence via 503s
+// and fallback modes (e.g. fallback-hybrid search).
 const secretBinding = <const N extends string>(name: N): SecretBinding<N> => {
   const value = process.env[name]?.trim();
   return (value ? { [name]: Config.Redacted(name) } : {}) as SecretBinding<N>;
@@ -189,7 +193,7 @@ export const server = Cloudflare.Worker(
         ADS_EVENTS: adsQueue,
         ...secretBinding("AD_BEACON_SECRET"),
         ...(isProd ? {} : { ALLOW_DEMO_ENDPOINTS: "true" }),
-        BETTER_AUTH_SECRET: Config.Redacted("BETTER_AUTH_SECRET"),
+        ...secretBinding("BETTER_AUTH_SECRET"),
         BETTER_AUTH_URL: serverWorkerUrl,
         CORS_ORIGIN: corsOrigin,
         DB: db,
@@ -200,9 +204,7 @@ export const server = Cloudflare.Worker(
         ...secretBinding("GITHUB_CLIENT_SECRET"),
         ...plainBinding("GOOGLE_CLIENT_ID"),
         ...secretBinding("GOOGLE_CLIENT_SECRET"),
-        GOOGLE_GENERATIVE_AI_API_KEY: Config.Redacted(
-          "GOOGLE_GENERATIVE_AI_API_KEY"
-        ),
+        ...secretBinding("GOOGLE_GENERATIVE_AI_API_KEY"),
         ...secretBinding("GOOGLE_PLACES_API_KEY"),
         ...(mediaBucket ? { MEDIA_BUCKET: mediaBucket } : {}),
         ...secretBinding("MUX_SIGNING_KEY_ID"),
@@ -314,7 +316,7 @@ export const web = Cloudflare.Website.Vite(
     return {
       ...workerDefaults,
       env: {
-        BETTER_AUTH_SECRET: Config.Redacted("BETTER_AUTH_SECRET"),
+        ...secretBinding("BETTER_AUTH_SECRET"),
         BETTER_AUTH_URL: serverWorkerUrl,
         CORS_ORIGIN: corsOrigin,
         DB: db,
@@ -322,9 +324,7 @@ export const web = Cloudflare.Website.Vite(
         ...secretBinding("GITHUB_CLIENT_SECRET"),
         ...plainBinding("GOOGLE_CLIENT_ID"),
         ...secretBinding("GOOGLE_CLIENT_SECRET"),
-        GOOGLE_GENERATIVE_AI_API_KEY: Config.Redacted(
-          "GOOGLE_GENERATIVE_AI_API_KEY"
-        ),
+        ...secretBinding("GOOGLE_GENERATIVE_AI_API_KEY"),
         ...secretBinding("GOOGLE_PLACES_API_KEY"),
         ...secretBinding("RADAR_SECRET_KEY"),
         ...secretBinding("SENTRY_DSN"),
