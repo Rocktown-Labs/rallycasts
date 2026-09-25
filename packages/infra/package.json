@@ -9,9 +9,12 @@
   },
   "dependencies": {
     "dotenv": "catalog:",
+    "effect": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@effect/platform-bun": "catalog:",
+    "@effect/platform-node": "catalog:",
     "@rallycaststv/config": "workspace:*",
     "alchemy": "catalog:",
     "typescript": "catalog:"

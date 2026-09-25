@@ -333,14 +333,17 @@ jobs:
             printf 'authoritative DNS:\n%s\npublic DNS:\n%s\n' "$AUTHORITATIVE_DNS_RESPONSE" "$PUBLIC_DNS_RESPONSE"
             rm -f "$CUSTOM_DOMAIN_RESPONSE"
           fi
-          # Rotate the shared v1 state-service token without forcing a Worker
-          # replacement. A forced re-upload can race the secret deployment and
-          # make the state store reject the same token used by this job.
-          printf "%s" "$ALCHEMY_STATE_TOKEN" | bun x wrangler secret put STATE_TOKEN --name alchemy-state-service
-          cd packages/infra && bun x alchemy deploy --stage ${{ env.STAGE }}
+          # Alchemy v2 (Effect). --adopt preserves the v1 `adopt: true`
+          # behavior: long-lived stages (prod, staging) take over the
+          # resources v1 created on the first v2 deploy; fresh preview
+          # stages adopt the shared R2 media bucket. After everything is
+          # v2-owned this flag is a no-op. NEVER run the old v1 stack's
+          # destroy afterwards — it still points at the same resources.
+          # --yes answers the approval prompt the v2 CLI shows on every
+          # deploy (there is no TTY in CI). Prod safety comes from PR
+          # review + merge, same as v1 (which never prompted).
+          cd packages/infra && bun alchemy deploy --stage ${{ env.STAGE }} --adopt --yes
         env:
-          ALCHEMY_PASSWORD: ${{ secrets.ALCHEMY_PASSWORD }}
-          ALCHEMY_STATE_TOKEN: ${{ secrets.ALCHEMY_STATE_TOKEN }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_EMAIL: ${{ secrets.CLOUDFLARE_EMAIL }}
@@ -373,6 +376,35 @@ jobs:
           VITE_FOURTHWALL_STOREFRONT_TOKEN: ${{ secrets.VITE_FOURTHWALL_STOREFRONT_TOKEN || vars.VITE_FOURTHWALL_STOREFRONT_TOKEN }}
           VITE_FOURTHWALL_STOREFRONT_URL: ${{ secrets.VITE_FOURTHWALL_STOREFRONT_URL || vars.VITE_FOURTHWALL_STOREFRONT_URL }}
           VITE_RADAR_PUBLISHABLE_KEY: ${{ secrets.VITE_RADAR_PUBLISHABLE_KEY }}
+
+      - name: Apply D1 Migrations
+        run: |
+          set -euo pipefail
+          if [ "${{ env.STAGE }}" = "prod" ]; then
+            DB_NAME="rallycaststv-db"
+          else
+            DB_NAME="rallycaststv-db-${{ env.STAGE }}"
+          fi
+          # Schema ships via wrangler (not Alchemy): the v2 layout validator
+          # rejects our drizzle-kit 0.31 meta/ directory, and converting it
+          # would break the vitest pool's migration reader. Idempotent —
+          # already-applied migrations are skipped.
+          # NOTE: preview/staging DB names are not in wrangler.jsonc, so point
+          # wrangler at a generated config with an absolute migrations path.
+          cd apps/server
+          TMP_CONFIG="$(mktemp --suffix=.json)"
+          DB_ID="$(bun x wrangler d1 list --json | jq -r --arg name "$DB_NAME" '.[] | select(.name == $name) | .uuid // empty')"
+          if [ -z "$DB_ID" ]; then
+            echo "ERROR: D1 database $DB_NAME not found."
+            exit 1
+          fi
+          printf '{"d1_databases":[{"binding":"DB","database_name":"%s","database_id":"%s","migrations_dir":"%s"}]}' \
+            "$DB_NAME" "$DB_ID" "$GITHUB_WORKSPACE/packages/db/src/migrations" > "$TMP_CONFIG"
+          bun x wrangler d1 migrations apply DB --remote --config "$TMP_CONFIG"
+          rm -f "$TMP_CONFIG"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: Verify Production D1 Migrations
         if: ${{ env.STAGE == 'prod' }}
@@ -424,11 +456,8 @@ jobs:
 
       - name: Destroy Preview Environment
         run: |
-          printf "%s" "$ALCHEMY_STATE_TOKEN" | bun x wrangler secret put STATE_TOKEN --name alchemy-state-service
-          cd packages/infra && bun x alchemy destroy --stage ${{ env.STAGE }}
+          cd packages/infra && bun alchemy destroy --stage ${{ env.STAGE }} --yes
         env:
-          ALCHEMY_PASSWORD: ${{ secrets.ALCHEMY_PASSWORD }}
-          ALCHEMY_STATE_TOKEN: ${{ secrets.ALCHEMY_STATE_TOKEN }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_EMAIL: ${{ secrets.CLOUDFLARE_EMAIL }}

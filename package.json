@@ -7,12 +7,15 @@
       "packages/*"
     ],
     "catalog": {
+      "@effect/platform-bun": "4.0.0-rc.117",
+      "@effect/platform-node": "4.0.0-rc.117",
       "dotenv": "^17.2.2",
+      "effect": "4.0.0-rc.117",
       "zod": "4.4.3",
       "typescript": "^6",
       "@cloudflare/workers-types": "^4.20251213.0",
       "better-auth": "1.6.22",
-      "alchemy": "^0.91.2",
+      "alchemy": "2.0.0-beta.79",
       "wrangler": "^4.77.0",
       "next-themes": "^0.4.6",
       "@tanstack/react-form": "^1.28.0",
@@ -50,6 +53,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "catalog:",
+    "@effect/platform-node": "catalog:",
     "@playwright/test": "1.55.1",
     "@rallycaststv/config": "workspace:*",
     "@types/node": "^22.13.14",
