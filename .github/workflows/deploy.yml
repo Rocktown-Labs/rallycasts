@@ -377,6 +377,23 @@ jobs:
           VITE_FOURTHWALL_STOREFRONT_URL: ${{ secrets.VITE_FOURTHWALL_STOREFRONT_URL || vars.VITE_FOURTHWALL_STOREFRONT_URL }}
           VITE_RADAR_PUBLISHABLE_KEY: ${{ secrets.VITE_RADAR_PUBLISHABLE_KEY }}
 
+      - name: Apply D1 Migrations
+        run: |
+          set -euo pipefail
+          if [ "${{ env.STAGE }}" = "prod" ]; then
+            DB_NAME="rallycaststv-db"
+          else
+            DB_NAME="rallycaststv-db-${{ env.STAGE }}"
+          fi
+          # Schema ships via wrangler (not Alchemy): the v2 layout validator
+          # rejects our drizzle-kit 0.31 meta/ directory, and converting it
+          # would break the vitest pool's migration reader. Idempotent —
+          # already-applied migrations are skipped.
+          cd apps/server && bun x wrangler d1 migrations apply "$DB_NAME" --remote
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
       - name: Verify Production D1 Migrations
         if: ${{ env.STAGE == 'prod' }}
         run: |
