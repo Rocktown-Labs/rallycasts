@@ -389,7 +389,19 @@ jobs:
           # rejects our drizzle-kit 0.31 meta/ directory, and converting it
           # would break the vitest pool's migration reader. Idempotent —
           # already-applied migrations are skipped.
-          cd apps/server && bun x wrangler d1 migrations apply "$DB_NAME" --remote
+          # NOTE: preview/staging DB names are not in wrangler.jsonc, so point
+          # wrangler at a generated config with an absolute migrations path.
+          cd apps/server
+          TMP_CONFIG="$(mktemp --suffix=.json)"
+          DB_ID="$(bun x wrangler d1 list --json | jq -r --arg name "$DB_NAME" '.[] | select(.name == $name) | .uuid // empty')"
+          if [ -z "$DB_ID" ]; then
+            echo "ERROR: D1 database $DB_NAME not found."
+            exit 1
+          fi
+          printf '{"d1_databases":[{"binding":"DB","database_name":"%s","database_id":"%s","migrations_dir":"%s"}]}' \
+            "$DB_NAME" "$DB_ID" "$GITHUB_WORKSPACE/packages/db/src/migrations" > "$TMP_CONFIG"
+          bun x wrangler d1 migrations apply DB --remote --config "$TMP_CONFIG"
+          rm -f "$TMP_CONFIG"
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
