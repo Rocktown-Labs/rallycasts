@@ -7,6 +7,8 @@
       "packages/*"
     ],
     "catalog": {
+      "@effect/platform-bun": "4.0.0-rc.117",
+      "@effect/platform-node": "4.0.0-rc.117",
       "dotenv": "^17.2.2",
       "effect": "4.0.0-rc.117",
       "zod": "4.4.3",
@@ -51,6 +53,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "catalog:",
+    "@effect/platform-node": "catalog:",
     "@playwright/test": "1.55.1",
     "@rallycaststv/config": "workspace:*",
     "@types/node": "^22.13.14",
