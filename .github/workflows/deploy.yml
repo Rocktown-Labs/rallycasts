@@ -339,7 +339,10 @@ jobs:
           # stages adopt the shared R2 media bucket. After everything is
           # v2-owned this flag is a no-op. NEVER run the old v1 stack's
           # destroy afterwards — it still points at the same resources.
-          cd packages/infra && bun alchemy deploy --stage ${{ env.STAGE }} --adopt
+          # --yes answers the approval prompt the v2 CLI shows on every
+          # deploy (there is no TTY in CI). Prod safety comes from PR
+          # review + merge, same as v1 (which never prompted).
+          cd packages/infra && bun alchemy deploy --stage ${{ env.STAGE }} --adopt --yes
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -424,7 +427,7 @@ jobs:
 
       - name: Destroy Preview Environment
         run: |
-          cd packages/infra && bun alchemy destroy --stage ${{ env.STAGE }}
+          cd packages/infra && bun alchemy destroy --stage ${{ env.STAGE }} --yes
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

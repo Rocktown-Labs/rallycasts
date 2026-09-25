@@ -65,7 +65,7 @@ jobs:
 
       - name: Deploy isolated staging
         working-directory: packages/infra
-        run: bun alchemy deploy --stage staging --adopt
+        run: bun alchemy deploy --stage staging --adopt --yes
         env:
           BETTER_AUTH_SECRET: ${{ secrets.STAGING_BETTER_AUTH_SECRET }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
