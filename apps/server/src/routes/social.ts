@@ -85,6 +85,23 @@ const pairConditions = (leftUserId: string, rightUserId: string) =>
     )
   );
 
+/** New direct-message threads require an accepted friendship with the recipient. */
+const requireFriendship = async (
+  db: ReturnType<typeof createDb>,
+  userId: string,
+  otherUserId: string
+) => {
+  if (userId === otherUserId) {
+    return false;
+  }
+  const [row] = await db
+    .select({ userId: friendship.userId })
+    .from(friendship)
+    .where(pairConditions(userId, otherUserId))
+    .limit(1);
+  return Boolean(row);
+};
+
 type ChatRoomStub = DurableObjectStub & {
   broadcastMessage: (event: ChatRealtimeEvent) => Promise<void>;
 };
@@ -693,6 +710,15 @@ export const socialRouter = new Hono<AppEnv>()
         );
       }
 
+      for (const participantUserId of participantUserIds) {
+        if (!(await requireFriendship(db, authUser.id, participantUserId))) {
+          return c.json(
+            { message: "You can only message friends" },
+            HttpStatusCodes.FORBIDDEN
+          );
+        }
+      }
+
       const mine = await db
         .select({ conversationId: conversationParticipant.conversationId })
         .from(conversationParticipant)
@@ -927,6 +953,12 @@ export const socialRouter = new Hono<AppEnv>()
     await db.insert(share).values(record);
 
     if (data.recipientUserId) {
+      if (!(await requireFriendship(db, authUser.id, data.recipientUserId))) {
+        return c.json(
+          { message: "You can only share directly with friends" },
+          HttpStatusCodes.FORBIDDEN
+        );
+      }
       let conversationId: string | undefined;
       const shareHref = data.href ?? "/";
       if (data.channel === "direct_message") {

@@ -23,6 +23,7 @@ import {
   MIN_DISPLAY_CPM_CENTS,
   MIN_VIDEO_CPM_CENTS,
   PREROLL_SKIP_AFTER_SECONDS,
+  adsSecret,
   aggregateAdEvents,
   decideAds,
   hashViewer,
@@ -175,7 +176,7 @@ export const adsRouter = new Hono<AppEnv>()
 
     const duration = await prerollDurationFor(db, decided.creative);
     const base = beaconBaseFor(c);
-    const secret = c.env.BETTER_AUTH_SECRET;
+    const secret = adsSecret(c.env);
     const signFor = (ev: AdEventKind) =>
       signTrackingUrl(secret, base, {
         c: decided.campaign.id,
@@ -222,12 +223,12 @@ export const adsRouter = new Hono<AppEnv>()
     if (
       !(params.p === "display" || params.p === "preroll") ||
       !validKinds.includes(params.ev) ||
-      !(await verifyBeaconParams(c.env.BETTER_AUTH_SECRET, params))
+      !(await verifyBeaconParams(adsSecret(c.env), params))
     ) {
       return c.json({ message: "Invalid beacon" }, HttpStatusCodes.BAD_REQUEST);
     }
     const viewerHash = await hashViewer(
-      c.env.BETTER_AUTH_SECRET,
+      adsSecret(c.env),
       c.req.header("CF-Connecting-IP"),
       c.req.header("User-Agent")
     );
@@ -1024,7 +1025,7 @@ const verifySignedDisplayBeacon = async (
   ) {
     return null;
   }
-  const verified = await verifyBeaconParams(c.env.BETTER_AUTH_SECRET, {
+  const verified = await verifyBeaconParams(adsSecret(c.env), {
     c: body.c,
     cr: body.cr,
     ev: kind,

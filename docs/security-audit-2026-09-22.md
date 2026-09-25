@@ -38,9 +38,7 @@ All **P0 items are fixed** on `feat/home-youtube-layout-venue-slugs-desktop` (PR
 4. **H2** — `requireLocalEmailVerified: true` in `packages/auth/src/index.ts`.
 5. **H3** — `verifyBeaconParams` now uses constant-time `crypto.subtle.verify` instead of a hand-rolled byte loop. (`apps/server/src/lib/ads.ts`)
 
-P1/P2 items remain open.
-
----
+## P1/P2 items remain open.
 
 ## Critical
 
@@ -199,3 +197,34 @@ for (let index = 0; index < actualBytes.length; index += 1) {
 **P1:** 6. Restrict Stripe Connect onboarding to org `owner` role (M1). 7. Mux: create uploads `signed`; remove auto-public downgrade on missing signing keys (M6, M7). 8. Gate localhost dev origins/trustedOrigins + remove `exp://` wildcard in prod (M8). 9. Dedicated `AD_BEACON_SECRET` (M10). 10. Friendship requirement for new DM conversations (M9).
 
 **P2:** 11. Casting-job status transition matrix (M5). 12. E2E seed: explicit non-prod env gate + never force-verify existing emails (M4). 13. Dependency bumps: `@playwright/test` ≥1.55.1, `vitest` ≥4.1.11. 14. Cookie domain scoping, password policy, draft-video visibility, dead-code cleanup (L1–L7).
+
+---
+
+## Remediation Status — P1/P2 (2026-09-25)
+
+All P1/P2 items are fixed on `fix/security-p1-p2-remediations`:
+
+**P1**
+
+- **M1** — Stripe Connect onboarding now requires role `owner` (was any non-editor); error message calls out payout management. (`apps/server/src/routes/stripe.ts`)
+- **M6** — Mux uploads are created with `signed` playback policy for non-public videos; public videos are flipped to public by the existing `asset.ready` webhook. (`apps/server/src/routes/upload.ts`)
+- **M7** — Removed the auto-upgrade-to-public fallback in `GET /videos/:id/playback`; missing signing keys now fail closed with 503. (`apps/server/src/routes/videos.ts`)
+- **M8** — `localhost`/`127.0.0.1` CORS origins and `exp://` + localhost better-auth `trustedOrigins` are only applied when the server env is local (`BETTER_AUTH_URL` or `CORS_ORIGIN` contains localhost); `rallycaststv://` stays pinned. Shared `isLocalEnv` helper in `apps/server/src/lib/admin.ts`, also guarding `exp://` in `isConfiguredOrigin` (mutation/websocket CSRF checks).
+- **M10** — New optional `AD_BEACON_SECRET` binding (Alchemy + deploy workflow) used for beacon sign/verify and viewer hashing via `adsSecret()`; falls back to `BETTER_AUTH_SECRET` when unset. Operators should set a dedicated value in prod (rotating it invalidates beacons ≤24h old).
+- **M9** — Starting a conversation or sharing directly to a recipient now requires an accepted friendship (403 otherwise); covered by a new non-friend 403 test. (`apps/server/src/routes/social.ts`)
+
+**P2**
+
+- **M5** — Role-based casting-job transition matrix (requester: draft→requested/cancelled etc.; caster: accepted→arrived→recording→uploading→completed; terminal states locked; same-status restatement is a no-op 200; non-parties get 404). New `casting-jobs.test.ts` covers both lifecycles. (`apps/server/src/routes/casting-jobs.ts`)
+- **M4** — E2E seed additionally gated on `ALLOW_DEMO_ENDPOINTS` (never set in prod) and no longer touches pre-existing accounts (no more forced `emailVerified`, name kept). Tests updated + added (disabled-flag 404, no-force-verify).
+- **#13** — `@playwright/test` 1.55.0→1.55.1, `vitest` ^4.1.8→^4.1.11; `bun audit` reports **zero vulnerabilities** (was 3). Note: `bun install` re-resolved the workspace zod to 4.6.5, which broke better-auth 1.6.22 declaration emit (TS2883 `$strip`), so the catalog pins `zod` to the last green version `4.4.3` until better-auth catches up — dependabot #43 should revisit.
+- **L1** — Session cookie parent-domain (`.rallycasts.com`) now only set for the exact hosts `rallycasts.com` / `api.rallycasts.com`, not any `*.rallycasts.com` subdomain.
+- **L5** — Password minimum raised 8→12 (`minPasswordLength`, max 128); E2E seed schema aligned to min 12. `STAGING_E2E_PASSWORD` must be ≥12 chars.
+- **L3** — `GET /videos/:id` returns 404 for non-`ready` videos unless the requester owns them (session lookup only happens for non-ready videos).
+- **L2** — Deleted dead web code: `apps/web/src/middleware/auth.ts`, `apps/web/src/functions/get-user.ts` (nothing imported them).
+- **L6** — `rel="noopener noreferrer"` in `me.tsx`; `encodeURIComponent` around Mux playback IDs in thumbnail URLs (4 sites).
+
+**Accepted without code change**
+
+- **L4** — Public event player rosters expose only names/usernames/avatars plus registration metadata (no emails); intentional tournament feature.
+- **L7** — Geolocation coordinates persist in the device's own `localStorage` behind the location-consent flow; no exfiltration path, so kept as-is.

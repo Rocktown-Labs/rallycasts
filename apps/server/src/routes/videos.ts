@@ -780,6 +780,20 @@ export const videosRouter = new Hono<AppEnv>()
       return c.json({ message: "Video not found" }, HttpStatusCodes.NOT_FOUND);
     }
 
+    // Unpublished work (drafts, uploads, processing) is owner-only, even when
+    // marked public. Ready videos skip the session lookup entirely.
+    if (videoRecord.status !== "ready") {
+      const authSession = await createAuth(c.env.DB).api.getSession({
+        headers: c.req.raw.headers,
+      });
+      if (authSession?.user?.id !== videoRecord.ownerUserId) {
+        return c.json(
+          { message: "Video not found" },
+          HttpStatusCodes.NOT_FOUND
+        );
+      }
+    }
+
     if (videoRecord.visibility !== "public") {
       const authSession = await createAuth(c.env.DB).api.getSession({
         headers: c.req.raw.headers,
@@ -922,55 +936,8 @@ export const videosRouter = new Hono<AppEnv>()
       }
     }
 
-    // Fallback for owner: if signing failed or wasn't configured and MUX API credentials exist, upgrade to public playback ID so owner can preview in Studio/Clipper
-    if (
-      record.ownerUserId === authUser.id &&
-      c.env.MUX_TOKEN_ID &&
-      c.env.MUX_TOKEN_SECRET
-    ) {
-      try {
-        const [videoRow] = await db
-          .select({ muxAssetId: video.muxAssetId })
-          .from(video)
-          .where(eq(video.id, id))
-          .limit(1);
-        if (videoRow?.muxAssetId) {
-          const publicPlaybackId = await replaceMuxAssetPlaybackPolicy(
-            videoRow.muxAssetId,
-            "public",
-            c.env.MUX_TOKEN_ID,
-            c.env.MUX_TOKEN_SECRET,
-            record.muxPlaybackId
-          );
-          await db
-            .update(video)
-            .set({
-              muxPlaybackId: publicPlaybackId,
-              muxPlaybackPolicy: "public",
-              updatedAt: new Date(),
-            })
-            .where(eq(video.id, id));
-          return c.json(
-            {
-              playbackUrl: `https://stream.mux.com/${publicPlaybackId}.m3u8`,
-            },
-            HttpStatusCodes.OK
-          );
-        }
-      } catch (fallbackError) {
-        console.error(
-          JSON.stringify({
-            event: "mux_playback_fallback_failed",
-            message:
-              fallbackError instanceof Error
-                ? fallbackError.message
-                : "unknown error",
-            videoId: id,
-          })
-        );
-      }
-    }
-
+    // Fail closed: never silently downgrade a private video to a public
+    // playback ID. The owner must configure signing keys to preview.
     return c.json(
       { message: "Private playback is unavailable" },
       HttpStatusCodes.SERVICE_UNAVAILABLE

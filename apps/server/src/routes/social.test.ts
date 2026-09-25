@@ -53,6 +53,38 @@ const jsonRequest = (
   );
 
 describe("social API", () => {
+  const befriend = async (
+    requester: { cookie: string; id: string },
+    recipient: { cookie: string; id: string }
+  ) => {
+    const requestResponse = await jsonRequest(
+      "/api/v1/social/friend-requests",
+      requester.cookie,
+      { toUserId: recipient.id }
+    );
+    expect(requestResponse.status).toBe(201);
+
+    const requestsResponse = await app.request(
+      "/api/v1/social/friend-requests",
+      {
+        headers: { Cookie: recipient.cookie },
+      },
+      env
+    );
+    const requestData = (await requestsResponse.json()) as {
+      requests: { request: { id: string } }[];
+    };
+    const requestId = requestData.requests[0]?.request.id;
+    expect(requestId).toBeTruthy();
+
+    const acceptResponse = await jsonRequest(
+      `/api/v1/social/friend-requests/${requestId}/respond`,
+      recipient.cookie,
+      { status: "accepted" }
+    );
+    expect(acceptResponse.status).toBe(200);
+  };
+
   it("creates friend request notifications and accepts friendships", async () => {
     const alice = await signUp("Alice Rally");
     const bob = await signUp("Bob Kitchen");
@@ -123,6 +155,7 @@ describe("social API", () => {
   it("creates conversations, messages, and message notifications", async () => {
     const alice = await signUp("Alice Dink");
     const bob = await signUp("Bob Drive");
+    await befriend(alice, bob);
 
     const conversationResponse = await jsonRequest(
       "/api/v1/social/conversations",
@@ -164,10 +197,36 @@ describe("social API", () => {
     );
   });
 
+  it("rejects direct messages between non-friends", async () => {
+    const alice = await signUp("Alice Stranger");
+    const bob = await signUp("Bob Stranger");
+
+    const conversationResponse = await jsonRequest(
+      "/api/v1/social/conversations",
+      alice.cookie,
+      { participantUserId: bob.id }
+    );
+    expect(conversationResponse.status).toBe(403);
+
+    const shareResponse = await jsonRequest(
+      "/api/v1/social/shares",
+      alice.cookie,
+      {
+        channel: "direct_message",
+        entityId: "video-stranger-test",
+        entityType: "video",
+        recipientUserId: bob.id,
+      }
+    );
+    expect(shareResponse.status).toBe(403);
+  });
+
   it("creates group conversations and rejects self conversations", async () => {
     const alice = await signUp("Alice Group");
     const bob = await signUp("Bob Group");
     const cam = await signUp("Cam Group");
+    await befriend(alice, bob);
+    await befriend(alice, cam);
 
     const selfResponse = await jsonRequest(
       "/api/v1/social/conversations",
@@ -218,6 +277,7 @@ describe("social API", () => {
   it("shares videos into direct messages", async () => {
     const alice = await signUp("Alice Share");
     const bob = await signUp("Bob Share");
+    await befriend(alice, bob);
     const videoId = "video-share-api-test";
 
     const shareResponse = await jsonRequest(

@@ -16,6 +16,7 @@ import { Resend } from "resend";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 import notFound from "stoker/middlewares/not-found";
 
+import { isLocalEnv } from "./lib/admin";
 import { EMAIL_FROM } from "./lib/email";
 import type { AppEnv } from "./lib/types";
 import { rateLimit } from "./middleware/rate-limit";
@@ -62,21 +63,24 @@ const localDevOrigins = new Set([
 
 const isAllowedOrigin = (
   requestOrigin: string | undefined,
-  configuredOrigin: string | undefined
+  env: AppEnv["Bindings"]
 ) => {
   if (!requestOrigin) {
     return "";
   }
 
   const allowedOrigins = new Set(
-    (configuredOrigin ?? "")
+    (env.CORS_ORIGIN ?? "")
       .split(",")
       .map((origin) => origin.trim())
       .filter(Boolean)
   );
 
-  for (const localOrigin of localDevOrigins) {
-    allowedOrigins.add(localOrigin);
+  // Local-dev origins are never trusted in production, even with credentials.
+  if (isLocalEnv(env)) {
+    for (const localOrigin of localDevOrigins) {
+      allowedOrigins.add(localOrigin);
+    }
   }
 
   return allowedOrigins.has(requestOrigin) ? requestOrigin : "";
@@ -120,7 +124,7 @@ app.use("/*", (c, next) => {
     allowHeaders: ["Content-Type", "Authorization"],
     allowMethods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
-    origin: (origin) => isAllowedOrigin(origin, c.env.CORS_ORIGIN),
+    origin: (origin) => isAllowedOrigin(origin, c.env),
   });
 
   return corsMiddleware(c, next);

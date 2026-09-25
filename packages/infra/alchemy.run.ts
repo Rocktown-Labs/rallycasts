@@ -210,6 +210,7 @@ const eventActivityQueue = await Queue("event-activity", {
 const adsAnalytics = AnalyticsEngineDataset("ads-analytics", {
   dataset: isProd ? "rallycasts_ads" : `rallycasts_ads_${stage}`,
 });
+const adBeaconSecret = optionalSecret("AD_BEACON_SECRET");
 const adsDeadLetterQueue = await Queue("ads-events-dlq", {
   adopt: true,
   name: `rallycasts-ads-events-dlq-${stage}`,
@@ -303,6 +304,7 @@ export const server = await Worker("rallycasts-server", {
   bindings: filterMissingBindings({
     ADS_ANALYTICS: adsAnalytics,
     ADS_EVENTS: adsQueue,
+    AD_BEACON_SECRET: adBeaconSecret,
     ALLOW_DEMO_ENDPOINTS: allowDemoEndpoints,
     BETTER_AUTH_SECRET: betterAuthSecret,
     BETTER_AUTH_URL: betterAuthUrl,

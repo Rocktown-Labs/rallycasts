@@ -12,7 +12,11 @@ import { Hono } from "hono";
 import type { Context } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 
-import { getDisplaySponsorships, signDisplayTracking } from "../lib/ads";
+import {
+  getDisplaySponsorships,
+  adsSecret,
+  signDisplayTracking,
+} from "../lib/ads";
 import { haversineDistance } from "../lib/geo";
 import { syncVenueGeofence } from "../lib/geofence-sync";
 import { GooglePlacesClient } from "../lib/google-places";
@@ -697,10 +701,7 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
     {
       events,
       players,
-      sponsoredEvents: await sponsoredTrendingEvents(
-        db,
-        c.env.BETTER_AUTH_SECRET
-      ),
+      sponsoredEvents: await sponsoredTrendingEvents(db, adsSecret(c.env)),
       venuePagination: {
         hasNextPage: venueOffset + venuePageSize < venueTotalCount,
         hasPreviousPage: venuePage > 1,

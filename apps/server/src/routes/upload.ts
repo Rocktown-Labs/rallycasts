@@ -129,9 +129,14 @@ export const uploadRouter = new Hono<AppEnv>()
       const { user: authUser } = c.var.authSession;
       const data = c.req.valid("json");
       const videoId = createId();
+      // Non-public videos start life signed: the asset.ready webhook flips
+      // public videos to a public playback ID once the asset exists.
+      const playbackPolicy =
+        data.visibility === "public"
+          ? ("public" as const)
+          : ("signed" as const);
 
       try {
-        const playbackPolicy = "public" as const;
         const { uploadId, uploadUrl } = await createMuxUploadUrl(
           tokenId,
           tokenSecret,

@@ -18,7 +18,10 @@ const isLocalUrl = (url: string) => {
 const getCookieDomain = (url: string) => {
   try {
     const { hostname } = new URL(url);
-    if (hostname === "rallycasts.com" || hostname.endsWith(".rallycasts.com")) {
+    // Only the known first-party hosts share the session cookie. A blanket
+    // parent-domain cookie would also be sent to any other current or future
+    // subdomain (staging, previews), widening session theft on takeover.
+    if (hostname === "rallycasts.com" || hostname === "api.rallycasts.com") {
       return ".rallycasts.com";
     }
   } catch {
@@ -117,6 +120,8 @@ export const createAuth = (
     }),
     emailAndPassword: {
       enabled: true,
+      maxPasswordLength: 128,
+      minPasswordLength: 12,
       requireEmailVerification: !isLocalUrl(env.BETTER_AUTH_URL),
       revokeSessionsOnPasswordReset: true,
       sendResetPassword: emailCallbacks?.sendResetPassword,
@@ -142,11 +147,17 @@ export const createAuth = (
       ...(env.CORS_ORIGIN
         ? env.CORS_ORIGIN.split(",").map((origin: string) => origin.trim())
         : []),
+      // Production app scheme. Local development schemes (Expo dev, Metro,
+      // localhost) are only trusted when the auth server itself is local.
       "rallycaststv://",
-      "exp://",
-      "http://localhost:8081",
-      "http://localhost:3001",
-      "http://127.0.0.1:3001",
+      ...(isLocalUrl(env.BETTER_AUTH_URL)
+        ? [
+            "exp://",
+            "http://localhost:8081",
+            "http://localhost:3001",
+            "http://127.0.0.1:3001",
+          ]
+        : []),
     ],
   });
 };
