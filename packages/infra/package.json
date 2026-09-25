@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "dotenv": "catalog:",
+    "effect": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {

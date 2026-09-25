@@ -1,81 +1,69 @@
-import alchemy, { Secret } from "alchemy";
-import {
-  AnalyticsEngineDataset,
-  D1Database,
-  DurableObjectNamespace,
-  Queue,
-  R2Bucket,
-  RateLimit,
-  TanStackStart,
-  VectorizeIndex,
-  Worker,
-} from "alchemy/cloudflare";
-import type { Binding, Bindings } from "alchemy/cloudflare";
-import { GitHubComment } from "alchemy/github";
-import { CloudflareStateStore } from "alchemy/state";
+import * as Alchemy from "alchemy";
+import { Stage } from "alchemy";
+import * as Cloudflare from "alchemy/Cloudflare";
+import * as GitHub from "alchemy/GitHub";
+import * as Output from "alchemy/Output";
 import { config } from "dotenv";
+import * as Config from "effect/Config";
+import * as Effect from "effect/Effect";
+import * as Layer from "effect/Layer";
+import type * as Redacted from "effect/Redacted";
 
 config({ path: "./.env" });
 config({ path: "../../apps/web/.env" });
 config({ path: "../../apps/server/.env" });
 
-const required = <Value>(value: Value | undefined, name: string): Value => {
-  if (value === undefined) {
-    throw new Error(`Missing required Alchemy env: ${name}`);
-  }
+type SecretBinding<N extends string> = Partial<
+  Record<N, Config.Config<Redacted.Redacted<string>>>
+>;
 
-  return value;
+// v1 parity: a missing/empty env var means "binding absent" so workers boot
+// degraded (e.g. "Stripe is not configured") instead of failing the deploy.
+const secretBinding = <const N extends string>(name: N): SecretBinding<N> => {
+  const value = process.env[name]?.trim();
+  return (value ? { [name]: Config.Redacted(name) } : {}) as SecretBinding<N>;
 };
 
-class InheritedSecret extends Secret<string> {
-  constructor(name: string) {
-    super("" as unknown as string, name);
-    Object.defineProperty(this, "unencrypted", {
-      configurable: true,
-      enumerable: true,
-      get() {
-        const stack = new Error("stack check").stack || "";
-        if (stack.includes("serialize") || stack.includes("serde")) {
-          return "";
-        }
-        return undefined as unknown as string;
-      },
-    });
-  }
-}
+const plainBinding = <const N extends string>(
+  name: N
+): Partial<Record<N, string>> => {
+  const value = process.env[name]?.trim();
+  return (value ? { [name]: value } : {}) as Partial<Record<N, string>>;
+};
 
-const optionalSecret = (name: string) =>
-  process.env[name] === undefined || process.env[name] === ""
-    ? new InheritedSecret(name)
-    : alchemy.secret.env(name);
-
-const optionalPlainEnv = (name: string) =>
-  process.env[name]?.trim() || undefined;
-
-const requiredSecret = (name: string) =>
-  process.env[name] === undefined || process.env[name] === ""
-    ? new InheritedSecret(name)
-    : required(alchemy.secret.env(name), name);
-
-const filterMissingBindings = (
-  bindings: Record<string, Binding | undefined>
-): Bindings =>
-  Object.fromEntries(
-    Object.entries(bindings).filter(
-      ([_, value]) => value !== undefined && !(value instanceof InheritedSecret)
-    )
-  ) as Bindings;
-
-const app = await alchemy("rallycaststv", {
-  stateStore: (scope) =>
-    new CloudflareStateStore(scope, {
-      forceUpdate: process.env.ALCHEMY_STATE_FORCE_UPDATE === "true",
-    }),
+// Stage is only available inside Effect (yield* Stage), so every
+// stage-dependent prop is computed in a small props Effect. Physical names
+// must match v1 exactly (explicit v1 names or {app}-{id}-{stage}) so the
+// first v2 deploy adopts resources instead of duplicating them.
+const stackConfig = Effect.gen(function* props() {
+  const rawStage: string = yield* Stage;
+  const stage = rawStage === "ubuntu" ? "prod" : (rawStage ?? "dev");
+  const isProd = stage === "prod";
+  const productionServerUrl = "https://api.rallycasts.com";
+  const productionWebUrl = "https://rallycasts.com";
+  const serverWorkerUrl = isProd
+    ? productionServerUrl
+    : `https://rallycasts-server-${stage}.rocktown-labs.workers.dev`;
+  const webWorkerUrl = isProd
+    ? "https://rallycasts-web.rocktown-labs.workers.dev"
+    : `https://rallycasts-web-${stage}.rocktown-labs.workers.dev`;
+  return {
+    corsOrigin: isProd
+      ? `${productionWebUrl},${webWorkerUrl}`
+      : `${webWorkerUrl},http://localhost:3001,http://127.0.0.1:3001`,
+    isProd,
+    serverWorkerUrl,
+    stage,
+  };
 });
 
-const stage = app.stage === "ubuntu" ? "prod" : (app.stage ?? "dev");
-const isProd = stage === "prod";
-const observability = {
+const physicalName = (base: string) =>
+  Effect.gen(function* props() {
+    const { isProd, stage } = yield* stackConfig;
+    return isProd ? base : `${base}-${stage}`;
+  });
+
+const observabilityFor = (isProd: boolean) => ({
   enabled: true,
   headSamplingRate: 1,
   logs: {
@@ -89,321 +77,359 @@ const observability = {
     headSamplingRate: isProd ? 0.1 : 1,
     persist: true,
   },
-} as const;
-
-const productionServerUrl = "https://api.rallycasts.com";
-const productionWebUrl = "https://rallycasts.com";
-const serverWorkerUrl = isProd
-  ? productionServerUrl
-  : `https://rallycasts-server-${stage}.rocktown-labs.workers.dev`;
-const webWorkerUrl = isProd
-  ? "https://rallycasts-web.rocktown-labs.workers.dev"
-  : `https://rallycasts-web-${stage}.rocktown-labs.workers.dev`;
-
-const db = await D1Database("database", {
-  adopt: true,
-  migrationsDir: "../../packages/db/src/migrations",
-  name: isProd ? "rallycaststv-db" : `rallycaststv-db-${stage}`,
-});
-const searchIndex = await VectorizeIndex("search-index", {
-  adopt: true,
-  description: "RallyCasts semantic search index",
-  dimensions: 768,
-  metric: "cosine",
-  name: isProd ? "rallycasts-search-v2" : `rallycasts-search-${stage}`,
 });
 
-const betterAuthSecret = requiredSecret("BETTER_AUTH_SECRET");
-const betterAuthUrl = serverWorkerUrl;
-const corsOrigin = isProd
-  ? `${productionWebUrl},${webWorkerUrl}`
-  : `${webWorkerUrl},http://localhost:3001,http://127.0.0.1:3001`;
-const googleAiApiKey = requiredSecret("GOOGLE_GENERATIVE_AI_API_KEY");
-const githubClientId = process.env.GITHUB_CLIENT_ID ?? "";
-const githubClientSecret = optionalSecret("GITHUB_CLIENT_SECRET");
-const googleClientId = process.env.GOOGLE_CLIENT_ID ?? "";
-const googleClientSecret = optionalSecret("GOOGLE_CLIENT_SECRET");
-const googlePlacesApiKey = optionalSecret("GOOGLE_PLACES_API_KEY");
-const radarSecretKey = optionalSecret("RADAR_SECRET_KEY");
-const radarPublishableKey = process.env.VITE_RADAR_PUBLISHABLE_KEY ?? "";
-const fourthwallStorefrontUrl = optionalPlainEnv(
-  "VITE_FOURTHWALL_STOREFRONT_URL"
+const workerDefaults = {
+  compatibility: {
+    flags: ["nodejs_compat"],
+  },
+  workersDev: true,
+};
+
+export const db = Cloudflare.D1.Database(
+  "database",
+  Effect.gen(function* props() {
+    const { isProd, stage } = yield* stackConfig;
+    return {
+      migrations: "../../packages/db/src/migrations",
+      name: isProd ? "rallycaststv-db" : `rallycaststv-db-${stage}`,
+    };
+  })
 );
-const fourthwallStorefrontToken = optionalPlainEnv(
-  "VITE_FOURTHWALL_STOREFRONT_TOKEN"
+
+export const searchIndex = Cloudflare.Vectorize.Index(
+  "search-index",
+  Effect.gen(function* props() {
+    const { isProd, stage } = yield* stackConfig;
+    return {
+      description: "RallyCasts semantic search index",
+      dimensions: 768,
+      metric: "cosine" as const,
+      name: isProd ? "rallycasts-search-v2" : `rallycasts-search-${stage}`,
+    };
+  })
 );
-const muxTokenSecret = optionalSecret("MUX_TOKEN_SECRET");
-const muxTokenId = optionalSecret("MUX_TOKEN_ID");
-const muxSigningKeyId = optionalSecret("MUX_SIGNING_KEY_ID");
-const muxSigningKeySecret = optionalSecret("MUX_SIGNING_KEY_SECRET");
-const muxWebhookSecret = optionalSecret("MUX_WEBHOOK_SECRET");
-const e2eSeedToken = isProd ? undefined : optionalSecret("E2E_SEED_TOKEN");
-const radarWebhookSecret = optionalSecret("RADAR_WEBHOOK_SECRET");
-const r2AccessKeyId = optionalSecret("R2_ACCESS_KEY_ID");
-const r2SecretAccessKey = optionalSecret("R2_SECRET_ACCESS_KEY");
-const r2BucketName = optionalPlainEnv("R2_BUCKET_NAME");
-const r2AccountId = optionalPlainEnv("R2_ACCOUNT_ID");
-const r2PublicUrl = optionalPlainEnv("R2_PUBLIC_URL");
-const resendApiKey = optionalSecret("RESEND_API_KEY");
-const resendWebhookSecret = optionalSecret("RESEND_WEBHOOK_SECRET");
-const stripeSecretKey = optionalSecret("STRIPE_SECRET_KEY");
-const stripeWebhookSecret = optionalSecret("STRIPE_WEBHOOK_SECRET");
-const sentryDsn = optionalSecret("SENTRY_DSN");
 
-// Demo tournament endpoints (seed-demo, advance-demo-round) never run in prod.
-const allowDemoEndpoints = isProd ? undefined : "true";
+const r2BucketName = process.env.R2_BUCKET_NAME?.trim() || undefined;
 
-// Baseline throttle for the whole API; strict tier for auth and expensive
-// anonymous endpoints (search, places, trending).
-const apiRateLimiter = RateLimit({
-  namespace_id: 1101,
-  simple: { limit: 600, period: 60 },
-});
-const strictRateLimiter = RateLimit({
-  namespace_id: 1102,
-  simple: { limit: 60, period: 60 },
-});
-
-const mediaBucket = r2BucketName
-  ? await R2Bucket("media-v4", {
-      adopt: true,
-      domains: isProd ? ["media.rallycasts.com"] : undefined,
-      name: r2BucketName,
-    })
+export const mediaBucket = r2BucketName
+  ? Cloudflare.R2.Bucket(
+      "media-v4",
+      Effect.gen(function* props() {
+        const { isProd } = yield* stackConfig;
+        return {
+          domains: isProd ? [{ name: "media.rallycasts.com" }] : undefined,
+          name: r2BucketName,
+        };
+      })
+    )
   : undefined;
 
-const venuePresence = DurableObjectNamespace("venue-presence", {
-  className: "VenuePresence",
-  sqlite: true,
-});
-const eventCoordinator = DurableObjectNamespace("event-coordinator", {
-  className: "EventCoordinator",
-  sqlite: true,
-});
-const chatRooms = DurableObjectNamespace("chat-rooms", {
-  className: "ChatRoom",
-  sqlite: true,
-});
-const userNotifications = DurableObjectNamespace("user-notifications", {
-  className: "UserNotifications",
-  sqlite: true,
-});
+const queue = (id: string, base: string) =>
+  Cloudflare.Queues.Queue(id, {
+    name: physicalName(base),
+  });
 
-// stage is defined at the top
+export const geofenceDeadLetterQueue = queue(
+  "geofence-events-dlq",
+  "rallycasts-geofence-events-dlq"
+);
+export const geofenceQueue = queue(
+  "geofence-events",
+  "rallycasts-geofence-events"
+);
+export const eventActivityDeadLetterQueue = queue(
+  "event-activity-dlq",
+  "rallycasts-event-activity-dlq"
+);
+export const eventActivityQueue = queue(
+  "event-activity",
+  "rallycasts-event-activity"
+);
+export const adsDeadLetterQueue = queue(
+  "ads-events-dlq",
+  "rallycasts-ads-events-dlq"
+);
+export const adsQueue = queue("ads-events", "rallycasts-ads-events");
 
-const geofenceDeadLetterQueue = await Queue("geofence-events-dlq", {
-  adopt: true,
-  name: `rallycasts-geofence-events-dlq-${stage}`,
-});
-const geofenceQueue = await Queue("geofence-events", {
-  adopt: true,
-  name: `rallycasts-geofence-events-${stage}`,
-});
-const eventActivityDeadLetterQueue = await Queue("event-activity-dlq", {
-  adopt: true,
-  name: `rallycasts-event-activity-dlq-${stage}`,
-});
-const eventActivityQueue = await Queue("event-activity", {
-  adopt: true,
-  name: `rallycasts-event-activity-${stage}`,
-});
-const adsAnalytics = AnalyticsEngineDataset("ads-analytics", {
-  dataset: isProd ? "rallycasts_ads" : `rallycasts_ads_${stage}`,
-});
-const adBeaconSecret = optionalSecret("AD_BEACON_SECRET");
-const adsDeadLetterQueue = await Queue("ads-events-dlq", {
-  adopt: true,
-  name: `rallycasts-ads-events-dlq-${stage}`,
-});
-const adsQueue = await Queue("ads-events", {
-  adopt: true,
-  name: `rallycasts-ads-events-${stage}`,
-});
+export const server = Cloudflare.Worker(
+  "rallycasts-server",
+  Effect.gen(function* props() {
+    const { corsOrigin, isProd, serverWorkerUrl, stage } = yield* stackConfig;
+    // Dataset takes plain props only, so it is declared here (per-stage
+    // name) instead of at module scope. Binding-only: no cloud resource,
+    // nothing to adopt; datasets materialize on first write.
+    const adsAnalytics = yield* Cloudflare.AnalyticsEngine.Dataset(
+      "ads-analytics",
+      {
+        dataset: isProd ? "rallycasts_ads" : `rallycasts_ads_${stage}`,
+      }
+    );
+    return {
+      ...workerDefaults,
+      bindings: {
+        CHAT_ROOMS: Cloudflare.DurableObject("chat-rooms", {
+          className: "ChatRoom",
+        }),
+        EVENT_COORDINATOR: Cloudflare.DurableObject("event-coordinator", {
+          className: "EventCoordinator",
+        }),
+        USER_NOTIFICATIONS: Cloudflare.DurableObject("user-notifications", {
+          className: "UserNotifications",
+        }),
+        VENUE_PRESENCE: Cloudflare.DurableObject("venue-presence", {
+          className: "VenuePresence",
+        }),
+      },
+      dev: {
+        port: 3000,
+      },
+      env: {
+        ADS_ANALYTICS: adsAnalytics,
+        ADS_EVENTS: adsQueue,
+        ...secretBinding("AD_BEACON_SECRET"),
+        ...(isProd ? {} : { ALLOW_DEMO_ENDPOINTS: "true" }),
+        BETTER_AUTH_SECRET: Config.Redacted("BETTER_AUTH_SECRET"),
+        BETTER_AUTH_URL: serverWorkerUrl,
+        CORS_ORIGIN: corsOrigin,
+        DB: db,
+        ...(isProd ? {} : secretBinding("E2E_SEED_TOKEN")),
+        EVENT_ACTIVITY_QUEUE: eventActivityQueue,
+        GEOFENCE_EVENTS: geofenceQueue,
+        ...plainBinding("GITHUB_CLIENT_ID"),
+        ...secretBinding("GITHUB_CLIENT_SECRET"),
+        ...plainBinding("GOOGLE_CLIENT_ID"),
+        ...secretBinding("GOOGLE_CLIENT_SECRET"),
+        GOOGLE_GENERATIVE_AI_API_KEY: Config.Redacted(
+          "GOOGLE_GENERATIVE_AI_API_KEY"
+        ),
+        ...secretBinding("GOOGLE_PLACES_API_KEY"),
+        ...(mediaBucket ? { MEDIA_BUCKET: mediaBucket } : {}),
+        ...secretBinding("MUX_SIGNING_KEY_ID"),
+        ...secretBinding("MUX_SIGNING_KEY_SECRET"),
+        ...secretBinding("MUX_TOKEN_ID"),
+        ...secretBinding("MUX_TOKEN_SECRET"),
+        ...secretBinding("MUX_WEBHOOK_SECRET"),
+        ...plainBinding("R2_ACCESS_KEY_ID"),
+        ...plainBinding("R2_ACCOUNT_ID"),
+        ...plainBinding("R2_PUBLIC_URL"),
+        ...secretBinding("R2_SECRET_ACCESS_KEY"),
+        ...secretBinding("RADAR_SECRET_KEY"),
+        ...secretBinding("RADAR_WEBHOOK_SECRET"),
+        RATE_LIMITER: Cloudflare.RateLimit("api-rate-limiter", {
+          namespaceId: 1101,
+          simple: { limit: 600, period: 60 },
+        }),
+        RATE_LIMITER_STRICT: Cloudflare.RateLimit("strict-rate-limiter", {
+          namespaceId: 1102,
+          simple: { limit: 60, period: 60 },
+        }),
+        ...secretBinding("RESEND_API_KEY"),
+        ...secretBinding("RESEND_WEBHOOK_SECRET"),
+        SEARCH_INDEX: searchIndex,
+        ...secretBinding("SENTRY_DSN"),
+        ...secretBinding("STRIPE_SECRET_KEY"),
+        ...secretBinding("STRIPE_WEBHOOK_SECRET"),
+      },
+      main: "../../apps/server/src/index.ts",
+      name: physicalName("rallycasts-server"),
+      observability: observabilityFor(isProd),
+    };
+  })
+);
 
-await Worker("rallycasts-ads-events", {
-  adopt: true,
-  bindings: {
-    ADS_ANALYTICS: adsAnalytics,
-    DB: db,
+export const adsEventsWorker = Cloudflare.Worker(
+  "rallycasts-ads-events",
+  Effect.gen(function* props() {
+    const { isProd, stage } = yield* stackConfig;
+    const adsAnalytics = yield* Cloudflare.AnalyticsEngine.Dataset(
+      "ads-analytics",
+      {
+        dataset: isProd ? "rallycasts_ads" : `rallycasts_ads_${stage}`,
+      }
+    );
+    return {
+      ...workerDefaults,
+      env: {
+        ADS_ANALYTICS: adsAnalytics,
+        DB: db,
+      },
+      main: "../../apps/server/src/queues/ads-events.ts",
+      name: physicalName("rallycasts-ads-events"),
+      observability: observabilityFor(isProd),
+    };
+  })
+);
+
+export const geofenceEventsWorker = Cloudflare.Worker(
+  "rallycasts-geofence-events",
+  Effect.gen(function* props() {
+    const { isProd } = yield* stackConfig;
+    return {
+      ...workerDefaults,
+      bindings: {
+        VENUE_PRESENCE: Cloudflare.DurableObject("venue-presence", {
+          className: "VenuePresence",
+          scriptName: physicalName("rallycasts-server"),
+        }),
+      },
+      env: {
+        DB: db,
+        GEOFENCE_EVENTS: geofenceQueue,
+      },
+      main: "../../apps/server/src/queues/geofence-events.ts",
+      name: physicalName("rallycasts-geofence-events"),
+      observability: observabilityFor(isProd),
+    };
+  })
+);
+
+export const eventActivityWorker = Cloudflare.Worker(
+  "rallycasts-event-activity",
+  Effect.gen(function* props() {
+    const { isProd } = yield* stackConfig;
+    return {
+      ...workerDefaults,
+      bindings: {
+        EVENT_COORDINATOR: Cloudflare.DurableObject("event-coordinator", {
+          className: "EventCoordinator",
+          scriptName: physicalName("rallycasts-server"),
+        }),
+      },
+      env: {
+        DB: db,
+        EVENT_ACTIVITY_QUEUE: eventActivityQueue,
+      },
+      main: "../../apps/server/src/queues/event-activity.ts",
+      name: physicalName("rallycasts-event-activity"),
+      observability: observabilityFor(isProd),
+    };
+  })
+);
+
+export const web = Cloudflare.Website.Vite(
+  "rallycasts-web",
+  Effect.gen(function* props() {
+    const { corsOrigin, isProd, serverWorkerUrl } = yield* stackConfig;
+    return {
+      ...workerDefaults,
+      env: {
+        BETTER_AUTH_SECRET: Config.Redacted("BETTER_AUTH_SECRET"),
+        BETTER_AUTH_URL: serverWorkerUrl,
+        CORS_ORIGIN: corsOrigin,
+        DB: db,
+        ...plainBinding("GITHUB_CLIENT_ID"),
+        ...secretBinding("GITHUB_CLIENT_SECRET"),
+        ...plainBinding("GOOGLE_CLIENT_ID"),
+        ...secretBinding("GOOGLE_CLIENT_SECRET"),
+        GOOGLE_GENERATIVE_AI_API_KEY: Config.Redacted(
+          "GOOGLE_GENERATIVE_AI_API_KEY"
+        ),
+        ...secretBinding("GOOGLE_PLACES_API_KEY"),
+        ...secretBinding("RADAR_SECRET_KEY"),
+        ...secretBinding("SENTRY_DSN"),
+        ...plainBinding("VITE_FOURTHWALL_STOREFRONT_TOKEN"),
+        ...plainBinding("VITE_FOURTHWALL_STOREFRONT_URL"),
+        ...plainBinding("VITE_RADAR_PUBLISHABLE_KEY"),
+        ...secretBinding("VITE_SENTRY_DSN"),
+        VITE_SERVER_URL: serverWorkerUrl,
+      },
+      main: "src/server.ts",
+      memo: {
+        include: ["**/*", "../../packages/*/src/**"],
+        lockfile: true,
+      },
+      name: physicalName("rallycasts-web"),
+      observability: observabilityFor(isProd),
+      rootDir: "../../apps/web",
+    };
+  })
+);
+
+export type ServerEnv = Cloudflare.InferEnv<typeof server>;
+
+export default Alchemy.Stack(
+  "rallycaststv",
+  {
+    providers: Layer.mergeAll(Cloudflare.providers(), GitHub.providers()),
+    state: Cloudflare.state(),
   },
-  compatibility: "node",
-  cwd: "../../apps/server",
-  entrypoint: "src/queues/ads-events.ts",
-  eventSources: [
-    {
-      queue: adsQueue,
+  Effect.gen(function* props() {
+    const serverWorker = yield* server;
+    const adsWorker = yield* adsEventsWorker;
+    const geofenceWorker = yield* geofenceEventsWorker;
+    const activityWorker = yield* eventActivityWorker;
+    const webApp = yield* web;
+
+    const adsQ = yield* adsQueue;
+    const adsDlq = yield* adsDeadLetterQueue;
+    const geofenceQ = yield* geofenceQueue;
+    const geofenceDlq = yield* geofenceDeadLetterQueue;
+    const activityQ = yield* eventActivityQueue;
+    const activityDlq = yield* eventActivityDeadLetterQueue;
+
+    yield* Cloudflare.Queues.Consumer("ads-events-consumer", {
+      deadLetterQueue: adsDlq.queueName,
+      queueId: adsQ.queueId,
+      scriptName: adsWorker.workerName,
       settings: {
         batchSize: 100,
-        deadLetterQueue: adsDeadLetterQueue,
         maxConcurrency: 5,
         maxRetries: 5,
         maxWaitTimeMs: 5000,
         retryDelay: 60,
       },
-    },
-  ],
-  name: `rallycasts-ads-events-${stage}`,
-  observability,
-});
+    });
 
-await Worker("rallycasts-geofence-events", {
-  adopt: true,
-  bindings: {
-    DB: db,
-    VENUE_PRESENCE: venuePresence,
-  },
-  compatibility: "node",
-  cwd: "../../apps/server",
-  entrypoint: "src/queues/geofence-events.ts",
-  eventSources: [
-    {
-      queue: geofenceQueue,
+    yield* Cloudflare.Queues.Consumer("geofence-events-consumer", {
+      deadLetterQueue: geofenceDlq.queueName,
+      queueId: geofenceQ.queueId,
+      scriptName: geofenceWorker.workerName,
       settings: {
         batchSize: 25,
-        deadLetterQueue: geofenceDeadLetterQueue,
         maxConcurrency: 5,
         maxRetries: 5,
         maxWaitTimeMs: 5000,
         retryDelay: 60,
       },
-    },
-  ],
-  name: `rallycasts-geofence-events-${stage}`,
-  observability,
-});
+    });
 
-await Worker("rallycasts-event-activity", {
-  adopt: true,
-  bindings: {
-    DB: db,
-    EVENT_ACTIVITY_QUEUE: eventActivityQueue,
-    EVENT_COORDINATOR: eventCoordinator,
-  },
-  compatibility: "node",
-  cwd: "../../apps/server",
-  entrypoint: "src/queues/event-activity.ts",
-  eventSources: [
-    {
-      queue: eventActivityQueue,
+    yield* Cloudflare.Queues.Consumer("event-activity-consumer", {
+      deadLetterQueue: activityDlq.queueName,
+      queueId: activityQ.queueId,
+      scriptName: activityWorker.workerName,
       settings: {
         batchSize: 25,
-        deadLetterQueue: eventActivityDeadLetterQueue,
         maxConcurrency: 5,
         maxRetries: 5,
         maxWaitTimeMs: 5000,
         retryDelay: 60,
       },
-    },
-  ],
-  name: `rallycasts-event-activity-${stage}`,
-  observability,
-});
+    });
 
-export const server = await Worker("rallycasts-server", {
-  adopt: true,
-  bindings: filterMissingBindings({
-    ADS_ANALYTICS: adsAnalytics,
-    ADS_EVENTS: adsQueue,
-    AD_BEACON_SECRET: adBeaconSecret,
-    ALLOW_DEMO_ENDPOINTS: allowDemoEndpoints,
-    BETTER_AUTH_SECRET: betterAuthSecret,
-    BETTER_AUTH_URL: betterAuthUrl,
-    CHAT_ROOMS: chatRooms,
-    CORS_ORIGIN: corsOrigin,
-    DB: db,
-    E2E_SEED_TOKEN: e2eSeedToken,
-    EVENT_ACTIVITY_QUEUE: eventActivityQueue,
-    EVENT_COORDINATOR: eventCoordinator,
-    GEOFENCE_EVENTS: geofenceQueue,
-    GITHUB_CLIENT_ID: githubClientId,
-    GITHUB_CLIENT_SECRET: githubClientSecret,
-    GOOGLE_CLIENT_ID: googleClientId,
-    GOOGLE_CLIENT_SECRET: googleClientSecret,
-    GOOGLE_GENERATIVE_AI_API_KEY: googleAiApiKey,
-    GOOGLE_PLACES_API_KEY: googlePlacesApiKey,
-    MEDIA_BUCKET: mediaBucket,
-    MUX_SIGNING_KEY_ID: muxSigningKeyId,
-    MUX_SIGNING_KEY_SECRET: muxSigningKeySecret,
-    MUX_TOKEN_ID: muxTokenId,
-    MUX_TOKEN_SECRET: muxTokenSecret,
-    MUX_WEBHOOK_SECRET: muxWebhookSecret,
-    R2_ACCESS_KEY_ID: r2AccessKeyId,
-    R2_ACCOUNT_ID: r2AccountId,
-    R2_PUBLIC_URL: r2PublicUrl,
-    R2_SECRET_ACCESS_KEY: r2SecretAccessKey,
-    RADAR_SECRET_KEY: radarSecretKey,
-    RADAR_WEBHOOK_SECRET: radarWebhookSecret,
-    RATE_LIMITER: apiRateLimiter,
-    RATE_LIMITER_STRICT: strictRateLimiter,
-    RESEND_API_KEY: resendApiKey,
-    RESEND_WEBHOOK_SECRET: resendWebhookSecret,
-    SEARCH_INDEX: searchIndex,
-    SENTRY_DSN: sentryDsn,
-    STRIPE_SECRET_KEY: stripeSecretKey,
-    STRIPE_WEBHOOK_SECRET: stripeWebhookSecret,
-    USER_NOTIFICATIONS: userNotifications,
-    VENUE_PRESENCE: venuePresence,
-  }),
-  compatibility: "node",
-  cwd: "../../apps/server",
-  dev: {
-    port: 3000,
-  },
-  entrypoint: "src/index.ts",
-  name: isProd ? "rallycasts-server" : `rallycasts-server-${stage}`,
-  observability,
-  url: true,
-});
-
-export const web = await TanStackStart("rallycasts-web", {
-  adopt: true,
-  bindings: filterMissingBindings({
-    BETTER_AUTH_SECRET: betterAuthSecret,
-    BETTER_AUTH_URL: betterAuthUrl,
-    CORS_ORIGIN: corsOrigin,
-    DB: db,
-    GITHUB_CLIENT_ID: githubClientId,
-    GITHUB_CLIENT_SECRET: githubClientSecret,
-    GOOGLE_CLIENT_ID: googleClientId,
-    GOOGLE_CLIENT_SECRET: googleClientSecret,
-    GOOGLE_GENERATIVE_AI_API_KEY: googleAiApiKey,
-    GOOGLE_PLACES_API_KEY: googlePlacesApiKey,
-    RADAR_SECRET_KEY: radarSecretKey,
-    SENTRY_DSN: sentryDsn,
-    VITE_FOURTHWALL_STOREFRONT_TOKEN: fourthwallStorefrontToken,
-    VITE_FOURTHWALL_STOREFRONT_URL: fourthwallStorefrontUrl,
-    VITE_RADAR_PUBLISHABLE_KEY: radarPublishableKey,
-    VITE_SENTRY_DSN: sentryDsn,
-    VITE_SERVER_URL: serverWorkerUrl,
-  }),
-  compatibility: "node",
-  cwd: "../../apps/web",
-  name: isProd ? "rallycasts-web" : `rallycasts-web-${stage}`,
-  observability,
-  url: true,
-});
-
-console.log(`Web    -> ${web.url}`);
-console.log(`Server -> ${server.url}`);
-
-if (process.env.PULL_REQUEST) {
-  // Add a comment to the PR with the preview URL
-  await GitHubComment("preview-comment", {
-    body: `## 🚀 Preview Deployed
+    const github = yield* GitHub.GitHubEnv;
+    if (github?.pr) {
+      yield* GitHub.Comment("preview-comment", {
+        body: Output.interpolate`## 🚀 Preview Deployed
 
 Your changes have been deployed to a preview environment:
 
-**Web:** ${web.url}
-**Server:** ${server.url}
+**Web:** ${webApp.url}
+**Server:** ${serverWorker.url}
 
-Built from commit ${process.env.GITHUB_SHA?.slice(0, 7)}
+Built from commit ${github.sha.slice(0, 7)}
 
 ---
 <sub>🤖 This comment updates automatically with each push.</sub>`,
-    issueNumber: Number(process.env.PULL_REQUEST),
-    owner: "Rocktown-Labs",
-    repository: "rallycasts",
-  });
-}
+        issueNumber: github.pr,
+        owner: "Rocktown-Labs",
+        repository: "rallycasts",
+      });
+    }
 
-await app.finalize();
+    return {
+      serverUrl: serverWorker.url,
+      webUrl: webApp.url,
+    };
+  })
+);
