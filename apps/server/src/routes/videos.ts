@@ -31,6 +31,10 @@ import {
   scheduleSearchDocumentIndex,
   upsertSearchDocument,
 } from "../lib/search-index";
+import {
+  DEFAULT_SHOWCASE_VIDEOS,
+  ensureShowcaseVideoInDb,
+} from "../lib/showcase-videos";
 import type { AppEnv } from "../lib/types";
 import { requireAuth } from "../middleware/auth";
 import { requireVerifiedAuth } from "../middleware/security";
@@ -315,11 +319,16 @@ export const videosRouter = new Hono<AppEnv>()
     const resolved = await resolveVideosRelations(db, page);
     const lastVideo = page.at(-1);
 
+    const resultVideos =
+      resolved.length === 0 && !cursor
+        ? DEFAULT_SHOWCASE_VIDEOS
+        : resolved.map(toPublicResolvedVideo);
+
     return c.json(
       {
         nextCursor:
           hasNextPage && lastVideo ? encodeVideoCursor(lastVideo) : null,
-        videos: resolved.map(toPublicResolvedVideo),
+        videos: resultVideos,
       },
       HttpStatusCodes.OK
     );
@@ -741,6 +750,8 @@ export const videosRouter = new Hono<AppEnv>()
     const db = createDb(c.env.DB);
     const id = c.req.param("id");
 
+    await ensureShowcaseVideoInDb(db, id);
+
     const [videoRecord] = await db
       .select()
       .from(video)
@@ -748,6 +759,24 @@ export const videosRouter = new Hono<AppEnv>()
       .limit(1);
 
     if (!videoRecord) {
+      const showcase = DEFAULT_SHOWCASE_VIDEOS.find((v) => v.id === id);
+      if (showcase) {
+        return c.json(
+          {
+            owner: showcase.owner,
+            relatedVideos: [] as typeof DEFAULT_SHOWCASE_VIDEOS,
+            taggedUsers: showcase.taggedUsers,
+            venue: showcase.venue,
+            video: {
+              ...showcase,
+              owner: undefined,
+              taggedUsers: undefined,
+              venue: undefined,
+            },
+          },
+          HttpStatusCodes.OK
+        );
+      }
       return c.json({ message: "Video not found" }, HttpStatusCodes.NOT_FOUND);
     }
 
@@ -811,10 +840,14 @@ export const videosRouter = new Hono<AppEnv>()
       return c.json({ message: "Video not found" }, HttpStatusCodes.NOT_FOUND);
     }
     const publicVideo = toPublicResolvedVideo(resolved);
+    const fallbackRelated =
+      relatedVideos.length === 0
+        ? DEFAULT_SHOWCASE_VIDEOS.filter((v) => v.id !== id)
+        : relatedVideos.map(toPublicResolvedVideo);
     return c.json(
       {
         owner: publicVideo.owner,
-        relatedVideos: relatedVideos.map(toPublicResolvedVideo),
+        relatedVideos: fallbackRelated,
         taggedUsers: publicVideo.taggedUsers,
         venue: publicVideo.venue,
         video: {
@@ -1119,6 +1152,8 @@ export const videosRouter = new Hono<AppEnv>()
   .get("/:id/social", async (c) => {
     const db = createDb(c.env.DB);
     const id = c.req.param("id");
+    await ensureShowcaseVideoInDb(db, id);
+
     const [counts] = await db
       .select({
         comments: sql<number>`count(distinct ${videoComment.id})`,
@@ -1136,15 +1171,123 @@ export const videosRouter = new Hono<AppEnv>()
       )
       .limit(1);
 
+    const [doc] = await db
+      .select({ metadataJson: searchDocument.metadataJson })
+      .from(searchDocument)
+      .where(
+        and(
+          eq(searchDocument.entityType, "video"),
+          eq(searchDocument.entityId, id)
+        )
+      )
+      .limit(1);
+
+    let views = 1208;
+    if (doc?.metadataJson) {
+      try {
+        const meta = JSON.parse(doc.metadataJson);
+        if (typeof meta.views === "number") {
+          ({ views } = meta);
+        }
+      } catch {
+        // Fallback to default views
+      }
+    }
+
+    let hasLiked = false;
+    try {
+      const authSession = await createAuth(c.env.DB).api.getSession({
+        headers: c.req.raw.headers,
+      });
+      const viewerId = authSession?.user?.id;
+      if (viewerId) {
+        const [likeRecord] = await db
+          .select()
+          .from(videoLike)
+          .where(and(eq(videoLike.videoId, id), eq(videoLike.userId, viewerId)))
+          .limit(1);
+        hasLiked = Boolean(likeRecord);
+      }
+    } catch {
+      // Unauthenticated
+    }
+
     return c.json(
-      { comments: counts?.comments ?? 0, likes: counts?.likes ?? 0 },
+      {
+        comments: counts?.comments ?? 0,
+        hasLiked,
+        likes: counts?.likes ?? 0,
+        views,
+      },
       HttpStatusCodes.OK
     );
+  })
+  .post("/:id/views", async (c) => {
+    const db = createDb(c.env.DB);
+    const id = c.req.param("id");
+    await ensureShowcaseVideoInDb(db, id);
+
+    const [doc] = await db
+      .select()
+      .from(searchDocument)
+      .where(
+        and(
+          eq(searchDocument.entityType, "video"),
+          eq(searchDocument.entityId, id)
+        )
+      )
+      .limit(1);
+
+    let currentViews = 1208;
+    let existingMeta: Record<string, unknown> = {};
+    if (doc?.metadataJson) {
+      try {
+        existingMeta = JSON.parse(doc.metadataJson);
+        if (typeof existingMeta.views === "number") {
+          currentViews = existingMeta.views;
+        }
+      } catch {
+        // Empty
+      }
+    }
+
+    const nextViews = currentViews + 1;
+    if (doc) {
+      await db
+        .update(searchDocument)
+        .set({
+          metadataJson: JSON.stringify({ ...existingMeta, views: nextViews }),
+          updatedAt: new Date(),
+        })
+        .where(eq(searchDocument.id, doc.id));
+    } else {
+      const [v] = await db
+        .select({ title: video.title })
+        .from(video)
+        .where(eq(video.id, id))
+        .limit(1);
+      const title = v?.title || "Video";
+      await db
+        .insert(searchDocument)
+        .values({
+          content: title,
+          entityId: id,
+          entityType: "video",
+          id: createId(),
+          metadataJson: JSON.stringify({ views: nextViews }),
+          title,
+        })
+        .onConflictDoNothing();
+    }
+
+    return c.json({ id, views: nextViews }, HttpStatusCodes.OK);
   })
   .post("/:id/likes", requireAuth, async (c) => {
     const db = createDb(c.env.DB);
     const { user: authUser } = c.var.authSession;
     const id = c.req.param("id");
+    await ensureShowcaseVideoInDb(db, id);
+
     const [record] = await db
       .select()
       .from(video)
@@ -1185,6 +1328,7 @@ export const videosRouter = new Hono<AppEnv>()
     const db = createDb(c.env.DB);
     const { user: authUser } = c.var.authSession;
     const id = c.req.param("id");
+    await ensureShowcaseVideoInDb(db, id);
 
     await db
       .delete(videoLike)
@@ -1195,6 +1339,7 @@ export const videosRouter = new Hono<AppEnv>()
   .get("/:id/comments", async (c) => {
     const db = createDb(c.env.DB);
     const id = c.req.param("id");
+    await ensureShowcaseVideoInDb(db, id);
 
     const comments = await db
       .select({
@@ -1214,14 +1359,7 @@ export const videosRouter = new Hono<AppEnv>()
       })
       .from(videoComment)
       .innerJoin(user, eq(videoComment.userId, user.id))
-      .innerJoin(video, eq(videoComment.videoId, video.id))
-      .where(
-        and(
-          eq(videoComment.videoId, id),
-          eq(video.status, "ready"),
-          eq(video.visibility, "public")
-        )
-      )
+      .where(eq(videoComment.videoId, id))
       .orderBy(
         desc(videoComment.isPinned),
         desc(videoComment.pinnedAt),
@@ -1233,12 +1371,20 @@ export const videosRouter = new Hono<AppEnv>()
   .post(
     "/:id/comments",
     requireAuth,
-    zValidator("json", z.object({ content: z.string().min(1).max(1000) })),
+    zValidator(
+      "json",
+      z.object({
+        content: z.string().min(1).max(1000),
+        replyToCommentId: z.string().optional(),
+      })
+    ),
     async (c) => {
       const db = createDb(c.env.DB);
       const { user: authUser } = c.var.authSession;
       const id = c.req.param("id");
-      const { content } = c.req.valid("json");
+      const { content, replyToCommentId } = c.req.valid("json");
+
+      await ensureShowcaseVideoInDb(db, id);
 
       // Verify video exists first
       const [record] = await db
@@ -1258,6 +1404,28 @@ export const videosRouter = new Hono<AppEnv>()
         );
       }
 
+      // Look up parent comment if replying
+      let parentCommentUser: { id: string; name: string } | null = null;
+      if (replyToCommentId) {
+        const [parentComment] = await db
+          .select({
+            id: videoComment.id,
+            userId: videoComment.userId,
+            userName: user.name,
+          })
+          .from(videoComment)
+          .innerJoin(user, eq(videoComment.userId, user.id))
+          .where(eq(videoComment.id, replyToCommentId))
+          .limit(1);
+
+        if (parentComment) {
+          parentCommentUser = {
+            id: parentComment.userId,
+            name: parentComment.userName || "Player",
+          };
+        }
+      }
+
       const commentId = createId();
       const newComment = {
         content,
@@ -1270,7 +1438,25 @@ export const videosRouter = new Hono<AppEnv>()
 
       await db.insert(videoComment).values(newComment);
 
-      if (record.ownerUserId !== authUser.id) {
+      // Send notification to user being replied to
+      if (parentCommentUser && parentCommentUser.id !== authUser.id) {
+        await createNotification(db, {
+          actorUserId: authUser.id,
+          body: content,
+          entityId: commentId,
+          entityType: "comment",
+          href: `/videos/${id}`,
+          title: `${authUser.name} replied to your comment`,
+          type: "comment",
+          userId: parentCommentUser.id,
+        });
+      }
+
+      // Also send notification to video owner if different
+      if (
+        record.ownerUserId !== authUser.id &&
+        (!parentCommentUser || parentCommentUser.id !== record.ownerUserId)
+      ) {
         await createNotification(db, {
           actorUserId: authUser.id,
           body: content,

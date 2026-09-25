@@ -11,14 +11,16 @@ import {
   Sparkles,
   Users,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
+import { useSidebar } from "@/components/layout/sidebar-context";
 import {
   EmptyState,
   EventCard,
   ParkHeatCard,
   PlayerCard,
+  RallyClipCard,
   VideoCard,
 } from "@/components/rally/cards";
 import type {
@@ -28,7 +30,8 @@ import type {
   VideoCardData,
 } from "@/components/rally/cards";
 import { authClient } from "@/lib/auth-client";
-import { useHomeFeed, useVideos } from "@/lib/hooks";
+import { demoVideos } from "@/lib/demo-data";
+import { useHomeFeed, useProfile, useTrending, useVideos } from "@/lib/hooks";
 
 export const Route = createFileRoute("/")({
   component: HomeComponent,
@@ -39,59 +42,399 @@ function HomeComponent() {
   const isPersonalized = Boolean(session?.user);
 
   return (
-    <div className="mx-auto max-w-7xl space-y-10 animate-in fade-in duration-200">
-      <section className="grid gap-6 rounded-2xl border border-border/60 bg-[linear-gradient(135deg,hsl(142_100%_18%/.15),transparent_52%,hsl(78_100%_60%/.08))] p-6 shadow-xs md:grid-cols-[1fr_auto] md:items-center sm:p-8">
-        <div>
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-0.5 text-xs font-semibold text-primary">
-            <Sparkles className="size-3 text-[#bcdf21]" />
-            <span>Pickleball around your courts</span>
-          </div>
-          <h1 className="mt-3 text-2xl font-bold tracking-tight md:text-3xl lg:text-4xl text-foreground">
-            Pickleball videos, players, and casters around you.
-          </h1>
-          <p className="mt-2.5 max-w-2xl text-sm text-muted-foreground leading-relaxed">
-            Watch local match highlights, find active parks, and book a
-            RallyCasts caster when the game deserves a clean angle.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2.5">
-          <Link
-            to="/trending"
-            className={cn(
-              buttonVariants(),
-              "rounded-lg font-medium transition-transform duration-150 active:scale-97 cursor-pointer"
-            )}
-          >
-            <Flame className="size-4 text-[#bcdf21]" />
-            Trending Courts
-          </Link>
-          <Link
-            to="/onboarding"
-            className={cn(
-              buttonVariants({ variant: "outline" }),
-              "rounded-lg font-medium transition-transform duration-150 active:scale-97 cursor-pointer hover:bg-accent/10"
-            )}
-          >
-            <MapPin className="size-4 text-primary" />
-            Set location
-          </Link>
-        </div>
-      </section>
+    <div className="mx-auto max-w-7xl space-y-12 animate-in fade-in duration-200">
+      <HeroBanner />
 
-      {isPersonalized ? (
-        <PersonalizedFeedSection sessionPending={sessionPending} />
-      ) : (
-        <PublicVideoSection sessionPending={sessionPending} />
-      )}
+      <HomeFeedView
+        isPersonalized={isPersonalized}
+        sessionPending={sessionPending}
+      />
     </div>
   );
 }
 
-function NearbyParksSection({
-  items,
+function HeroBanner() {
+  return (
+    <section className="grid gap-6 rounded-2xl border border-border/60 bg-[linear-gradient(135deg,hsl(142_100%_18%/.15),transparent_52%,hsl(78_100%_60%/.08))] p-6 shadow-xs md:grid-cols-[1fr_auto] md:items-center sm:p-8">
+      <div>
+        <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-0.5 text-xs font-semibold text-primary">
+          <Sparkles className="size-3 text-[#bcdf21]" />
+          <span>Pickleball around your courts</span>
+        </div>
+        <h1 className="mt-3 text-2xl font-bold tracking-tight md:text-3xl lg:text-4xl text-foreground">
+          Pickleball videos, players, and casters around you.
+        </h1>
+        <p className="mt-2.5 max-w-2xl text-sm text-muted-foreground leading-relaxed">
+          Watch local match highlights, find active parks, and book a RallyCasts
+          caster when the game deserves a clean angle.
+        </p>
+      </div>
+      <div className="flex flex-wrap gap-2.5">
+        <Link
+          to="/trending"
+          className={cn(
+            buttonVariants(),
+            "rounded-lg font-medium transition-transform duration-150 active:scale-97 cursor-pointer"
+          )}
+        >
+          <Flame className="size-4 text-[#bcdf21]" />
+          Trending Courts
+        </Link>
+        <Link
+          to="/onboarding"
+          className={cn(
+            buttonVariants({ variant: "outline" }),
+            "rounded-lg font-medium transition-transform duration-150 active:scale-97 cursor-pointer hover:bg-accent/10"
+          )}
+        >
+          <MapPin className="size-4 text-primary" />
+          Set location
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+function HomeFeedView({
+  isPersonalized,
+  sessionPending,
 }: {
-  items: { entity: unknown; id: string; title: string }[];
+  isPersonalized: boolean;
+  sessionPending: boolean;
 }) {
+  const homeFeed = useHomeFeed(isPersonalized);
+  const latestVideosQuery = useVideos();
+  const trendingQuery = useTrending();
+  const profileQuery = useProfile();
+
+  const isLoading =
+    sessionPending ||
+    (isPersonalized && homeFeed.isLoading) ||
+    latestVideosQuery.isLoading;
+
+  const rawFeedItems = useMemo(
+    () => (isPersonalized ? (homeFeed.data?.items ?? []) : []),
+    [isPersonalized, homeFeed.data?.items]
+  );
+  const allVideos: VideoCardData[] = useMemo(() => {
+    const list: VideoCardData[] = [];
+    const seen = new Set<string>();
+
+    for (const item of rawFeedItems) {
+      if (item.entityType === "video") {
+        const v = item.entity as VideoCardData;
+        if (!seen.has(v.id)) {
+          seen.add(v.id);
+          list.push(v);
+        }
+      }
+    }
+
+    for (const v of latestVideosQuery.data?.videos ?? []) {
+      if (!seen.has(v.id)) {
+        seen.add(v.id);
+        list.push(v);
+      }
+    }
+
+    // Ensure videos are always displayed even if DB is fresh or unseeded
+    if (list.length === 0) {
+      for (const v of demoVideos) {
+        if (!seen.has(v.id)) {
+          seen.add(v.id);
+          list.push(v);
+        }
+      }
+    }
+
+    return list;
+  }, [rawFeedItems, latestVideosQuery.data?.videos]);
+
+  // Split into Shorts (Clips) vs Standard Landscape Videos
+  const { landscapeVideos, shortsVideos } = useMemo(() => {
+    const shorts: VideoCardData[] = [];
+    const landscape: VideoCardData[] = [];
+
+    for (const video of allVideos) {
+      const isShort =
+        video.mediaType === "short" ||
+        ((video.durationSeconds ?? 0) > 0 &&
+          (video.durationSeconds ?? 0) <= 60 &&
+          video.title.toLowerCase().includes("clip"));
+
+      if (isShort) {
+        shorts.push(video);
+      } else {
+        landscape.push(video);
+      }
+    }
+
+    return { landscapeVideos: landscape, shortsVideos: shorts };
+  }, [allVideos]);
+
+  // Aggregate venues ensuring user's home court is first and favorited
+  const userProfile = profileQuery.data?.profile;
+  const userHomeCourt =
+    userProfile && "homeCourtName" in userProfile
+      ? (userProfile as { homeCourtName?: string | null }).homeCourtName
+      : undefined;
+
+  const venuesList: VenueCardData[] = useMemo(() => {
+    const list: VenueCardData[] = [];
+    const seen = new Set<string>();
+
+    // 1. From personalized feed
+    for (const item of rawFeedItems) {
+      if (item.entityType === "venue") {
+        const v = item.entity as unknown as VenueCardData;
+        if (!seen.has(v.id)) {
+          seen.add(v.id);
+          list.push(v);
+        }
+      }
+    }
+
+    // 2. Supplement from trending venues if feed is thin
+    for (const v of trendingQuery.data?.venues ?? []) {
+      if (!seen.has(v.id)) {
+        seen.add(v.id);
+        list.push(v);
+      }
+    }
+
+    // 3. Prioritize & badge home court
+    const homeCourtName = userHomeCourt?.toLowerCase().trim();
+    if (homeCourtName) {
+      for (const v of list) {
+        if (
+          v.name.toLowerCase().includes(homeCourtName) ||
+          homeCourtName.includes(v.name.toLowerCase())
+        ) {
+          v.isHomeCourt = true;
+          v.isFavorited = true;
+        }
+      }
+    }
+
+    // Sort: home court first, then by heat or active players
+    return list.toSorted((a, b) => {
+      if (a.isHomeCourt && !b.isHomeCourt) {
+        return -1;
+      }
+      if (!a.isHomeCourt && b.isHomeCourt) {
+        return 1;
+      }
+      return (b.activePlayers ?? 0) - (a.activePlayers ?? 0);
+    });
+  }, [rawFeedItems, trendingQuery.data?.venues, userHomeCourt]);
+
+  // Community feed items (Events, Players, Posts)
+  const communityItems = useMemo(
+    () =>
+      rawFeedItems.filter(
+        (item) => item.entityType !== "video" && item.entityType !== "venue"
+      ),
+    [rawFeedItems]
+  );
+
+  if (isLoading) {
+    return (
+      <FeedSectionShell isLoading={true} title="Featured Highlights">
+        <FeedSkeleton />
+      </FeedSectionShell>
+    );
+  }
+
+  const { collapsed: sidebarCollapsed } = useSidebar();
+  const videoGridClass = sidebarCollapsed
+    ? "grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+    : "grid gap-6 sm:grid-cols-2 lg:grid-cols-3";
+
+  const featuredLandscape = landscapeVideos.slice(0, sidebarCollapsed ? 8 : 6);
+  const moreLandscape = landscapeVideos.slice(sidebarCollapsed ? 8 : 6);
+
+  return (
+    <div className="space-y-14">
+      {/* 1. Main Featured Matches (Landscape 16:9 shelf) */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+              Featured Highlights & Matches
+            </h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Recent rallies, matches, and clinics recorded with RallyCasts.
+            </p>
+          </div>
+          <Link
+            to="/trending"
+            className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors px-2 py-1"
+          >
+            Explore all →
+          </Link>
+        </div>
+
+        {featuredLandscape.length > 0 ? (
+          <div className={videoGridClass}>
+            {featuredLandscape.map((video) => (
+              <VideoCard key={video.id} video={video} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            message="Public ready videos will appear here once match uploads finish processing."
+            title="No videos yet"
+          />
+        )}
+      </section>
+
+      {/* 2. Rallies & Clips (Shorts Shelf - Portrait 9:16) */}
+      {shortsVideos.length > 0 ? <ShortsShelf videos={shortsVideos} /> : null}
+
+      {/* 3. More Matches & Highlights */}
+      {moreLandscape.length > 0 ? (
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+                More Matches & Highlights
+              </h2>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Community open play recordings, kitchen battles, and clinics.
+              </p>
+            </div>
+            <Link
+              to="/trending"
+              className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors px-2 py-1"
+            >
+              See all matches →
+            </Link>
+          </div>
+          <div className={videoGridClass}>
+            {moreLandscape.map((video) => (
+              <VideoCard key={video.id} video={video} />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {/* 4. Courts & Parks Near You (Home court prioritized first, below videos) */}
+      {venuesList.length > 0 ? (
+        <NearbyParksSection venues={venuesList} />
+      ) : null}
+
+      {/* 5. Community Feed / Upcoming Events */}
+      {communityItems.length > 0 ? (
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+                Court Activity & Tournaments
+              </h2>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Upcoming open plays, tournament brackets, and player updates.
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            {communityItems.map((item) => (
+              <HomeFeedCard key={`${item.entityType}:${item.id}`} item={item} />
+            ))}
+          </div>
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
+function ShortsShelf({ videos }: { videos: VideoCardData[] }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const checkScroll = useCallback(() => {
+    if (!scrollRef.current) {
+      return;
+    }
+    const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+    setCanScrollLeft(scrollLeft > 10);
+    setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) {
+      return;
+    }
+    checkScroll();
+    el.addEventListener("scroll", checkScroll, { passive: true });
+    window.addEventListener("resize", checkScroll);
+    return () => {
+      el.removeEventListener("scroll", checkScroll);
+      window.removeEventListener("resize", checkScroll);
+    };
+  }, [checkScroll]);
+
+  const scrollByAmount = (offset: number) => {
+    if (!scrollRef.current) {
+      return;
+    }
+    scrollRef.current.scrollBy({ behavior: "smooth", left: offset });
+  };
+
+  return (
+    <section className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="flex items-center gap-2 text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+            <span className="flex size-7 items-center justify-center rounded-lg bg-red-600/15 text-red-500">
+              <Flame className="size-4.5 fill-red-500" />
+            </span>
+            Rallies & Clips
+          </h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Bite-sized points, kitchen battles, and clutch shots from the
+            courts.
+          </p>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="outline"
+            size="icon"
+            className="size-8 rounded-full transition-transform active:scale-95 disabled:opacity-30 cursor-pointer"
+            disabled={!canScrollLeft}
+            onClick={() => scrollByAmount(-280)}
+            aria-label="Scroll left"
+          >
+            <ChevronLeft className="size-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="size-8 rounded-full transition-transform active:scale-95 disabled:opacity-30 cursor-pointer"
+            disabled={!canScrollRight}
+            onClick={() => scrollByAmount(280)}
+            aria-label="Scroll right"
+          >
+            <ChevronRight className="size-4" />
+          </Button>
+        </div>
+      </div>
+
+      <div
+        ref={scrollRef}
+        className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-3 pt-1 scroll-smooth snap-x snap-mandatory scrollbar-none"
+        style={{ WebkitOverflowScrolling: "touch" }}
+      >
+        {videos.map((video) => (
+          <RallyClipCard key={video.id} video={video} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function NearbyParksSection({ venues }: { venues: VenueCardData[] }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -175,12 +518,12 @@ function NearbyParksSection({
         className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-3 pt-1 scroll-smooth snap-x snap-mandatory scrollbar-none"
         style={{ WebkitOverflowScrolling: "touch" }}
       >
-        {items.map((item) => (
+        {venues.map((venue) => (
           <div
-            key={item.id}
+            key={venue.id}
             className="w-[280px] sm:w-[320px] shrink-0 snap-start"
           >
-            <ParkHeatCard venue={item.entity as VenueCardData} />
+            <ParkHeatCard venue={venue} />
           </div>
         ))}
       </div>
@@ -188,86 +531,13 @@ function NearbyParksSection({
   );
 }
 
-function PersonalizedFeedSection({
-  sessionPending,
-}: {
-  sessionPending: boolean;
-}) {
-  const homeFeed = useHomeFeed(true);
-  const isLoading = sessionPending || homeFeed.isLoading;
-  const feedItems = homeFeed.data?.items ?? [];
-
-  const venueItems = feedItems.filter((item) => item.entityType === "venue");
-  const contentItems = feedItems.filter((item) => item.entityType !== "venue");
-
-  if (isLoading) {
-    return (
-      <FeedSectionShell isPersonalized isLoading={isLoading} title="Home Feed">
-        <FeedSkeleton />
-      </FeedSectionShell>
-    );
-  }
-
-  if (feedItems.length === 0) {
-    return (
-      <FeedSectionShell isPersonalized isLoading={false} title="Home Feed">
-        <EmptyState
-          message="Add a home park, follow players, or publish public RallyCasts to wake up your feed."
-          title="Your feed is warming up"
-        />
-      </FeedSectionShell>
-    );
-  }
-
-  return (
-    <div className="space-y-10">
-      {venueItems.length > 0 ? <NearbyParksSection items={venueItems} /> : null}
-
-      {contentItems.length > 0 ? (
-        <FeedSectionShell isPersonalized isLoading={false} title="Home Feed">
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {contentItems.map((item) => (
-              <HomeFeedCard key={`${item.entityType}:${item.id}`} item={item} />
-            ))}
-          </div>
-        </FeedSectionShell>
-      ) : null}
-    </div>
-  );
-}
-
-function PublicVideoSection({ sessionPending }: { sessionPending: boolean }) {
-  const latestVideos = useVideos();
-  const isLoading = sessionPending || latestVideos.isLoading;
-  const videos = latestVideos.data?.videos ?? [];
-
-  return (
-    <FeedSectionShell isLoading={isLoading} title="Latest RallyCasts">
-      {videos.length > 0 ? (
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-          {videos.map((video) => (
-            <VideoCard key={video.id} video={video} />
-          ))}
-        </div>
-      ) : (
-        <EmptyState
-          message="Public ready videos will appear here once Mux uploads finish processing."
-          title="No public videos yet"
-        />
-      )}
-    </FeedSectionShell>
-  );
-}
-
 function FeedSectionShell({
   children,
   isLoading,
-  isPersonalized = false,
   title,
 }: {
   children: ReactNode;
   isLoading: boolean;
-  isPersonalized?: boolean;
   title: string;
 }) {
   return (
@@ -275,12 +545,6 @@ function FeedSectionShell({
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
-          {isPersonalized ? (
-            <p className="mt-1 text-xs text-muted-foreground">
-              Ranked from your game, home park, friends, local activity, and
-              semantic match.
-            </p>
-          ) : null}
         </div>
         <Link
           to="/trending"
@@ -318,7 +582,6 @@ function HomeFeedCard({
     title: string;
   };
 }) {
-  // On videos, user explicitly asked: "the little chip/badge on teh video can go"
   if (item.entityType === "video") {
     return <VideoCard video={item.entity as VideoCardData} />;
   }

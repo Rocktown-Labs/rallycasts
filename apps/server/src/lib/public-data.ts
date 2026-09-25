@@ -1,6 +1,11 @@
+import { createVenueSlug } from "./venues";
+
 interface VenueInternalFields {
   createdByUserId?: unknown;
   radarPlaceId?: unknown;
+  name?: string | null;
+  city?: string | null;
+  state?: string | null;
 }
 
 export const toPublicVenue = <T extends VenueInternalFields>(record: T) => {
@@ -9,7 +14,13 @@ export const toPublicVenue = <T extends VenueInternalFields>(record: T) => {
     radarPlaceId: _radarPlaceId,
     ...publicRecord
   } = record;
-  return publicRecord;
+  const slug = record.name
+    ? createVenueSlug(record.name, record.city, record.state)
+    : undefined;
+  return {
+    ...publicRecord,
+    ...(slug ? { slug } : {}),
+  };
 };
 
 interface VideoInternalFields {

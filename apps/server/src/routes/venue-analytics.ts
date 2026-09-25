@@ -1,11 +1,11 @@
 import { createDb } from "@rallycaststv/db";
-import { venue, venueVisit } from "@rallycaststv/db/schema/domain";
-import { and, count, desc, eq, or, sql } from "drizzle-orm";
+import { venueVisit } from "@rallycaststv/db/schema/domain";
+import { and, count, desc, eq, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 
 import type { AppEnv } from "../lib/types";
-import { findOrCreateVenueFromGooglePlace } from "../lib/venues";
+import { findVenueByIdOrSlug } from "../lib/venues";
 import { optionalAuth } from "../middleware/auth";
 
 type VenuePresenceStub = DurableObjectStub & {
@@ -17,41 +17,23 @@ export const venueAnalyticsRouter = new Hono<AppEnv>().get(
   optionalAuth,
   // oxlint-disable-next-line complexity -- Handler aggregates real presence, visits, peak hours and peak days.
   async (c) => {
-    const rawId = c.req.param("id");
-    const cleanGoogleId = rawId.startsWith("google:") ? rawId.slice(7) : rawId;
+    const param = c.req.param("id");
     const db = createDb(c.env.DB);
     const authUser = c.var.authSession?.user;
 
-    let [venueRecord] = await db
-      .select({ id: venue.id })
-      .from(venue)
-      .where(or(eq(venue.id, rawId), eq(venue.googlePlaceId, cleanGoogleId)))
-      .limit(1);
-
-    if (
-      !venueRecord &&
-      c.env.GOOGLE_PLACES_API_KEY &&
-      cleanGoogleId.length > 5
-    ) {
-      try {
-        const created = await findOrCreateVenueFromGooglePlace({
-          db,
-          env: c.env,
-          getExecutionContext: () => {
-            try {
-              return c.executionCtx;
-            } catch {
-              // Unit-test requests may not provide an execution context.
-            }
-          },
-          placeId: cleanGoogleId,
-          userId: authUser?.id,
-        });
-        venueRecord = { id: created.id };
-      } catch (error) {
-        console.warn("Could not find or create venue for analytics:", error);
-      }
-    }
+    const venueRecord = await findVenueByIdOrSlug({
+      db,
+      env: c.env,
+      getExecutionContext: () => {
+        try {
+          return c.executionCtx;
+        } catch {
+          // Unit-test requests may not provide an execution context.
+        }
+      },
+      param,
+      userId: authUser?.id,
+    });
 
     if (!venueRecord) {
       return c.json({ message: "Venue not found" }, HttpStatusCodes.NOT_FOUND);

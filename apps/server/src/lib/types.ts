@@ -29,6 +29,7 @@ export interface AppEnv {
     ADS_ANALYTICS?: AnalyticsEngineDataset;
     ADS_EVENTS?: Queue<AppAdEventMessage>;
     AI?: Ai;
+    ALLOW_DEMO_ENDPOINTS?: string;
     BETTER_AUTH_SECRET: string;
     BETTER_AUTH_URL: string;
     CHAT_ROOMS: DurableObjectNamespace;
@@ -51,6 +52,8 @@ export interface AppEnv {
     MUX_WEBHOOK_SECRET?: string;
     R2_PUBLIC_URL?: string;
     RADAR_SECRET_KEY?: string;
+    RATE_LIMITER?: RateLimit;
+    RATE_LIMITER_STRICT?: RateLimit;
     RADAR_WEBHOOK_SECRET?: string;
     RESEND_API_KEY?: string;
     RESEND_WEBHOOK_SECRET?: string;

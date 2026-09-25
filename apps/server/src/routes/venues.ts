@@ -11,7 +11,7 @@ import { syncVenueGeofence } from "../lib/geofence-sync";
 import { toPublicVenue } from "../lib/public-data";
 import { syncVenueSearchDocument } from "../lib/search-index";
 import type { AppEnv } from "../lib/types";
-import { findOrCreateVenueFromGooglePlace } from "../lib/venues";
+import { findVenueByIdOrSlug } from "../lib/venues";
 import { requireAuth } from "../middleware/auth";
 
 const searchPattern = (query: string | undefined) => `%${query ?? ""}%`;
@@ -142,36 +142,20 @@ export const venuesRouter = new Hono<AppEnv>()
   })
   .get("/:id", async (c) => {
     const db = createDb(c.env.DB);
-    const rawId = c.req.param("id");
-    const cleanGoogleId = rawId.startsWith("google:") ? rawId.slice(7) : rawId;
+    const param = c.req.param("id");
 
-    let [record] = await db
-      .select()
-      .from(venue)
-      .where(or(eq(venue.id, rawId), eq(venue.googlePlaceId, cleanGoogleId)))
-      .limit(1);
-
-    if (!record && c.env.GOOGLE_PLACES_API_KEY && cleanGoogleId.length > 5) {
-      try {
-        record = await findOrCreateVenueFromGooglePlace({
-          db,
-          env: c.env,
-          getExecutionContext: () => {
-            try {
-              return c.executionCtx;
-            } catch {
-              // Ignore
-            }
-          },
-          placeId: cleanGoogleId,
-        });
-      } catch (error) {
-        console.warn(
-          "Failed to find or create venue from Google Place:",
-          error
-        );
-      }
-    }
+    const record = await findVenueByIdOrSlug({
+      db,
+      env: c.env,
+      getExecutionContext: () => {
+        try {
+          return c.executionCtx;
+        } catch {
+          // Ignore
+        }
+      },
+      param,
+    });
 
     if (!record) {
       return c.json({ message: "Venue not found" }, HttpStatusCodes.NOT_FOUND);
@@ -192,34 +176,21 @@ export const venuesRouter = new Hono<AppEnv>()
   .post("/:id/check-in", requireAuth, async (c) => {
     const db = createDb(c.env.DB);
     const { user: authUser } = c.var.authSession;
-    const rawId = c.req.param("id");
-    const cleanGoogleId = rawId.startsWith("google:") ? rawId.slice(7) : rawId;
+    const param = c.req.param("id");
 
-    let [record] = await db
-      .select()
-      .from(venue)
-      .where(or(eq(venue.id, rawId), eq(venue.googlePlaceId, cleanGoogleId)))
-      .limit(1);
-
-    if (!record && c.env.GOOGLE_PLACES_API_KEY && cleanGoogleId.length > 5) {
-      try {
-        record = await findOrCreateVenueFromGooglePlace({
-          db,
-          env: c.env,
-          getExecutionContext: () => {
-            try {
-              return c.executionCtx;
-            } catch {
-              // Ignore
-            }
-          },
-          placeId: cleanGoogleId,
-          userId: authUser.id,
-        });
-      } catch (error) {
-        console.warn("Failed to find or create venue during check-in:", error);
-      }
-    }
+    const record = await findVenueByIdOrSlug({
+      db,
+      env: c.env,
+      getExecutionContext: () => {
+        try {
+          return c.executionCtx;
+        } catch {
+          // Ignore
+        }
+      },
+      param,
+      userId: authUser.id,
+    });
 
     if (!record) {
       return c.json({ message: "Venue not found" }, HttpStatusCodes.NOT_FOUND);
@@ -261,14 +232,14 @@ export const venuesRouter = new Hono<AppEnv>()
   .post("/:id/check-out", requireAuth, async (c) => {
     const db = createDb(c.env.DB);
     const { user: authUser } = c.var.authSession;
-    const rawId = c.req.param("id");
-    const cleanGoogleId = rawId.startsWith("google:") ? rawId.slice(7) : rawId;
+    const param = c.req.param("id");
 
-    const [record] = await db
-      .select()
-      .from(venue)
-      .where(or(eq(venue.id, rawId), eq(venue.googlePlaceId, cleanGoogleId)))
-      .limit(1);
+    const record = await findVenueByIdOrSlug({
+      db,
+      env: c.env,
+      param,
+      userId: authUser.id,
+    });
 
     if (!record) {
       return c.json({ message: "Venue not found" }, HttpStatusCodes.NOT_FOUND);

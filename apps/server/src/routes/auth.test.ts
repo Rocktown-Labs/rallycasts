@@ -10,7 +10,7 @@ describe("Better Auth configuration", () => {
     const accountLinking = auth.options.account?.accountLinking;
 
     expect(accountLinking?.enabled).toBe(true);
-    expect(accountLinking?.requireLocalEmailVerified).toBe(false);
+    expect(accountLinking?.requireLocalEmailVerified).toBe(true);
     expect(accountLinking?.trustedProviders).toEqual(["google", "github"]);
   });
 

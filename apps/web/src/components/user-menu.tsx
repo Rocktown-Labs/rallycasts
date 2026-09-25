@@ -10,7 +10,7 @@ import {
 } from "@rallycaststv/ui/components/dropdown-menu";
 import { Skeleton } from "@rallycaststv/ui/components/skeleton";
 import { useNavigate } from "@tanstack/react-router";
-import { ChevronsUpDown, LogOut } from "lucide-react";
+import { Calendar, ChevronsUpDown, LogOut, Video } from "lucide-react";
 
 import { authClient } from "@/lib/auth-client";
 
@@ -82,6 +82,25 @@ const UserMenu = ({ collapsed = false }: { collapsed?: boolean }) => {
           <div className="px-2 py-1.5 text-xs text-muted-foreground truncate">
             {session.user.email}
           </div>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            className="flex items-center gap-2 cursor-pointer py-1.5 px-2"
+            onClick={() => {
+              navigate({ to: "/u/casts/new" });
+            }}
+          >
+            <Video className="size-3.5 text-primary" />
+            <span className="font-medium text-xs">Order a Caster ($20/hr)</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="flex items-center gap-2 cursor-pointer py-1.5 px-2"
+            onClick={() => {
+              navigate({ to: "/u/casts/all" });
+            }}
+          >
+            <Calendar className="size-3.5 text-muted-foreground" />
+            <span className="text-xs">Casting Requests</span>
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             variant="destructive"

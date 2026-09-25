@@ -1265,6 +1265,9 @@ export const eventsRouter = new Hono<AppEnv>()
     }
   )
   .post("/:id/seed-demo", requireAuth, async (c) => {
+    if (!c.env.ALLOW_DEMO_ENDPOINTS) {
+      return c.json({ message: "Not found" }, HttpStatusCodes.NOT_FOUND);
+    }
     const db = createDb(c.env.DB);
     const { user: authUser } = c.var.authSession;
     const id = c.req.param("id");
@@ -1291,6 +1294,13 @@ export const eventsRouter = new Hono<AppEnv>()
     const db = createDb(c.env.DB);
     const { user: authUser } = c.var.authSession;
     const id = c.req.param("id");
+    const record = await getManageableEvent(db, id, authUser.id);
+    if (!record) {
+      return c.json(
+        { message: "Event not found or unauthorized" },
+        HttpStatusCodes.NOT_FOUND
+      );
+    }
 
     const result = await sendTournamentNotification({
       db,
@@ -1325,6 +1335,9 @@ export const eventsRouter = new Hono<AppEnv>()
     );
   })
   .post("/:id/advance-demo-round", requireAuth, async (c) => {
+    if (!c.env.ALLOW_DEMO_ENDPOINTS) {
+      return c.json({ message: "Not found" }, HttpStatusCodes.NOT_FOUND);
+    }
     const db = createDb(c.env.DB);
     const { user: authUser } = c.var.authSession;
     const id = c.req.param("id");

@@ -1,8 +1,12 @@
 import { Button } from "@rallycaststv/ui/components/button";
 import { Card, CardContent } from "@rallycaststv/ui/components/card";
 import { Input } from "@rallycaststv/ui/components/input";
-import { useQueryClient } from "@tanstack/react-query";
-import { useParams, Link, createFileRoute } from "@tanstack/react-router";
+import {
+  useParams,
+  Link,
+  createFileRoute,
+  useNavigate,
+} from "@tanstack/react-router";
 import {
   ChevronLeft,
   Video as VideoIcon,
@@ -12,20 +16,32 @@ import {
   Pin,
   Users,
   X,
+  CornerDownRight,
+  MessageCircle,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { SponsoredPlayer } from "@/components/ads/sponsored-player";
 import { authClient } from "@/lib/auth-client";
-import { getVideoCommentsCollection, useLiveQuery } from "@/lib/collections";
-import type { VideoCommentRecord } from "@/lib/collections";
-import { useFriends, useShareEntity, useVideo } from "@/lib/hooks";
+import {
+  useAddVideoComment,
+  useFriends,
+  useLikeVideo,
+  usePinVideoComment,
+  useRecordVideoView,
+  useShareEntity,
+  useUnlikeVideo,
+  useVideo,
+  useVideoComments,
+  useVideoSocial,
+} from "@/lib/hooks";
 
 interface CommentUser {
   id: string;
   name: string | null;
   username: string | null;
+  displayUsername?: string | null;
   image: string | null;
 }
 
@@ -35,6 +51,7 @@ interface VideoCommentWithUser {
   pinnedAt?: string | Date | null;
   content: string;
   createdAt: string | Date;
+  updatedAt?: string | Date;
   user: CommentUser | null;
 }
 
@@ -43,6 +60,7 @@ interface VideoListItem {
   title: string;
   thumbnailUrl?: string | null;
   muxPlaybackId?: string | null;
+
   durationSeconds?: number | null;
   status?: string;
 }
@@ -86,6 +104,36 @@ const formatDate = (value: Date | string) =>
     month: "long",
     year: "numeric",
   }).format(new Date(value));
+
+const formatRelativeTime = (value: Date | string) => {
+  const date = new Date(value);
+  const now = Date.now();
+  const diffMs = now - date.getTime();
+  if (Number.isNaN(diffMs)) {
+    return "recently";
+  }
+  const diffSec = Math.floor(diffMs / 1000);
+  if (diffSec < 60) {
+    return "just now";
+  }
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) {
+    return `${diffMin}m ago`;
+  }
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) {
+    return `${diffHours}h ago`;
+  }
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) {
+    return `${diffDays}d ago`;
+  }
+  if (diffDays < 30) {
+    const weeks = Math.floor(diffDays / 7);
+    return `${weeks}w ago`;
+  }
+  return formatDate(value);
+};
 
 function VideoLoadingSkeleton() {
   return (
@@ -135,20 +183,25 @@ function VideoNotFound() {
 
 interface VideoMetaHeaderProps {
   video: {
+    id: string;
     title: string;
     description: string | null;
     createdAt: string | Date;
+    publishedAt?: string | Date | null;
     venueId: string | null;
   };
   owner: {
+    id?: string | null;
     name?: string | null;
     username?: string | null;
     displayUsername?: string | null;
     image?: string | null;
   } | null;
   isSubscribed: boolean;
+  isOwnChannel?: boolean;
   likesCount: number;
   hasLiked: boolean;
+  viewsCount: number;
   handleSubscribeToggle: () => void;
   handleLikeToggle: () => void;
   handleShare: () => void;
@@ -174,8 +227,10 @@ function VideoMetaHeader({
   video,
   owner,
   isSubscribed,
+  isOwnChannel = false,
   likesCount,
   hasLiked,
+  viewsCount,
   handleSubscribeToggle,
   handleLikeToggle,
   handleShare,
@@ -208,7 +263,7 @@ function VideoMetaHeader({
           <Link
             to="/players/$username"
             params={{ username: ownerUsername }}
-            className="size-12 rounded-full border border-primary/20 bg-muted overflow-hidden flex items-center justify-center font-bold text-lg cursor-pointer shrink-0"
+            className="size-12 rounded-full border border-primary/20 bg-muted overflow-hidden flex items-center justify-center font-bold text-lg cursor-pointer shrink-0 active:scale-95 transition-transform"
           >
             {ownerImage ? (
               <img
@@ -249,14 +304,25 @@ function VideoMetaHeader({
               )}
             </div>
           </div>
-          <Button
-            disabled={isDemo}
-            onClick={handleSubscribeToggle}
-            variant={isSubscribed ? "secondary" : "default"}
-            className="rounded-full text-xs font-bold px-5 h-9 ml-4"
-          >
-            {subscriptionLabel}
-          </Button>
+          {isOwnChannel ? (
+            <Link to="/u/studio/videos/$id" params={{ id: video.id }}>
+              <Button
+                variant="outline"
+                className="rounded-full text-xs font-bold px-4 h-9 ml-4 active:scale-[0.97] transition-all touch-manipulation select-none"
+              >
+                Manage video
+              </Button>
+            </Link>
+          ) : (
+            <Button
+              disabled={isDemo}
+              onClick={handleSubscribeToggle}
+              variant={isSubscribed ? "secondary" : "default"}
+              className="rounded-full text-xs font-bold px-5 h-9 ml-4 active:scale-[0.97] transition-all touch-manipulation select-none"
+            >
+              {subscriptionLabel}
+            </Button>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -264,18 +330,18 @@ function VideoMetaHeader({
             disabled={isDemo}
             onClick={handleLikeToggle}
             variant={hasLiked ? "secondary" : "outline"}
-            className={`rounded-full gap-2 text-xs font-bold h-9 px-4 ${
+            className={`rounded-full gap-2 text-xs font-bold h-9 px-4 active:scale-[0.97] transition-all touch-manipulation select-none ${
               hasLiked ? "text-primary border-primary/30" : ""
             }`}
           >
             <ThumbsUp className={`size-4 ${hasLiked ? "fill-current" : ""}`} />
-            <span>{likesCount}</span>
+            <span>{likesCount.toLocaleString()}</span>
           </Button>
 
           <Button
             onClick={handleShare}
             variant="outline"
-            className="rounded-full gap-2 text-xs font-bold h-9 px-4"
+            className="rounded-full gap-2 text-xs font-bold h-9 px-4 active:scale-[0.97] transition-all touch-manipulation select-none"
           >
             <Share2 className="size-4" />
             Share
@@ -286,8 +352,11 @@ function VideoMetaHeader({
       <Card className="border border-border/40 bg-muted/40 rounded-xl overflow-hidden shadow-sm">
         <CardContent className="p-4 space-y-3 text-xs">
           <div className="flex flex-wrap gap-x-4 gap-y-1 font-bold text-foreground">
-            <span>1,208 views</span>
-            <span>{formatDate(video.createdAt)}</span>
+            <span>
+              {viewsCount.toLocaleString()}{" "}
+              {viewsCount === 1 ? "view" : "views"}
+            </span>
+            <span>{formatDate(video.publishedAt ?? video.createdAt)}</span>
           </div>
           <p className="text-muted-foreground leading-relaxed">
             {videoDescription}
@@ -358,15 +427,43 @@ function VideoMetaHeader({
 interface CommentsSectionProps {
   commentsList: VideoCommentWithUser[];
   commentsLoading: boolean;
-  currentUser: { name: string; image?: string | null } | null;
+  currentUser: {
+    name: string;
+    image?: string | null;
+    username?: string | null;
+  } | null;
   commentText: string;
   setCommentText: (val: string) => void;
-  handleAddComment: (e: React.FormEvent) => void;
+  handleAddComment: (content: string, replyToCommentId?: string) => void;
   handlePinComment: (commentId: string, pinned: boolean) => void;
   isPending: boolean;
   isPinPending: boolean;
   canPinComments: boolean;
   isReadOnly: boolean;
+}
+
+function renderCommentContent(content: string) {
+  const tokens = content.split(/(@[a-zA-Z0-9_.-]+)/gu);
+  return (
+    <span>
+      {tokens.map((token, index) => {
+        if (token.startsWith("@")) {
+          const username = token.slice(1);
+          return (
+            <Link
+              key={index}
+              to="/players/$username"
+              params={{ username }}
+              className="inline-block font-semibold text-primary hover:underline bg-primary/10 rounded px-1 py-0.5 mr-0.5 text-xs transition-colors"
+            >
+              {token}
+            </Link>
+          );
+        }
+        return <span key={index}>{token}</span>;
+      })}
+    </span>
+  );
 }
 
 function CommentsSection({
@@ -382,6 +479,25 @@ function CommentsSection({
   canPinComments,
   isReadOnly,
 }: CommentsSectionProps) {
+  const navigate = useNavigate();
+  const [replyingCommentId, setReplyingCommentId] = useState<string | null>(
+    null
+  );
+  const [replyText, setReplyText] = useState("");
+
+  const handleInlineReplySubmit = (
+    e: React.FormEvent,
+    parentCommentId: string
+  ) => {
+    e.preventDefault();
+    if (!replyText.trim()) {
+      return;
+    }
+    handleAddComment(replyText, parentCommentId);
+    setReplyingCommentId(null);
+    setReplyText("");
+  };
+
   const renderCommentsContent = () => {
     if (commentsLoading) {
       return (
@@ -402,108 +518,167 @@ function CommentsSection({
     if (commentsList.length > 0) {
       return (
         <div className="space-y-5">
-          {commentsList.map((comment: VideoCommentWithUser) => (
-            <div key={comment.id} className="flex gap-3 text-xs">
-              <Link
-                to="/players/$username"
-                params={{ username: comment.user?.username ?? "player" }}
-                className="size-9 rounded-full border border-border/30 bg-muted overflow-hidden flex items-center justify-center font-semibold text-xs cursor-pointer shrink-0"
-              >
-                {comment.user?.image ? (
-                  <img
-                    src={comment.user.image}
-                    alt={comment.user.name ?? "User avatar"}
-                    className="size-full object-cover"
-                  />
-                ) : (
-                  comment.user?.name?.at(0) || "U"
-                )}
-              </Link>
-              <div className="space-y-1 flex-1">
-                <div className="flex items-center gap-2">
-                  {comment.isPinned && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold text-primary">
-                      <Pin className="size-2.5" /> Pinned
-                    </span>
-                  )}
+          {commentsList.map((comment: VideoCommentWithUser) => {
+            const commentUserHandle =
+              comment.user?.username ??
+              comment.user?.displayUsername ??
+              "player";
+            const commentUserName = comment.user?.name ?? "Player";
+            const isReplying = replyingCommentId === comment.id;
+
+            return (
+              <div key={comment.id} className="space-y-2">
+                <div className="flex gap-3 text-xs">
                   <Link
                     to="/players/$username"
-                    params={{
-                      username: comment.user?.username ?? "player",
-                    }}
-                    className="font-extrabold hover:text-primary transition-colors text-[11px]"
+                    params={{ username: commentUserHandle }}
+                    className="size-9 rounded-full border border-border/30 bg-muted overflow-hidden flex items-center justify-center font-semibold text-xs cursor-pointer shrink-0 active:scale-95 transition-transform"
                   >
-                    {comment.user?.name}
+                    {comment.user?.image ? (
+                      <img
+                        src={comment.user.image}
+                        alt={commentUserName}
+                        className="size-full object-cover"
+                      />
+                    ) : (
+                      commentUserName.at(0) || "P"
+                    )}
                   </Link>
-                  <span className="text-[10px] text-muted-foreground">
-                    @{comment.user?.username || "player"}
-                  </span>
-                  <span className="text-[9px] text-muted-foreground">•</span>
-                  <span className="text-[9px] text-muted-foreground">
-                    {formatDate(comment.createdAt)}
-                  </span>
+                  <div className="space-y-1.5 flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {comment.isPinned && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold text-primary">
+                          <Pin className="size-2.5" /> Pinned
+                        </span>
+                      )}
+                      <Link
+                        to="/players/$username"
+                        params={{ username: commentUserHandle }}
+                        className="font-extrabold hover:text-primary transition-colors text-[11px]"
+                      >
+                        {commentUserName}
+                      </Link>
+                      <span className="text-[10px] text-muted-foreground">
+                        @{commentUserHandle}
+                      </span>
+                      <span className="text-[9px] text-muted-foreground">
+                        •
+                      </span>
+                      <span className="text-[9px] text-muted-foreground">
+                        {formatRelativeTime(comment.createdAt)}
+                      </span>
+                    </div>
+
+                    <p className="text-foreground leading-normal text-xs pr-4 break-words">
+                      {renderCommentContent(comment.content)}
+                    </p>
+
+                    <div className="flex items-center gap-3 pt-0.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!currentUser) {
+                            toast.error("Log in to reply to comments.", {
+                              action: {
+                                label: "Log In",
+                                onClick: () => {
+                                  void navigate({ to: "/login" });
+                                },
+                              },
+                            });
+                            return;
+                          }
+                          if (isReplying) {
+                            setReplyingCommentId(null);
+                            setReplyText("");
+                          } else {
+                            setReplyingCommentId(comment.id);
+                            setReplyText(`@${commentUserHandle} `);
+                          }
+                        }}
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground hover:text-primary active:scale-[0.97] transition-all touch-manipulation select-none"
+                      >
+                        <CornerDownRight className="size-3" />
+                        <span>Reply</span>
+                      </button>
+
+                      {canPinComments && (
+                        <button
+                          type="button"
+                          disabled={isPinPending}
+                          onClick={() =>
+                            handlePinComment(comment.id, !comment.isPinned)
+                          }
+                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground hover:text-primary active:scale-[0.97] transition-all touch-manipulation select-none disabled:opacity-50"
+                        >
+                          <Pin className="size-3" />
+                          <span>{comment.isPinned ? "Unpin" : "Pin"}</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <p className="text-foreground leading-normal text-xs pr-4">
-                  {comment.content}
-                </p>
-                {canPinComments && (
-                  <button
-                    type="button"
-                    disabled={isPinPending}
-                    onClick={() =>
-                      handlePinComment(comment.id, !comment.isPinned)
-                    }
-                    className="text-[10px] font-semibold text-muted-foreground hover:text-primary disabled:opacity-50"
-                  >
-                    {comment.isPinned ? "Unpin comment" : "Pin comment"}
-                  </button>
+
+                {isReplying && (
+                  <div className="ml-12 pl-3.5 border-l-2 border-primary/40 space-y-2 animate-in fade-in-50 duration-150">
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                      <span className="flex items-center gap-1.5">
+                        <CornerDownRight className="size-3 text-primary" />
+                        <span>
+                          Replying to{" "}
+                          <strong className="text-foreground font-semibold">
+                            @{commentUserHandle}
+                          </strong>
+                        </span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setReplyingCommentId(null);
+                          setReplyText("");
+                        }}
+                        className="text-muted-foreground hover:text-foreground text-[11px] font-medium"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                    <form
+                      onSubmit={(e) => handleInlineReplySubmit(e, comment.id)}
+                      className="flex gap-2 items-center"
+                    >
+                      <Input
+                        value={replyText}
+                        onChange={(e) => setReplyText(e.target.value)}
+                        placeholder={`Reply to @${commentUserHandle}...`}
+                        className="text-base md:text-sm h-9 rounded-full bg-muted/40 border-border/60 focus-visible:ring-1 focus-visible:ring-primary px-3.5 text-foreground"
+                        enterKeyHint="send"
+                        autoFocus
+                      />
+                      <Button
+                        type="submit"
+                        size="sm"
+                        disabled={isPending || !replyText.trim()}
+                        className="h-9 rounded-full px-4 text-xs font-bold active:scale-[0.97] transition-all touch-manipulation select-none shrink-0 bg-primary text-primary-foreground"
+                      >
+                        Reply
+                      </Button>
+                    </form>
+                  </div>
                 )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       );
     }
 
     return (
-      <div className="space-y-5">
-        <div className="flex gap-3 text-xs">
-          <div className="size-9 rounded-full bg-green-950/80 border border-green-800 text-green-400 flex items-center justify-center font-bold shrink-0">
-            JD
-          </div>
-          <div className="space-y-1 flex-1">
-            <div className="flex items-center gap-2">
-              <span className="font-extrabold text-[11px]">John Doe</span>
-              <span className="text-[10px] text-muted-foreground">
-                @johndoe
-              </span>
-              <span className="text-[9px] text-muted-foreground">•</span>
-              <span className="text-[9px] text-muted-foreground">Just now</span>
-            </div>
-            <p className="text-foreground leading-normal pr-4">
-              Clean angle! That backhand spin was absolutely crazy. Let's play
-              sometime.
-            </p>
-          </div>
-        </div>
-        <div className="flex gap-3 text-xs">
-          <div className="size-9 rounded-full bg-sky-950/80 border border-sky-800 text-sky-400 flex items-center justify-center font-bold shrink-0">
-            AS
-          </div>
-          <div className="space-y-1 flex-1">
-            <div className="flex items-center gap-2">
-              <span className="font-extrabold text-[11px]">Alice Smith</span>
-              <span className="text-[10px] text-muted-foreground">@alice</span>
-              <span className="text-[9px] text-muted-foreground">•</span>
-              <span className="text-[9px] text-muted-foreground">
-                2 hours ago
-              </span>
-            </div>
-            <p className="text-foreground leading-normal pr-4">
-              Incredible play. Which park is this? The courts look pristine!
-            </p>
-          </div>
-        </div>
+      <div className="py-10 text-center text-muted-foreground text-xs space-y-1.5 rounded-xl border border-dashed border-border/40">
+        <MessageCircle className="size-6 mx-auto text-muted-foreground/40" />
+        <p className="font-semibold text-foreground text-sm">No comments yet</p>
+        <p className="text-muted-foreground text-xs">
+          Be the first to share your thoughts!
+        </p>
       </div>
     );
   };
@@ -527,7 +702,10 @@ function CommentsSection({
             Log in to join the conversation and comment on this video.
           </p>
           <Link to="/login">
-            <Button size="sm" className="rounded-lg text-xs font-bold">
+            <Button
+              size="sm"
+              className="rounded-lg text-xs font-bold active:scale-[0.97] transition-all touch-manipulation select-none"
+            >
               Log In to Comment
             </Button>
           </Link>
@@ -536,7 +714,16 @@ function CommentsSection({
     }
 
     return (
-      <form onSubmit={handleAddComment} className="flex gap-3 items-start">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!commentText.trim()) {
+            return;
+          }
+          handleAddComment(commentText);
+        }}
+        className="flex gap-3 items-start"
+      >
         <div className="size-10 rounded-full border border-primary/20 bg-muted overflow-hidden flex items-center justify-center font-bold text-sm shrink-0">
           {currentUser.image ? (
             <img
@@ -553,7 +740,8 @@ function CommentsSection({
             placeholder="Add a public comment..."
             value={commentText}
             onChange={(event) => setCommentText(event.target.value)}
-            className="border-b border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:border-primary px-0 text-xs pb-2 bg-transparent"
+            className="border-b border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:border-primary px-0 text-base md:text-sm pb-2 bg-transparent"
+            enterKeyHint="send"
           />
           {commentText.trim() ? (
             <div className="flex justify-end gap-2 animate-in fade-in duration-200">
@@ -561,14 +749,14 @@ function CommentsSection({
                 type="button"
                 variant="ghost"
                 onClick={() => setCommentText("")}
-                className="rounded-full text-xs font-semibold px-4 h-8"
+                className="rounded-full text-xs font-semibold px-4 h-8 active:scale-[0.97] transition-all touch-manipulation select-none"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={isPending}
-                className="rounded-full text-xs font-semibold px-4 h-8 bg-primary text-primary-foreground"
+                className="rounded-full text-xs font-semibold px-4 h-8 bg-primary text-primary-foreground active:scale-[0.97] transition-all touch-manipulation select-none"
               >
                 Comment
               </Button>
@@ -583,7 +771,8 @@ function CommentsSection({
     <div className="space-y-6 pt-4">
       <div className="flex items-center gap-2">
         <h2 className="text-lg font-extrabold tracking-tight">
-          {commentsList.length} Comments
+          {commentsList.length}{" "}
+          {commentsList.length === 1 ? "Comment" : "Comments"}
         </h2>
       </div>
 
@@ -754,10 +943,10 @@ function VideoSharePanel({
 // oxlint-disable-next-line complexity
 function VideoDetailPage() {
   const { id } = useParams({ from: "/videos/$id" });
+  const navigate = useNavigate();
   const isDemoVideo = id.startsWith("demo-video-");
   const { data: session } = authClient.useSession();
   const currentUser = session?.user;
-  const queryClient = useQueryClient();
 
   const {
     data: videoData,
@@ -765,22 +954,75 @@ function VideoDetailPage() {
     error: videoError,
   } = useVideo(id);
 
-  const commentsCollection = useMemo(
-    () => getVideoCommentsCollection(queryClient, id),
-    [queryClient, id]
-  );
-  const { data: comments = [], isLoading: commentsLoading } =
-    useLiveQuery(commentsCollection);
+  const { data: socialData } = useVideoSocial(id);
+  const recordViewMutation = useRecordVideoView(id);
+  const likeMutation = useLikeVideo(id);
+  const unlikeMutation = useUnlikeVideo(id);
+
+  const { data: commentsData, isLoading: commentsLoading } =
+    useVideoComments(id);
+  const addCommentMutation = useAddVideoComment(id);
+  const pinCommentMutation = usePinVideoComment(id);
+
+  const viewRecordedRef = useRef(false);
+  useEffect(() => {
+    if (!viewRecordedRef.current && id && !isDemoVideo) {
+      viewRecordedRef.current = true;
+      recordViewMutation.mutate();
+    }
+  }, [id, isDemoVideo, recordViewMutation]);
 
   const [commentText, setCommentText] = useState("");
-  const [isSubscribed, setIsSubscribed] = useState(false);
-  const [likesCount, setLikesCount] = useState(42);
-  const [hasLiked, setHasLiked] = useState(false);
+  const [subscribedCreatorIds, setSubscribedCreatorIds] = useState<string[]>(
+    () => {
+      if (typeof window === "undefined" || !currentUser?.id) {
+        return [];
+      }
+      try {
+        const stored = localStorage.getItem(
+          `rallycasts_subscriptions_${currentUser.id}`
+        );
+        return stored ? (JSON.parse(stored) as string[]) : [];
+      } catch {
+        return [];
+      }
+    }
+  );
+
+  useEffect(() => {
+    if (!currentUser?.id) {
+      setSubscribedCreatorIds([]);
+      return;
+    }
+    try {
+      const stored = localStorage.getItem(
+        `rallycasts_subscriptions_${currentUser.id}`
+      );
+      setSubscribedCreatorIds(stored ? (JSON.parse(stored) as string[]) : []);
+    } catch {
+      setSubscribedCreatorIds([]);
+    }
+  }, [currentUser?.id]);
+
+  const [optimisticLiked, setOptimisticLiked] = useState<boolean | null>(null);
+  const [optimisticLikesDelta, setOptimisticLikesDelta] = useState(0);
   const [showSharePanel, setShowSharePanel] = useState(false);
+
+  const hasLiked =
+    optimisticLiked === null
+      ? (socialData?.hasLiked ?? false)
+      : optimisticLiked;
+  const likesCount = Math.max(
+    0,
+    (socialData?.likes ?? 0) + optimisticLikesDelta
+  );
+  const viewsCount = socialData?.views ?? 0;
+
+  const rawComments = commentsData?.comments;
 
   const sortedComments = useMemo(
     () =>
-      comments.toSorted((a, b) => {
+      (rawComments ?? []).toSorted((a, b) => {
         if (a.isPinned && !b.isPinned) {
           return -1;
         }
@@ -791,7 +1033,7 @@ function VideoDetailPage() {
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
       }),
-    [comments]
+    [rawComments]
   );
 
   if (videoLoading) {
@@ -803,27 +1045,106 @@ function VideoDetailPage() {
   }
 
   const { video, owner, venue, taggedUsers, relatedVideos } = videoData;
-  const canPinComments = Boolean(
+  const isOwnChannel = Boolean(
     currentUser?.id && owner?.id && currentUser.id === owner.id
+  );
+  const canPinComments = isOwnChannel;
+
+  const isSubscribed = Boolean(
+    currentUser?.id && owner?.id && subscribedCreatorIds.includes(owner.id)
   );
 
   const handleSubscribeToggle = () => {
-    setIsSubscribed(!isSubscribed);
-    if (isSubscribed) {
-      toast.info(`Unsubscribed from ${owner?.name || "creator"}`);
-    } else {
+    if (isDemoVideo) {
+      toast.info("Subscriptions are disabled for demo videos.");
+      return;
+    }
+    if (!currentUser) {
+      toast.error("Log in to subscribe to this channel.", {
+        action: {
+          label: "Log In",
+          onClick: () => {
+            void navigate({ to: "/login" });
+          },
+        },
+      });
+      return;
+    }
+    if (!owner?.id) {
+      return;
+    }
+    if (currentUser.id === owner.id) {
+      toast.info("You cannot subscribe to your own channel.");
+      return;
+    }
+
+    const nextSubscribed = !isSubscribed;
+    const nextList = nextSubscribed
+      ? [...subscribedCreatorIds, owner.id]
+      : subscribedCreatorIds.filter((cid) => cid !== owner.id);
+
+    setSubscribedCreatorIds(nextList);
+    try {
+      localStorage.setItem(
+        `rallycasts_subscriptions_${currentUser.id}`,
+        JSON.stringify(nextList)
+      );
+    } catch {
+      // ignore localStorage errors
+    }
+
+    if (nextSubscribed) {
       toast.success(`Subscribed to ${owner?.name || "creator"}`);
+    } else {
+      toast.info(`Unsubscribed from ${owner?.name || "creator"}`);
     }
   };
 
   const handleLikeToggle = () => {
+    if (isDemoVideo) {
+      toast.info("Likes are disabled for demo videos.");
+      return;
+    }
+    if (!currentUser) {
+      toast.error("Log in to like this video.", {
+        action: {
+          label: "Log In",
+          onClick: () => {
+            void navigate({ to: "/login" });
+          },
+        },
+      });
+      return;
+    }
     if (hasLiked) {
-      setLikesCount(likesCount - 1);
-      setHasLiked(false);
+      setOptimisticLiked(false);
+      setOptimisticLikesDelta((d) => d - 1);
+      unlikeMutation.mutate(undefined, {
+        onError: () => {
+          setOptimisticLiked(null);
+          setOptimisticLikesDelta(0);
+          toast.error("Failed to update like");
+        },
+        onSuccess: () => {
+          setOptimisticLiked(null);
+          setOptimisticLikesDelta(0);
+        },
+      });
     } else {
-      setLikesCount(likesCount + 1);
-      setHasLiked(true);
-      toast.success("Added to liked videos!");
+      setOptimisticLiked(true);
+      setOptimisticLikesDelta((d) => d + 1);
+      likeMutation.mutate(undefined, {
+        onError: () => {
+          setOptimisticLiked(null);
+          setOptimisticLikesDelta(0);
+          toast.error("Failed to update like");
+        },
+        onSuccess: () => {
+          setOptimisticLiked(null);
+          setOptimisticLikesDelta(0);
+          toast.success("Added to liked videos!");
+        },
+      });
     }
   };
 
@@ -837,8 +1158,7 @@ function VideoDetailPage() {
     setShowSharePanel((value) => !value);
   };
 
-  const handleAddComment = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAddComment = (content: string, replyToCommentId?: string) => {
     if (isDemoVideo) {
       toast.info("Demo comments are read-only.");
       return;
@@ -847,45 +1167,41 @@ function VideoDetailPage() {
       toast.error("You must be logged in to comment.");
       return;
     }
-    const trimmed = commentText.trim();
+    const trimmed = content.trim();
     if (!trimmed) {
       return;
     }
 
-    const newComment: VideoCommentRecord = {
-      content: trimmed,
-      createdAt: new Date().toISOString(),
-      id: crypto.randomUUID(),
-      isPinned: false,
-      pinnedAt: null,
-      user: {
-        id: currentUser.id,
-        image: currentUser.image ?? null,
-        name: currentUser.name ?? null,
-        username:
-          (currentUser as { username?: string | null }).username ?? null,
-      },
-    };
-
-    setCommentText("");
-    try {
-      commentsCollection.insert(newComment);
-      toast.success("Comment posted successfully!");
-    } catch {
-      toast.error("Failed to post comment. Please try again.");
-    }
+    addCommentMutation.mutate(
+      { content: trimmed, replyToCommentId },
+      {
+        onError: () => {
+          toast.error("Failed to post comment. Please try again.");
+        },
+        onSuccess: () => {
+          if (replyToCommentId) {
+            toast.success("Reply posted!");
+          } else {
+            setCommentText("");
+            toast.success("Comment posted!");
+          }
+        },
+      }
+    );
   };
 
   const handlePinComment = (commentId: string, pinned: boolean) => {
-    try {
-      commentsCollection.update(commentId, (draft) => {
-        draft.isPinned = pinned;
-        draft.pinnedAt = pinned ? new Date().toISOString() : null;
-      });
-      toast.success(pinned ? "Comment pinned." : "Comment unpinned.");
-    } catch {
-      toast.error("Could not update pinned comment.");
-    }
+    pinCommentMutation.mutate(
+      { commentId, pinned },
+      {
+        onError: () => {
+          toast.error("Could not update pinned comment.");
+        },
+        onSuccess: () => {
+          toast.success(pinned ? "Comment pinned." : "Comment unpinned.");
+        },
+      }
+    );
   };
 
   const posterUrl =
@@ -901,7 +1217,7 @@ function VideoDetailPage() {
       <div>
         <Link
           to="/"
-          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors active:scale-[0.97] touch-manipulation select-none"
         >
           <ChevronLeft className="size-3.5" /> Back to Home
         </Link>
@@ -947,8 +1263,10 @@ function VideoDetailPage() {
             video={video}
             owner={owner}
             isSubscribed={isSubscribed}
+            isOwnChannel={isOwnChannel}
             likesCount={likesCount}
             hasLiked={hasLiked}
+            viewsCount={viewsCount}
             handleSubscribeToggle={handleSubscribeToggle}
             handleLikeToggle={handleLikeToggle}
             handleShare={handleShare}
@@ -973,8 +1291,8 @@ function VideoDetailPage() {
             setCommentText={setCommentText}
             handleAddComment={handleAddComment}
             handlePinComment={handlePinComment}
-            isPending={false}
-            isPinPending={false}
+            isPending={addCommentMutation.isPending}
+            isPinPending={pinCommentMutation.isPending}
             canPinComments={canPinComments}
             isReadOnly={isDemoVideo}
           />

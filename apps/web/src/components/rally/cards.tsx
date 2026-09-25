@@ -13,8 +13,10 @@ import {
   Camera,
   DollarSign,
   Eye,
+  Flame,
   MapPin,
   Play,
+  ShieldCheck,
   Star,
   Trophy,
   Users,
@@ -26,6 +28,7 @@ export interface VideoCardData {
   description?: string | null;
   durationSeconds?: number | null;
   id: string;
+  mediaType?: "video" | "short" | "photo" | string | null;
   muxPlaybackId?: string | null;
   status?: string;
   thumbnailUrl?: string | null;
@@ -54,6 +57,7 @@ export interface VideoCardData {
     name: string;
     city?: string | null;
     state?: string | null;
+    slug?: string | null;
   } | null;
 }
 
@@ -81,11 +85,14 @@ export interface VenueCardData {
   googlePlaceId?: string | null;
   heatScore?: number | null;
   id: string;
+  isFavorited?: boolean;
+  isHomeCourt?: boolean;
   name: string;
   openNow?: boolean;
   photoUrl?: string | null;
   postalCode?: string | null;
   rating?: number | null;
+  slug?: string | null;
   source?: "google_places" | "rallycasts";
   state?: string | null;
   userRatingsTotal?: number | null;
@@ -334,29 +341,8 @@ export function VideoCard({ video }: { video: VideoCardData }) {
 
   return (
     <div className="group flex flex-col min-w-0 w-full animate-in fade-in duration-300 relative">
-      {/* Thumbnail with Tagged Overlay */}
-      <div className="relative">
-        <VideoThumbnail video={video} imageUrl={imageUrl} />
-        {video.taggedUsers && video.taggedUsers.length > 0 && (
-          <div className="absolute left-2 top-2 flex flex-wrap gap-1 z-10">
-            {video.taggedUsers
-              .filter((user): user is NonNullable<typeof user> => user !== null)
-              .map((u) => (
-                <Link
-                  key={u.id}
-                  to="/players/$username"
-                  params={{
-                    username: u.username ?? u.displayUsername ?? "player",
-                  }}
-                  className="rounded-full bg-black/75 hover:bg-primary text-white px-2 py-0.5 text-[9px] font-semibold transition-colors flex items-center gap-1 backdrop-blur-xs shadow-sm border border-white/10"
-                >
-                  <span className="inline-block size-1 rounded-full bg-[#bcdf21]" />
-                  <span>{u.name ?? "Player"}</span>
-                </Link>
-              ))}
-          </div>
-        )}
-      </div>
+      {/* Thumbnail */}
+      <VideoThumbnail imageUrl={imageUrl} video={video} />
 
       {/* Content Area */}
       <div className="mt-2.5 flex gap-3 px-1">
@@ -450,23 +436,32 @@ export function PlayerCard({ player }: { player: PlayerCardData }) {
 
 export function VenueCard({ venue }: { venue: VenueCardData }) {
   const location = [venue.city, venue.state].filter(Boolean).join(", ");
+  const venueParam = venue.slug || venue.id;
 
   return (
     <Card className="rounded-lg">
       <CardHeader>
-        <CardTitle>
-          <Link
-            to="/venues/$id"
-            params={{ id: venue.id }}
-            className="hover:text-primary transition-colors"
-          >
-            {venue.name}
-          </Link>
-        </CardTitle>
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle>
+            <Link
+              to="/venues/$id"
+              params={{ id: venueParam }}
+              className="hover:text-primary transition-colors"
+            >
+              {venue.name}
+            </Link>
+          </CardTitle>
+          {venue.isHomeCourt ? (
+            <span className="inline-flex items-center gap-1 rounded bg-[#bcdf21]/15 px-2 py-0.5 text-[10px] font-bold text-[#bcdf21] shrink-0 border border-[#bcdf21]/30">
+              <Star className="size-3 fill-[#bcdf21]" />
+              Home Court
+            </span>
+          ) : null}
+        </div>
         <CardDescription>{venue.venueType ?? "park"}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Link to="/venues/$id" params={{ id: venue.id }} className="block">
+        <Link to="/venues/$id" params={{ id: venueParam }} className="block">
           <div className="h-24 rounded-lg bg-[linear-gradient(135deg,hsl(142_100%_18%/.32),hsl(78_100%_60%/.18))] overflow-hidden hover:opacity-90 transition-opacity" />
         </Link>
         <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
@@ -486,12 +481,24 @@ export function VenueCard({ venue }: { venue: VenueCardData }) {
   );
 }
 
+const getHeatScore = (venue: VenueCardData, isGoogleDiscovery: boolean) => {
+  if (venue.heatScore !== undefined && venue.heatScore !== null) {
+    return venue.heatScore;
+  }
+  if ((venue.activePlayers ?? 0) > 0) {
+    return Math.min(100, (venue.activePlayers ?? 0) * 25);
+  }
+  if (isGoogleDiscovery) {
+    return Math.round((venue.rating ?? 4) * 12);
+  }
+  return 0;
+};
+
 export function ParkHeatCard({ venue }: { venue: VenueCardData }) {
   const location = [venue.city, venue.state].filter(Boolean).join(", ");
   const isGoogleDiscovery = venue.source === "google_places";
-  const heatScore =
-    venue.heatScore ??
-    (isGoogleDiscovery ? Math.round((venue.rating ?? 4) * 18) : 35);
+  const venueParam = venue.slug || venue.id;
+  const heatScore = getHeatScore(venue, isGoogleDiscovery);
   const heatWidth = `${Math.min(Math.max(heatScore, 8), 100)}%`;
   const distanceLabel =
     venue.distanceMiles !== undefined && venue.distanceMiles !== null
@@ -502,18 +509,19 @@ export function ParkHeatCard({ venue }: { venue: VenueCardData }) {
     : "discover";
   const statusLabel = getVenueStatusLabel(venue, isGoogleDiscovery);
   const cardLink = (
-    <Link to="/venues/$id" params={{ id: venue.id }} className="block">
+    <Link to="/venues/$id" params={{ id: venueParam }} className="block">
       <ParkHeatHeader
         heatScore={heatScore}
         heatWidth={heatWidth}
         photoUrl={venue.photoUrl}
+        isHomeCourt={venue.isHomeCourt}
       />
     </Link>
   );
   const titleLink = (
     <Link
       to="/venues/$id"
-      params={{ id: venue.id }}
+      params={{ id: venueParam }}
       className="hover:text-primary transition-colors"
     >
       {venue.name}
@@ -521,23 +529,35 @@ export function ParkHeatCard({ venue }: { venue: VenueCardData }) {
   );
 
   return (
-    <article className="w-72 shrink-0 overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+    <article className="w-72 shrink-0 overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm transition-all duration-200 hover:border-primary/40 hover:shadow-md">
       {cardLink}
       <div className="space-y-3 p-4">
         <div>
-          <h3 className="line-clamp-1 font-semibold">{titleLink}</h3>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <div className="flex items-center justify-between gap-1">
+            <h3 className="line-clamp-1 font-semibold text-sm">{titleLink}</h3>
+            {venue.isHomeCourt ? (
+              <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-[#bcdf21] shrink-0">
+                <Star className="size-3 fill-[#bcdf21]" />
+                Home
+              </span>
+            ) : null}
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground truncate">
             {location || venue.venueType || "Nearby park"}
           </p>
         </div>
         <div className="grid grid-cols-3 gap-2 text-xs">
-          <span className="rounded-md bg-muted px-2 py-1">{statusLabel}</span>
-          <span className="rounded-md bg-muted px-2 py-1">
+          <span className="rounded-md bg-muted/60 px-2 py-1 text-center font-medium text-[11px]">
+            {statusLabel}
+          </span>
+          <span className="rounded-md bg-muted/60 px-2 py-1 text-center font-medium text-[11px]">
             {isGoogleDiscovery
               ? ratingLabel
               : `${venue.courtCount ?? 0} courts`}
           </span>
-          <span className="rounded-md bg-muted px-2 py-1">{distanceLabel}</span>
+          <span className="rounded-md bg-muted/60 px-2 py-1 text-center font-medium text-[11px]">
+            {distanceLabel}
+          </span>
         </div>
       </div>
     </article>
@@ -563,69 +583,275 @@ function ParkHeatHeader({
   heatScore,
   heatWidth,
   photoUrl,
+  isHomeCourt,
 }: {
   heatScore: number;
   heatWidth: string;
   photoUrl?: string | null;
+  isHomeCourt?: boolean;
 }) {
+  const isHot = heatScore > 0;
   return (
-    <div className="relative h-28 overflow-hidden bg-[radial-gradient(circle_at_28%_40%,hsl(78_100%_60%/.55),transparent_24%),radial-gradient(circle_at_72%_36%,hsl(142_100%_18%/.9),transparent_28%),linear-gradient(135deg,hsl(142_100%_18%/.45),hsl(240_10%_4%/.2))] hover:opacity-95 transition-opacity">
+    <div className="relative h-32 overflow-hidden bg-slate-950 hover:opacity-95 transition-opacity">
       {photoUrl ? (
         <img
           src={photoUrl}
           alt=""
-          className="absolute inset-0 size-full object-cover opacity-60 mix-blend-overlay"
+          className="absolute inset-0 size-full object-cover opacity-80"
         />
-      ) : null}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-      <div className="absolute inset-x-4 bottom-4">
-        <div className="h-2 overflow-hidden rounded-full bg-black/40">
+      ) : (
+        <div className="absolute inset-0 bg-gradient-to-br from-emerald-950 via-slate-900 to-teal-950 flex items-center justify-center">
+          {/* Stylized court line markings */}
+          <svg
+            className="w-full h-full text-emerald-400/20"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 320 120"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            <rect
+              x="10"
+              y="10"
+              width="300"
+              height="100"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            />
+            <line
+              x1="160"
+              y1="10"
+              x2="160"
+              y2="110"
+              stroke="currentColor"
+              strokeWidth="3"
+            />
+            <line
+              x1="110"
+              y1="10"
+              x2="110"
+              y2="110"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeDasharray="3 2"
+            />
+            <line
+              x1="210"
+              y1="10"
+              x2="210"
+              y2="110"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeDasharray="3 2"
+            />
+            <line
+              x1="10"
+              y1="60"
+              x2="110"
+              y2="60"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            />
+            <line
+              x1="210"
+              y1="60"
+              x2="310"
+              y2="60"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            />
+          </svg>
+        </div>
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+
+      {isHomeCourt && (
+        <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-1 rounded-full bg-black/80 px-2 py-0.5 text-[11px] font-bold text-[#bcdf21] border border-[#bcdf21]/50 backdrop-blur-xs shadow-xs">
+          <Star className="size-3 fill-[#bcdf21]" />
+          <span>Home Court</span>
+        </div>
+      )}
+
+      <div className="absolute inset-x-3 bottom-3">
+        <div className="h-1.5 overflow-hidden rounded-full bg-white/20">
           <div
-            className="h-full rounded-full bg-brand-yellow"
-            style={{ width: heatWidth }}
+            className={cn(
+              "h-full rounded-full transition-all duration-300",
+              isHot ? "bg-[#bcdf21]" : "bg-white/40"
+            )}
+            style={{ width: isHot ? heatWidth : "8%" }}
           />
         </div>
-        <p className="mt-2 text-xs font-semibold text-white drop-shadow-xs">
-          {heatScore}% heat
-        </p>
+        <div className="mt-1.5 flex items-center justify-between text-[11px]">
+          <span
+            className={cn(
+              "font-semibold flex items-center gap-1",
+              isHot ? "text-[#bcdf21]" : "text-white/70"
+            )}
+          >
+            <Flame className={cn("size-3", isHot && "fill-[#bcdf21]")} />
+            {isHot ? `${heatScore}% heat` : "0% heat • Quiet"}
+          </span>
+        </div>
       </div>
     </div>
   );
 }
 
+export function RallyClipCard({ video }: { video: VideoCardData }) {
+  const imageUrl =
+    video.thumbnailUrl ??
+    (video.muxPlaybackId
+      ? `https://image.mux.com/${video.muxPlaybackId}/thumbnail.webp?time=1&aspect_ratio=9:16&fit_mode=smartcrop`
+      : null);
+
+  const viewsCount =
+    video.viewsCount ??
+    (Math.abs(
+      [...video.id].reduce((acc, char) => acc + (char.codePointAt(0) ?? 0), 0)
+    ) %
+      1200) +
+      240;
+
+  const viewsText = formatViews(viewsCount);
+  const timeAgoText = getTimeAgo(video);
+  const ownerUsername =
+    video.owner?.username ?? video.owner?.displayUsername ?? "player";
+
+  return (
+    <article className="group relative flex flex-col w-48 sm:w-56 shrink-0 snap-start overflow-hidden rounded-2xl border border-border/60 bg-card shadow-xs transition-all duration-300 hover:border-primary/50 hover:shadow-md cursor-pointer">
+      <Link
+        to="/videos/$id"
+        params={{ id: video.id }}
+        className="relative aspect-[9/16] w-full overflow-hidden bg-slate-950 block"
+      >
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt={video.title}
+            className="size-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+        ) : (
+          <div className="flex size-full flex-col items-center justify-center bg-gradient-to-b from-emerald-950 via-slate-900 to-black p-4 text-center">
+            <div className="size-12 rounded-full bg-primary/20 flex items-center justify-center text-primary mb-3">
+              <Play className="size-6 fill-primary ml-0.5" />
+            </div>
+            <p className="text-xs font-semibold text-white/80 line-clamp-2">
+              {video.title}
+            </p>
+          </div>
+        )}
+
+        <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between pointer-events-none">
+          <span className="inline-flex items-center gap-1 rounded-full bg-black/75 px-2 py-0.5 text-[10px] font-bold text-[#bcdf21] border border-[#bcdf21]/30 backdrop-blur-xs">
+            <Flame className="size-2.5 fill-[#bcdf21]" />
+            Rally Clip
+          </span>
+          <span className="rounded-full bg-black/75 px-2 py-0.5 text-[10px] font-semibold text-white/90 backdrop-blur-xs">
+            {formatDuration(video.durationSeconds)}
+          </span>
+        </div>
+
+        <div className="absolute inset-0 grid place-items-center bg-black/0 transition-colors group-hover:bg-black/30">
+          <div className="grid size-12 place-items-center rounded-full bg-primary text-primary-foreground opacity-0 transition-all duration-200 group-hover:opacity-100 group-hover:scale-105 shadow-lg">
+            <Play className="size-5 fill-current ml-0.5" />
+          </div>
+        </div>
+
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent p-3 pt-10">
+          <h4 className="line-clamp-2 text-xs sm:text-sm font-bold text-white drop-shadow-xs leading-snug group-hover:text-primary transition-colors">
+            {video.title}
+          </h4>
+          <div className="mt-2 flex items-center justify-between text-[11px] text-white/70">
+            <span>{viewsText}</span>
+            <span>{timeAgoText}</span>
+          </div>
+        </div>
+      </Link>
+
+      <div className="p-2.5 bg-card/90 border-t border-border/40 flex items-center gap-2">
+        <Link
+          to="/players/$username"
+          params={{ username: ownerUsername }}
+          className="shrink-0 cursor-pointer block"
+        >
+          <div className="size-6 rounded-full bg-primary/10 text-primary flex items-center justify-center overflow-hidden font-bold border border-border text-[10px]">
+            {video.owner?.image ? (
+              <img
+                src={video.owner.image}
+                alt={video.owner.name}
+                className="size-full object-cover"
+              />
+            ) : (
+              <span>{(video.owner?.name ?? "P").charAt(0).toUpperCase()}</span>
+            )}
+          </div>
+        </Link>
+        <Link
+          to="/players/$username"
+          params={{ username: ownerUsername }}
+          className="text-[11px] font-medium text-foreground hover:text-primary transition-colors truncate"
+        >
+          {video.owner?.name ?? `@${ownerUsername}`}
+        </Link>
+      </div>
+    </article>
+  );
+}
+
 export function CasterCard({ caster }: { caster: CasterCardData }) {
   return (
-    <Card className="rounded-lg">
-      <CardHeader>
-        <CardTitle>
-          <Link
-            to="/casters/$id"
-            params={{ id: caster.userId }}
-            className="hover:text-primary transition-colors"
-          >
-            {caster.displayName ?? "RallyCasts Caster"}
-          </Link>
-        </CardTitle>
-        <CardDescription>{caster.status ?? "available"}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <p className="line-clamp-2 text-sm text-muted-foreground">
-          {caster.bio ??
-            "Ready to capture matches, highlights, and tournament runs."}
-        </p>
-        <div className="flex items-center justify-between text-sm">
-          <span>{formatMoney(caster.hourlyRateCents)}/hr</span>
-          <span>{caster.serviceRadiusMiles ?? 25} mi radius</span>
+    <Card className="rounded-xl border border-border/60 bg-card hover:border-primary/40 transition-colors shadow-xs">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className="text-base">
+            <Link
+              to="/casters/$id"
+              params={{ id: caster.userId }}
+              className="hover:text-primary transition-colors inline-flex items-center gap-1.5"
+            >
+              <span>{caster.displayName ?? "RallyCasts Caster"}</span>
+              <ShieldCheck className="size-4 text-emerald-500" />
+            </Link>
+          </CardTitle>
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-500">
+            <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            On Duty
+          </span>
         </div>
-        <div className="flex gap-2">
-          <Button className="flex-1 rounded-md text-xs">Request caster</Button>
+        <CardDescription className="text-xs">
+          On-Demand Camera • {caster.serviceRadiusMiles ?? 25} mi dispatch range
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3.5">
+        <p className="line-clamp-2 text-xs text-muted-foreground leading-relaxed">
+          {caster.bio ??
+            "Certified on-court caster. Arrives with 4K stabilized camera and court audio to record and livestream your match."}
+        </p>
+        <div className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2 text-xs">
+          <span className="font-semibold text-foreground">
+            $25 / hr standard rate
+          </span>
+          <span className="text-muted-foreground">
+            Private review & approval
+          </span>
+        </div>
+        <div className="flex gap-2 pt-1">
+          <Link to="/u/casts/new" className="flex-1">
+            <Button className="w-full rounded-lg text-xs font-semibold cursor-pointer">
+              Request to Court
+            </Button>
+          </Link>
           <Link
             to="/casters/$id"
             params={{ id: caster.userId }}
             className="flex-1"
           >
-            <Button variant="outline" className="w-full rounded-md text-xs">
-              View Info
+            <Button
+              variant="outline"
+              className="w-full rounded-lg text-xs cursor-pointer"
+            >
+              Caster Info
             </Button>
           </Link>
         </div>
@@ -747,7 +973,47 @@ export function EventCard({ event }: { event: EventCardData }) {
   );
 }
 
+const getJobStatusBadge = (status?: string | null) => {
+  if (status === "completed") {
+    return {
+      className: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+      label: "Approved & Published",
+    };
+  }
+  if (status === "uploading") {
+    return {
+      className:
+        "bg-blue-500/15 text-blue-600 dark:text-blue-400 animate-pulse",
+      label: "Footage Ready • Awaiting Your Review",
+    };
+  }
+  if (status === "recording") {
+    return {
+      className: "bg-red-500/15 text-red-500 animate-pulse",
+      label: "Recording Live on Court",
+    };
+  }
+  if (status === "arrived") {
+    return {
+      className: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+      label: "Caster Arrived at Court",
+    };
+  }
+  if (status === "accepted") {
+    return {
+      className: "bg-purple-500/15 text-purple-600 dark:text-purple-400",
+      label: "Caster Dispatched & En Route",
+    };
+  }
+  return {
+    className: "bg-brand-yellow/20 text-foreground",
+    label: status ?? "Finding Nearby Caster...",
+  };
+};
+
 export function RequestCard({ job }: { job: CastingJobCardData }) {
+  const badge = getJobStatusBadge(job.status);
+
   return (
     <Card className="rounded-lg">
       <CardContent className="grid gap-4 md:grid-cols-[1fr_auto_auto] md:items-center">
@@ -764,12 +1030,10 @@ export function RequestCard({ job }: { job: CastingJobCardData }) {
         <span
           className={cn(
             "w-fit rounded-full px-3 py-1 text-xs font-semibold",
-            job.status === "completed"
-              ? "bg-blue-500/15 text-blue-500"
-              : "bg-brand-yellow text-black"
+            badge.className
           )}
         >
-          {job.status ?? "requested"}
+          {badge.label}
         </span>
       </CardContent>
     </Card>

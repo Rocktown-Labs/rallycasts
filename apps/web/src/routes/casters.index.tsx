@@ -82,14 +82,20 @@ function CastersPage() {
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
               to="/onboarding"
-              className={cn(buttonVariants(), "rounded-md")}
+              className={cn(buttonVariants(), "rounded-md font-semibold")}
             >
               Start caster onboarding
               <ArrowRight className="size-4" />
             </Link>
-            <Button className="rounded-md" variant="outline">
-              See requirements
-            </Button>
+            <Link to="/u/casts/new">
+              <Button
+                className="rounded-md font-semibold cursor-pointer"
+                variant="outline"
+              >
+                <Video className="mr-1.5 size-4 text-emerald-500" />
+                Need a caster? Order hours ($20/hr)
+              </Button>
+            </Link>
           </div>
           <p className="mt-6 text-sm text-muted-foreground">
             $50 guided onboarding • Background-check support • Weekly payouts

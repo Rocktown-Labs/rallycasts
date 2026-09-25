@@ -2,7 +2,7 @@ import { env } from "cloudflare:workers";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import app from "../index";
-import { signBeaconParams } from "../lib/ads";
+import { signBeaconParams, signDisplayTracking } from "../lib/ads";
 import { countVastAds } from "../lib/ads-vast";
 
 const BEACON_SECRET = "test-secret-test-secret-test-secret-test-secret";
@@ -335,14 +335,16 @@ describe("ads campaigns", () => {
     );
     expect(forged.status).toBe(400);
 
+    const tracking = await signDisplayTracking(
+      env.BETTER_AUTH_SECRET,
+      campaignId,
+      creative?.id ?? ""
+    );
+
     const impression = await app.request(
       "/api/v1/ads/impressions",
       {
-        body: JSON.stringify({
-          campaignId,
-          creativeId: creative?.id,
-          placement: "display",
-        }),
+        body: JSON.stringify(tracking.impression),
         headers: { "Content-Type": "application/json" },
         method: "POST",
       },
@@ -353,11 +355,7 @@ describe("ads campaigns", () => {
     const click = await app.request(
       "/api/v1/ads/clicks",
       {
-        body: JSON.stringify({
-          campaignId,
-          creativeId: creative?.id,
-          placement: "display",
-        }),
+        body: JSON.stringify(tracking.click),
         headers: { "Content-Type": "application/json" },
         method: "POST",
       },

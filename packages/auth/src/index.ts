@@ -98,7 +98,7 @@ export const createAuth = (
     account: {
       accountLinking: {
         enabled: true,
-        requireLocalEmailVerified: false,
+        requireLocalEmailVerified: true,
         trustedProviders: ["google", "github"],
       },
     },

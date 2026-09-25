@@ -141,6 +141,78 @@ export const useCreateVideo = () => {
   });
 };
 
+export const useVideoSocial = (videoId: string, enabled = true) =>
+  useQuery({
+    enabled: enabled && videoId.length > 0,
+    queryFn: () =>
+      readApiJson(
+        apiClient.api.v1.videos[":id"].social.$get({
+          param: { id: videoId },
+        })
+      ),
+    queryKey: ["videos", videoId, "social"],
+  });
+
+export const useRecordVideoView = (videoId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () =>
+      readApiJson(
+        apiClient.api.v1.videos[":id"].views.$post({
+          param: { id: videoId },
+        })
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["videos", videoId, "social"],
+      });
+    },
+  });
+};
+
+export const useLikeVideo = (videoId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () =>
+      readApiJson(
+        apiClient.api.v1.videos[":id"].likes.$post({
+          param: { id: videoId },
+        })
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["videos", videoId, "social"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["videos", "feed"],
+      });
+    },
+  });
+};
+
+export const useUnlikeVideo = (videoId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () =>
+      readApiJson(
+        apiClient.api.v1.videos[":id"].likes.$delete({
+          param: { id: videoId },
+        })
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["videos", videoId, "social"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["videos", "feed"],
+      });
+    },
+  });
+};
+
 export const useVideoComments = (videoId: string, enabled = true) =>
   useQuery({
     enabled: enabled && videoId.length > 0,
@@ -157,7 +229,7 @@ export const useAddVideoComment = (videoId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (json: { content: string }) =>
+    mutationFn: (json: { content: string; replyToCommentId?: string }) =>
       readApiJson(
         apiClient.api.v1.videos[":id"].comments.$post({
           json,
@@ -167,6 +239,9 @@ export const useAddVideoComment = (videoId: string) => {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["videos", videoId, "comments"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["videos", videoId, "social"],
       });
     },
   });

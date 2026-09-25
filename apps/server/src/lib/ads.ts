@@ -303,28 +303,54 @@ export const verifyBeaconParams = async (
   if (Number(params.exp) < Date.now()) {
     return false;
   }
-  const expected = await signBeaconParams(secret, {
-    c: params.c,
-    cr: params.cr,
-    ev: params.ev,
-    exp: params.exp,
-    p: params.p,
-  });
-  const actualBytes = hexToBytes(params.sig);
-  const expectedBytes = hexToBytes(expected);
-  if (
-    !actualBytes ||
-    !expectedBytes ||
-    actualBytes.length !== expectedBytes.length
-  ) {
+  const signature = hexToBytes(params.sig);
+  if (!signature) {
     return false;
   }
-  for (let index = 0; index < actualBytes.length; index += 1) {
-    if (actualBytes[index] !== expectedBytes[index]) {
-      return false;
-    }
-  }
-  return true;
+  const payload = `${params.c}.${params.cr}.${params.p}.${params.ev}.${params.exp}`;
+  const key = await hmacKey(secret);
+  // crypto.subtle.verify compares in constant time; never hand-roll a loop.
+  return crypto.subtle.verify(
+    "HMAC",
+    key,
+    signature as BufferSource,
+    new TextEncoder().encode(payload)
+  );
+};
+
+export interface DisplayAdTracking {
+  click: Required<SignedBeaconParams>;
+  impression: Required<SignedBeaconParams>;
+}
+
+/**
+ * Pre-sign display impression/click beacon params so sponsored payloads can
+ * ship forge-proof tracking tokens to clients.
+ */
+export const signDisplayTracking = async (
+  secret: string,
+  campaignId: string,
+  creativeId: string
+): Promise<DisplayAdTracking> => {
+  const exp = String(Date.now() + BEACON_TTL_MS);
+  const signFor = async (ev: "click" | "impression") => ({
+    c: campaignId,
+    cr: creativeId,
+    ev,
+    exp,
+    p: "display" as const,
+    sig: await signBeaconParams(secret, {
+      c: campaignId,
+      cr: creativeId,
+      ev,
+      exp,
+      p: "display",
+    }),
+  });
+  return {
+    click: await signFor("click"),
+    impression: await signFor("impression"),
+  };
 };
 
 export const hashViewer = async (

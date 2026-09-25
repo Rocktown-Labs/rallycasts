@@ -13,7 +13,7 @@ import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 
 import { isPlatformAdminUser } from "../lib/admin";
-import { getDisplaySponsorships } from "../lib/ads";
+import { getDisplaySponsorships, signDisplayTracking } from "../lib/ads";
 import { generateEmbedding } from "../lib/embeddings";
 import { toPublicVenue, toPublicVideo } from "../lib/public-data";
 import { backfillSearchDocuments } from "../lib/search-backfill";
@@ -362,19 +362,26 @@ export const searchRouter = new Hono<AppEnv>()
       // and they are labeled instead of blended into semantic order.
       const sponsorships = await getDisplaySponsorships(db, {});
       const needle = query.trim().toLowerCase();
-      const sponsored = sponsorships
-        .filter((sponsorship) =>
-          `${sponsorship.event.name} ${sponsorship.event.description ?? ""}`
-            .toLowerCase()
-            .includes(needle)
-        )
-        .slice(0, 2)
-        .map((sponsorship) => ({
-          ...sponsorship.event,
-          adCampaignId: sponsorship.campaign.id,
-          adCreativeId: sponsorship.creative.id,
-          sponsored: true as const,
-        }));
+      const sponsored = await Promise.all(
+        sponsorships
+          .filter((sponsorship) =>
+            `${sponsorship.event.name} ${sponsorship.event.description ?? ""}`
+              .toLowerCase()
+              .includes(needle)
+          )
+          .slice(0, 2)
+          .map(async (sponsorship) => ({
+            ...sponsorship.event,
+            adCampaignId: sponsorship.campaign.id,
+            adCreativeId: sponsorship.creative.id,
+            adTracking: await signDisplayTracking(
+              c.env.BETTER_AUTH_SECRET,
+              sponsorship.campaign.id,
+              sponsorship.creative.id
+            ),
+            sponsored: true as const,
+          }))
+      );
       events = [...sponsored, ...events].slice(0, 6);
     }
     const keywordVenues =
