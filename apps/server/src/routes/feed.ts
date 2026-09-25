@@ -15,7 +15,11 @@ import { and, desc, eq, inArray, like, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 
-import { getDisplaySponsorships, signDisplayTracking } from "../lib/ads";
+import {
+  getDisplaySponsorships,
+  adsSecret,
+  signDisplayTracking,
+} from "../lib/ads";
 import { generateEmbedding } from "../lib/embeddings";
 import { haversineDistance } from "../lib/geo";
 import { toPublicVenue, toPublicVideo } from "../lib/public-data";
@@ -644,7 +648,7 @@ export const feedRouter = new Hono<AppEnv>().get(
           adCampaignId: sponsorship.campaign.id,
           adCreativeId: sponsorship.creative.id,
           adTracking: await signDisplayTracking(
-            c.env.BETTER_AUTH_SECRET,
+            adsSecret(c.env),
             sponsorship.campaign.id,
             sponsorship.creative.id
           ),

@@ -46,6 +46,43 @@ const offerResponseSchema = z.object({
   status: z.enum(["accepted", "declined"]),
 });
 
+type CastingJobStatus = z.infer<typeof statusSchema>["status"];
+
+/**
+ * Role-based status transition matrix. The requester drives the booking
+ * lifecycle (draft → requested → cancelled); the assigned caster drives the
+ * on-site lifecycle (accepted → arrived → recording → uploading → completed).
+ * Terminal states (completed, failed, cancelled, declined) have no exits.
+ * Either party may cancel a non-terminal job.
+ */
+const REQUESTER_TRANSITIONS: Record<CastingJobStatus, CastingJobStatus[]> = {
+  accepted: ["cancelled"],
+  arrived: ["cancelled"],
+  cancelled: [],
+  completed: [],
+  declined: [],
+  draft: ["requested", "cancelled"],
+  failed: [],
+  offered: ["cancelled"],
+  recording: ["cancelled"],
+  requested: ["draft", "cancelled"],
+  uploading: ["cancelled"],
+};
+
+const CASTER_TRANSITIONS: Record<CastingJobStatus, CastingJobStatus[]> = {
+  accepted: ["arrived", "cancelled"],
+  arrived: ["recording", "failed", "cancelled"],
+  cancelled: [],
+  completed: [],
+  declined: [],
+  draft: [],
+  failed: [],
+  offered: ["accepted", "declined"],
+  recording: ["uploading", "failed", "cancelled"],
+  requested: [],
+  uploading: ["completed", "failed", "cancelled"],
+};
+
 export const castingJobsRouter = new Hono<AppEnv>()
   .use(requireAuth)
   .get("/", async (c) => {
@@ -111,12 +148,13 @@ export const castingJobsRouter = new Hono<AppEnv>()
     const id = c.req.param("id");
     const { status } = c.req.valid("json");
 
-    await db
-      .update(castingJob)
-      .set({
-        status,
-        updatedAt: new Date(),
+    const [job] = await db
+      .select({
+        casterUserId: castingJob.casterUserId,
+        requesterUserId: castingJob.requesterUserId,
+        status: castingJob.status,
       })
+      .from(castingJob)
       .where(
         and(
           eq(castingJob.id, id),
@@ -125,7 +163,39 @@ export const castingJobsRouter = new Hono<AppEnv>()
             eq(castingJob.casterUserId, user.id)
           )
         )
+      )
+      .limit(1);
+
+    if (!job) {
+      return c.json(
+        { message: "Casting job not found" },
+        HttpStatusCodes.NOT_FOUND
       );
+    }
+
+    const isRequester = job.requesterUserId === user.id;
+    const isCaster = job.casterUserId === user.id;
+    if (job.status === status) {
+      return c.json({ id, status }, HttpStatusCodes.OK);
+    }
+    const allowed = [
+      ...(isRequester ? (REQUESTER_TRANSITIONS[job.status] ?? []) : []),
+      ...(isCaster ? (CASTER_TRANSITIONS[job.status] ?? []) : []),
+    ];
+    if (!allowed.includes(status)) {
+      return c.json(
+        { message: "This status change is not allowed" },
+        HttpStatusCodes.FORBIDDEN
+      );
+    }
+
+    await db
+      .update(castingJob)
+      .set({
+        status,
+        updatedAt: new Date(),
+      })
+      .where(eq(castingJob.id, id));
 
     return c.json({ id, status }, HttpStatusCodes.OK);
   })

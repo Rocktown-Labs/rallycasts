@@ -13,7 +13,11 @@ import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 
 import { isPlatformAdminUser } from "../lib/admin";
-import { getDisplaySponsorships, signDisplayTracking } from "../lib/ads";
+import {
+  getDisplaySponsorships,
+  adsSecret,
+  signDisplayTracking,
+} from "../lib/ads";
 import { generateEmbedding } from "../lib/embeddings";
 import { toPublicVenue, toPublicVideo } from "../lib/public-data";
 import { backfillSearchDocuments } from "../lib/search-backfill";
@@ -375,7 +379,7 @@ export const searchRouter = new Hono<AppEnv>()
             adCampaignId: sponsorship.campaign.id,
             adCreativeId: sponsorship.creative.id,
             adTracking: await signDisplayTracking(
-              c.env.BETTER_AUTH_SECRET,
+              adsSecret(c.env),
               sponsorship.campaign.id,
               sponsorship.creative.id
             ),

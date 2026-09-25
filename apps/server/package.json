@@ -33,7 +33,7 @@
     "alchemy": "catalog:",
     "tsdown": "^0.21.9",
     "typescript": "catalog:",
-    "vitest": "^4.1.8",
+    "vitest": "^4.1.11",
     "wrangler": "catalog:"
   }
 }

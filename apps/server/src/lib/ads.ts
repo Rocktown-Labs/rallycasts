@@ -248,6 +248,18 @@ const hmacKey = (secret: string) =>
     ["sign", "verify"]
   );
 
+/**
+ * HMAC secret for ad beacons and viewer hashing. A dedicated AD_BEACON_SECRET
+ * keeps ad-path verification separate from the auth secret; falls back to
+ * BETTER_AUTH_SECRET when unset so existing deployments keep working.
+ * NOTE: configuring a fresh AD_BEACON_SECRET invalidates signed beacons
+ * issued under the old key (they expire within 24h regardless).
+ */
+export const adsSecret = (env: {
+  AD_BEACON_SECRET?: string;
+  BETTER_AUTH_SECRET: string;
+}): string => env.AD_BEACON_SECRET || env.BETTER_AUTH_SECRET;
+
 const bytesToHex = (bytes: Uint8Array) =>
   Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 

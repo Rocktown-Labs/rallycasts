@@ -8,7 +8,7 @@
     ],
     "catalog": {
       "dotenv": "^17.2.2",
-      "zod": "^4.1.13",
+      "zod": "4.4.3",
       "typescript": "^6",
       "@cloudflare/workers-types": "^4.20251213.0",
       "better-auth": "1.6.22",
@@ -50,7 +50,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "catalog:",
-    "@playwright/test": "1.55.0",
+    "@playwright/test": "1.55.1",
     "@rallycaststv/config": "workspace:*",
     "@types/node": "^22.13.14",
     "lefthook": "latest",

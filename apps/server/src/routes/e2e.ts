@@ -21,7 +21,7 @@ import type { AppEnv } from "../lib/types";
 const seedSchema = z.object({
   email: z.email(),
   name: z.string().trim().min(1).max(120),
-  password: z.string().min(8).max(128),
+  password: z.string().min(12).max(128),
   peerEmail: z.email().optional(),
   peerName: z.string().trim().min(1).max(120).optional(),
 });
@@ -58,10 +58,8 @@ const ensureUser = async (
     .where(eq(user.email, input.email))
     .limit(1);
   if (existing) {
-    await db
-      .update(user)
-      .set({ emailVerified: true, name: input.name, updatedAt: new Date() })
-      .where(eq(user.id, existing.id));
+    // Never mutate a pre-existing account: force-verifying an arbitrary email
+    // would let a leaked seed token take over that inbox.
     return existing.id;
   }
 
@@ -78,6 +76,11 @@ const ensureUser = async (
 };
 
 export const e2eRouter = new Hono<AppEnv>().post("/seed", async (c) => {
+  // Belt and suspenders with E2E_SEED_TOKEN: the endpoint only exists when the
+  // deployment explicitly allows demo endpoints (never in prod).
+  if (!c.env.ALLOW_DEMO_ENDPOINTS) {
+    return c.json({ message: "Not found" }, HttpStatusCodes.NOT_FOUND);
+  }
   const expectedToken = c.env.E2E_SEED_TOKEN;
   const providedToken = c.req.header("x-rallycasts-e2e-token");
   if (

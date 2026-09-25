@@ -800,7 +800,7 @@ function VideoSidebar({ otherVideos }: VideoSidebarProps) {
             const vidThumbnail =
               vid.thumbnailUrl ??
               (vid.muxPlaybackId
-                ? `https://image.mux.com/${vid.muxPlaybackId}/thumbnail.webp?time=1`
+                ? `https://image.mux.com/${encodeURIComponent(vid.muxPlaybackId)}/thumbnail.webp?time=1`
                 : null);
             return (
               <Link
@@ -1207,7 +1207,7 @@ function VideoDetailPage() {
   const posterUrl =
     video.thumbnailUrl ??
     (video.muxPlaybackId
-      ? `https://image.mux.com/${video.muxPlaybackId}/thumbnail.webp?time=1`
+      ? `https://image.mux.com/${encodeURIComponent(video.muxPlaybackId)}/thumbnail.webp?time=1`
       : undefined);
   const shareHref =
     typeof window === "undefined" ? `/videos/${id}` : window.location.href;

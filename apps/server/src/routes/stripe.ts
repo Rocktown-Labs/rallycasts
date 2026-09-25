@@ -394,8 +394,11 @@ export const stripeRouter = new Hono<AppEnv>()
           )
         )
         .limit(1);
-      if (!membership || membership.role === "editor") {
-        return c.json({ message: "Forbidden" }, HttpStatusCodes.FORBIDDEN);
+      if (!membership || membership.role !== "owner") {
+        return c.json(
+          { message: "Only organization owners can manage payouts" },
+          HttpStatusCodes.FORBIDDEN
+        );
       }
 
       let accountId = membership.organization.stripeAccountId;

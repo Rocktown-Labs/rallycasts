@@ -1068,7 +1068,7 @@ function VenuesGrid({
                   "flex-1 text-xs gap-1.5 rounded-lg"
                 )}
                 href={mapsUrl}
-                rel="noopener"
+                rel="noopener noreferrer"
                 target="_blank"
               >
                 <Navigation className="size-3 text-primary" />

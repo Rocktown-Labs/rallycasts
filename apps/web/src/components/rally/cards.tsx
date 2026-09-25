@@ -323,7 +323,7 @@ export function VideoCard({ video }: { video: VideoCardData }) {
   const imageUrl =
     video.thumbnailUrl ??
     (video.muxPlaybackId
-      ? `https://image.mux.com/${video.muxPlaybackId}/thumbnail.webp?time=1`
+      ? `https://image.mux.com/${encodeURIComponent(video.muxPlaybackId)}/thumbnail.webp?time=1`
       : null);
 
   const viewsCount =
@@ -702,7 +702,7 @@ export function RallyClipCard({ video }: { video: VideoCardData }) {
   const imageUrl =
     video.thumbnailUrl ??
     (video.muxPlaybackId
-      ? `https://image.mux.com/${video.muxPlaybackId}/thumbnail.webp?time=1&aspect_ratio=9:16&fit_mode=smartcrop`
+      ? `https://image.mux.com/${encodeURIComponent(video.muxPlaybackId)}/thumbnail.webp?time=1&aspect_ratio=9:16&fit_mode=smartcrop`
       : null);
 
   const viewsCount =
