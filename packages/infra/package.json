@@ -13,10 +13,10 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@effect/platform-bun": "catalog:",
+    "@effect/platform-node": "catalog:",
     "@rallycaststv/config": "workspace:*",
     "alchemy": "catalog:",
-    "typescript": "catalog:",
-    "@effect/platform-bun": "catalog:",
-    "@effect/platform-node": "catalog:"
+    "typescript": "catalog:"
   }
 }
