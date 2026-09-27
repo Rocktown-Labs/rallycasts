@@ -20,7 +20,7 @@ jobs:
       E2E_API_URL: https://rallycasts-server-staging.rocktown-labs.workers.dev
       E2E_RUN_MUX_UPLOAD: "true"
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
