@@ -378,6 +378,19 @@ jobs:
           VITE_FOURTHWALL_STOREFRONT_URL: ${{ secrets.VITE_FOURTHWALL_STOREFRONT_URL || vars.VITE_FOURTHWALL_STOREFRONT_URL }}
           VITE_RADAR_PUBLISHABLE_KEY: ${{ secrets.VITE_RADAR_PUBLISHABLE_KEY }}
 
+      - name: Validate D1 migrations bookkeeping
+        run: |
+          set -euo pipefail
+          if [ "${{ env.STAGE }}" = "prod" ]; then
+            DB_NAME="rallycaststv-db"
+          else
+            DB_NAME="rallycaststv-db-${{ env.STAGE }}"
+          fi
+          bash scripts/validate-d1-migrations-schema.sh "$DB_NAME"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
       - name: Apply D1 Migrations
         run: |
           set -euo pipefail
@@ -418,7 +431,9 @@ jobs:
             0014_rich_giant_girl \
             0015_narrow_mercury \
             0016_square_bedlam \
-            0017_milky_maestro; do
+            0017_milky_maestro \
+            0018_adorable_iron_monger \
+            0019_lovely_master_chief; do
             if ! printf '%s\n' "$MIGRATIONS_JSON" | jq -e --arg migration "$migration" \
               'any(.[]?.results[]?; .name == $migration or .name == ($migration + ".sql"))' \
               >/dev/null; then
@@ -427,7 +442,7 @@ jobs:
               exit 1
             fi
           done
-          echo "Production D1 migrations 0014–0017 are applied."
+          echo "Production D1 migrations 0014–0019 are applied."
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
