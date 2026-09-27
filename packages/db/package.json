@@ -15,11 +15,11 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
-    "@libsql/client": "0.15.15",
+    "@libsql/client": "0.18.0",
     "@rallycaststv/env": "workspace:*",
     "dotenv": "catalog:",
-    "drizzle-orm": "^0.45.1",
-    "libsql": "0.5.22",
+    "drizzle-orm": "^0.45.3",
+    "libsql": "0.5.29",
     "zod": "catalog:"
   },
   "devDependencies": {
