@@ -29,6 +29,7 @@ export interface AppEnv {
     ADS_ANALYTICS?: AnalyticsEngineDataset;
     ADS_EVENTS?: Queue<AppAdEventMessage>;
     AD_BEACON_SECRET?: string;
+    ADMIN_EMAILS?: string;
     AI?: Ai;
     ALLOW_DEMO_ENDPOINTS?: string;
     BETTER_AUTH_SECRET: string;

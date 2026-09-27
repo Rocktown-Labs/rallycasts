@@ -134,6 +134,13 @@
       "when": 1788635648983,
       "tag": "0018_adorable_iron_monger",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1790525440649,
+      "tag": "0019_lovely_master_chief",
+      "breakpoints": true
     }
   ]
 }

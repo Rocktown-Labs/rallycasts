@@ -348,6 +348,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_EMAIL: ${{ secrets.CLOUDFLARE_EMAIL }}
           AD_BEACON_SECRET: ${{ secrets.AD_BEACON_SECRET }}
+          ADMIN_EMAILS: ${{ secrets.ADMIN_EMAILS || vars.ADMIN_EMAILS }}
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
           E2E_SEED_TOKEN: ${{ secrets.E2E_SEED_TOKEN }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}

@@ -10,6 +10,9 @@ import {
 export const user = sqliteTable(
   "user",
   {
+    banExpires: integer("ban_expires", { mode: "timestamp_ms" }),
+    banReason: text("ban_reason"),
+    banned: integer("banned", { mode: "boolean" }).default(false),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
       .notNull(),
@@ -21,6 +24,7 @@ export const user = sqliteTable(
     id: text("id").primaryKey(),
     image: text("image"),
     name: text("name").notNull(),
+    role: text("role").default("user"),
     updatedAt: integer("updated_at", { mode: "timestamp_ms" })
       .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
       .$onUpdate(() => new Date())

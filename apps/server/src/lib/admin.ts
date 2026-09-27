@@ -1,4 +1,5 @@
 import type { createDb } from "@rallycaststv/db";
+import { user as authUser } from "@rallycaststv/db/schema/auth";
 import { userProfile } from "@rallycaststv/db/schema/domain";
 import { eq } from "drizzle-orm";
 
@@ -26,8 +27,16 @@ export const isPlatformAdminUser = async (
     .from(userProfile)
     .where(eq(userProfile.userId, userId))
     .limit(1);
-
-  return profile?.platformRole === "admin";
+  if (profile?.platformRole === "admin") {
+    return true;
+  }
+  // better-auth admin plugin role (auto-granted from ADMIN_EMAILS).
+  const [record] = await db
+    .select({ role: authUser.role })
+    .from(authUser)
+    .where(eq(authUser.id, userId))
+    .limit(1);
+  return record?.role === "admin";
 };
 
 export const isConfiguredOrigin = (

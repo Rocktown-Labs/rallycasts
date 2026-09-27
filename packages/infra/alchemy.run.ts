@@ -78,6 +78,7 @@ interface VectorizeBindingShape {
 // bindings (a missing key fails loudly at the use site).
 export interface ServerEnv {
   AD_BEACON_SECRET: string;
+  ADMIN_EMAILS: string;
   ADS_ANALYTICS: AnalyticsEngineDataset;
   ADS_EVENTS: Queue;
   ALLOW_DEMO_ENDPOINTS: string;
@@ -215,6 +216,7 @@ export default Alchemy.Stack(
         }),
         ADS_EVENTS: adsQueue,
         ...secretBinding("AD_BEACON_SECRET"),
+        ...plainBinding("ADMIN_EMAILS"),
         ...(isProd ? {} : { ALLOW_DEMO_ENDPOINTS: "true" }),
         ...secretBinding("BETTER_AUTH_SECRET"),
         BETTER_AUTH_URL: serverWorkerUrl,
