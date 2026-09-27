@@ -7,7 +7,7 @@ import {
   CardTitle,
 } from "@rallycaststv/ui/components/card";
 import { Skeleton } from "@rallycaststv/ui/components/skeleton";
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import {
   Activity,
   AlertTriangle,
@@ -312,7 +312,15 @@ function AdminDashboardPage() {
       <section className="grid gap-6 xl:grid-cols-[1fr_420px]">
         <Card className="rounded-lg">
           <CardHeader>
-            <CardTitle>Recent Users</CardTitle>
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle>Recent Users</CardTitle>
+              <Link
+                className="text-sm font-semibold text-primary hover:underline"
+                to="/u/admin-users"
+              >
+                Manage users
+              </Link>
+            </div>
             <CardDescription>
               The quickest signal for onboarding quality after a data reset.
             </CardDescription>

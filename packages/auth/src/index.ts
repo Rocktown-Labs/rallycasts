@@ -4,7 +4,9 @@ import * as schema from "@rallycaststv/db/schema/auth";
 import { env } from "@rallycaststv/env/server";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { admin } from "better-auth/plugins/admin";
 import { username } from "better-auth/plugins/username";
+import { eq } from "drizzle-orm";
 
 const isLocalUrl = (url: string) => {
   try {
@@ -91,6 +93,18 @@ export interface AuthEmailCallbacks {
   }) => Promise<void>;
 }
 
+// Platform admin allowlist (ADMIN_EMAILS, comma-separated). Applied on
+// signup and on every sign-in, so allowlisted accounts self-heal to admin
+// without manual SQL — including pre-existing ones.
+const adminEmails = (): string[] =>
+  (env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((email: string) => email.trim().toLowerCase())
+    .filter(Boolean);
+
+const isAdminEmail = (email: string): boolean =>
+  adminEmails().includes(email.trim().toLowerCase());
+
 export const createAuth = (
   database: D1Database,
   emailCallbacks?: AuthEmailCallbacks
@@ -118,6 +132,43 @@ export const createAuth = (
       provider: "sqlite",
       schema,
     }),
+    databaseHooks: {
+      session: {
+        create: {
+          after: async (session) => {
+            if (!session?.userId) {
+              return;
+            }
+            const [existing] = await db
+              .select({ email: schema.user.email, role: schema.user.role })
+              .from(schema.user)
+              .where(eq(schema.user.id, session.userId))
+              .limit(1);
+            if (
+              existing &&
+              existing.role !== "admin" &&
+              isAdminEmail(existing.email)
+            ) {
+              await db
+                .update(schema.user)
+                .set({ role: "admin" })
+                .where(eq(schema.user.id, session.userId));
+            }
+          },
+        },
+      },
+      user: {
+        create: {
+          before: (data) => {
+            const email = typeof data?.email === "string" ? data.email : "";
+            if (email && isAdminEmail(email)) {
+              return Promise.resolve({ data: { role: "admin" } });
+            }
+            return Promise.resolve();
+          },
+        },
+      },
+    },
     emailAndPassword: {
       enabled: true,
       maxPasswordLength: 128,
@@ -135,6 +186,10 @@ export const createAuth = (
       errorURL: `${getWebBaseUrl()}/error`,
     },
     plugins: [
+      admin({
+        adminRoles: ["admin"],
+        defaultRole: "user",
+      }),
       expo(),
       username({
         maxUsernameLength: 30,

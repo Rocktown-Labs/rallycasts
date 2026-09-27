@@ -14,6 +14,57 @@ describe("Better Auth configuration", () => {
     expect(accountLinking?.trustedProviders).toEqual(["google", "github"]);
   });
 
+  it("grants the admin role to allowlisted emails on signup", async () => {
+    const email = "platform-admin-allowlist@example.com";
+    const response = await app.request(
+      "/api/auth/sign-up/email",
+      {
+        body: JSON.stringify({
+          email,
+          name: "Platform Admin",
+          password: "password-12345678",
+        }),
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+      },
+      env
+    );
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { user: { id: string } };
+    const row = await env.DB.prepare("select role from user where id = ?")
+      .bind(body.user.id)
+      .first<{ role: string | null }>();
+    expect(row?.role).toBe("admin");
+  });
+
+  it("leaves non-allowlisted signups as regular users", async () => {
+    const email = `regular-user-${crypto.randomUUID()}@example.com`;
+    const response = await app.request(
+      "/api/auth/sign-up/email",
+      {
+        body: JSON.stringify({
+          email,
+          name: "Regular User",
+          password: "password-12345678",
+        }),
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+      },
+      {
+        ...env,
+        ADMIN_EMAILS: `someone-else-${crypto.randomUUID()}@example.com`,
+      }
+    );
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { user: { id: string } };
+    const row = await env.DB.prepare("select role from user where id = ?")
+      .bind(body.user.id)
+      .first<{ role: string | null }>();
+    expect(row?.role).not.toBe("admin");
+  });
+
   it("responds successfully to the Better Auth health endpoint", async () => {
     const response = await app.request("/api/auth/ok", {}, env);
 

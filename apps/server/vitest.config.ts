@@ -12,6 +12,7 @@ export default defineConfig(async () => {
       cloudflareTest({
         miniflare: {
           bindings: {
+            ADMIN_EMAILS: "platform-admin-allowlist@example.com",
             BETTER_AUTH_SECRET:
               "test-secret-test-secret-test-secret-test-secret",
             BETTER_AUTH_URL: "http://localhost:3000",
