@@ -2,18 +2,16 @@
 
 The `Staging E2E` workflow deploys an isolated `staging` Alchemy stage, seeds non-production fixtures, and runs Playwright against the staging Workers.
 
-## Required GitHub environment secrets
+## Required GitHub secrets
 
-Configure these in the `staging` environment before dispatching the workflow:
+Configure these as repository secrets before dispatching the workflow (Alchemy v2 needs no `ALCHEMY_*` state secrets — state lives in the account's v2 state store):
 
-- `ALCHEMY_PASSWORD`
-- `ALCHEMY_STATE_TOKEN`
 - `BETTER_AUTH_SECRET` as `STAGING_BETTER_AUTH_SECRET`
 - `CLOUDFLARE_API_TOKEN`
 - `CLOUDFLARE_ACCOUNT_ID`
 - `GOOGLE_GENERATIVE_AI_API_KEY`
 - `STAGING_E2E_EMAIL`
-- `STAGING_E2E_PASSWORD`
+- `STAGING_E2E_PASSWORD` (must be ≥12 chars per the password policy)
 - `STAGING_E2E_SEED_TOKEN`
 - `STAGING_MUX_SIGNING_KEY_ID`
 - `STAGING_MUX_SIGNING_KEY_SECRET`
