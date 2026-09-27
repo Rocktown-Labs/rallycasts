@@ -4,6 +4,7 @@ import { Stage } from "alchemy";
 import * as Cloudflare from "alchemy/Cloudflare";
 import * as GitHub from "alchemy/GitHub";
 import * as Output from "alchemy/Output";
+import * as RemovalPolicy from "alchemy/RemovalPolicy";
 import { config } from "dotenv";
 import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
@@ -150,28 +151,34 @@ export default Alchemy.Stack(
     const observability = observabilityFor(isProd);
     const r2BucketName = process.env.R2_BUCKET_NAME?.trim() || undefined;
 
+    // NOTE: no `migrations` prop — schema changes ship via
+    // `wrangler d1 migrations apply` in CI (deploy + e2e-staging
+    // workflows). The v2 layout validator rejects our drizzle-kit
+    // 0.31 meta/ directory, and converting it would break the
+    // vitest pool's migration reader. Revisit together with a
+    // drizzle-kit/test-harness upgrade.
+    // Retain in prod only: preview DBs must still tear down with PR
+    // stages, but nothing may ever auto-delete the production database.
     const db = yield* Cloudflare.D1.Database("database", {
-      // NOTE: no `migrations` prop — schema changes ship via
-      // `wrangler d1 migrations apply` in CI (deploy + e2e-staging
-      // workflows). The v2 layout validator rejects our drizzle-kit
-      // 0.31 meta/ directory, and converting it would break the
-      // vitest pool's migration reader. Revisit together with a
-      // drizzle-kit/test-harness upgrade.
       name: physicalName("rallycaststv-db", isProd, stage),
-    });
+    }).pipe(RemovalPolicy.retain(isProd));
 
+    // Retain in prod only (preview indexes tear down with PR stages).
     const searchIndex = yield* Cloudflare.Vectorize.Index("search-index", {
       description: "RallyCasts semantic search index",
       dimensions: 768,
       metric: "cosine",
       name: isProd ? "rallycasts-search-v2" : `rallycasts-search-${stage}`,
-    });
+    }).pipe(RemovalPolicy.retain(isProd));
 
+    // Unconditional retain: this is ONE physical bucket shared by every
+    // stage. No stage teardown (especially PR preview cleanup) may ever
+    // delete it — that is what wiped it on 2026-09-27.
     const mediaBucket = r2BucketName
       ? yield* Cloudflare.R2.Bucket("media-v4", {
           domains: isProd ? [{ name: "media.rallycasts.com" }] : undefined,
           name: r2BucketName,
-        })
+        }).pipe(RemovalPolicy.retain())
       : undefined;
 
     const geofenceDeadLetterQueue = yield* Cloudflare.Queues.Queue(
