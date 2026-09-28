@@ -28,6 +28,7 @@ import { Route as EventsIndexRouteImport } from './routes/events.index'
 import { Route as CastersIndexRouteImport } from './routes/casters.index'
 import { Route as VideosIdRouteImport } from './routes/videos.$id'
 import { Route as VenuesIdRouteImport } from './routes/venues.$id'
+import { Route as ShopSlugRouteImport } from './routes/shop.$slug'
 import { Route as PlayersUsernameRouteImport } from './routes/players.$username'
 import { Route as PlacesIdRouteImport } from './routes/places.$id'
 import { Route as OrganizersSlugRouteImport } from './routes/organizers.$slug'
@@ -183,6 +184,11 @@ const VenuesIdRoute = VenuesIdRouteImport.update({
   id: '/venues/$id',
   path: '/venues/$id',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ShopSlugRoute = ShopSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => ShopRoute,
 } as any)
 const PlayersUsernameRoute = PlayersUsernameRouteImport.update({
   id: '/$username',
@@ -508,7 +514,7 @@ export interface FileRoutesByFullPath {
   '/organizers': typeof OrganizersRouteWithChildren
   '/players': typeof PlayersRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
-  '/shop': typeof ShopRoute
+  '/shop': typeof ShopRouteWithChildren
   '/trending': typeof TrendingRoute
   '/onboarding': typeof AuthOnboardingRoute
   '/u': typeof AuthURouteWithChildren
@@ -520,6 +526,7 @@ export interface FileRoutesByFullPath {
   '/organizers/$slug': typeof OrganizersSlugRoute
   '/places/$id': typeof PlacesIdRoute
   '/players/$username': typeof PlayersUsernameRoute
+  '/shop/$slug': typeof ShopSlugRoute
   '/venues/$id': typeof VenuesIdRoute
   '/videos/$id': typeof VideosIdRoute
   '/casters/': typeof CastersIndexRoute
@@ -586,7 +593,7 @@ export interface FileRoutesByTo {
   '/me': typeof MeRoute
   '/organizers': typeof OrganizersRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
-  '/shop': typeof ShopRoute
+  '/shop': typeof ShopRouteWithChildren
   '/trending': typeof TrendingRoute
   '/onboarding': typeof AuthOnboardingRoute
   '/casters/$id': typeof CastersIdRoute
@@ -596,6 +603,7 @@ export interface FileRoutesByTo {
   '/organizers/$slug': typeof OrganizersSlugRoute
   '/places/$id': typeof PlacesIdRoute
   '/players/$username': typeof PlayersUsernameRoute
+  '/shop/$slug': typeof ShopSlugRoute
   '/venues/$id': typeof VenuesIdRoute
   '/videos/$id': typeof VideosIdRoute
   '/casters': typeof CastersIndexRoute
@@ -663,7 +671,7 @@ export interface FileRoutesById {
   '/organizers': typeof OrganizersRouteWithChildren
   '/players': typeof PlayersRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
-  '/shop': typeof ShopRoute
+  '/shop': typeof ShopRouteWithChildren
   '/trending': typeof TrendingRoute
   '/_auth/onboarding': typeof AuthOnboardingRoute
   '/_auth/u': typeof AuthURouteWithChildren
@@ -675,6 +683,7 @@ export interface FileRoutesById {
   '/organizers/$slug': typeof OrganizersSlugRoute
   '/places/$id': typeof PlacesIdRoute
   '/players/$username': typeof PlayersUsernameRoute
+  '/shop/$slug': typeof ShopSlugRoute
   '/venues/$id': typeof VenuesIdRoute
   '/videos/$id': typeof VideosIdRoute
   '/casters/': typeof CastersIndexRoute
@@ -758,6 +767,7 @@ export interface FileRouteTypes {
     | '/organizers/$slug'
     | '/places/$id'
     | '/players/$username'
+    | '/shop/$slug'
     | '/venues/$id'
     | '/videos/$id'
     | '/casters/'
@@ -834,6 +844,7 @@ export interface FileRouteTypes {
     | '/organizers/$slug'
     | '/places/$id'
     | '/players/$username'
+    | '/shop/$slug'
     | '/venues/$id'
     | '/videos/$id'
     | '/casters'
@@ -912,6 +923,7 @@ export interface FileRouteTypes {
     | '/organizers/$slug'
     | '/places/$id'
     | '/players/$username'
+    | '/shop/$slug'
     | '/venues/$id'
     | '/videos/$id'
     | '/casters/'
@@ -983,7 +995,7 @@ export interface RootRouteChildren {
   OrganizersRoute: typeof OrganizersRouteWithChildren
   PlayersRoute: typeof PlayersRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
-  ShopRoute: typeof ShopRoute
+  ShopRoute: typeof ShopRouteWithChildren
   TrendingRoute: typeof TrendingRoute
   PlacesIdRoute: typeof PlacesIdRoute
   VenuesIdRoute: typeof VenuesIdRoute
@@ -1124,6 +1136,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/venues/$id'
       preLoaderRoute: typeof VenuesIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/shop/$slug': {
+      id: '/shop/$slug'
+      path: '/$slug'
+      fullPath: '/shop/$slug'
+      preLoaderRoute: typeof ShopSlugRouteImport
+      parentRoute: typeof ShopRoute
     }
     '/players/$username': {
       id: '/players/$username'
@@ -1822,6 +1841,16 @@ const PlayersRouteChildren: PlayersRouteChildren = {
 const PlayersRouteWithChildren =
   PlayersRoute._addFileChildren(PlayersRouteChildren)
 
+interface ShopRouteChildren {
+  ShopSlugRoute: typeof ShopSlugRoute
+}
+
+const ShopRouteChildren: ShopRouteChildren = {
+  ShopSlugRoute: ShopSlugRoute,
+}
+
+const ShopRouteWithChildren = ShopRoute._addFileChildren(ShopRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRouteRoute: AuthRouteRouteWithChildren,
@@ -1835,7 +1864,7 @@ const rootRouteChildren: RootRouteChildren = {
   OrganizersRoute: OrganizersRouteWithChildren,
   PlayersRoute: PlayersRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
-  ShopRoute: ShopRoute,
+  ShopRoute: ShopRouteWithChildren,
   TrendingRoute: TrendingRoute,
   PlacesIdRoute: PlacesIdRoute,
   VenuesIdRoute: VenuesIdRoute,

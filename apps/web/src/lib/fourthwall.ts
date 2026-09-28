@@ -18,9 +18,29 @@ export interface FwMoney {
 
 export interface FwImage {
   height: number;
+  id?: string;
   transformedUrl?: string;
   url: string;
   width: number;
+}
+
+export interface FwStock {
+  inStock?: number;
+  type: string;
+}
+
+export interface FwAdditionalInformation {
+  bodyHtml: string;
+  title: string;
+  type: string;
+}
+
+export interface FwSizeGuide {
+  description?: string;
+  fileUrl?: string;
+  fitGuideDescription?: string;
+  fitGuideUrls?: string[];
+  previewUrl?: string;
 }
 
 export interface FwVariant {
@@ -34,14 +54,18 @@ export interface FwVariant {
   images: FwImage[];
   name: string;
   sku: string;
+  stock?: FwStock;
   unitPrice: FwMoney;
 }
 
 export interface FwProduct {
+  access?: { type: string };
+  additionalInformation?: FwAdditionalInformation[];
   description: string;
   id: string;
   images: FwImage[];
   name: string;
+  sizeGuide?: FwSizeGuide;
   slug: string;
   state: { type: "AVAILABLE" | "SOLD_OUT" };
   type: "PRODUCT";
@@ -49,8 +73,11 @@ export interface FwProduct {
 }
 
 export interface FwBundle {
+  access?: { type: string };
+  additionalInformation?: FwAdditionalInformation[];
   compareAtPrice?: FwMoney;
   id: string;
+  images?: FwImage[];
   name: string;
   offers: FwProduct[];
   price: FwMoney;
@@ -58,6 +85,7 @@ export interface FwBundle {
     | { discountPercentage: number; type: "DISCOUNT_BASED" }
     | { price: FwMoney; type: "FIXED_PRICE" }
     | { type: "SAME_AS_INDIVIDUAL" };
+  sizeGuide?: FwSizeGuide;
   slug: string;
   state: { type: "AVAILABLE" | "SOLD_OUT" };
   type: "BUNDLE";
@@ -153,6 +181,10 @@ export const fetchAllProducts = async (): Promise<FwOffer[]> => {
   return offers;
 };
 
+/** Fetch one product or bundle by its URL slug. */
+export const fetchProductBySlug = (slug: string): Promise<FwOffer> =>
+  request<FwOffer>(`/products/${encodeURIComponent(slug)}`);
+
 const cartRequest = (path: string, items: FwCartRequestItem[]) =>
   request<FwCart>(path, { body: JSON.stringify({ items }), method: "POST" });
 
@@ -199,6 +231,26 @@ export const formatMoney = (money: FwMoney): string =>
 
 export const imageUrlFor = (image?: FwImage): string | undefined =>
   image?.transformedUrl ?? image?.url;
+
+/** Gallery images for an offer: the selected variant's photos when available. */
+export const offerImagesFor = (
+  offer: FwOffer,
+  variantId?: string
+): FwImage[] => {
+  if (offer.type === "PRODUCT") {
+    const variant = offer.variants.find(
+      (candidate) => candidate.id === variantId
+    );
+    if (variant?.images.length) {
+      return variant.images;
+    }
+    return offer.images;
+  }
+  if (offer.images?.length) {
+    return offer.images;
+  }
+  return offer.offers[0]?.images ?? [];
+};
 
 export interface FwProductOption {
   id: "color" | "size";

@@ -14,21 +14,22 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { z } from "zod";
 
-import { useCart } from "@/lib/cart";
 import {
-  cartItemsFor,
+  AddToCartControls,
+  VariantSelector,
+} from "@/components/shop/product-controls";
+import {
   displayPriceFor,
   findVariantByOptions,
   formatMoney,
   imageUrlFor,
   isFourthwallEnabled,
-  productOptionsFor,
 } from "@/lib/fourthwall";
 import type {
   FwCollection,
+  FwImage,
   FwOffer,
   FwProduct,
-  FwProductOption,
 } from "@/lib/fourthwall";
 import { useShopCollections, useShopOffers } from "@/lib/hooks/use-shop";
 
@@ -93,14 +94,14 @@ function HeroSection({ hasOffers }: { hasOffers: boolean }) {
             <a
               className={cn(
                 buttonVariants(),
-                "bg-[#bcdf21] text-black hover:bg-[#d3f34b]"
+                "rounded-lg bg-[#bcdf21] text-black hover:bg-[#d3f34b]"
               )}
               href="#shop-gallery"
             >
               <ShoppingBag className="size-4" /> Browse products
             </a>
           ) : (
-            <Button className="bg-white/15 text-white" disabled>
+            <Button className="rounded-lg bg-white/15 text-white" disabled>
               Storefront launching soon
             </Button>
           )}
@@ -108,7 +109,7 @@ function HeroSection({ hasOffers }: { hasOffers: boolean }) {
             <a
               className={cn(
                 buttonVariants({ variant: "outline" }),
-                "border-white/25 bg-transparent text-white hover:bg-white/10 hover:text-white"
+                "rounded-lg border-white/25 bg-transparent text-white hover:bg-white/10 hover:text-white"
               )}
               href={storefrontUrl}
               rel="noopener noreferrer"
@@ -120,7 +121,7 @@ function HeroSection({ hasOffers }: { hasOffers: boolean }) {
           <Link
             className={cn(
               buttonVariants({ variant: "outline" }),
-              "border-white/25 bg-transparent text-white hover:bg-white/10 hover:text-white"
+              "rounded-lg border-white/25 bg-transparent text-white hover:bg-white/10 hover:text-white"
             )}
             to="/events"
           >
@@ -180,7 +181,7 @@ function FilterSkeleton() {
   return (
     <div className="mb-6 flex flex-wrap gap-2">
       {Array.from({ length: 4 }).map((_, index) => (
-        <Skeleton className="h-9 w-24 rounded-full" key={index} />
+        <Skeleton className="h-9 w-24 rounded-lg" key={index} />
       ))}
     </div>
   );
@@ -216,7 +217,7 @@ function CollectionFilter({
         return (
           <Button
             className={cn(
-              "rounded-full transition-colors",
+              "rounded-lg transition-colors",
               active
                 ? "bg-primary text-primary-foreground hover:bg-primary/90"
                 : "border bg-background text-foreground hover:bg-muted"
@@ -354,7 +355,6 @@ function PreviewGrid() {
 }
 
 function ProductCard({ offer }: { offer: FwOffer }) {
-  const { addItems, pending } = useCart();
   const isBundle = offer.type === "BUNDLE";
   const product = isBundle ? null : (offer as FwProduct);
 
@@ -379,15 +379,34 @@ function ProductCard({ offer }: { offer: FwOffer }) {
   const soldOut = offer.state.type === "SOLD_OUT";
   const price = isBundle ? displayPriceFor(offer) : selectedVariant?.unitPrice;
 
-  const handleAddToCart = () => {
-    void addItems(cartItemsFor(offer, selectedVariant?.id));
-  };
+  // Prefer the selected variant's photos so color choices swap the image.
+  const coverImage = useMemo(() => {
+    if (offer.type === "BUNDLE") {
+      return offer.offers[0]?.images[0];
+    }
+    return selectedVariant?.images[0] ?? offer.images[0];
+  }, [offer, selectedVariant]);
 
   return (
     <article className="flex flex-col overflow-hidden rounded-2xl border bg-card">
-      <ProductImage name={offer.name} offer={offer} />
+      <Link
+        aria-label={`${offer.name} details`}
+        className="group"
+        params={{ slug: offer.slug }}
+        to="/shop/$slug"
+      >
+        <ProductImage image={coverImage} name={offer.name} offer={offer} />
+      </Link>
       <div className="flex flex-1 flex-col p-5">
-        <h3 className="font-bold">{offer.name}</h3>
+        <h3 className="font-bold">
+          <Link
+            className="hover:underline"
+            params={{ slug: offer.slug }}
+            to="/shop/$slug"
+          >
+            {offer.name}
+          </Link>
+        </h3>
         {offer.type === "PRODUCT" && offer.description ? (
           <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
             {offer.description}
@@ -412,29 +431,34 @@ function ProductCard({ offer }: { offer: FwOffer }) {
             }
           />
         ) : null}
-        <AddToCartButton
-          disabled={soldOut || pending}
-          isBundle={isBundle}
+        <AddToCartControls
+          offer={offer}
           soldOut={soldOut}
-          onClick={handleAddToCart}
+          variantId={selectedVariant?.id}
         />
       </div>
     </article>
   );
 }
 
-function ProductImage({ name, offer }: { name: string; offer: FwOffer }) {
-  const firstImage =
-    offer.type === "BUNDLE" ? offer.offers[0]?.images[0] : offer.images[0];
-  const imageUrl = imageUrlFor(firstImage);
+function ProductImage({
+  image,
+  name,
+  offer,
+}: {
+  image?: FwImage;
+  name: string;
+  offer: FwOffer;
+}) {
+  const imageUrl = imageUrlFor(image);
   const soldOut = offer.state.type === "SOLD_OUT";
 
   return (
-    <div className="relative aspect-[4/3] bg-muted">
+    <div className="relative aspect-[4/3] overflow-hidden bg-muted">
       {imageUrl ? (
         <img
           alt={name}
-          className="absolute inset-0 size-full object-cover"
+          className="absolute inset-0 size-full object-cover transition-transform duration-300 group-hover:scale-105"
           loading="lazy"
           src={imageUrl}
         />
@@ -456,138 +480,5 @@ function ProductImage({ name, offer }: { name: string; offer: FwOffer }) {
         ) : null}
       </div>
     </div>
-  );
-}
-
-function VariantSelector({
-  product,
-  selectedOptions,
-  onSelect,
-}: {
-  product: FwProduct;
-  selectedOptions: { color?: string; size?: string };
-  onSelect: (id: "color" | "size", value: string) => void;
-}) {
-  const options = useMemo(() => productOptionsFor(product), [product]);
-
-  const isAvailable = (id: "color" | "size", value: string) =>
-    product.variants.some((variant) => {
-      const candidate = { ...selectedOptions, [id]: value };
-      const colorMatch =
-        !candidate.color || variant.attributes.color?.name === candidate.color;
-      const sizeMatch =
-        !candidate.size || variant.attributes.size?.name === candidate.size;
-      return colorMatch && sizeMatch;
-    });
-
-  return (
-    <div className="mt-4 space-y-3">
-      {options.map((option) => (
-        <div key={option.id}>
-          <p className="text-xs font-semibold text-muted-foreground">
-            {option.name}
-          </p>
-          <div className="mt-1.5 flex flex-wrap gap-2">
-            {option.values.map((value) => {
-              const active = selectedOptions[option.id] === value.value;
-              const available = isAvailable(option.id, value.value);
-
-              return (
-                <OptionButton
-                  active={active}
-                  available={available}
-                  key={value.value}
-                  option={option}
-                  value={value.value}
-                  swatch={value.swatch}
-                  onSelect={() => onSelect(option.id, value.value)}
-                />
-              );
-            })}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function OptionButton({
-  active,
-  available,
-  option,
-  swatch,
-  value,
-  onSelect,
-}: {
-  active: boolean;
-  available: boolean;
-  option: FwProductOption;
-  swatch?: string;
-  value: string;
-  onSelect: () => void;
-}) {
-  const isColor = option.id === "color";
-  const safeSwatch = isColor && swatch ? swatch : undefined;
-
-  return (
-    <button
-      className={cn(
-        "flex min-w-[40px] items-center justify-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
-        active
-          ? "border-primary bg-primary text-primary-foreground"
-          : "border-border bg-background text-foreground hover:border-primary/60",
-        !available &&
-          "relative cursor-not-allowed overflow-hidden bg-muted text-muted-foreground before:absolute before:inset-x-0 before:h-px before:-rotate-45 before:bg-muted-foreground/40"
-      )}
-      disabled={!available}
-      onClick={onSelect}
-      title={
-        isColor
-          ? `Color ${value}`
-          : `Size ${value}${available ? "" : " (unavailable)"}`
-      }
-      type="button"
-    >
-      {safeSwatch ? (
-        <span
-          aria-hidden="true"
-          className="inline-block size-3.5 rounded-full border border-black/10"
-          style={{ backgroundColor: safeSwatch }}
-        />
-      ) : null}
-      <span>{value}</span>
-    </button>
-  );
-}
-
-function AddToCartButton({
-  disabled,
-  isBundle,
-  soldOut,
-  onClick,
-}: {
-  disabled: boolean;
-  isBundle: boolean;
-  soldOut: boolean;
-  onClick: () => void;
-}) {
-  let label: string;
-  if (soldOut) {
-    label = "Sold out";
-  } else if (isBundle) {
-    label = "Add bundle";
-  } else {
-    label = "Add to cart";
-  }
-
-  return (
-    <Button
-      className="mt-5 w-full rounded-full"
-      disabled={disabled}
-      onClick={onClick}
-    >
-      <ShoppingBag className="size-4" />
-      {label}
-    </Button>
   );
 }

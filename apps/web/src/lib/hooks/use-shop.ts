@@ -1,12 +1,18 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import type { InfiniteData } from "@tanstack/react-query";
 
-import { fetchCollectionProducts, fetchCollections } from "@/lib/fourthwall";
+import {
+  fetchCollectionProducts,
+  fetchCollections,
+  fetchProductBySlug,
+} from "@/lib/fourthwall";
 import type { FwOffer, FwPage } from "@/lib/fourthwall";
 
 export const SHOP_COLLECTIONS_QUERY_KEY = ["shop", "collections"] as const;
 export const shopOffersQueryKey = (collectionSlug: string) =>
   ["shop", "offers", collectionSlug] as const;
+export const shopProductQueryKey = (slug: string) =>
+  ["shop", "product", slug] as const;
 
 export const useShopCollections = () =>
   useQuery({
@@ -29,5 +35,13 @@ export const useShopOffers = (collectionSlug = "all") =>
     queryFn: ({ pageParam }) =>
       fetchCollectionProducts(collectionSlug, pageParam),
     queryKey: shopOffersQueryKey(collectionSlug),
+    staleTime: 60_000,
+  });
+
+export const useShopProduct = (slug: string, enabled = true) =>
+  useQuery({
+    enabled,
+    queryFn: () => fetchProductBySlug(slug),
+    queryKey: shopProductQueryKey(slug),
     staleTime: 60_000,
   });
