@@ -5,8 +5,7 @@ import type {
   VideoCardData,
 } from "@/components/rally/cards";
 
-export const demoEnabled =
-  import.meta.env.DEV && import.meta.env.VITE_DEMO_DATA === "true";
+export const demoEnabled = import.meta.env.VITE_DEMO_DATA === "true";
 
 export interface TrendingData {
   events: EventCardData[];
@@ -331,8 +330,50 @@ const generatedDemoVideos: VideoCardData[] = Array.from(
   }
 );
 
+// Vertical highlight clips (Mux-style shorts) that populate the Highlights
+// shelf. Only ever rendered when demo mode is enabled.
+const demoShortVideos: VideoCardData[] = Array.from(
+  { length: 12 },
+  (_, index) => {
+    const owner = demoPlayers[index % demoPlayers.length];
+
+    return {
+      description:
+        "A RallyCasts vertical highlight clip cut from a full match recording.",
+      durationSeconds: 9 + ((index * 7) % 39),
+      id: `demo-short-${index + 1}`,
+      mediaType: "short",
+      owner,
+      publishedAt: new Date(
+        Date.UTC(2026, 8, 24) - index * 12 * 60 * 60 * 1000
+      ).toISOString(),
+      status: "ready",
+      taggedUsers: [],
+      thumbnailUrl: null,
+      title: `${
+        [
+          "Kitchen battle rally",
+          "Speed-up putaway at the net",
+          "Third-shot drop clinic clip",
+          "Match point dink duel",
+          "Erne attempt highlight",
+          "ATP overhead putaway",
+          "Lob chase-down save",
+          "Stacking poach winner",
+          "Drop-serve rally reel",
+          "Skinny singles fire fight",
+          "Golden paddle point",
+          "Trophy-winning tweener",
+        ][index]
+      } #${index + 1}`,
+      viewsCount: 320 + ((index * 211) % 5400),
+    } satisfies VideoCardData;
+  }
+);
+
 export const demoVideos: VideoCardData[] = [
   ...initialDemoVideos,
+  ...demoShortVideos,
   ...generatedDemoVideos,
 ];
 

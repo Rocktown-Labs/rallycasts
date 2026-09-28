@@ -15,7 +15,6 @@ import type { ReactNode } from "react";
 
 import { useSidebar } from "@/components/layout/sidebar-context";
 import {
-  EmptyState,
   EventCard,
   ParkHeatCard,
   PlayerCard,
@@ -29,7 +28,7 @@ import type {
   VideoCardData,
 } from "@/components/rally/cards";
 import { authClient } from "@/lib/auth-client";
-import { demoVideos } from "@/lib/demo-data";
+import { demoEnabled, demoVideos } from "@/lib/demo-data";
 import {
   useHomeFeed,
   useInfiniteVideos,
@@ -60,40 +59,40 @@ function HomeComponent() {
 
 function HeroBanner() {
   return (
-    <section className="grid gap-6 rounded-2xl border border-border/60 bg-[linear-gradient(135deg,hsl(142_100%_18%/.15),transparent_52%,hsl(78_100%_60%/.08))] p-6 shadow-xs md:grid-cols-[1fr_auto] md:items-center sm:p-8">
-      <div>
+    <section className="relative overflow-hidden rounded-2xl bg-primary p-6 text-white shadow-xl sm:p-8">
+      <div className="relative z-10 max-w-2xl space-y-2">
         <div className="inline-flex items-center gap-1.5 rounded-md bg-secondary/20 px-2.5 py-1 text-xs font-semibold text-[#bcdf21]">
           <span>Pickleball around your courts</span>
         </div>
-        <h1 className="mt-3 text-2xl font-bold tracking-tight md:text-3xl lg:text-4xl text-foreground">
+        <h1 className="mt-3 text-2xl font-bold tracking-tight md:text-3xl lg:text-4xl text-white">
           Pickleball videos, players, and casters around you.
         </h1>
-        <p className="mt-2.5 max-w-2xl text-sm text-muted-foreground leading-relaxed">
+        <p className="mt-2.5 max-w-2xl text-sm text-gray-200 sm:text-base leading-relaxed">
           Watch local match highlights, find active parks, and book a RallyCasts
           caster when the game deserves a clean angle.
         </p>
-      </div>
-      <div className="flex flex-wrap gap-2.5">
-        <Link
-          to="/trending"
-          className={cn(
-            buttonVariants(),
-            "rounded-lg font-medium transition-transform duration-150 active:scale-97 cursor-pointer"
-          )}
-        >
-          <Flame className="size-4 text-[#bcdf21]" />
-          Trending Courts
-        </Link>
-        <Link
-          to="/onboarding"
-          className={cn(
-            buttonVariants({ variant: "outline" }),
-            "rounded-lg font-medium transition-transform duration-150 active:scale-97 cursor-pointer hover:bg-accent/10"
-          )}
-        >
-          <MapPin className="size-4 text-primary" />
-          Set location
-        </Link>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link
+            to="/trending"
+            className={cn(
+              buttonVariants(),
+              "rounded-lg bg-[#bcdf21] font-semibold text-black hover:bg-[#d3f34b]"
+            )}
+          >
+            <Flame className="size-4" />
+            Trending Courts
+          </Link>
+          <Link
+            to="/onboarding"
+            className={cn(
+              buttonVariants({ variant: "outline" }),
+              "rounded-lg border-white/25 bg-transparent text-white hover:bg-white/10 hover:text-white"
+            )}
+          >
+            <MapPin className="size-4 text-[#bcdf21]" />
+            Set location
+          </Link>
+        </div>
       </div>
     </section>
   );
@@ -147,8 +146,9 @@ function HomeFeedView({
       }
     }
 
-    // Ensure videos are always displayed even if DB is fresh or unseeded
-    if (list.length === 0) {
+    // Demo content keeps fresh preview environments from looking broken.
+    // Production builds ship without VITE_DEMO_DATA, so this never runs there.
+    if (list.length === 0 && demoEnabled) {
       for (const v of demoVideos) {
         if (!seen.has(v.id)) {
           seen.add(v.id);
@@ -185,7 +185,7 @@ function HomeFeedView({
   } = useInfiniteVideos(12);
 
   const infiniteSplit = useMemo(() => {
-    const seen = new Set(allVideos.map((video) => video.id));
+    const seen = new Set<string>();
     const landscape: VideoCardData[] = [];
     const shorts: VideoCardData[] = [];
     for (const page of infiniteData?.pages ?? []) {
@@ -202,9 +202,7 @@ function HomeFeedView({
       }
     }
     return { landscape, shorts };
-  }, [allVideos, infiniteData?.pages]);
-
-  const highlightsVideos = [...shortsVideos, ...infiniteSplit.shorts];
+  }, [infiniteData?.pages]);
 
   // Aggregate venues ensuring user's home court is first and favorited
   const userProfile = profileQuery.data?.profile;
@@ -285,10 +283,16 @@ function HomeFeedView({
     : "grid gap-6 sm:grid-cols-2 lg:grid-cols-3";
 
   const featuredLandscape = landscapeVideos.slice(0, sidebarCollapsed ? 8 : 6);
-  const moreMatches = [
-    ...landscapeVideos.slice(sidebarCollapsed ? 8 : 6),
-    ...infiniteSplit.landscape,
+  const featuredIds = new Set(featuredLandscape.map((video) => video.id));
+  const shortIds = new Set(shortsVideos.map((video) => video.id));
+  const highlightsVideos = [
+    ...shortsVideos,
+    ...infiniteSplit.shorts.filter((video) => !shortIds.has(video.id)),
   ];
+  // "More" is fed purely by the paginated query: rows reveal as you scroll.
+  const moreMatches = infiniteSplit.landscape.filter(
+    (video) => !featuredIds.has(video.id)
+  );
 
   return (
     <div className="space-y-14">
@@ -298,29 +302,23 @@ function HomeFeedView({
       ) : null}
 
       {/* 2. Featured Matches (Landscape 16:9 shelf) */}
-      <section className="space-y-4">
-        <div>
-          <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-            Featured Matches
-          </h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Recent rallies, matches, and clinics recorded with RallyCasts.
-          </p>
-        </div>
-
-        {featuredLandscape.length > 0 ? (
+      {featuredLandscape.length > 0 ? (
+        <section className="space-y-4">
+          <div>
+            <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+              Featured Matches
+            </h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Recent rallies, matches, and clinics recorded with RallyCasts.
+            </p>
+          </div>
           <div className={videoGridClass}>
             {featuredLandscape.map((video) => (
               <VideoCard key={video.id} video={video} />
             ))}
           </div>
-        ) : (
-          <EmptyState
-            message="Public ready videos will appear here once match uploads finish processing."
-            title="No videos yet"
-          />
-        )}
-      </section>
+        </section>
+      ) : null}
 
       {/* 3. More Matches & Highlights (loads more as you scroll) */}
       <MoreMatchesSection
@@ -497,7 +495,7 @@ function ShortsShelf({ videos }: { videos: VideoCardData[] }) {
 
       <div
         ref={scrollRef}
-        className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-3 pt-1 scroll-smooth snap-x snap-mandatory scrollbar-none"
+        className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-3 pt-1 scroll-smooth snap-x snap-mandatory scrollbar-none touch-pan-y"
         style={{ WebkitOverflowScrolling: "touch" }}
       >
         {videos.map((video) => (
@@ -583,7 +581,7 @@ function NearbyParksSection({ venues }: { venues: VenueCardData[] }) {
 
       <div
         ref={scrollRef}
-        className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-3 pt-1 scroll-smooth snap-x snap-mandatory scrollbar-none"
+        className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-3 pt-1 scroll-smooth snap-x snap-mandatory scrollbar-none touch-pan-y"
         style={{ WebkitOverflowScrolling: "touch" }}
       >
         {venues.map((venue) => (
