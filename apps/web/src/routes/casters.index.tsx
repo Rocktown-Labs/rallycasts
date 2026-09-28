@@ -151,7 +151,7 @@ function CastersPage() {
 
 function CasterHero() {
   return (
-    <section className="overflow-hidden rounded-3xl border bg-[radial-gradient(circle_at_top_right,hsl(78_100%_60%/.22),transparent_36%),linear-gradient(135deg,hsl(142_100%_18%),hsl(142_80%_8%))] p-8 text-white md:p-12">
+    <section className="overflow-hidden rounded-3xl bg-primary p-8 text-white shadow-xl md:p-12">
       <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_.95fr]">
         <div className="max-w-xl">
           <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.22em] text-[#bcdf21]">
@@ -419,7 +419,7 @@ function FaqSection() {
 
 function FinalCta() {
   return (
-    <section className="overflow-hidden rounded-3xl border bg-[radial-gradient(circle_at_top_right,hsl(78_100%_60%/.22),transparent_36%),linear-gradient(135deg,hsl(142_100%_18%),hsl(142_80%_8%))] p-8 text-center text-white md:p-12">
+    <section className="overflow-hidden rounded-3xl bg-primary p-8 text-center text-white shadow-xl md:p-12">
       <h2 className="text-balance text-3xl font-black tracking-tight md:text-5xl">
         Courts near you need filming.
       </h2>
