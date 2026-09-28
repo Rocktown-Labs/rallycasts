@@ -6,8 +6,10 @@ import {
   displayPriceFor,
   fetchCollectionProducts,
   fetchCollections,
+  findVariantByOptions,
   formatMoney,
   imageUrlFor,
+  productOptionsFor,
 } from "./fourthwall";
 import type { FwBundle, FwProduct } from "./fourthwall";
 
@@ -51,6 +53,42 @@ const product: FwProduct = {
       name: "Black / 3XL",
       sku: "TEE-BLK-3XL",
       unitPrice: usd(36),
+    },
+  ],
+};
+
+const productWithOptions: FwProduct = {
+  description: "Court-ready tee",
+  id: "offer-2",
+  images: [],
+  name: "RallyCasts option tee",
+  slug: "rallycasts-option-tee",
+  state: { type: "AVAILABLE" },
+  type: "PRODUCT",
+  variants: [
+    {
+      attributes: {
+        color: { name: "Black", swatch: "#000000" },
+        description: "Black, M",
+        size: { name: "M" },
+      },
+      id: "variant-black-m",
+      images: [],
+      name: "Black / M",
+      sku: "TEE-BLK-M",
+      unitPrice: usd(32),
+    },
+    {
+      attributes: {
+        color: { name: "White", swatch: "#ffffff" },
+        description: "White, L",
+        size: { name: "L" },
+      },
+      id: "variant-white-l",
+      images: [],
+      name: "White / L",
+      sku: "TEE-WHT-L",
+      unitPrice: usd(34),
     },
   ],
 };
@@ -115,6 +153,51 @@ describe("fetchCollectionProducts", () => {
     );
   });
 });
+describe("productOptionsFor", () => {
+  it("derives color and size options from variants", () => {
+    const options = productOptionsFor(productWithOptions);
+
+    expect(options).toHaveLength(2);
+    expect(options[0]).toEqual({
+      id: "color",
+      name: "Color",
+      values: [
+        { swatch: "#000000", value: "Black" },
+        { swatch: "#ffffff", value: "White" },
+      ],
+    });
+    expect(options[1]).toEqual({
+      id: "size",
+      name: "Size",
+      values: [{ value: "M" }, { value: "L" }],
+    });
+  });
+
+  it("returns an empty array when a product has only default variants", () => {
+    expect(productOptionsFor(product)).toEqual([]);
+  });
+});
+
+describe("findVariantByOptions", () => {
+  it("finds the variant matching the selected color and size", () => {
+    const variant = findVariantByOptions(productWithOptions, {
+      color: "White",
+      size: "L",
+    });
+
+    expect(variant?.id).toBe("variant-white-l");
+  });
+
+  it("returns undefined when no variant matches the combination", () => {
+    const variant = findVariantByOptions(productWithOptions, {
+      color: "White",
+      size: "XL",
+    });
+
+    expect(variant).toBeUndefined();
+  });
+});
+
 describe("formatMoney", () => {
   it("formats USD amounts", () => {
     expect(formatMoney(usd(32))).toBe("$32.00");

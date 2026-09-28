@@ -25,7 +25,7 @@ export interface FwImage {
 
 export interface FwVariant {
   attributes: {
-    color?: { name: string };
+    color?: { name: string; swatch?: string };
     description: string;
     size?: { name: string };
   };
@@ -199,6 +199,58 @@ export const formatMoney = (money: FwMoney): string =>
 
 export const imageUrlFor = (image?: FwImage): string | undefined =>
   image?.transformedUrl ?? image?.url;
+
+export interface FwProductOption {
+  id: "color" | "size";
+  name: string;
+  values: { swatch?: string; value: string }[];
+}
+
+export const productOptionsFor = (product: FwProduct): FwProductOption[] => {
+  const colors = new Map<string, string | undefined>();
+  const sizes = new Set<string>();
+
+  for (const variant of product.variants) {
+    if (variant.attributes.color) {
+      colors.set(
+        variant.attributes.color.name,
+        variant.attributes.color.swatch
+      );
+    }
+    if (variant.attributes.size) {
+      sizes.add(variant.attributes.size.name);
+    }
+  }
+
+  const options: FwProductOption[] = [];
+  if (colors.size > 0) {
+    options.push({
+      id: "color",
+      name: "Color",
+      values: [...colors].map(([value, swatch]) => ({ swatch, value })),
+    });
+  }
+  if (sizes.size > 0) {
+    options.push({
+      id: "size",
+      name: "Size",
+      values: [...sizes].map((value) => ({ value })),
+    });
+  }
+  return options;
+};
+
+export const findVariantByOptions = (
+  product: FwProduct,
+  selected: { color?: string; size?: string }
+): FwVariant | undefined =>
+  product.variants.find((variant) => {
+    const colorMatch =
+      !selected.color || variant.attributes.color?.name === selected.color;
+    const sizeMatch =
+      !selected.size || variant.attributes.size?.name === selected.size;
+    return colorMatch && sizeMatch;
+  });
 
 /** Cheapest variant price for a product card; bundle price for bundles. */
 export const displayPriceFor = (offer: FwOffer): FwMoney | undefined => {

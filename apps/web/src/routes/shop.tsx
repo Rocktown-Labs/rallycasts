@@ -18,11 +18,18 @@ import { useCart } from "@/lib/cart";
 import {
   cartItemsFor,
   displayPriceFor,
+  findVariantByOptions,
   formatMoney,
   imageUrlFor,
   isFourthwallEnabled,
+  productOptionsFor,
 } from "@/lib/fourthwall";
-import type { FwCollection, FwOffer, FwProduct } from "@/lib/fourthwall";
+import type {
+  FwCollection,
+  FwOffer,
+  FwProduct,
+  FwProductOption,
+} from "@/lib/fourthwall";
 import { useShopCollections, useShopOffers } from "@/lib/hooks/use-shop";
 
 const shopSearchSchema = z.object({
@@ -350,18 +357,30 @@ function ProductCard({ offer }: { offer: FwOffer }) {
   const { addItems, pending } = useCart();
   const isBundle = offer.type === "BUNDLE";
   const product = isBundle ? null : (offer as FwProduct);
-  const [selectedVariantId, setSelectedVariantId] = useState(
-    product?.variants[0]?.id
+
+  const firstVariant = product?.variants[0];
+  const initialOptions = useMemo(
+    () => ({
+      color: firstVariant?.attributes.color?.name,
+      size: firstVariant?.attributes.size?.name,
+    }),
+    [firstVariant]
   );
+  const [selectedOptions, setSelectedOptions] = useState(initialOptions);
+
+  useEffect(() => {
+    setSelectedOptions(initialOptions);
+  }, [initialOptions]);
+
+  const selectedVariant = product
+    ? (findVariantByOptions(product, selectedOptions) ?? firstVariant)
+    : undefined;
 
   const soldOut = offer.state.type === "SOLD_OUT";
-  const price = displayPriceFor(offer);
-  const selectedVariant = product?.variants.find(
-    (variant) => variant.id === selectedVariantId
-  );
+  const price = isBundle ? displayPriceFor(offer) : selectedVariant?.unitPrice;
 
   const handleAddToCart = () => {
-    void addItems(cartItemsFor(offer, selectedVariantId));
+    void addItems(cartItemsFor(offer, selectedVariant?.id));
   };
 
   return (
@@ -387,8 +406,10 @@ function ProductCard({ offer }: { offer: FwOffer }) {
         {product && product.variants.length > 1 ? (
           <VariantSelector
             product={product}
-            selectedVariantId={selectedVariantId}
-            onSelect={setSelectedVariantId}
+            selectedOptions={selectedOptions}
+            onSelect={(id, value) =>
+              setSelectedOptions((prev) => ({ ...prev, [id]: value }))
+            }
           />
         ) : null}
         <AddToCartButton
@@ -440,28 +461,102 @@ function ProductImage({ name, offer }: { name: string; offer: FwOffer }) {
 
 function VariantSelector({
   product,
-  selectedVariantId,
+  selectedOptions,
   onSelect,
 }: {
   product: FwProduct;
-  selectedVariantId?: string;
-  onSelect: (variantId: string) => void;
+  selectedOptions: { color?: string; size?: string };
+  onSelect: (id: "color" | "size", value: string) => void;
 }) {
+  const options = useMemo(() => productOptionsFor(product), [product]);
+
+  const isAvailable = (id: "color" | "size", value: string) =>
+    product.variants.some((variant) => {
+      const candidate = { ...selectedOptions, [id]: value };
+      const colorMatch =
+        !candidate.color || variant.attributes.color?.name === candidate.color;
+      const sizeMatch =
+        !candidate.size || variant.attributes.size?.name === candidate.size;
+      return colorMatch && sizeMatch;
+    });
+
   return (
-    <label className="mt-3 block text-xs font-semibold text-muted-foreground">
-      Option
-      <select
-        className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm text-foreground"
-        onChange={(event) => onSelect(event.target.value)}
-        value={selectedVariantId}
-      >
-        {product.variants.map((variant) => (
-          <option key={variant.id} value={variant.id}>
-            {variant.name} — {formatMoney(variant.unitPrice)}
-          </option>
-        ))}
-      </select>
-    </label>
+    <div className="mt-4 space-y-3">
+      {options.map((option) => (
+        <div key={option.id}>
+          <p className="text-xs font-semibold text-muted-foreground">
+            {option.name}
+          </p>
+          <div className="mt-1.5 flex flex-wrap gap-2">
+            {option.values.map((value) => {
+              const active = selectedOptions[option.id] === value.value;
+              const available = isAvailable(option.id, value.value);
+
+              return (
+                <OptionButton
+                  active={active}
+                  available={available}
+                  key={value.value}
+                  option={option}
+                  value={value.value}
+                  swatch={value.swatch}
+                  onSelect={() => onSelect(option.id, value.value)}
+                />
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function OptionButton({
+  active,
+  available,
+  option,
+  swatch,
+  value,
+  onSelect,
+}: {
+  active: boolean;
+  available: boolean;
+  option: FwProductOption;
+  swatch?: string;
+  value: string;
+  onSelect: () => void;
+}) {
+  const isColor = option.id === "color";
+  const safeSwatch = isColor && swatch ? swatch : undefined;
+
+  return (
+    <button
+      className={cn(
+        "flex min-w-[40px] items-center justify-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
+        active
+          ? "border-primary bg-primary text-primary-foreground"
+          : "border-border bg-background text-foreground hover:border-primary/60",
+        !available &&
+          "relative cursor-not-allowed overflow-hidden bg-muted text-muted-foreground before:absolute before:inset-x-0 before:h-px before:-rotate-45 before:bg-muted-foreground/40"
+      )}
+      disabled={!available}
+      onClick={onSelect}
+      title={
+        isColor
+          ? `Color ${value}`
+          : `Size ${value}${available ? "" : " (unavailable)"}`
+      }
+      type="button"
+    >
+      {safeSwatch ? (
+        <span
+          aria-hidden="true"
+          className="inline-block size-3.5 rounded-full border border-black/10"
+          style={{ backgroundColor: safeSwatch }}
+        />
+      ) : null}
+      <span>{value}</span>
+    </button>
   );
 }
 
@@ -486,7 +581,11 @@ function AddToCartButton({
   }
 
   return (
-    <Button className="mt-4 w-full" disabled={disabled} onClick={onClick}>
+    <Button
+      className="mt-5 w-full rounded-full"
+      disabled={disabled}
+      onClick={onClick}
+    >
       <ShoppingBag className="size-4" />
       {label}
     </Button>
