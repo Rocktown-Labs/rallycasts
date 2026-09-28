@@ -1,13 +1,21 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   cartItemsFor,
   checkoutUrlFor,
   displayPriceFor,
+  fetchCollectionProducts,
+  fetchCollections,
   formatMoney,
   imageUrlFor,
 } from "./fourthwall";
 import type { FwBundle, FwProduct } from "./fourthwall";
+
+vi.mock("@rallycaststv/env/web", () => ({
+  env: {
+    VITE_FOURTHWALL_STOREFRONT_TOKEN: "test-token",
+  },
+}));
 
 const usd = (value: number) => ({ currency: "USD", value });
 
@@ -58,6 +66,55 @@ const bundle: FwBundle = {
   type: "BUNDLE",
 };
 
+describe("fetchCollections", () => {
+  it("paginates through collections", async () => {
+    const collection = {
+      description: "",
+      id: "col-1",
+      name: "Launch",
+      slug: "launch",
+    };
+
+    global.fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        Response.json({
+          paging: { hasNextPage: true },
+          results: [collection],
+        })
+      )
+      .mockResolvedValueOnce(
+        Response.json({
+          paging: { hasNextPage: false },
+          results: [],
+        })
+      );
+
+    const result = await fetchCollections();
+
+    expect(result).toEqual([collection]);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("fetchCollectionProducts", () => {
+  it("fetches a single page for the requested collection", async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce(
+      Response.json({
+        paging: { hasNextPage: false },
+        results: [product],
+      })
+    );
+
+    const result = await fetchCollectionProducts("launch", 1);
+
+    expect(result.results).toEqual([product]);
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/collections/launch/products?page=1"),
+      expect.any(Object)
+    );
+  });
+});
 describe("formatMoney", () => {
   it("formats USD amounts", () => {
     expect(formatMoney(usd(32))).toBe("$32.00");
@@ -113,6 +170,12 @@ describe("checkoutUrlFor", () => {
       checkoutUrlFor("cart-123", "https://shop.rallycasts.com/some/path")
     ).toBe(
       "https://shop.rallycasts.com/cart/checkout?cartId=cart-123&currency=USD"
+    );
+  });
+
+  it("builds the URL from the configured env storefront", () => {
+    expect(checkoutUrlFor("cart-123", "https://shop.example.com")).toBe(
+      "https://shop.example.com/cart/checkout?cartId=cart-123&currency=USD"
     );
   });
 

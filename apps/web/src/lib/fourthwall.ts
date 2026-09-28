@@ -4,6 +4,13 @@ const API_BASE = "https://storefront-api.fourthwall.com/v1";
 const DEFAULT_CURRENCY = "USD";
 const PAGE_SIZE = 50;
 
+export interface FwCollection {
+  description: string;
+  id: string;
+  name: string;
+  slug: string;
+}
+
 export interface FwMoney {
   currency: string;
   value: number;
@@ -82,6 +89,8 @@ interface FwPage<T> {
   results: T[];
 }
 
+export type { FwPage };
+
 export const isFourthwallEnabled = () =>
   Boolean(env.VITE_FOURTHWALL_STOREFRONT_TOKEN);
 
@@ -105,15 +114,38 @@ const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
   return (await response.json()) as T;
 };
 
+/** Fetch every public collection. */
+export const fetchCollections = async (): Promise<FwCollection[]> => {
+  const collections: FwCollection[] = [];
+  let page = 0;
+  let hasNextPage = true;
+  while (hasNextPage) {
+    const data = await request<FwPage<FwCollection>>(
+      `/collections?page=${page}&size=${PAGE_SIZE}`
+    );
+    collections.push(...data.results);
+    ({ hasNextPage } = data.paging);
+    page += 1;
+  }
+  return collections;
+};
+
+/** Fetch one page of products from a collection (or the built-in `all` collection). */
+export const fetchCollectionProducts = (
+  slug: string,
+  page = 0
+): Promise<FwPage<FwOffer>> =>
+  request<FwPage<FwOffer>>(
+    `/collections/${encodeURIComponent(slug)}/products?page=${page}&size=${PAGE_SIZE}`
+  );
+
 /** Fetch every public product via the built-in `all` collection. */
 export const fetchAllProducts = async (): Promise<FwOffer[]> => {
   const offers: FwOffer[] = [];
   let page = 0;
   let hasNextPage = true;
   while (hasNextPage) {
-    const data = await request<FwPage<FwOffer>>(
-      `/collections/all/products?page=${page}&size=${PAGE_SIZE}`
-    );
+    const data = await fetchCollectionProducts("all", page);
     offers.push(...data.results);
     ({ hasNextPage } = data.paging);
     page += 1;
