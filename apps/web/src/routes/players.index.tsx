@@ -2,7 +2,7 @@ import { Button } from "@rallycaststv/ui/components/button";
 import { Input } from "@rallycaststv/ui/components/input";
 import { cn } from "@rallycaststv/ui/lib/utils";
 import { Link, createFileRoute, useSearch } from "@tanstack/react-router";
-import { MapPin, Sparkles, Users } from "lucide-react";
+import { MapPin, Users } from "lucide-react";
 import { useState } from "react";
 import { z } from "zod";
 
@@ -512,7 +512,6 @@ function PlayersPage() {
       <div className="relative overflow-hidden rounded-2xl bg-primary p-6 text-white shadow-xl sm:p-8">
         <div className="relative z-10 max-w-2xl space-y-2">
           <div className="inline-flex items-center gap-1.5 rounded-md bg-secondary/20 px-2.5 py-1 text-xs font-semibold text-[#bcdf21]">
-            <Sparkles className="size-3" />
             <span>Padel & Pickleball Community</span>
           </div>
           <h1 className="text-3xl font-logo sm:text-4xl tracking-wide lowercase">

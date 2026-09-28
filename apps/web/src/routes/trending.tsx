@@ -12,7 +12,6 @@ import {
   Flame,
   MapPin,
   Navigation,
-  Sparkles,
   TrendingUp,
   Users,
   Video,
@@ -205,7 +204,7 @@ function LocationStatus({
   if (!hasLocationConsent) {
     return (
       <Button
-        className="text-xs text-[#bcdf21]"
+        className="rounded-lg text-xs text-[#bcdf21]"
         onClick={requestLocation}
         size="sm"
         variant="ghost"
@@ -228,7 +227,7 @@ function LocationStatus({
       <Button
         size="sm"
         variant="ghost"
-        className="text-xs text-muted-foreground"
+        className="rounded-lg text-xs text-muted-foreground"
         onClick={requestLocation}
       >
         Use my location
@@ -619,7 +618,6 @@ function TrendingDashboardView({
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="max-w-xl space-y-2">
               <div className="inline-flex items-center gap-1.5 rounded-md bg-secondary/20 px-2.5 py-1 text-xs font-semibold text-[#bcdf21]">
-                <Sparkles className="size-3" />
                 <span>Happening near you</span>
               </div>
               <h1 className="text-3xl font-logo tracking-wide lowercase sm:text-4xl">

@@ -53,7 +53,7 @@ function CasterDetailPage() {
           inactive.
         </p>
         <Link to="/casters">
-          <Button variant="outline" className="rounded-md text-xs mt-4">
+          <Button variant="outline" className="rounded-lg text-xs mt-4">
             Back to Casters
           </Button>
         </Link>

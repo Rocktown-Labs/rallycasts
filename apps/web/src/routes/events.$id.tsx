@@ -119,7 +119,7 @@ function EventLayout() {
           The event you are looking for does not exist or has been deleted.
         </p>
         <Link to="/events">
-          <Button variant="outline" className="rounded-md text-xs mt-4">
+          <Button variant="outline" className="rounded-lg text-xs mt-4">
             Back to Events
           </Button>
         </Link>
@@ -213,17 +213,17 @@ function EventLayout() {
           {canManageEvent ? (
             <div className="flex flex-wrap gap-2 pt-2">
               <Link params={{ id: eventData.id }} to="/events/$id/players">
-                <Button className="rounded-md text-xs" size="sm">
+                <Button className="rounded-lg text-xs" size="sm">
                   <Users className="size-3.5" /> Player Pool
                 </Button>
               </Link>
               <Link params={{ id: eventData.id }} to="/events/$id/bracket">
-                <Button className="rounded-md text-xs" size="sm">
+                <Button className="rounded-lg text-xs" size="sm">
                   <Trophy className="size-3.5" /> Bracket
                 </Button>
               </Link>
               <Link params={{ id: eventData.id }} to="/events/$id/matches">
-                <Button className="rounded-md text-xs" size="sm">
+                <Button className="rounded-lg text-xs" size="sm">
                   <ListChecks className="size-3.5" /> Match Desk
                 </Button>
               </Link>

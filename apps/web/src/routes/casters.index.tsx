@@ -9,7 +9,6 @@ import {
   Camera,
   DollarSign,
   ShieldCheck,
-  Sparkles,
   Video,
 } from "lucide-react";
 
@@ -57,7 +56,6 @@ function CastersPage() {
       <div className="relative overflow-hidden rounded-2xl bg-primary p-6 text-white shadow-xl sm:p-8">
         <div className="relative z-10 max-w-2xl space-y-2">
           <div className="inline-flex items-center gap-1.5 rounded-md bg-secondary/20 px-2.5 py-1 text-xs font-semibold text-[#bcdf21]">
-            <Sparkles className="size-3" />
             <span>Premium Caster Onboarding Open</span>
           </div>
           <h1 className="text-3xl font-logo sm:text-4xl tracking-wide lowercase">
@@ -82,14 +80,14 @@ function CastersPage() {
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
               to="/onboarding"
-              className={cn(buttonVariants(), "rounded-md font-semibold")}
+              className={cn(buttonVariants(), "rounded-lg font-semibold")}
             >
               Start caster onboarding
               <ArrowRight className="size-4" />
             </Link>
             <Link to="/u/casts/new">
               <Button
-                className="rounded-md font-semibold cursor-pointer"
+                className="rounded-lg font-semibold cursor-pointer"
                 variant="outline"
               >
                 <Video className="mr-1.5 size-4 text-emerald-500" />

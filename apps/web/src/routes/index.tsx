@@ -8,7 +8,6 @@ import {
   Flame,
   MapPin,
   MessageSquare,
-  Sparkles,
   Users,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -58,7 +57,6 @@ function HeroBanner() {
     <section className="grid gap-6 rounded-2xl border border-border/60 bg-[linear-gradient(135deg,hsl(142_100%_18%/.15),transparent_52%,hsl(78_100%_60%/.08))] p-6 shadow-xs md:grid-cols-[1fr_auto] md:items-center sm:p-8">
       <div>
         <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-0.5 text-xs font-semibold text-primary">
-          <Sparkles className="size-3 text-[#bcdf21]" />
           <span>Pickleball around your courts</span>
         </div>
         <h1 className="mt-3 text-2xl font-bold tracking-tight md:text-3xl lg:text-4xl text-foreground">
