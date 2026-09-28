@@ -1,7 +1,8 @@
 import { env } from "@rallycaststv/env/web";
 import { Button, buttonVariants } from "@rallycaststv/ui/components/button";
+import { Skeleton } from "@rallycaststv/ui/components/skeleton";
 import { cn } from "@rallycaststv/ui/lib/utils";
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   ArrowUpRight,
   Package,
@@ -9,32 +10,30 @@ import {
   Sparkles,
   Trophy,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import { z } from "zod";
 
 import { useCart } from "@/lib/cart";
 import {
   cartItemsFor,
   displayPriceFor,
-  fetchAllProducts,
   formatMoney,
   imageUrlFor,
   isFourthwallEnabled,
 } from "@/lib/fourthwall";
-import type { FwOffer, FwProduct } from "@/lib/fourthwall";
+import type { FwCollection, FwOffer, FwProduct } from "@/lib/fourthwall";
+import { useShopCollections, useShopOffers } from "@/lib/hooks/use-shop";
+
+const shopSearchSchema = z.object({
+  collection: z.string().optional(),
+});
 
 export const Route = createFileRoute("/shop")({
   component: ShopPage,
-  loader: async (): Promise<{ offers: FwOffer[] | null }> => {
-    if (!isFourthwallEnabled()) {
-      return { offers: null };
-    }
-    try {
-      return { offers: await fetchAllProducts() };
-    } catch {
-      return { offers: null };
-    }
-  },
+  loader: () => ({ enabled: isFourthwallEnabled() }),
   staleTime: 60_000,
+  validateSearch: shopSearchSchema,
 });
 
 const merchPreview = [
@@ -53,68 +52,272 @@ const merchPreview = [
 ] as const;
 
 function ShopPage() {
-  const { offers } = Route.useLoaderData();
-  const storefrontUrl = env.VITE_FOURTHWALL_STOREFRONT_URL;
+  const { enabled } = Route.useLoaderData();
+  const { collection } = Route.useSearch();
+  const selectedSlug = collection ?? "all";
 
   return (
     <main className="mx-auto max-w-7xl space-y-10 px-4 py-6">
-      <section className="overflow-hidden rounded-3xl border bg-[radial-gradient(circle_at_top_right,hsl(78_100%_60%/.22),transparent_36%),linear-gradient(135deg,hsl(142_100%_18%),hsl(142_80%_8%))] p-8 text-white md:p-12">
-        <div className="max-w-3xl">
-          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.22em] text-[#bcdf21]">
-            <Sparkles className="size-4" /> RallyCasts supply
-          </p>
-          <h1 className="mt-4 text-4xl font-black tracking-tight md:text-6xl">
-            Wear the rally.
-          </h1>
-          <p className="mt-4 max-w-2xl text-sm leading-6 text-white/75 md:text-base">
-            Merch for the people playing, filming, and building pickleball
-            culture. Orders are fulfilled through our connected commerce
-            partner, so RallyCasts never stores card details.
-          </p>
-          <div className="mt-7 flex flex-wrap gap-3">
-            {storefrontUrl ? (
-              <a
-                className={cn(
-                  buttonVariants(),
-                  "bg-[#bcdf21] text-black hover:bg-[#d3f34b]"
-                )}
-                href={storefrontUrl}
-                rel="noopener noreferrer"
-                target="_blank"
-              >
-                Visit storefront <ArrowUpRight className="size-4" />
-              </a>
-            ) : (
-              <Button className="bg-white/15 text-white" disabled>
-                Storefront launching soon
-              </Button>
-            )}
-            <Link
+      <HeroSection hasOffers={enabled} />
+      {enabled ? <ShopSection selectedSlug={selectedSlug} /> : <PreviewGrid />}
+    </main>
+  );
+}
+
+function HeroSection({ hasOffers }: { hasOffers: boolean }) {
+  const storefrontUrl = env.VITE_FOURTHWALL_STOREFRONT_URL;
+
+  return (
+    <section className="overflow-hidden rounded-3xl border bg-[radial-gradient(circle_at_top_right,hsl(78_100%_60%/.22),transparent_36%),linear-gradient(135deg,hsl(142_100%_18%),hsl(142_80%_8%))] p-8 text-white md:p-12">
+      <div className="max-w-3xl">
+        <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.22em] text-[#bcdf21]">
+          <Sparkles className="size-4" /> RallyCasts supply
+        </p>
+        <h1 className="mt-4 text-4xl font-black tracking-tight md:text-6xl">
+          Wear the rally.
+        </h1>
+        <p className="mt-4 max-w-2xl text-sm leading-6 text-white/75 md:text-base">
+          Merch for the people playing, filming, and building pickleball
+          culture. Orders are fulfilled through our connected commerce partner,
+          so RallyCasts never stores card details.
+        </p>
+        <div className="mt-7 flex flex-wrap gap-3">
+          {hasOffers ? (
+            <a
+              className={cn(
+                buttonVariants(),
+                "bg-[#bcdf21] text-black hover:bg-[#d3f34b]"
+              )}
+              href="#shop-gallery"
+            >
+              <ShoppingBag className="size-4" /> Browse products
+            </a>
+          ) : (
+            <Button className="bg-white/15 text-white" disabled>
+              Storefront launching soon
+            </Button>
+          )}
+          {storefrontUrl && (
+            <a
               className={cn(
                 buttonVariants({ variant: "outline" }),
                 "border-white/25 bg-transparent text-white hover:bg-white/10 hover:text-white"
               )}
-              to="/events"
+              href={storefrontUrl}
+              rel="noopener noreferrer"
+              target="_blank"
             >
-              <Trophy className="size-4" /> Find an event
-            </Link>
-          </div>
+              Visit storefront <ArrowUpRight className="size-4" />
+            </a>
+          )}
+          <Link
+            className={cn(
+              buttonVariants({ variant: "outline" }),
+              "border-white/25 bg-transparent text-white hover:bg-white/10 hover:text-white"
+            )}
+            to="/events"
+          >
+            <Trophy className="size-4" /> Find an event
+          </Link>
         </div>
-      </section>
+      </div>
+    </section>
+  );
+}
 
-      <section>
-        <div className="mb-5 flex items-end justify-between gap-4">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">
-              {offers ? "The shop" : "First drop preview"}
-            </p>
-            <h2 className="mt-1 text-2xl font-black">Built for court days</h2>
-          </div>
-          <ShoppingBag className="size-6 text-primary" />
+function ShopSection({ selectedSlug }: { selectedSlug: string }) {
+  const {
+    data: collections,
+    error: collectionsError,
+    isLoading: collectionsLoading,
+  } = useShopCollections();
+
+  let filterContent: ReactNode;
+  if (collectionsLoading) {
+    filterContent = <FilterSkeleton />;
+  } else if (collectionsError) {
+    filterContent = (
+      <p className="text-sm text-destructive">
+        Couldn’t load collections. Try reloading the page.
+      </p>
+    );
+  } else {
+    filterContent = (
+      <CollectionFilter
+        collections={collections ?? []}
+        selectedSlug={selectedSlug}
+      />
+    );
+  }
+
+  return (
+    <section id="shop-gallery">
+      <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">
+            The shop
+          </p>
+          <h2 className="mt-1 text-2xl font-black">Built for court days</h2>
         </div>
-        {offers ? <ProductGrid offers={offers} /> : <PreviewGrid />}
-      </section>
-    </main>
+        <ShoppingBag className="size-6 text-primary" />
+      </div>
+
+      {filterContent}
+
+      <ProductGallery selectedSlug={selectedSlug} />
+    </section>
+  );
+}
+
+function FilterSkeleton() {
+  return (
+    <div className="mb-6 flex flex-wrap gap-2">
+      {Array.from({ length: 4 }).map((_, index) => (
+        <Skeleton className="h-9 w-24 rounded-full" key={index} />
+      ))}
+    </div>
+  );
+}
+
+function CollectionFilter({
+  collections,
+  selectedSlug,
+}: {
+  collections: FwCollection[];
+  selectedSlug: string;
+}) {
+  const navigate = useNavigate({ from: "/shop" });
+
+  const tabs = useMemo(
+    () => [{ id: "all", name: "All", slug: "all" }, ...collections],
+    [collections]
+  );
+
+  const selectCollection = (slug: string) => {
+    void navigate({
+      search: (prev: { collection?: string }) => ({
+        ...prev,
+        collection: slug === "all" ? undefined : slug,
+      }),
+    });
+  };
+
+  return (
+    <div className="mb-6 flex flex-wrap gap-2">
+      {tabs.map((collection) => {
+        const active = collection.slug === selectedSlug;
+        return (
+          <Button
+            className={cn(
+              "rounded-full transition-colors",
+              active
+                ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                : "border bg-background text-foreground hover:bg-muted"
+            )}
+            key={collection.slug}
+            onClick={() => selectCollection(collection.slug)}
+            variant={active ? "default" : "outline"}
+          >
+            {collection.name}
+          </Button>
+        );
+      })}
+    </div>
+  );
+}
+
+function ProductGallery({ selectedSlug }: { selectedSlug: string }) {
+  const {
+    data,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+  } = useShopOffers(selectedSlug);
+
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const element = sentinelRef.current;
+    if (!element || !hasNextPage) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && hasNextPage && !isFetchingNextPage) {
+          void fetchNextPage();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+
+  const offers = useMemo(
+    () => data?.pages.flatMap((page) => page.results) ?? [],
+    [data]
+  );
+
+  if (isLoading) {
+    return <ProductSkeleton />;
+  }
+
+  if (error) {
+    return (
+      <div className="grid place-items-center rounded-2xl border border-dashed py-16 text-center">
+        <Package className="size-8 text-muted-foreground" />
+        <p className="mt-3 text-sm text-muted-foreground">
+          Couldn’t load products. Try again in a moment.
+        </p>
+      </div>
+    );
+  }
+
+  if (offers.length === 0) {
+    return (
+      <div className="grid place-items-center rounded-2xl border border-dashed py-16 text-center">
+        <Package className="size-8 text-muted-foreground" />
+        <p className="mt-3 text-sm text-muted-foreground">
+          No products in this collection yet — the next drop is on its way.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {offers.map((offer) => (
+          <ProductCard key={`${selectedSlug}-${offer.id}`} offer={offer} />
+        ))}
+      </div>
+      <div aria-hidden="true" className="h-4" ref={sentinelRef} />
+      {isFetchingNextPage && <ProductSkeleton count={3} />}
+    </>
+  );
+}
+
+function ProductSkeleton({ count = 6 }: { count?: number }) {
+  return (
+    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      {Array.from({ length: count }).map((_, index) => (
+        <div
+          className="flex flex-col overflow-hidden rounded-2xl border bg-card"
+          key={index}
+        >
+          <Skeleton className="aspect-[4/3] w-full" />
+          <div className="space-y-3 p-5">
+            <Skeleton className="h-5 w-2/3" />
+            <Skeleton className="h-4 w-1/3" />
+            <Skeleton className="h-9 w-full" />
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -143,27 +346,6 @@ function PreviewGrid() {
   );
 }
 
-function ProductGrid({ offers }: { offers: FwOffer[] }) {
-  if (offers.length === 0) {
-    return (
-      <div className="grid place-items-center rounded-2xl border border-dashed py-16 text-center">
-        <Package className="size-8 text-muted-foreground" />
-        <p className="mt-3 text-sm text-muted-foreground">
-          No products yet — the first drop is on its way.
-        </p>
-      </div>
-    );
-  }
-  return (
-    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-      {offers.map((offer) => (
-        <ProductCard key={offer.id} offer={offer} />
-      ))}
-    </div>
-  );
-}
-
-// oxlint-disable-next-line complexity
 function ProductCard({ offer }: { offer: FwOffer }) {
   const { addItems, pending } = useCart();
   const isBundle = offer.type === "BUNDLE";
@@ -174,44 +356,25 @@ function ProductCard({ offer }: { offer: FwOffer }) {
 
   const soldOut = offer.state.type === "SOLD_OUT";
   const price = displayPriceFor(offer);
-  const imageUrl = isBundle
-    ? imageUrlFor(offer.offers[0]?.images[0])
-    : imageUrlFor(offer.images[0]);
   const selectedVariant = product?.variants.find(
     (variant) => variant.id === selectedVariantId
   );
 
+  const handleAddToCart = () => {
+    void addItems(cartItemsFor(offer, selectedVariantId));
+  };
+
   return (
     <article className="flex flex-col overflow-hidden rounded-2xl border bg-card">
-      <div className="relative aspect-[4/3] bg-muted">
-        {imageUrl ? (
-          <img
-            alt={offer.name}
-            className="absolute inset-0 size-full object-cover"
-            loading="lazy"
-            src={imageUrl}
-          />
-        ) : (
-          <div className="grid size-full place-items-center">
-            <Package className="size-10 text-muted-foreground" />
-          </div>
-        )}
-        <div className="absolute left-3 top-3 flex gap-2">
-          {isBundle ? (
-            <span className="rounded-full bg-primary px-2.5 py-1 text-xs font-bold text-primary-foreground">
-              Bundle
-            </span>
-          ) : null}
-          {soldOut ? (
-            <span className="rounded-full bg-destructive px-2.5 py-1 text-xs font-bold text-destructive-foreground">
-              Sold out
-            </span>
-          ) : null}
-        </div>
-      </div>
+      <ProductImage name={offer.name} offer={offer} />
       <div className="flex flex-1 flex-col p-5">
         <h3 className="font-bold">{offer.name}</h3>
-        <div className="mt-1 flex items-baseline gap-2">
+        {offer.type === "PRODUCT" && offer.description ? (
+          <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+            {offer.description}
+          </p>
+        ) : null}
+        <div className="mt-2 flex items-baseline gap-2">
           {price ? (
             <span className="text-lg font-black">{formatMoney(price)}</span>
           ) : null}
@@ -222,32 +385,110 @@ function ProductCard({ offer }: { offer: FwOffer }) {
           ) : null}
         </div>
         {product && product.variants.length > 1 ? (
-          <label className="mt-3 block text-xs font-semibold text-muted-foreground">
-            Option
-            <select
-              className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm text-foreground"
-              onChange={(event) => setSelectedVariantId(event.target.value)}
-              value={selectedVariantId}
-            >
-              {product.variants.map((variant) => (
-                <option key={variant.id} value={variant.id}>
-                  {variant.name} — {formatMoney(variant.unitPrice)}
-                </option>
-              ))}
-            </select>
-          </label>
+          <VariantSelector
+            product={product}
+            selectedVariantId={selectedVariantId}
+            onSelect={setSelectedVariantId}
+          />
         ) : null}
-        <Button
-          className="mt-4 w-full"
+        <AddToCartButton
           disabled={soldOut || pending}
-          onClick={() => addItems(cartItemsFor(offer, selectedVariantId))}
-        >
-          <ShoppingBag className="size-4" />
-          {soldOut && "Sold out"}
-          {!soldOut && isBundle && "Add bundle"}
-          {!soldOut && !isBundle && "Add to cart"}
-        </Button>
+          isBundle={isBundle}
+          soldOut={soldOut}
+          onClick={handleAddToCart}
+        />
       </div>
     </article>
+  );
+}
+
+function ProductImage({ name, offer }: { name: string; offer: FwOffer }) {
+  const firstImage =
+    offer.type === "BUNDLE" ? offer.offers[0]?.images[0] : offer.images[0];
+  const imageUrl = imageUrlFor(firstImage);
+  const soldOut = offer.state.type === "SOLD_OUT";
+
+  return (
+    <div className="relative aspect-[4/3] bg-muted">
+      {imageUrl ? (
+        <img
+          alt={name}
+          className="absolute inset-0 size-full object-cover"
+          loading="lazy"
+          src={imageUrl}
+        />
+      ) : (
+        <div className="grid size-full place-items-center">
+          <Package className="size-10 text-muted-foreground" />
+        </div>
+      )}
+      <div className="absolute left-3 top-3 flex gap-2">
+        {offer.type === "BUNDLE" ? (
+          <span className="rounded-full bg-primary px-2.5 py-1 text-xs font-bold text-primary-foreground">
+            Bundle
+          </span>
+        ) : null}
+        {soldOut ? (
+          <span className="rounded-full bg-destructive px-2.5 py-1 text-xs font-bold text-destructive-foreground">
+            Sold out
+          </span>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function VariantSelector({
+  product,
+  selectedVariantId,
+  onSelect,
+}: {
+  product: FwProduct;
+  selectedVariantId?: string;
+  onSelect: (variantId: string) => void;
+}) {
+  return (
+    <label className="mt-3 block text-xs font-semibold text-muted-foreground">
+      Option
+      <select
+        className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm text-foreground"
+        onChange={(event) => onSelect(event.target.value)}
+        value={selectedVariantId}
+      >
+        {product.variants.map((variant) => (
+          <option key={variant.id} value={variant.id}>
+            {variant.name} — {formatMoney(variant.unitPrice)}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function AddToCartButton({
+  disabled,
+  isBundle,
+  soldOut,
+  onClick,
+}: {
+  disabled: boolean;
+  isBundle: boolean;
+  soldOut: boolean;
+  onClick: () => void;
+}) {
+  let label: string;
+  if (soldOut) {
+    label = "Sold out";
+  } else if (isBundle) {
+    label = "Add bundle";
+  } else {
+    label = "Add to cart";
+  }
+
+  return (
+    <Button className="mt-4 w-full" disabled={disabled} onClick={onClick}>
+      <ShoppingBag className="size-4" />
+      {label}
+    </Button>
   );
 }
