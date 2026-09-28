@@ -193,9 +193,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
       openCart: () => setIsOpen(true),
       pending,
       quantityFor: (variantId: string) => {
+        // Only standalone lines: bundle components (groupedBy) belong to
+        // their bundle and must not be counted or mutated by variant
+        // steppers on product pages.
         let total = 0;
         for (const item of items) {
-          if (item.variant.id === variantId) {
+          if (item.variant.id === variantId && !item.groupedBy) {
             total += item.quantity;
           }
         }

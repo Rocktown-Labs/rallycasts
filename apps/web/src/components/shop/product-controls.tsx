@@ -4,7 +4,11 @@ import { Minus, Plus, ShoppingBag } from "lucide-react";
 import { useMemo } from "react";
 
 import { useCart } from "@/lib/cart";
-import { cartItemsFor, productOptionsFor } from "@/lib/fourthwall";
+import {
+  cartItemsFor,
+  isVariantOutOfStock,
+  productOptionsFor,
+} from "@/lib/fourthwall";
 import type { FwOffer, FwProduct, FwProductOption } from "@/lib/fourthwall";
 
 export function VariantSelector({
@@ -25,7 +29,7 @@ export function VariantSelector({
         !candidate.color || variant.attributes.color?.name === candidate.color;
       const sizeMatch =
         !candidate.size || variant.attributes.size?.name === candidate.size;
-      return colorMatch && sizeMatch;
+      return colorMatch && sizeMatch && !isVariantOutOfStock(variant);
     });
 
   return (
@@ -185,12 +189,12 @@ export function AddToCartControls({
         >
           <Minus className="size-3.5" />
         </button>
-        <span
+        <output
           aria-label={`${quantity} in cart`}
           className="w-7 text-center text-sm font-semibold tabular-nums"
         >
           {quantity}
-        </span>
+        </output>
         <button
           aria-label={`Add one more ${offer.name}`}
           className="grid size-9 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"

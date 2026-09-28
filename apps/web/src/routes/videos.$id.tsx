@@ -915,7 +915,7 @@ function VideoSharePanel({
         {friends.length > 0 ? (
           friends.map((friend) => (
             <button
-              className="flex items-center gap-3 rounded-md border border-border px-3 py-2 text-left text-xs hover:bg-muted disabled:opacity-50"
+              className="flex items-center gap-3 rounded-lg border border-border px-3 py-2 text-left text-xs hover:bg-muted disabled:opacity-50"
               disabled={shareEntity.isPending}
               key={friend.id}
               onClick={() => shareWithFriend(friend)}
@@ -931,7 +931,7 @@ function VideoSharePanel({
             </button>
           ))
         ) : (
-          <p className="rounded-md border border-dashed border-border p-4 text-center text-muted-foreground text-xs sm:col-span-2">
+          <p className="rounded-lg border border-dashed border-border p-4 text-center text-muted-foreground text-xs sm:col-span-2">
             Add friends from player profiles to share directly in chat.
           </p>
         )}

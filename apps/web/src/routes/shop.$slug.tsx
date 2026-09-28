@@ -15,6 +15,7 @@ import {
   formatMoney,
   imageUrlFor,
   isFourthwallEnabled,
+  isVariantOutOfStock,
   offerImagesFor,
 } from "@/lib/fourthwall";
 import type { FwOffer, FwProduct } from "@/lib/fourthwall";
@@ -267,7 +268,7 @@ function ProductInfo({
         ) : null}
       </div>
 
-      {offer.type === "PRODUCT" && offer.description ? (
+      {offer.description ? (
         <p className="mt-4 text-sm leading-6 text-muted-foreground">
           {offer.description}
         </p>
@@ -298,13 +299,6 @@ function ProductInfo({
       <ProductDetailsSections offer={offer} />
     </div>
   );
-}
-
-function isVariantOutOfStock(
-  selectedVariant: ReturnType<typeof findVariantByOptions>
-): boolean {
-  const stock = selectedVariant?.stock;
-  return stock?.type === "LIMITED" && (stock.inStock ?? 0) <= 0;
 }
 
 function StockLine({

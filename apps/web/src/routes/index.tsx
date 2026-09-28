@@ -30,7 +30,13 @@ import type {
 } from "@/components/rally/cards";
 import { authClient } from "@/lib/auth-client";
 import { demoVideos } from "@/lib/demo-data";
-import { useHomeFeed, useProfile, useTrending, useVideos } from "@/lib/hooks";
+import {
+  useHomeFeed,
+  useInfiniteVideos,
+  useProfile,
+  useTrending,
+  useVideos,
+} from "@/lib/hooks";
 
 export const Route = createFileRoute("/")({
   component: HomeComponent,
@@ -56,7 +62,7 @@ function HeroBanner() {
   return (
     <section className="grid gap-6 rounded-2xl border border-border/60 bg-[linear-gradient(135deg,hsl(142_100%_18%/.15),transparent_52%,hsl(78_100%_60%/.08))] p-6 shadow-xs md:grid-cols-[1fr_auto] md:items-center sm:p-8">
       <div>
-        <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-0.5 text-xs font-semibold text-primary">
+        <div className="inline-flex items-center gap-1.5 rounded-md bg-secondary/20 px-2.5 py-1 text-xs font-semibold text-[#bcdf21]">
           <span>Pickleball around your courts</span>
         </div>
         <h1 className="mt-3 text-2xl font-bold tracking-tight md:text-3xl lg:text-4xl text-foreground">
@@ -92,6 +98,12 @@ function HeroBanner() {
     </section>
   );
 }
+
+const isShortVideo = (video: VideoCardData): boolean =>
+  video.mediaType === "short" ||
+  ((video.durationSeconds ?? 0) > 0 &&
+    (video.durationSeconds ?? 0) <= 60 &&
+    video.title.toLowerCase().includes("clip"));
 
 function HomeFeedView({
   isPersonalized,
@@ -148,19 +160,13 @@ function HomeFeedView({
     return list;
   }, [rawFeedItems, latestVideosQuery.data?.videos]);
 
-  // Split into Shorts (Clips) vs Standard Landscape Videos
+  // Split into Highlights (vertical clips) vs landscape videos
   const { landscapeVideos, shortsVideos } = useMemo(() => {
     const shorts: VideoCardData[] = [];
     const landscape: VideoCardData[] = [];
 
     for (const video of allVideos) {
-      const isShort =
-        video.mediaType === "short" ||
-        ((video.durationSeconds ?? 0) > 0 &&
-          (video.durationSeconds ?? 0) <= 60 &&
-          video.title.toLowerCase().includes("clip"));
-
-      if (isShort) {
+      if (isShortVideo(video)) {
         shorts.push(video);
       } else {
         landscape.push(video);
@@ -169,6 +175,36 @@ function HomeFeedView({
 
     return { landscapeVideos: landscape, shortsVideos: shorts };
   }, [allVideos]);
+
+  // Infinite "More Matches" feed: extra pages load as the visitor scrolls.
+  const {
+    data: infiniteData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteVideos(12);
+
+  const infiniteSplit = useMemo(() => {
+    const seen = new Set(allVideos.map((video) => video.id));
+    const landscape: VideoCardData[] = [];
+    const shorts: VideoCardData[] = [];
+    for (const page of infiniteData?.pages ?? []) {
+      for (const video of page.videos) {
+        if (seen.has(video.id)) {
+          continue;
+        }
+        seen.add(video.id);
+        if (isShortVideo(video)) {
+          shorts.push(video);
+        } else {
+          landscape.push(video);
+        }
+      }
+    }
+    return { landscape, shorts };
+  }, [allVideos, infiniteData?.pages]);
+
+  const highlightsVideos = [...shortsVideos, ...infiniteSplit.shorts];
 
   // Aggregate venues ensuring user's home court is first and favorited
   const userProfile = profileQuery.data?.profile;
@@ -237,7 +273,7 @@ function HomeFeedView({
 
   if (isLoading) {
     return (
-      <FeedSectionShell isLoading={true} title="Featured Highlights">
+      <FeedSectionShell isLoading={true} title="Featured Matches">
         <FeedSkeleton />
       </FeedSectionShell>
     );
@@ -249,27 +285,27 @@ function HomeFeedView({
     : "grid gap-6 sm:grid-cols-2 lg:grid-cols-3";
 
   const featuredLandscape = landscapeVideos.slice(0, sidebarCollapsed ? 8 : 6);
-  const moreLandscape = landscapeVideos.slice(sidebarCollapsed ? 8 : 6);
+  const moreMatches = [
+    ...landscapeVideos.slice(sidebarCollapsed ? 8 : 6),
+    ...infiniteSplit.landscape,
+  ];
 
   return (
     <div className="space-y-14">
-      {/* 1. Main Featured Matches (Landscape 16:9 shelf) */}
+      {/* 1. Highlights (Shorts Shelf - Portrait 9:16) */}
+      {highlightsVideos.length > 0 ? (
+        <ShortsShelf videos={highlightsVideos} />
+      ) : null}
+
+      {/* 2. Featured Matches (Landscape 16:9 shelf) */}
       <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-              Featured Highlights & Matches
-            </h2>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Recent rallies, matches, and clinics recorded with RallyCasts.
-            </p>
-          </div>
-          <Link
-            to="/trending"
-            className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors px-2 py-1"
-          >
-            Explore all →
-          </Link>
+        <div>
+          <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+            Featured Matches
+          </h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Recent rallies, matches, and clinics recorded with RallyCasts.
+          </p>
         </div>
 
         {featuredLandscape.length > 0 ? (
@@ -286,35 +322,14 @@ function HomeFeedView({
         )}
       </section>
 
-      {/* 2. Rallies & Clips (Shorts Shelf - Portrait 9:16) */}
-      {shortsVideos.length > 0 ? <ShortsShelf videos={shortsVideos} /> : null}
-
-      {/* 3. More Matches & Highlights */}
-      {moreLandscape.length > 0 ? (
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-                More Matches & Highlights
-              </h2>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Community open play recordings, kitchen battles, and clinics.
-              </p>
-            </div>
-            <Link
-              to="/trending"
-              className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors px-2 py-1"
-            >
-              See all matches →
-            </Link>
-          </div>
-          <div className={videoGridClass}>
-            {moreLandscape.map((video) => (
-              <VideoCard key={video.id} video={video} />
-            ))}
-          </div>
-        </section>
-      ) : null}
+      {/* 3. More Matches & Highlights (loads more as you scroll) */}
+      <MoreMatchesSection
+        fetchNextPage={fetchNextPage}
+        hasNextPage={hasNextPage}
+        isFetchingNextPage={isFetchingNextPage}
+        videoGridClass={videoGridClass}
+        videos={moreMatches}
+      />
 
       {/* 4. Courts & Parks Near You (Home court prioritized first, below videos) */}
       {venuesList.length > 0 ? (
@@ -342,6 +357,67 @@ function HomeFeedView({
         </section>
       ) : null}
     </div>
+  );
+}
+
+function MoreMatchesSection({
+  fetchNextPage,
+  hasNextPage,
+  isFetchingNextPage,
+  videoGridClass,
+  videos,
+}: {
+  fetchNextPage: () => Promise<unknown>;
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
+  videoGridClass: string;
+  videos: VideoCardData[];
+}) {
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const element = sentinelRef.current;
+    if (!element || !hasNextPage) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && hasNextPage && !isFetchingNextPage) {
+          void fetchNextPage();
+        }
+      },
+      { rootMargin: "400px" }
+    );
+
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+
+  if (videos.length === 0 && !hasNextPage) {
+    return null;
+  }
+
+  return (
+    <section className="space-y-4">
+      <div>
+        <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+          More Matches & Highlights
+        </h2>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          Community open play recordings, kitchen battles, and clinics.
+        </p>
+      </div>
+      {videos.length > 0 ? (
+        <div className={videoGridClass}>
+          {videos.map((video) => (
+            <VideoCard key={video.id} video={video} />
+          ))}
+        </div>
+      ) : null}
+      <div aria-hidden="true" className="h-4" ref={sentinelRef} />
+      {isFetchingNextPage ? <FeedSkeleton /> : null}
+    </section>
   );
 }
 
@@ -388,7 +464,7 @@ function ShortsShelf({ videos }: { videos: VideoCardData[] }) {
             <span className="flex size-7 items-center justify-center rounded-lg bg-red-600/15 text-red-500">
               <Flame className="size-4.5 fill-red-500" />
             </span>
-            Rallies & Clips
+            Highlights
           </h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
             Bite-sized points, kitchen battles, and clutch shots from the
@@ -502,12 +578,6 @@ function NearbyParksSection({ venues }: { venues: VenueCardData[] }) {
               <ChevronRight className="size-4" />
             </Button>
           </div>
-          <Link
-            to="/trending"
-            className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors px-2 py-1"
-          >
-            Explore all courts →
-          </Link>
         </div>
       </div>
 
@@ -544,12 +614,6 @@ function FeedSectionShell({
         <div>
           <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
         </div>
-        <Link
-          to="/trending"
-          className={cn(buttonVariants({ variant: "ghost" }), "text-xs")}
-        >
-          Explore trending
-        </Link>
       </div>
       {isLoading ? <FeedSkeleton /> : children}
     </section>

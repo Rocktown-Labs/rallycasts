@@ -10,6 +10,7 @@ import {
   findVariantByOptions,
   formatMoney,
   imageUrlFor,
+  isVariantOutOfStock,
   offerImagesFor,
   productOptionsFor,
 } from "./fourthwall";
@@ -189,7 +190,6 @@ describe("findVariantByOptions", () => {
 
     expect(variant?.id).toBe("variant-white-l");
   });
-
   it("returns undefined when no variant matches the combination", () => {
     const variant = findVariantByOptions(productWithOptions, {
       color: "White",
@@ -197,6 +197,26 @@ describe("findVariantByOptions", () => {
     });
 
     expect(variant).toBeUndefined();
+  });
+});
+
+describe("isVariantOutOfStock", () => {
+  it("marks LIMITED stock with none left as out of stock", () => {
+    expect(
+      isVariantOutOfStock({ stock: { inStock: 0, type: "LIMITED" } })
+    ).toBe(true);
+  });
+
+  it("keeps LIMITED stock with units and UNLIMITED stock available", () => {
+    expect(
+      isVariantOutOfStock({ stock: { inStock: 2, type: "LIMITED" } })
+    ).toBe(false);
+    expect(isVariantOutOfStock({ stock: { type: "UNLIMITED" } })).toBe(false);
+  });
+
+  it("treats a missing variant or stock as available", () => {
+    expect(isVariantOutOfStock(null)).toBe(false);
+    expect(isVariantOutOfStock({})).toBe(false);
   });
 });
 

@@ -23,6 +23,7 @@ import { Route as CastersRouteImport } from './routes/casters'
 import { Route as SplatRouteImport } from './routes/$'
 import { Route as AuthRouteRouteImport } from './routes/_auth/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ShopIndexRouteImport } from './routes/shop.index'
 import { Route as PlayersIndexRouteImport } from './routes/players.index'
 import { Route as EventsIndexRouteImport } from './routes/events.index'
 import { Route as CastersIndexRouteImport } from './routes/casters.index'
@@ -159,6 +160,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ShopIndexRoute = ShopIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ShopRoute,
 } as any)
 const PlayersIndexRoute = PlayersIndexRouteImport.update({
   id: '/',
@@ -532,6 +538,7 @@ export interface FileRoutesByFullPath {
   '/casters/': typeof CastersIndexRoute
   '/events/': typeof EventsIndexRoute
   '/players/': typeof PlayersIndexRoute
+  '/shop/': typeof ShopIndexRoute
   '/organizers/new': typeof AuthOrganizersNewRoute
   '/u/admin': typeof AuthUAdminRoute
   '/u/admin-users': typeof AuthUAdminUsersRoute
@@ -593,7 +600,6 @@ export interface FileRoutesByTo {
   '/me': typeof MeRoute
   '/organizers': typeof OrganizersRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
-  '/shop': typeof ShopRouteWithChildren
   '/trending': typeof TrendingRoute
   '/onboarding': typeof AuthOnboardingRoute
   '/casters/$id': typeof CastersIdRoute
@@ -609,6 +615,7 @@ export interface FileRoutesByTo {
   '/casters': typeof CastersIndexRoute
   '/events': typeof EventsIndexRoute
   '/players': typeof PlayersIndexRoute
+  '/shop': typeof ShopIndexRoute
   '/organizers/new': typeof AuthOrganizersNewRoute
   '/u/admin': typeof AuthUAdminRoute
   '/u/admin-users': typeof AuthUAdminUsersRoute
@@ -689,6 +696,7 @@ export interface FileRoutesById {
   '/casters/': typeof CastersIndexRoute
   '/events/': typeof EventsIndexRoute
   '/players/': typeof PlayersIndexRoute
+  '/shop/': typeof ShopIndexRoute
   '/_auth/organizers/new': typeof AuthOrganizersNewRoute
   '/_auth/u/admin': typeof AuthUAdminRoute
   '/_auth/u/admin-users': typeof AuthUAdminUsersRoute
@@ -773,6 +781,7 @@ export interface FileRouteTypes {
     | '/casters/'
     | '/events/'
     | '/players/'
+    | '/shop/'
     | '/organizers/new'
     | '/u/admin'
     | '/u/admin-users'
@@ -834,7 +843,6 @@ export interface FileRouteTypes {
     | '/me'
     | '/organizers'
     | '/reset-password'
-    | '/shop'
     | '/trending'
     | '/onboarding'
     | '/casters/$id'
@@ -850,6 +858,7 @@ export interface FileRouteTypes {
     | '/casters'
     | '/events'
     | '/players'
+    | '/shop'
     | '/organizers/new'
     | '/u/admin'
     | '/u/admin-users'
@@ -929,6 +938,7 @@ export interface FileRouteTypes {
     | '/casters/'
     | '/events/'
     | '/players/'
+    | '/shop/'
     | '/_auth/organizers/new'
     | '/_auth/u/admin'
     | '/_auth/u/admin-users'
@@ -1101,6 +1111,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/shop/': {
+      id: '/shop/'
+      path: '/'
+      fullPath: '/shop/'
+      preLoaderRoute: typeof ShopIndexRouteImport
+      parentRoute: typeof ShopRoute
     }
     '/players/': {
       id: '/players/'
@@ -1843,10 +1860,12 @@ const PlayersRouteWithChildren =
 
 interface ShopRouteChildren {
   ShopSlugRoute: typeof ShopSlugRoute
+  ShopIndexRoute: typeof ShopIndexRoute
 }
 
 const ShopRouteChildren: ShopRouteChildren = {
   ShopSlugRoute: ShopSlugRoute,
+  ShopIndexRoute: ShopIndexRoute,
 }
 
 const ShopRouteWithChildren = ShopRoute._addFileChildren(ShopRouteChildren)

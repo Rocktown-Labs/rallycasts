@@ -76,6 +76,7 @@ export interface FwBundle {
   access?: { type: string };
   additionalInformation?: FwAdditionalInformation[];
   compareAtPrice?: FwMoney;
+  description?: string;
   id: string;
   images?: FwImage[];
   name: string;
@@ -303,6 +304,14 @@ export const findVariantByOptions = (
       !selected.size || variant.attributes.size?.name === selected.size;
     return colorMatch && sizeMatch;
   });
+
+/** True when a variant is tracked as LIMITED stock and has none left. */
+export const isVariantOutOfStock = (
+  variant: Pick<FwVariant, "stock"> | undefined | null
+): boolean => {
+  const stock = variant?.stock;
+  return stock?.type === "LIMITED" && (stock.inStock ?? 0) <= 0;
+};
 
 /** Cheapest variant price for a product card; bundle price for bundles. */
 export const displayPriceFor = (offer: FwOffer): FwMoney | undefined => {
