@@ -381,6 +381,19 @@ jobs:
           # set this flag, so no dummy data can ship to prod.
           VITE_DEMO_DATA: ${{ env.STAGE != 'prod' && 'true' || '' }}
 
+      - name: Repair D1 migrations bookkeeping
+        run: |
+          set -euo pipefail
+          if [ "${{ env.STAGE }}" = "prod" ]; then
+            DB_NAME="rallycaststv-db"
+          else
+            DB_NAME="rallycaststv-db-${{ env.STAGE }}"
+          fi
+          bash scripts/repair-d1-migrations-schema.sh "$DB_NAME"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
       - name: Validate D1 migrations bookkeeping
         run: |
           set -euo pipefail

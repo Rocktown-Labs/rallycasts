@@ -5,33 +5,64 @@ set -euo pipefail
 # migration runner expects. A corrupted schema (e.g. `id TEXT PRIMARY KEY`)
 # causes the housekeeping INSERT to fail and rolls back the entire migration
 # batch, even though the schema changes succeeded.
+#
+# A missing table is a valid pre-apply state: `wrangler d1 migrations apply`
+# creates it with the correct schema itself. Only a table that exists with
+# the wrong schema is corruption. Repairs go through
+# scripts/repair-d1-migrations-schema.sh.
+
+MODE=("--remote")
+if [ "${1:-}" = "--local" ]; then
+  MODE=("--local")
+  shift
+fi
 
 DATABASE_NAME="${1:-}"
 
 if [ -z "$DATABASE_NAME" ]; then
-  echo "Usage: $0 <database-name>"
+  echo "Usage: $0 [--local] <database-name>"
   exit 1
 fi
 
-if [ -z "${CLOUDFLARE_API_TOKEN:-}" ] || [ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]; then
-  echo "ERROR: CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID must be set."
-  exit 1
+if [ "${MODE[0]}" = "--remote" ]; then
+  if [ -z "${CLOUDFLARE_API_TOKEN:-}" ] || [ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]; then
+    echo "ERROR: CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID must be set."
+    exit 1
+  fi
+fi
+
+# Optional explicit config for exercising this script against a local D1
+# (test-only; CI and production never set it).
+if [ -n "${WRANGLER_CONFIG:-}" ]; then
+  MODE+=("--config" "$WRANGLER_CONFIG")
 fi
 
 cd apps/server
 
 SCHEMA_JSON="$(
-  bun x wrangler d1 execute "$DATABASE_NAME" --remote --json \
-    --command "SELECT CASE WHEN sql LIKE '%id INTEGER PRIMARY KEY AUTOINCREMENT%' THEN 1 ELSE 0 END AS schema_ok FROM sqlite_master WHERE name = 'd1_migrations';"
+  bun x wrangler d1 execute "$DATABASE_NAME" "${MODE[@]}" --json \
+    --command "SELECT sql FROM sqlite_master WHERE name = 'd1_migrations';"
 )"
 
-SCHEMA_OK="$(printf '%s\n' "$SCHEMA_JSON" | jq -r '.[0].results[0].schema_ok // 0')"
+ROW_COUNT="$(printf '%s\n' "$SCHEMA_JSON" | jq '.[0].results | length')"
 
-if [ "$SCHEMA_OK" != "1" ]; then
-  echo "ERROR: $DATABASE_NAME d1_migrations table does not have the expected schema."
-  echo "The migrations bookkeeping table is likely corrupted (e.g. id TEXT PRIMARY KEY)."
-  printf '%s\n' "$SCHEMA_JSON"
-  exit 1
+if [ "$ROW_COUNT" = "0" ]; then
+  echo "OK: $DATABASE_NAME has no d1_migrations table yet; wrangler creates it on first apply."
+  exit 0
 fi
 
-echo "OK: $DATABASE_NAME d1_migrations schema is valid."
+SQL_TEXT="$(printf '%s\n' "$SCHEMA_JSON" | jq -r '.[0].results[0].sql // ""')"
+
+# Wrangler creates the table with aligned whitespace (id<TAB>INTEGER...),
+# so match word boundaries with flexible whitespace instead of an exact
+# substring. A single-space grep would reject wrangler's own DDL.
+if printf '%s\n' "$SQL_TEXT" | grep -Eq 'id[[:space:]]+INTEGER[[:space:]]+PRIMARY[[:space:]]+KEY[[:space:]]+AUTOINCREMENT'; then
+  echo "OK: $DATABASE_NAME d1_migrations schema is valid."
+  exit 0
+fi
+
+echo "ERROR: $DATABASE_NAME d1_migrations table does not have the expected schema."
+echo "The migrations bookkeeping table is corrupted (e.g. id TEXT PRIMARY KEY)."
+echo "Run scripts/repair-d1-migrations-schema.sh \"$DATABASE_NAME\" to rebuild it."
+printf '%s\n' "$SCHEMA_JSON"
+exit 1
