@@ -11,7 +11,6 @@ import {
   ArrowRight,
   BadgeCheck,
   Building2,
-  Calendar,
   MapPin,
   Plus,
   Settings,
@@ -69,8 +68,8 @@ const OrganizerOrganizationsPage = () => {
             tournament links together without mixing them into a player profile.
           </p>
         </div>
-        <Link to="/events/organizers/new">
-          <Button className="w-full rounded-md md:w-auto">
+        <Link to="/events/hosts/new">
+          <Button className="w-full rounded-lg md:w-auto">
             <Plus className="size-4" />
             New Organization
           </Button>
@@ -79,7 +78,7 @@ const OrganizerOrganizationsPage = () => {
 
       <Input
         aria-label="Search your organizations"
-        className="max-w-xl"
+        className="max-w-xl rounded-lg"
         onChange={(event) => setQuery(event.target.value)}
         placeholder="Search by name, city, or state"
         value={query}
@@ -95,8 +94,8 @@ const OrganizerOrganizationsPage = () => {
           message="Create an organization to host tournaments, invite staff, and publish a public organizer page."
           title="No organizations yet"
           action={
-            <Link to="/events/organizers/new">
-              <Button className="rounded-md">Create Organization</Button>
+            <Link to="/events/hosts/new">
+              <Button className="rounded-lg">Create Organization</Button>
             </Link>
           }
         />
@@ -165,35 +164,29 @@ const OrganizerOrganizationsPage = () => {
               <div className="flex flex-wrap gap-2">
                 <Link
                   params={{ slug: organization.slug }}
-                  to="/events/organizers/$slug/manage"
+                  to="/u/organizer/organizations/$slug"
                 >
-                  <Button className="rounded-md">
+                  <Button className="rounded-lg">
                     <Settings className="size-4" />
                     Manage
                   </Button>
                 </Link>
                 <Link
                   params={{ slug: organization.slug }}
-                  to="/events/organizers/$slug"
+                  to="/u/organizer/organizations/$slug/team"
                 >
-                  <Button className="rounded-md" variant="outline">
-                    Public Page
-                    <ArrowRight className="size-4" />
-                  </Button>
-                </Link>
-                <Link to="/u/organizer/events">
-                  <Button className="rounded-md" variant="outline">
-                    <Calendar className="size-4" />
-                    Events
+                  <Button className="rounded-lg" variant="outline">
+                    <Users className="size-4" />
+                    Team
                   </Button>
                 </Link>
                 <Link
                   params={{ slug: organization.slug }}
-                  to="/events/organizers/$slug/manage"
+                  to="/events/hosts/$slug"
                 >
-                  <Button className="rounded-md" variant="outline">
-                    <Users className="size-4" />
-                    Team
+                  <Button className="rounded-lg" variant="outline">
+                    Public Page
+                    <ArrowRight className="size-4" />
                   </Button>
                 </Link>
               </div>

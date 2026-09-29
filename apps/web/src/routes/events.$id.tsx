@@ -164,7 +164,7 @@ function EventLayout() {
       {/* Back button */}
       <div>
         <Link
-          to={canManageEvent ? "/u/organizer/events" : "/events"}
+          to={canManageEvent ? "/u/organizer/organizations" : "/events"}
           className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mb-4"
         >
           <ChevronLeft className="size-3.5" />{" "}

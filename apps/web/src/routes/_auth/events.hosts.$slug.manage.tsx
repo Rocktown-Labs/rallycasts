@@ -1,13 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
-import { ManageOrganizationPage } from "./organizers.$slug.manage";
-
+// The manage console lives in host tools now.
 export const Route = createFileRoute("/_auth/events/hosts/$slug/manage")({
-  component: () => <ManageHostRoute />,
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      params: { slug: params.slug },
+      to: "/u/organizer/organizations/$slug",
+    });
+  },
 });
-
-const ManageHostRoute = () => {
-  const { slug } = Route.useParams();
-
-  return <ManageOrganizationPage slug={slug} />;
-};

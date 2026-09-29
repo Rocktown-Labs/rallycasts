@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { OrganizationProfilePage } from "./organizers.$slug";
 
-export const Route = createFileRoute("/events/hosts/$slug")({
+export const Route = createFileRoute("/events/hosts_/$slug")({
   component: HostProfileRoute,
 });
 

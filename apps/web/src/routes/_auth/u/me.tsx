@@ -1235,7 +1235,7 @@ function OrganizationCard({
             "flex-1 text-xs gap-1.5 rounded-lg bg-primary text-primary-foreground font-semibold"
           )}
           params={{ slug: org.slug }}
-          to="/organizers/$slug/manage"
+          to="/u/organizer/organizations/$slug"
         >
           <span>Manage & Host</span>
           <ArrowRight className="size-3" />
@@ -1247,7 +1247,7 @@ function OrganizationCard({
             "rounded-lg transition-transform duration-150 ease-out active:scale-97 cursor-pointer"
           )}
           params={{ slug: org.slug }}
-          to="/organizers/$slug"
+          to="/events/hosts/$slug"
         >
           <ExternalLink className="size-3 text-muted-foreground" />
         </Link>
