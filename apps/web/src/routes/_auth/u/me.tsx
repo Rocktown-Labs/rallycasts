@@ -947,11 +947,11 @@ function AppearanceTile() {
   return (
     <button
       aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-      className="group text-left"
+      className="group rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
       onClick={toggleTheme}
       type="button"
     >
-      <Card className="h-full rounded-xl border border-border/80 bg-card/60 transition-all hover:border-primary/50 hover:bg-card hover:shadow-md cursor-pointer">
+      <Card className="h-full rounded-xl border border-border/80 bg-card/60 transition-[background-color,border-color,box-shadow,transform] duration-150 hover:border-primary/50 hover:bg-card hover:shadow-md active:scale-[0.98] cursor-pointer">
         <CardHeader className="p-5 pb-3">
           <div className="flex items-center justify-between">
             <div className="rounded-lg bg-violet-500/10 p-2.5 text-violet-500 group-hover:bg-violet-500 group-hover:text-white transition-colors">
