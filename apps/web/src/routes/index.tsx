@@ -296,12 +296,7 @@ function HomeFeedView({
 
   return (
     <div className="space-y-14">
-      {/* 1. Highlights (Shorts Shelf - Portrait 9:16) */}
-      {highlightsVideos.length > 0 ? (
-        <ShortsShelf videos={highlightsVideos} />
-      ) : null}
-
-      {/* 2. Featured Matches (Landscape 16:9 shelf) */}
+      {/* 1. Featured Matches (Landscape 16:9 shelf) */}
       {featuredLandscape.length > 0 ? (
         <section className="space-y-4">
           <div>
@@ -320,7 +315,12 @@ function HomeFeedView({
         </section>
       ) : null}
 
-      {/* 3. More Matches & Highlights (loads more as you scroll) */}
+      {/* 2. Highlights (Shorts Shelf - Portrait 9:16) */}
+      {highlightsVideos.length > 0 ? (
+        <ShortsShelf videos={highlightsVideos} />
+      ) : null}
+
+      {/* 3. More Matches & Highlights (reveals 9 at a time via Load more) */}
       <MoreMatchesSection
         fetchNextPage={fetchNextPage}
         hasNextPage={hasNextPage}
@@ -358,6 +358,8 @@ function HomeFeedView({
   );
 }
 
+const MORE_PAGE_SIZE = 9;
+
 function MoreMatchesSection({
   fetchNextPage,
   hasNextPage,
@@ -371,26 +373,19 @@ function MoreMatchesSection({
   videoGridClass: string;
   videos: VideoCardData[];
 }) {
-  const sentinelRef = useRef<HTMLDivElement>(null);
+  const [visibleCount, setVisibleCount] = useState(MORE_PAGE_SIZE);
 
-  useEffect(() => {
-    const element = sentinelRef.current;
-    if (!element || !hasNextPage) {
-      return;
+  const visibleVideos = videos.slice(0, visibleCount);
+  const hiddenCount = videos.length - visibleCount;
+  const showLoadMore = hasNextPage || hiddenCount > 0;
+
+  const handleLoadMore = () => {
+    setVisibleCount((previous) => previous + MORE_PAGE_SIZE);
+    // Top up the buffer so the button always has another batch ready.
+    if (hiddenCount <= MORE_PAGE_SIZE && hasNextPage && !isFetchingNextPage) {
+      void fetchNextPage();
     }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting && hasNextPage && !isFetchingNextPage) {
-          void fetchNextPage();
-        }
-      },
-      { rootMargin: "400px" }
-    );
-
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+  };
 
   if (videos.length === 0 && !hasNextPage) {
     return null;
@@ -406,15 +401,27 @@ function MoreMatchesSection({
           Community open play recordings, kitchen battles, and clinics.
         </p>
       </div>
-      {videos.length > 0 ? (
+      {visibleVideos.length > 0 ? (
         <div className={videoGridClass}>
-          {videos.map((video) => (
+          {visibleVideos.map((video) => (
             <VideoCard key={video.id} video={video} />
           ))}
         </div>
+      ) : (
+        <FeedSkeleton />
+      )}
+      {showLoadMore ? (
+        <div className="flex justify-center pt-2">
+          <Button
+            className="cursor-pointer gap-1.5 rounded-lg font-semibold"
+            disabled={isFetchingNextPage}
+            onClick={handleLoadMore}
+            variant="outline"
+          >
+            {isFetchingNextPage ? "Loading…" : "Load more"}
+          </Button>
+        </div>
       ) : null}
-      <div aria-hidden="true" className="h-4" ref={sentinelRef} />
-      {isFetchingNextPage ? <FeedSkeleton /> : null}
     </section>
   );
 }
