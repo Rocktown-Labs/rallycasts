@@ -58,7 +58,7 @@ export function CreateOrganizationPage() {
       toast.success("Organization created");
       await navigate({
         params: { slug: result.organization.slug },
-        to: "/events/hosts/$slug/manage",
+        to: "/u/organizer/organizations/$slug",
       });
     },
   });

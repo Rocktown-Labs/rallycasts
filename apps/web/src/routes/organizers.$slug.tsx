@@ -68,7 +68,7 @@ export function OrganizationProfilePage({ slug }: { slug: string }) {
             </div>
           </div>
           {canManage ? (
-            <Link params={{ slug }} to="/events/hosts/$slug/manage">
+            <Link params={{ slug }} to="/u/organizer/organizations/$slug">
               <Button className="rounded-lg">Manage organization</Button>
             </Link>
           ) : null}
