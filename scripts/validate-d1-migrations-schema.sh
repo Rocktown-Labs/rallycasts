@@ -37,12 +37,53 @@ if [ -n "${WRANGLER_CONFIG:-}" ]; then
   MODE+=("--config" "$WRANGLER_CONFIG")
 fi
 
+TEMP_CONFIG=""
+SCRIPT_TMP="$(mktemp -d)"
+cleanup_temp() {
+  if [ -n "$TEMP_CONFIG" ]; then
+    rm -f "$TEMP_CONFIG"
+  fi
+  rm -rf "$SCRIPT_TMP"
+}
+trap cleanup_temp EXIT
+
 cd apps/server
 
+# When D1_DATABASE_ID is set, execute through a generated config so the
+# database is addressed by its ID (what the deployed worker actually uses)
+# instead of by name, which can be ambiguous after state drift.
+DATABASE_POSITIONAL="$DATABASE_NAME"
+if [ -n "${D1_DATABASE_ID:-}" ] && [ -z "${WRANGLER_CONFIG:-}" ]; then
+  TEMP_CONFIG="$(mktemp --suffix=.json)"
+  printf '{"d1_databases":[{"binding":"DB","database_name":"%s","database_id":"%s","migrations_dir":"%s"}]}' \
+    "$DATABASE_NAME" "$D1_DATABASE_ID" "$PWD/../../packages/db/src/migrations" > "$TEMP_CONFIG"
+  MODE+=("--config" "$TEMP_CONFIG")
+  DATABASE_POSITIONAL="DB"
+fi
+
+SCHEMA_JSON=""
+status=0
 SCHEMA_JSON="$(
-  bun x wrangler d1 execute "$DATABASE_NAME" "${MODE[@]}" --json \
-    --command "SELECT sql FROM sqlite_master WHERE name = 'd1_migrations';"
-)"
+  bun x wrangler d1 execute "$DATABASE_POSITIONAL" "${MODE[@]}" --json \
+    --command "SELECT sql FROM sqlite_master WHERE name = 'd1_migrations';" \
+    2>"$SCRIPT_TMP/stderr.log"
+)" || status=$?
+if [ "$status" -ne 0 ]; then
+  echo "ERROR: wrangler d1 execute failed for $DATABASE_NAME (exit $status):"
+  sed 's/^/  /' "$SCRIPT_TMP/stderr.log"
+  if [ -n "$SCHEMA_JSON" ]; then
+    printf '%s\n' "$SCHEMA_JSON" | sed 's/^/  /'
+  fi
+  exit 1
+fi
+if [ -s "$SCRIPT_TMP/stderr.log" ]; then
+  cat "$SCRIPT_TMP/stderr.log" >&2
+fi
+if ! printf '%s\n' "$SCHEMA_JSON" | jq -e 'type == "array"' >/dev/null 2>&1; then
+  echo "ERROR: wrangler d1 execute returned an error for $DATABASE_NAME:"
+  printf '%s\n' "$SCHEMA_JSON" | sed 's/^/  /'
+  exit 1
+fi
 
 ROW_COUNT="$(printf '%s\n' "$SCHEMA_JSON" | jq '.[0].results | length')"
 

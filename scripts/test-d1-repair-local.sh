@@ -130,6 +130,14 @@ expect_exit 0 "validator accepts wrangler's own table" validator
 expect_exit 0 "repair leaves wrangler's table alone" repair
 check "bookkeeping rows untouched" "$(sq "SELECT COUNT(*) = $MIGRATION_COUNT AS ok FROM d1_migrations;" | jq '.[0].results[0].ok')"
 
+echo "== Scenario 8: remote/API errors surface as clean failures =="
+# A nonexistent database makes wrangler emit an error object and exit
+# non-zero; the scripts must report it (exit 1), not crash inside jq (exit 5).
+expect_exit 1 "repair: reports a missing database cleanly" \
+  bash -c 'cd "'"$REPO_ROOT"'" && WRANGLER_CONFIG="'"$CONFIG"'" bash scripts/repair-d1-migrations-schema.sh --local no-such-database'
+expect_exit 1 "validator: reports a missing database cleanly" \
+  bash -c 'cd "'"$REPO_ROOT"'" && WRANGLER_CONFIG="'"$CONFIG"'" bash scripts/validate-d1-migrations-schema.sh --local no-such-database'
+
 echo
 echo "Passed: $PASS, Failed: $FAIL"
 rm -rf "$PERSIST_DIR" "$TEST_DIR"

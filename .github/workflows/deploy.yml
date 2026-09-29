@@ -381,6 +381,37 @@ jobs:
           # set this flag, so no dummy data can ship to prod.
           VITE_DEMO_DATA: ${{ env.STAGE != 'prod' && 'true' || '' }}
 
+      - name: Resolve D1 database
+        run: |
+          set -euo pipefail
+          if [ "${{ env.STAGE }}" = "prod" ]; then
+            WORKER_NAME="rallycasts-server"
+          else
+            WORKER_NAME="rallycasts-server-${{ env.STAGE }}"
+          fi
+          echo "D1 databases visible to this token (names only):"
+          (cd apps/server && bun x wrangler d1 list --json 2>/dev/null | jq -r '.[].name')
+          SETTINGS_FILE="$(mktemp)"
+          if curl -fsS \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            -H "Content-Type: application/json" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/$WORKER_NAME/settings" \
+            > "$SETTINGS_FILE"; then
+            RESOLVED_ID="$(jq -r '.result.bindings[]? | select(.name == "DB" and .type == "d1") | .id // empty' "$SETTINGS_FILE")"
+            rm -f "$SETTINGS_FILE"
+            if [ -n "$RESOLVED_ID" ]; then
+              echo "Resolved the database from the $WORKER_NAME worker's DB binding."
+              echo "D1_DATABASE_ID=$RESOLVED_ID" >> "$GITHUB_ENV"
+              exit 0
+            fi
+          else
+            rm -f "$SETTINGS_FILE"
+          fi
+          echo "Could not resolve the DB binding from $WORKER_NAME; falling back to name-based execution."
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
       - name: Repair D1 migrations bookkeeping
         run: |
           set -euo pipefail
@@ -419,11 +450,15 @@ jobs:
           # rejects our drizzle-kit 0.31 meta/ directory, and converting it
           # would break the vitest pool's migration reader. Idempotent —
           # already-applied migrations are skipped.
-          # NOTE: preview/staging DB names are not in wrangler.jsonc, so point
-          # wrangler at a generated config with an absolute migrations path.
+          # NOTE: prefer the database ID resolved from the deployed worker's
+          # DB binding; a name lookup is ambiguous if state drift ever leaves
+          # more than one database with the same name.
           cd apps/server
           TMP_CONFIG="$(mktemp --suffix=.json)"
-          DB_ID="$(bun x wrangler d1 list --json | jq -r --arg name "$DB_NAME" '.[] | select(.name == $name) | .uuid // empty')"
+          DB_ID="${D1_DATABASE_ID:-}"
+          if [ -z "$DB_ID" ]; then
+            DB_ID="$(bun x wrangler d1 list --json | jq -r --arg name "$DB_NAME" '.[] | select(.name == $name) | .uuid // empty')"
+          fi
           if [ -z "$DB_ID" ]; then
             echo "ERROR: D1 database $DB_NAME not found."
             exit 1
@@ -440,8 +475,17 @@ jobs:
         if: ${{ env.STAGE == 'prod' }}
         run: |
           set -euo pipefail
-          MIGRATIONS_JSON="$(bun x wrangler d1 execute rallycaststv-db --remote --json \
-            --command 'SELECT name FROM d1_migrations ORDER BY id')"
+          if [ -n "${D1_DATABASE_ID:-}" ]; then
+            VERIFY_CONFIG="$(mktemp --suffix=.json)"
+            printf '{"d1_databases":[{"binding":"DB","database_name":"rallycaststv-db","database_id":"%s","migrations_dir":"%s"}]}' \
+              "$D1_DATABASE_ID" "$GITHUB_WORKSPACE/packages/db/src/migrations" > "$VERIFY_CONFIG"
+            MIGRATIONS_JSON="$(cd apps/server && bun x wrangler d1 execute DB --remote --config "$VERIFY_CONFIG" --json \
+              --command 'SELECT name FROM d1_migrations ORDER BY id')"
+            rm -f "$VERIFY_CONFIG"
+          else
+            MIGRATIONS_JSON="$(cd apps/server && bun x wrangler d1 execute rallycaststv-db --remote --json \
+              --command 'SELECT name FROM d1_migrations ORDER BY id')"
+          fi
           printf '%s\n' "$MIGRATIONS_JSON" | jq -e '.[0].success == true' >/dev/null
           for migration in \
             0014_rich_giant_girl \
