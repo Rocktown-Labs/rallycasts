@@ -77,6 +77,9 @@ const uploadStateSchema = z.object({
   state: z.enum(["failed", "processing"]),
 });
 
+const CLIP_MIN_SECONDS = 15;
+const CLIP_MAX_SECONDS = 60;
+
 const createClipSchema = z
   .object({
     endTime: z.number().positive(),
@@ -86,8 +89,8 @@ const createClipSchema = z
   .refine(({ endTime, startTime }) => endTime > startTime, {
     message: "Clip end time must be after its start time",
   })
-  .refine(({ endTime, startTime }) => endTime - startTime <= 120, {
-    message: "Clips can be up to 2 minutes long",
+  .refine(({ endTime, startTime }) => endTime - startTime <= CLIP_MAX_SECONDS, {
+    message: "Clips can be at most 60 seconds long",
   });
 
 const DEFAULT_VIDEO_PAGE_SIZE = 12;
@@ -707,6 +710,19 @@ export const videosRouter = new Hono<AppEnv>()
       ) {
         return c.json(
           { message: "The source video is not ready for that clip range" },
+          HttpStatusCodes.BAD_REQUEST
+        );
+      }
+
+      // Clips run 15-60 seconds. Videos shorter than the minimum can still
+      // be clipped whole.
+      if (
+        sourceVideo.durationSeconds !== null &&
+        sourceVideo.durationSeconds >= CLIP_MIN_SECONDS &&
+        data.endTime - data.startTime < CLIP_MIN_SECONDS
+      ) {
+        return c.json(
+          { message: "Clips must be at least 15 seconds long" },
           HttpStatusCodes.BAD_REQUEST
         );
       }
