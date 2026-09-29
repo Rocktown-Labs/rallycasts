@@ -1,8 +1,6 @@
 import { Button } from "@rallycaststv/ui/components/button";
 import { Link } from "@tanstack/react-router";
 import {
-  AlertCircle,
-  ArrowLeft,
   ChevronDown,
   ChevronUp,
   Home,
@@ -29,13 +27,30 @@ const getErrorMessage = (error: Error | unknown): string => {
   return "";
 };
 
+/** Compact sibling of the CourtNotFound ball: a pickleball with its holes. */
+const PickleballMark = () => (
+  <svg
+    aria-hidden="true"
+    className="size-7"
+    fill="none"
+    viewBox="0 0 32 32"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <circle cx="16" cy="16" r="12.5" stroke="currentColor" strokeWidth="2.5" />
+    <circle className="fill-current" cx="11.5" cy="12.5" r="1.5" />
+    <circle className="fill-current" cx="20.5" cy="12.5" r="1.5" />
+    <circle className="fill-current" cx="13" cy="21" r="1.5" />
+    <circle className="fill-current" cx="19.5" cy="20" r="1.5" />
+  </svg>
+);
+
 export const CourtError = ({
   error,
   errorCode,
   errorDescription,
   reset,
 }: CourtErrorProps) => {
-  const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
 
   const rawMessage = getErrorMessage(error);
 
@@ -45,6 +60,12 @@ export const CourtError = ({
   ).toLowerCase();
 
   const isAccountNotLinked = resolvedCode === "account_not_linked";
+  const hasDetails = Boolean(resolvedCode || errorDescription || rawMessage);
+
+  const heading = isAccountNotLinked ? "Already on the roster." : "Rain delay.";
+  const body = isAccountNotLinked
+    ? "An account with this email already exists. Sign in with your password first, then connect Google from your account settings."
+    : "Something went wrong on our side of the net. Give it another shot, or head back to the court.";
 
   const handleRetry = () => {
     if (reset) {
@@ -55,131 +76,94 @@ export const CourtError = ({
   };
 
   return (
-    <div className="relative flex min-h-[calc(100vh-var(--header-height,3.5rem))] w-full flex-col items-center justify-center overflow-hidden px-4 py-16 text-center animate-in fade-in duration-200">
-      {/* Subtle ambient glow backdrop */}
-      <div className="pointer-events-none absolute inset-0 -z-10 flex items-center justify-center">
-        <div className="size-80 rounded-full bg-destructive/5 blur-3xl" />
-        <div className="absolute size-64 rounded-full bg-primary/5 blur-2xl" />
-      </div>
-
-      <div className="relative mx-auto flex max-w-md flex-col items-center">
-        {/* Minimalist icon container */}
-        <div className="relative mb-5 flex size-14 items-center justify-center rounded-2xl border border-destructive/20 bg-destructive/10 text-destructive shadow-sm">
-          <AlertCircle className="size-6" />
+    <div className="flex min-h-[calc(100vh-var(--header-height,3.5rem))] w-full flex-col items-center justify-center px-4 py-16 text-center animate-in fade-in duration-200">
+      <div className="mx-auto flex w-full max-w-md flex-col items-center">
+        <div className="mb-6 flex size-14 items-center justify-center rounded-2xl border border-destructive/20 bg-destructive/10 text-destructive shadow-sm">
+          <PickleballMark />
         </div>
 
-        {/* Quiet status badge */}
-        <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/60 px-3 py-1 text-xs font-medium text-muted-foreground">
-          <span className="size-1.5 rounded-full bg-destructive animate-pulse" />
-          {isAccountNotLinked
-            ? "Account Linking Required"
-            : "Something Went Wrong"}
+        <div role="alert">
+          <h1 className="text-3xl font-black tracking-tight text-foreground sm:text-4xl">
+            {heading}
+          </h1>
+          <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">
+            {body}
+          </p>
         </div>
 
-        {/* Content specific to account_not_linked vs generic runtime error */}
-        {isAccountNotLinked ? (
-          <>
-            <h1 className="mb-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-              Account Not Linked Yet
-            </h1>
-            <p className="mb-8 text-sm text-muted-foreground leading-relaxed">
-              An account already exists with this email address. Please sign in
-              with your email and password first, then connect Google under your
-              Account Settings.
-            </p>
-
-            <div className="flex flex-wrap items-center justify-center gap-3">
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          {isAccountNotLinked ? (
+            <>
               <Link to="/login">
                 <Button className="h-9 rounded-lg px-4 font-medium transition-transform duration-150 ease-out active:scale-97 cursor-pointer">
-                  <LogIn className="mr-2 size-3.5" />
-                  Sign In with Password
+                  <LogIn className="size-3.5" />
+                  Sign In
                 </Button>
               </Link>
-
               <Link to="/reset-password">
                 <Button
-                  className="h-9 rounded-lg border-border/80 px-4 font-medium transition-transform duration-150 ease-out active:scale-97 hover:bg-accent/10"
+                  className="h-9 rounded-lg px-4 font-medium transition-transform duration-150 ease-out active:scale-97 hover:bg-accent/10 cursor-pointer"
                   variant="outline"
                 >
-                  <KeyRound className="mr-2 size-3.5" />
+                  <KeyRound className="size-3.5" />
                   Reset Password
                 </Button>
               </Link>
-
-              <Link to="/">
-                <Button
-                  className="h-9 rounded-lg border-border/80 px-4 font-medium transition-transform duration-150 ease-out active:scale-97 hover:bg-accent/10"
-                  variant="outline"
-                >
-                  <Home className="mr-2 size-3.5" />
-                  Home Court
-                </Button>
-              </Link>
-            </div>
-          </>
-        ) : (
-          <>
-            <h1 className="mb-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-              Unable to Load Page
-            </h1>
-            <p className="mb-8 text-sm text-muted-foreground leading-relaxed">
-              We encountered an unexpected issue loading this section. You can
-              try refreshing the page or head back to home court.
-            </p>
-
-            <div className="flex flex-wrap items-center justify-center gap-3">
+            </>
+          ) : (
+            <>
               <Button
                 className="h-9 rounded-lg px-4 font-medium transition-transform duration-150 ease-out active:scale-97 cursor-pointer"
                 onClick={handleRetry}
                 type="button"
               >
-                <RotateCcw className="mr-2 size-3.5" />
+                <RotateCcw className="size-3.5" />
                 Try Again
               </Button>
-
               <Link to="/">
                 <Button
-                  className="h-9 rounded-lg border-border/80 px-4 font-medium transition-transform duration-150 ease-out active:scale-97 hover:bg-accent/10"
+                  className="h-9 rounded-lg px-4 font-medium transition-transform duration-150 ease-out active:scale-97 hover:bg-accent/10 cursor-pointer"
                   variant="outline"
                 >
-                  <Home className="mr-2 size-3.5" />
-                  Back to Home Court
+                  <Home className="size-3.5" />
+                  Back to the Court
                 </Button>
               </Link>
-            </div>
-          </>
-        )}
+            </>
+          )}
+        </div>
 
-        {/* Technical Error Details Drawer */}
-        {(resolvedCode || rawMessage || errorDescription) && (
+        {hasDetails && (
           <div className="mt-8 w-full max-w-sm text-left">
             <button
-              className="flex w-full items-center justify-between rounded-lg border border-border/60 bg-card/40 px-3.5 py-2 text-xs text-muted-foreground transition-colors hover:border-border hover:text-foreground cursor-pointer"
-              onClick={() => setShowTechnicalDetails(!showTechnicalDetails)}
+              aria-controls="court-error-details"
+              aria-expanded={showDetails}
+              className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground cursor-pointer"
+              onClick={() => setShowDetails(!showDetails)}
               type="button"
             >
-              <span className="flex items-center gap-1.5 font-medium">
-                <AlertCircle className="size-3.5 text-destructive" />
-                Diagnostic Details
-              </span>
-              {showTechnicalDetails ? (
+              Technical details
+              {showDetails ? (
                 <ChevronUp className="size-3.5" />
               ) : (
                 <ChevronDown className="size-3.5" />
               )}
             </button>
 
-            {showTechnicalDetails && (
-              <div className="mt-2 rounded-lg border border-border/80 bg-muted/40 p-3 text-xs font-mono text-muted-foreground break-all">
+            {showDetails && (
+              <div
+                className="mt-2 rounded-lg border border-border/80 bg-muted/40 p-3 font-mono text-xs break-all text-muted-foreground"
+                id="court-error-details"
+              >
                 {resolvedCode && (
                   <p>
-                    <span className="text-foreground font-semibold">Code:</span>{" "}
+                    <span className="font-semibold text-foreground">Code:</span>{" "}
                     {resolvedCode}
                   </p>
                 )}
                 {errorDescription && (
                   <p className="mt-1">
-                    <span className="text-foreground font-semibold">
+                    <span className="font-semibold text-foreground">
                       Description:
                     </span>{" "}
                     {errorDescription}
@@ -187,7 +171,7 @@ export const CourtError = ({
                 )}
                 {rawMessage && (
                   <p className="mt-1">
-                    <span className="text-foreground font-semibold">
+                    <span className="font-semibold text-foreground">
                       Message:
                     </span>{" "}
                     {rawMessage}
@@ -197,18 +181,6 @@ export const CourtError = ({
             )}
           </div>
         )}
-
-        {/* Go back helper */}
-        <div className="mt-6 text-xs text-muted-foreground">
-          <button
-            className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground cursor-pointer active:scale-97"
-            onClick={() => window.history.back()}
-            type="button"
-          >
-            <ArrowLeft className="size-3.5" />
-            Go back to previous page
-          </button>
-        </div>
       </div>
     </div>
   );
