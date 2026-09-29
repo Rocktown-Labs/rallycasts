@@ -3,11 +3,14 @@ import { describe, expect, it } from "vitest";
 import { breadcrumbLabels, getVisiblePathnames, humanize } from "./breadcrumbs";
 
 describe("breadcrumbs", () => {
-  it("maps /events/hosts and /events/organizers to hosts", () => {
+  it("maps the host namespaces to hosts", () => {
     expect(breadcrumbLabels.get("/events/hosts")).toBe("hosts");
     expect(breadcrumbLabels.get("/hosts")).toBe("hosts");
-    expect(breadcrumbLabels.get("/events/organizers")).toBe("hosts");
     expect(breadcrumbLabels.get("/organizers")).toBe("hosts");
+    expect(breadcrumbLabels.get("/u/organizer")).toBe("host tools");
+    expect(breadcrumbLabels.get("/u/organizer/organizations")).toBe(
+      "organizations"
+    );
   });
 
   it("omits /events and shows only /events/hosts on the hosts index", () => {
@@ -30,16 +33,20 @@ describe("breadcrumbs", () => {
     expect(visible).toEqual(["/events/hosts", "/events/hosts/new"]);
   });
 
-  it("supports legacy /events/organizers routes", () => {
+  it("shows the host console crumbs for organization management", () => {
     const visible = getVisiblePathnames([
       "/",
-      "/events",
-      "/events/organizers",
-      "/events/organizers/rallycasts",
+      "/u",
+      "/u/organizer",
+      "/u/organizer/organizations",
+      "/u/organizer/organizations/rallycasts",
+      "/u/organizer/organizations/rallycasts/team",
     ]);
     expect(visible).toEqual([
-      "/events/organizers",
-      "/events/organizers/rallycasts",
+      "/u/organizer",
+      "/u/organizer/organizations",
+      "/u/organizer/organizations/rallycasts",
+      "/u/organizer/organizations/rallycasts/team",
     ]);
   });
 

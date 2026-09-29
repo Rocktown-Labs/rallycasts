@@ -486,7 +486,7 @@ function EventOverviewTab() {
                     <ListChecks className="size-4" /> Match flow
                   </Button>
                 </Link>
-                <Link to="/u/organizer/events">
+                <Link to="/u/organizer/organizations">
                   <Button className="w-full justify-start rounded-lg">
                     <Calendar className="size-4" /> Manage all events
                   </Button>

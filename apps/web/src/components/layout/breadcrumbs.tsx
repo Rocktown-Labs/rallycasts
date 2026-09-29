@@ -10,12 +10,11 @@ export const breadcrumbLabels = new Map<string, string>([
   ["/casters", "casters"],
   ["/events/hosts", "hosts"],
   ["/events/hosts/new", "new"],
-  ["/events/hosts/manage", "manage"],
   ["/hosts", "hosts"],
-  ["/events/organizers", "hosts"],
   ["/organizers", "hosts"],
-  ["/events/organizers/new", "new"],
-  ["/events/organizers/manage", "manage"],
+  ["/u/organizer", "host tools"],
+  ["/u/organizer/organizations", "organizations"],
+  ["/u/organizer/organizations/$slug", "organization"],
   ["/shop", "shop"],
   ["/videos", "videos"],
   ["/u/me", "me"],
@@ -63,25 +62,14 @@ export function getVisiblePathnames(rawPathnames: string[]): string[] {
 
   const hasUserSubRoute = pathnames.some((p) => p.startsWith("/u/"));
   const hasHostsRoute = pathnames.some(
-    (p) =>
-      p === "/events/hosts" ||
-      p.startsWith("/events/hosts/") ||
-      p === "/events/organizers" ||
-      p.startsWith("/events/organizers/")
+    (p) => p === "/events/hosts" || p.startsWith("/events/hosts/")
   );
 
-  if (
-    hasHostsRoute &&
-    !pathnames.includes("/events/hosts") &&
-    !pathnames.includes("/events/organizers")
-  ) {
-    const firstSubIndex = pathnames.findIndex(
-      (p) =>
-        p.startsWith("/events/hosts/") || p.startsWith("/events/organizers/")
+  if (hasHostsRoute && !pathnames.includes("/events/hosts")) {
+    const firstSubIndex = pathnames.findIndex((p) =>
+      p.startsWith("/events/hosts/")
     );
-    const targetParent = pathnames.some((p) => p.startsWith("/events/hosts/"))
-      ? "/events/hosts"
-      : "/events/organizers";
+    const targetParent = "/events/hosts";
     if (firstSubIndex === -1) {
       pathnames.push(targetParent);
     } else {
