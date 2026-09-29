@@ -6,9 +6,12 @@ import {
   displayPriceFor,
   fetchCollectionProducts,
   fetchCollections,
+  fetchProductBySlug,
   findVariantByOptions,
   formatMoney,
   imageUrlFor,
+  isVariantOutOfStock,
+  offerImagesFor,
   productOptionsFor,
 } from "./fourthwall";
 import type { FwBundle, FwProduct } from "./fourthwall";
@@ -187,7 +190,6 @@ describe("findVariantByOptions", () => {
 
     expect(variant?.id).toBe("variant-white-l");
   });
-
   it("returns undefined when no variant matches the combination", () => {
     const variant = findVariantByOptions(productWithOptions, {
       color: "White",
@@ -195,6 +197,26 @@ describe("findVariantByOptions", () => {
     });
 
     expect(variant).toBeUndefined();
+  });
+});
+
+describe("isVariantOutOfStock", () => {
+  it("marks LIMITED stock with none left as out of stock", () => {
+    expect(
+      isVariantOutOfStock({ stock: { inStock: 0, type: "LIMITED" } })
+    ).toBe(true);
+  });
+
+  it("keeps LIMITED stock with units and UNLIMITED stock available", () => {
+    expect(
+      isVariantOutOfStock({ stock: { inStock: 2, type: "LIMITED" } })
+    ).toBe(false);
+    expect(isVariantOutOfStock({ stock: { type: "UNLIMITED" } })).toBe(false);
+  });
+
+  it("treats a missing variant or stock as available", () => {
+    expect(isVariantOutOfStock(null)).toBe(false);
+    expect(isVariantOutOfStock({})).toBe(false);
   });
 });
 
@@ -265,6 +287,72 @@ describe("checkoutUrlFor", () => {
   it("throws when the storefront URL is missing", () => {
     expect(() => checkoutUrlFor("cart-123")).toThrow(
       "storefront URL is not configured"
+    );
+  });
+});
+
+describe("fetchProductBySlug", () => {
+  it("fetches a product by its encoded slug", async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce(Response.json(product));
+
+    const result = await fetchProductBySlug("rallycasts-court-tee");
+
+    expect(result).toEqual(product);
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "/products/rallycasts-court-tee?storefront_token=test-token&currency=USD"
+      ),
+      expect.any(Object)
+    );
+  });
+
+  it("encodes slugs that contain special characters", async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce(Response.json(product));
+
+    await fetchProductBySlug("tee / hat");
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/products/tee%20%2F%20hat"),
+      expect.any(Object)
+    );
+  });
+});
+
+describe("offerImagesFor", () => {
+  const variantImages = [
+    {
+      height: 600,
+      url: "https://cdn.fourthwall.com/tee-white.png",
+      width: 800,
+    },
+  ];
+
+  const variantProduct: FwProduct = {
+    ...product,
+    variants: [
+      { ...product.variants[0], images: [] },
+      { ...product.variants[1], images: variantImages },
+    ],
+  };
+
+  it("returns the selected variant images when the variant has photos", () => {
+    expect(offerImagesFor(variantProduct, "variant-3xl")).toEqual(
+      variantImages
+    );
+  });
+
+  it("falls back to product images when the variant has none", () => {
+    expect(offerImagesFor(variantProduct, "variant-m")).toEqual(product.images);
+  });
+
+  it("falls back to product images when the variant is missing", () => {
+    expect(offerImagesFor(product, "nope")).toEqual(product.images);
+  });
+
+  it("uses bundle images or the first bundled product for bundles", () => {
+    expect(offerImagesFor(bundle)).toEqual(product.images);
+    expect(offerImagesFor({ ...bundle, images: variantImages })).toEqual(
+      variantImages
     );
   });
 });

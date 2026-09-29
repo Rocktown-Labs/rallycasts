@@ -1354,7 +1354,7 @@ function PlayerProfilePage() {
           onboarding.
         </p>
         <Link to="/players">
-          <Button variant="outline" className="rounded-md text-xs mt-4">
+          <Button variant="outline" className="rounded-lg text-xs mt-4">
             Back to Players
           </Button>
         </Link>

@@ -464,7 +464,7 @@ function EventOverviewTab() {
               <div className="grid gap-2">
                 <Link params={{ id: event.id }} to="/events/$id/players">
                   <Button
-                    className="w-full justify-start rounded-md"
+                    className="w-full justify-start rounded-lg"
                     variant="outline"
                   >
                     <Users className="size-4" /> Player pool
@@ -472,7 +472,7 @@ function EventOverviewTab() {
                 </Link>
                 <Link params={{ id: event.id }} to="/events/$id/bracket">
                   <Button
-                    className="w-full justify-start rounded-md"
+                    className="w-full justify-start rounded-lg"
                     variant="outline"
                   >
                     <Trophy className="size-4" /> Bracket desk
@@ -480,14 +480,14 @@ function EventOverviewTab() {
                 </Link>
                 <Link params={{ id: event.id }} to="/events/$id/matches">
                   <Button
-                    className="w-full justify-start rounded-md"
+                    className="w-full justify-start rounded-lg"
                     variant="outline"
                   >
                     <ListChecks className="size-4" /> Match flow
                   </Button>
                 </Link>
                 <Link to="/u/organizer/events">
-                  <Button className="w-full justify-start rounded-md">
+                  <Button className="w-full justify-start rounded-lg">
                     <Calendar className="size-4" /> Manage all events
                   </Button>
                 </Link>

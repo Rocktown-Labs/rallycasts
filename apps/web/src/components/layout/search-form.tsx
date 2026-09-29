@@ -10,6 +10,7 @@ import {
 import { Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
+import { authClient } from "@/lib/auth-client";
 import { useSearch as useEntitySearch } from "@/lib/hooks";
 import type { SearchEntity } from "@/lib/hooks";
 
@@ -45,6 +46,8 @@ const filterForPath = (pathname: string): SearchEntity => {
 export default function SearchForm() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { data: session } = authClient.useSession();
+  const isSignedIn = Boolean(session?.user);
   const routeSearch = useRouterSearch({ strict: false });
   const routeFilter = useMemo(
     () => filterForPath(location.pathname),
@@ -57,7 +60,7 @@ export default function SearchForm() {
   const hasResults =
     data &&
     (data.videos.length > 0 ||
-      data.players.length > 0 ||
+      (isSignedIn && data.players.length > 0) ||
       data.posts.length > 0 ||
       data.events.length > 0 ||
       data.venues.length > 0);
@@ -89,12 +92,16 @@ export default function SearchForm() {
         </label>
         <select
           aria-label="Search filter"
-          className="h-8 rounded-md border border-border bg-muted px-1.5 text-xs text-foreground outline-none md:px-2 md:text-sm"
+          className="hidden h-8 rounded-md border border-border bg-muted px-2 text-sm text-foreground outline-none md:block"
           value={filter}
           onChange={(event) => setFilter(event.target.value as SearchEntity)}
         >
           {filters.map(({ label, value }) => (
-            <option key={value} value={value}>
+            <option
+              hidden={!isSignedIn && value === "players"}
+              key={value}
+              value={value}
+            >
               {label}
             </option>
           ))}
@@ -123,17 +130,19 @@ export default function SearchForm() {
                   <span className="ml-2 text-muted-foreground">video</span>
                 </Link>
               ))}
-              {data.players.slice(0, 3).map((player) => (
-                <Link
-                  key={player.id}
-                  params={{ username: player.username ?? player.id }}
-                  to="/players/$username"
-                  className="rounded-md px-3 py-2 text-sm hover:bg-muted"
-                >
-                  <span className="font-medium">{player.name}</span>
-                  <span className="ml-2 text-muted-foreground">player</span>
-                </Link>
-              ))}
+              {isSignedIn
+                ? data.players.slice(0, 3).map((player) => (
+                    <Link
+                      key={player.id}
+                      params={{ username: player.username ?? player.id }}
+                      to="/players/$username"
+                      className="rounded-md px-3 py-2 text-sm hover:bg-muted"
+                    >
+                      <span className="font-medium">{player.name}</span>
+                      <span className="ml-2 text-muted-foreground">player</span>
+                    </Link>
+                  ))
+                : null}
               {data.posts.slice(0, 3).map(({ author, post }) => (
                 <Link
                   key={post.id}

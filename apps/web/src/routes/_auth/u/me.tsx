@@ -20,12 +20,14 @@ import {
   Loader2,
   MapPin,
   MessageSquare,
+  Moon,
   Navigation,
   Plus,
   RotateCcw,
   Search,
   ShieldCheck,
   Sparkles,
+  Sun,
   Trophy,
   UploadCloud,
   UserPlus,
@@ -35,6 +37,7 @@ import {
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { useAppTheme } from "@/components/layout/theme-toggle";
 import type { CourtSuggestion } from "@/lib/google-places";
 import { mapGooglePlaceToCourtSuggestion } from "@/lib/google-places";
 import {
@@ -932,7 +935,45 @@ function ActionTiles() {
           </CardHeader>
         </Card>
       </Link>
+
+      <AppearanceTile />
     </div>
+  );
+}
+
+function AppearanceTile() {
+  const { isDark, toggleTheme } = useAppTheme();
+
+  return (
+    <button
+      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      className="group text-left"
+      onClick={toggleTheme}
+      type="button"
+    >
+      <Card className="h-full rounded-xl border border-border/80 bg-card/60 transition-all hover:border-primary/50 hover:bg-card hover:shadow-md cursor-pointer">
+        <CardHeader className="p-5 pb-3">
+          <div className="flex items-center justify-between">
+            <div className="rounded-lg bg-violet-500/10 p-2.5 text-violet-500 group-hover:bg-violet-500 group-hover:text-white transition-colors">
+              {isDark ? (
+                <Moon className="size-5" />
+              ) : (
+                <Sun className="size-5" />
+              )}
+            </div>
+            <span className="rounded-full bg-violet-500/10 px-2 py-0.5 text-[10px] font-bold text-violet-500">
+              {isDark ? "Dark" : "Light"}
+            </span>
+          </div>
+          <CardTitle className="pt-2 text-base font-bold group-hover:text-violet-500 transition-colors">
+            Appearance
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Switch between the dark and light court themes.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    </button>
   );
 }
 

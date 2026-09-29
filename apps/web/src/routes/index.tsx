@@ -8,7 +8,6 @@ import {
   Flame,
   MapPin,
   MessageSquare,
-  Sparkles,
   Users,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -16,7 +15,6 @@ import type { ReactNode } from "react";
 
 import { useSidebar } from "@/components/layout/sidebar-context";
 import {
-  EmptyState,
   EventCard,
   ParkHeatCard,
   PlayerCard,
@@ -30,8 +28,14 @@ import type {
   VideoCardData,
 } from "@/components/rally/cards";
 import { authClient } from "@/lib/auth-client";
-import { demoVideos } from "@/lib/demo-data";
-import { useHomeFeed, useProfile, useTrending, useVideos } from "@/lib/hooks";
+import { demoEnabled, demoVideos } from "@/lib/demo-data";
+import {
+  useHomeFeed,
+  useInfiniteVideos,
+  useProfile,
+  useTrending,
+  useVideos,
+} from "@/lib/hooks";
 
 export const Route = createFileRoute("/")({
   component: HomeComponent,
@@ -55,45 +59,50 @@ function HomeComponent() {
 
 function HeroBanner() {
   return (
-    <section className="grid gap-6 rounded-2xl border border-border/60 bg-[linear-gradient(135deg,hsl(142_100%_18%/.15),transparent_52%,hsl(78_100%_60%/.08))] p-6 shadow-xs md:grid-cols-[1fr_auto] md:items-center sm:p-8">
-      <div>
-        <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-0.5 text-xs font-semibold text-primary">
-          <Sparkles className="size-3 text-[#bcdf21]" />
+    <section className="relative overflow-hidden rounded-2xl bg-primary p-6 text-white shadow-xl sm:p-8">
+      <div className="relative z-10 max-w-2xl space-y-2">
+        <div className="inline-flex items-center gap-1.5 rounded-md bg-secondary/20 px-2.5 py-1 text-xs font-semibold text-[#bcdf21]">
           <span>Pickleball around your courts</span>
         </div>
-        <h1 className="mt-3 text-2xl font-bold tracking-tight md:text-3xl lg:text-4xl text-foreground">
+        <h1 className="mt-3 text-2xl font-bold tracking-tight md:text-3xl lg:text-4xl text-white">
           Pickleball videos, players, and casters around you.
         </h1>
-        <p className="mt-2.5 max-w-2xl text-sm text-muted-foreground leading-relaxed">
+        <p className="mt-2.5 max-w-2xl text-sm text-gray-200 sm:text-base leading-relaxed">
           Watch local match highlights, find active parks, and book a RallyCasts
           caster when the game deserves a clean angle.
         </p>
-      </div>
-      <div className="flex flex-wrap gap-2.5">
-        <Link
-          to="/trending"
-          className={cn(
-            buttonVariants(),
-            "rounded-lg font-medium transition-transform duration-150 active:scale-97 cursor-pointer"
-          )}
-        >
-          <Flame className="size-4 text-[#bcdf21]" />
-          Trending Courts
-        </Link>
-        <Link
-          to="/onboarding"
-          className={cn(
-            buttonVariants({ variant: "outline" }),
-            "rounded-lg font-medium transition-transform duration-150 active:scale-97 cursor-pointer hover:bg-accent/10"
-          )}
-        >
-          <MapPin className="size-4 text-primary" />
-          Set location
-        </Link>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link
+            to="/trending"
+            className={cn(
+              buttonVariants(),
+              "rounded-lg bg-[#bcdf21] font-semibold text-black hover:bg-[#d3f34b]"
+            )}
+          >
+            <Flame className="size-4" />
+            Trending Courts
+          </Link>
+          <Link
+            to="/onboarding"
+            className={cn(
+              buttonVariants({ variant: "outline" }),
+              "rounded-lg border-white/25 bg-transparent text-white hover:bg-white/10 hover:text-white"
+            )}
+          >
+            <MapPin className="size-4 text-[#bcdf21]" />
+            Set location
+          </Link>
+        </div>
       </div>
     </section>
   );
 }
+
+const isShortVideo = (video: VideoCardData): boolean =>
+  video.mediaType === "short" ||
+  ((video.durationSeconds ?? 0) > 0 &&
+    (video.durationSeconds ?? 0) <= 60 &&
+    video.title.toLowerCase().includes("clip"));
 
 function HomeFeedView({
   isPersonalized,
@@ -137,8 +146,9 @@ function HomeFeedView({
       }
     }
 
-    // Ensure videos are always displayed even if DB is fresh or unseeded
-    if (list.length === 0) {
+    // Demo content keeps fresh preview environments from looking broken.
+    // Production builds ship without VITE_DEMO_DATA, so this never runs there.
+    if (list.length === 0 && demoEnabled) {
       for (const v of demoVideos) {
         if (!seen.has(v.id)) {
           seen.add(v.id);
@@ -150,19 +160,13 @@ function HomeFeedView({
     return list;
   }, [rawFeedItems, latestVideosQuery.data?.videos]);
 
-  // Split into Shorts (Clips) vs Standard Landscape Videos
+  // Split into Highlights (vertical clips) vs landscape videos
   const { landscapeVideos, shortsVideos } = useMemo(() => {
     const shorts: VideoCardData[] = [];
     const landscape: VideoCardData[] = [];
 
     for (const video of allVideos) {
-      const isShort =
-        video.mediaType === "short" ||
-        ((video.durationSeconds ?? 0) > 0 &&
-          (video.durationSeconds ?? 0) <= 60 &&
-          video.title.toLowerCase().includes("clip"));
-
-      if (isShort) {
+      if (isShortVideo(video)) {
         shorts.push(video);
       } else {
         landscape.push(video);
@@ -171,6 +175,34 @@ function HomeFeedView({
 
     return { landscapeVideos: landscape, shortsVideos: shorts };
   }, [allVideos]);
+
+  // Infinite "More Matches" feed: extra pages load as the visitor scrolls.
+  const {
+    data: infiniteData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteVideos(12);
+
+  const infiniteSplit = useMemo(() => {
+    const seen = new Set<string>();
+    const landscape: VideoCardData[] = [];
+    const shorts: VideoCardData[] = [];
+    for (const page of infiniteData?.pages ?? []) {
+      for (const video of page.videos) {
+        if (seen.has(video.id)) {
+          continue;
+        }
+        seen.add(video.id);
+        if (isShortVideo(video)) {
+          shorts.push(video);
+        } else {
+          landscape.push(video);
+        }
+      }
+    }
+    return { landscape, shorts };
+  }, [infiniteData?.pages]);
 
   // Aggregate venues ensuring user's home court is first and favorited
   const userProfile = profileQuery.data?.profile;
@@ -239,7 +271,7 @@ function HomeFeedView({
 
   if (isLoading) {
     return (
-      <FeedSectionShell isLoading={true} title="Featured Highlights">
+      <FeedSectionShell isLoading={true} title="Featured Matches">
         <FeedSkeleton />
       </FeedSectionShell>
     );
@@ -251,72 +283,51 @@ function HomeFeedView({
     : "grid gap-6 sm:grid-cols-2 lg:grid-cols-3";
 
   const featuredLandscape = landscapeVideos.slice(0, sidebarCollapsed ? 8 : 6);
-  const moreLandscape = landscapeVideos.slice(sidebarCollapsed ? 8 : 6);
+  const featuredIds = new Set(featuredLandscape.map((video) => video.id));
+  const shortIds = new Set(shortsVideos.map((video) => video.id));
+  const highlightsVideos = [
+    ...shortsVideos,
+    ...infiniteSplit.shorts.filter((video) => !shortIds.has(video.id)),
+  ];
+  // "More" is fed purely by the paginated query: rows reveal as you scroll.
+  const moreMatches = infiniteSplit.landscape.filter(
+    (video) => !featuredIds.has(video.id)
+  );
 
   return (
     <div className="space-y-14">
-      {/* 1. Main Featured Matches (Landscape 16:9 shelf) */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
+      {/* 1. Featured Matches (Landscape 16:9 shelf) */}
+      {featuredLandscape.length > 0 ? (
+        <section className="space-y-4">
           <div>
             <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-              Featured Highlights & Matches
+              Featured Matches
             </h2>
             <p className="mt-0.5 text-xs text-muted-foreground">
               Recent rallies, matches, and clinics recorded with RallyCasts.
             </p>
           </div>
-          <Link
-            to="/trending"
-            className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors px-2 py-1"
-          >
-            Explore all →
-          </Link>
-        </div>
-
-        {featuredLandscape.length > 0 ? (
           <div className={videoGridClass}>
             {featuredLandscape.map((video) => (
               <VideoCard key={video.id} video={video} />
             ))}
           </div>
-        ) : (
-          <EmptyState
-            message="Public ready videos will appear here once match uploads finish processing."
-            title="No videos yet"
-          />
-        )}
-      </section>
-
-      {/* 2. Rallies & Clips (Shorts Shelf - Portrait 9:16) */}
-      {shortsVideos.length > 0 ? <ShortsShelf videos={shortsVideos} /> : null}
-
-      {/* 3. More Matches & Highlights */}
-      {moreLandscape.length > 0 ? (
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-                More Matches & Highlights
-              </h2>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Community open play recordings, kitchen battles, and clinics.
-              </p>
-            </div>
-            <Link
-              to="/trending"
-              className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors px-2 py-1"
-            >
-              See all matches →
-            </Link>
-          </div>
-          <div className={videoGridClass}>
-            {moreLandscape.map((video) => (
-              <VideoCard key={video.id} video={video} />
-            ))}
-          </div>
         </section>
       ) : null}
+
+      {/* 2. Highlights (Shorts Shelf - Portrait 9:16) */}
+      {highlightsVideos.length > 0 ? (
+        <ShortsShelf videos={highlightsVideos} />
+      ) : null}
+
+      {/* 3. More Matches & Highlights (reveals 9 at a time via Load more) */}
+      <MoreMatchesSection
+        fetchNextPage={fetchNextPage}
+        hasNextPage={hasNextPage}
+        isFetchingNextPage={isFetchingNextPage}
+        videoGridClass={videoGridClass}
+        videos={moreMatches}
+      />
 
       {/* 4. Courts & Parks Near You (Home court prioritized first, below videos) */}
       {venuesList.length > 0 ? (
@@ -344,6 +355,74 @@ function HomeFeedView({
         </section>
       ) : null}
     </div>
+  );
+}
+
+const MORE_PAGE_SIZE = 9;
+
+function MoreMatchesSection({
+  fetchNextPage,
+  hasNextPage,
+  isFetchingNextPage,
+  videoGridClass,
+  videos,
+}: {
+  fetchNextPage: () => Promise<unknown>;
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
+  videoGridClass: string;
+  videos: VideoCardData[];
+}) {
+  const [visibleCount, setVisibleCount] = useState(MORE_PAGE_SIZE);
+
+  const visibleVideos = videos.slice(0, visibleCount);
+  const hiddenCount = videos.length - visibleCount;
+  const showLoadMore = hasNextPage || hiddenCount > 0;
+
+  const handleLoadMore = () => {
+    setVisibleCount((previous) => previous + MORE_PAGE_SIZE);
+    // Top up the buffer so the button always has another batch ready.
+    if (hiddenCount <= MORE_PAGE_SIZE && hasNextPage && !isFetchingNextPage) {
+      void fetchNextPage();
+    }
+  };
+
+  if (videos.length === 0 && !hasNextPage) {
+    return null;
+  }
+
+  return (
+    <section className="space-y-4">
+      <div>
+        <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+          More Matches & Highlights
+        </h2>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          Community open play recordings, kitchen battles, and clinics.
+        </p>
+      </div>
+      {visibleVideos.length > 0 ? (
+        <div className={videoGridClass}>
+          {visibleVideos.map((video) => (
+            <VideoCard key={video.id} video={video} />
+          ))}
+        </div>
+      ) : (
+        <FeedSkeleton />
+      )}
+      {showLoadMore ? (
+        <div className="flex justify-center pt-2">
+          <Button
+            className="cursor-pointer gap-1.5 rounded-lg font-semibold"
+            disabled={isFetchingNextPage}
+            onClick={handleLoadMore}
+            variant="outline"
+          >
+            {isFetchingNextPage ? "Loading…" : "Load more"}
+          </Button>
+        </div>
+      ) : null}
+    </section>
   );
 }
 
@@ -390,7 +469,7 @@ function ShortsShelf({ videos }: { videos: VideoCardData[] }) {
             <span className="flex size-7 items-center justify-center rounded-lg bg-red-600/15 text-red-500">
               <Flame className="size-4.5 fill-red-500" />
             </span>
-            Rallies & Clips
+            Highlights
           </h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
             Bite-sized points, kitchen battles, and clutch shots from the
@@ -423,7 +502,7 @@ function ShortsShelf({ videos }: { videos: VideoCardData[] }) {
 
       <div
         ref={scrollRef}
-        className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-3 pt-1 scroll-smooth snap-x snap-mandatory scrollbar-none"
+        className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-3 pt-1 scroll-smooth snap-x snap-mandatory scrollbar-none touch-pan-y"
         style={{ WebkitOverflowScrolling: "touch" }}
       >
         {videos.map((video) => (
@@ -504,18 +583,12 @@ function NearbyParksSection({ venues }: { venues: VenueCardData[] }) {
               <ChevronRight className="size-4" />
             </Button>
           </div>
-          <Link
-            to="/trending"
-            className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors px-2 py-1"
-          >
-            Explore all courts →
-          </Link>
         </div>
       </div>
 
       <div
         ref={scrollRef}
-        className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-3 pt-1 scroll-smooth snap-x snap-mandatory scrollbar-none"
+        className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-3 pt-1 scroll-smooth snap-x snap-mandatory scrollbar-none touch-pan-y"
         style={{ WebkitOverflowScrolling: "touch" }}
       >
         {venues.map((venue) => (
@@ -546,12 +619,6 @@ function FeedSectionShell({
         <div>
           <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
         </div>
-        <Link
-          to="/trending"
-          className={cn(buttonVariants({ variant: "ghost" }), "text-xs")}
-        >
-          Explore trending
-        </Link>
       </div>
       {isLoading ? <FeedSkeleton /> : children}
     </section>

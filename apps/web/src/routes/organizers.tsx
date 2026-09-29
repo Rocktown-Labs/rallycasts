@@ -46,7 +46,7 @@ export function OrganizersPage() {
             </p>
           </div>
           <Link to={session?.user ? "/events/hosts/new" : "/login"}>
-            <Button className="bg-[#bcdf21] text-black hover:bg-[#d3f34b]">
+            <Button className="rounded-lg bg-[#bcdf21] text-black hover:bg-[#d3f34b]">
               <Plus className="size-4" /> Get a host account
             </Button>
           </Link>
