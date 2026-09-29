@@ -10,7 +10,6 @@ import {
   Building2,
   Plus,
   XCircle,
-  Sparkles,
   Calendar,
   MapPin,
 } from "lucide-react";
@@ -509,7 +508,6 @@ function EventsPage() {
           <div className="relative overflow-hidden rounded-2xl bg-primary p-6 text-white shadow-xl sm:p-8">
             <div className="relative z-10 max-w-2xl space-y-2">
               <div className="inline-flex items-center gap-1.5 rounded-md bg-secondary/20 px-2.5 py-1 text-xs font-semibold text-[#bcdf21]">
-                <Sparkles className="size-3" />
                 <span>Tournaments, Leagues & Clinics</span>
               </div>
               <h1 className="text-3xl font-logo sm:text-4xl tracking-wide lowercase">
@@ -542,7 +540,7 @@ function EventsPage() {
               {isOrganizer ? (
                 <Button
                   onClick={() => setShowCreateModal(true)}
-                  className="w-full md:w-auto rounded-md text-xs font-semibold py-5 px-5 flex items-center gap-1.5 cursor-pointer"
+                  className="w-full md:w-auto rounded-lg text-xs font-semibold py-5 px-5 flex items-center gap-1.5 cursor-pointer"
                 >
                   <Plus className="size-4" /> Create New Event
                 </Button>
@@ -550,7 +548,7 @@ function EventsPage() {
                 <Button
                   onClick={handleUpgrade}
                   disabled={updateProfileMutation.isPending}
-                  className="w-full md:w-auto rounded-md text-xs font-semibold py-5 px-5 flex items-center gap-1.5 cursor-pointer"
+                  className="w-full md:w-auto rounded-lg text-xs font-semibold py-5 px-5 flex items-center gap-1.5 cursor-pointer"
                 >
                   {updateProfileMutation.isPending
                     ? "Upgrading..."

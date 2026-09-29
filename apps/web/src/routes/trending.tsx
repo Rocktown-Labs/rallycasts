@@ -12,7 +12,6 @@ import {
   Flame,
   MapPin,
   Navigation,
-  Sparkles,
   TrendingUp,
   Users,
   Video,
@@ -205,7 +204,7 @@ function LocationStatus({
   if (!hasLocationConsent) {
     return (
       <Button
-        className="text-xs text-[#bcdf21]"
+        className="rounded-lg text-xs text-[#bcdf21]"
         onClick={requestLocation}
         size="sm"
         variant="ghost"
@@ -228,7 +227,7 @@ function LocationStatus({
       <Button
         size="sm"
         variant="ghost"
-        className="text-xs text-muted-foreground"
+        className="rounded-lg text-xs text-muted-foreground"
         onClick={requestLocation}
       >
         Use my location
@@ -247,7 +246,7 @@ function LocationStatus({
       <button
         type="button"
         onClick={requestLocation}
-        className="flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80"
+        className="flex items-center gap-1 text-xs font-semibold text-white hover:text-white/80 transition-colors"
       >
         <MapPin className="size-3" />
         {isApiFallback ? "Demo fallback" : locationLabel}
@@ -619,7 +618,6 @@ function TrendingDashboardView({
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="max-w-xl space-y-2">
               <div className="inline-flex items-center gap-1.5 rounded-md bg-secondary/20 px-2.5 py-1 text-xs font-semibold text-[#bcdf21]">
-                <Sparkles className="size-3" />
                 <span>Happening near you</span>
               </div>
               <h1 className="text-3xl font-logo tracking-wide lowercase sm:text-4xl">
@@ -636,30 +634,37 @@ function TrendingDashboardView({
             </div>
           </div>
 
-          <div className="relative z-10 mt-6 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-lg border border-white/15 bg-black/15 p-4 backdrop-blur-sm">
-              <div className="flex items-center gap-2 text-xs text-white/75">
-                <Flame className="size-4 text-[#bcdf21]" /> Parks heating up
+          <div className="relative z-10 mt-6 grid grid-cols-3 gap-2 sm:gap-3">
+            <div className="rounded-lg border border-white/15 bg-black/15 p-3 backdrop-blur-sm sm:p-4">
+              <div className="flex items-center gap-2 text-[10px] font-semibold text-white/75 sm:text-xs">
+                <Flame className="size-4 shrink-0 text-[#bcdf21]" /> Parks
+                heating up
               </div>
-              <p className="mt-2 text-2xl font-black">{venues.length}</p>
-              <p className="text-[11px] text-white/60">
+              <p className="mt-2 text-lg font-black sm:text-2xl">
+                {venues.length}
+              </p>
+              <p className="text-[10px] text-white/60 sm:text-[11px]">
                 Within {venueRadius} miles
               </p>
             </div>
-            <div className="rounded-lg border border-white/15 bg-black/15 p-4 backdrop-blur-sm">
-              <div className="flex items-center gap-2 text-xs text-white/75">
-                <Users className="size-4 text-[#bcdf21]" /> Players nearby
+            <div className="rounded-lg border border-white/15 bg-black/15 p-3 backdrop-blur-sm sm:p-4">
+              <div className="flex items-center gap-2 text-[10px] font-semibold text-white/75 sm:text-xs">
+                <Users className="size-4 shrink-0 text-[#bcdf21]" /> Players
+                nearby
               </div>
-              <p className="mt-2 text-2xl font-black">
+              <p className="mt-2 text-lg font-black sm:text-2xl">
                 {playerCount || players.length}
               </p>
-              <p className="text-[11px] text-white/60">Within 100 miles</p>
+              <p className="text-[10px] text-white/60 sm:text-[11px]">
+                Within 100 miles
+              </p>
             </div>
-            <div className="rounded-lg border border-white/15 bg-black/15 p-4 backdrop-blur-sm">
-              <div className="flex items-center gap-2 text-xs text-white/75">
-                <Navigation className="size-4 text-[#bcdf21]" /> Your location
+            <div className="rounded-lg border border-white/15 bg-black/15 p-3 backdrop-blur-sm sm:p-4">
+              <div className="flex items-center gap-2 text-[10px] font-semibold text-white/75 sm:text-xs">
+                <Navigation className="size-4 shrink-0 text-[#bcdf21]" /> Your
+                location
               </div>
-              <div className="mt-3 min-h-7 text-xs text-white/75">
+              <div className="mt-2 min-h-7 text-xs text-white/75">
                 {isAuthenticated ? (
                   <LocationStatus
                     error={geoError}
@@ -675,7 +680,9 @@ function TrendingDashboardView({
                   </Link>
                 )}
               </div>
-              <p className="text-[11px] text-white/60">Tap to refresh</p>
+              <p className="text-[10px] text-white/60 sm:text-[11px]">
+                Tap to refresh
+              </p>
             </div>
           </div>
         </div>

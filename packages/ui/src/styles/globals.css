@@ -131,5 +131,29 @@
   }
   html {
     @apply font-sans;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+  }
+  /* Press targets respond instantly: no 300ms double-tap-zoom delay and
+     no long-press text selection on controls. Content text stays
+     selectable — only controls opt out. */
+  button,
+  [role="button"],
+  input[type="button"],
+  input[type="submit"],
+  summary {
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+  /* iOS Safari zooms the page into any input below 16px; keep controls at
+     the minimum on touch devices so the layout never drifts. */
+  @media (pointer: coarse) {
+    input,
+    textarea,
+    select {
+      font-size: 16px;
+    }
   }
 }

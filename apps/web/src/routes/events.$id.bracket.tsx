@@ -162,7 +162,7 @@ function CompletedTournamentBanner({
         variant="outline"
         onClick={onReseed}
         disabled={isPending}
-        className="gap-1.5"
+        className="gap-1.5 rounded-lg"
       >
         <Sparkles className="size-3.5 text-primary" /> Re-Seed Tournament
       </Button>
@@ -220,7 +220,7 @@ function ActiveUserMatchBanner({
           variant="outline"
           onClick={onTestNotification}
           disabled={isTesting}
-          className="gap-1.5"
+          className="gap-1.5 rounded-lg"
         >
           <Bell className="size-3.5 text-primary" />
           Send Match Call (In-App & Email)
@@ -231,7 +231,7 @@ function ActiveUserMatchBanner({
             size="sm"
             onClick={onAdvance}
             disabled={isAdvancing}
-            className="gap-1.5 font-bold"
+            className="gap-1.5 rounded-lg font-bold"
           >
             <Zap className="size-3.5" />
             {getAdvanceButtonLabel(round)}
@@ -241,7 +241,7 @@ function ActiveUserMatchBanner({
             size="sm"
             onClick={onAdvance}
             disabled={isAdvancing}
-            className="gap-1.5 font-semibold"
+            className="gap-1.5 rounded-lg font-semibold"
             variant="secondary"
           >
             <Swords className="size-3.5" />
@@ -556,7 +556,7 @@ function BracketHeader({
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <Button
-          className="gap-1.5 font-bold cursor-pointer"
+          className="gap-1.5 rounded-lg font-bold cursor-pointer"
           disabled={isSeeding}
           onClick={onSeedDemo}
           variant="outline"
@@ -564,7 +564,11 @@ function BracketHeader({
           <Sparkles className="size-4 text-primary" />
           Seed 8 Demo Players & Live Bracket
         </Button>
-        <Button disabled={isGenerating} onClick={onGenerate}>
+        <Button
+          className="rounded-lg cursor-pointer"
+          disabled={isGenerating}
+          onClick={onGenerate}
+        >
           {hasRealBracket ? "Regenerate from seeds" : "Generate live bracket"}
         </Button>
       </div>

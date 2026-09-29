@@ -22,7 +22,7 @@ import { generateEmbedding } from "../lib/embeddings";
 import { toPublicVenue, toPublicVideo } from "../lib/public-data";
 import { backfillSearchDocuments } from "../lib/search-backfill";
 import type { AppEnv } from "../lib/types";
-import { requireAuth } from "../middleware/auth";
+import { optionalAuth, requireAuth } from "../middleware/auth";
 
 const searchPattern = (query: string | undefined) => `%${query ?? ""}%`;
 
@@ -42,12 +42,18 @@ const mergeById = <RecordType extends { id: string }>(
 
 export const searchRouter = new Hono<AppEnv>()
   // oxlint-disable-next-line complexity -- Search intentionally fans out across supported entity types.
-  .get("/", async (c) => {
+  .get("/", optionalAuth, async (c) => {
     const db = createDb(c.env.DB);
     const query = c.req.query("q") ?? "";
     const type = c.req.query("type") ?? "all";
     const pattern = searchPattern(query);
     const shouldSearch = query.trim().length > 1;
+    // Player profiles require an account to view, so signed-out visitors
+    // never receive player data — not even in search results.
+    const session = c.get("authSession") as
+      | AppEnv["Variables"]["authSession"]
+      | undefined;
+    const includePlayers = Boolean(session?.user);
     let semanticEmbeddingModel: string | null = null;
     const semanticDocuments = await (async () => {
       const semanticType = new Set([
@@ -168,6 +174,12 @@ export const searchRouter = new Hono<AppEnv>()
             visibleVideoIds.has(document.entityId)
         );
       }
+
+      if (!includePlayers) {
+        documents = documents.filter(
+          (document) => document.entityType !== "profile"
+        );
+      }
     }
     const keywordVideos =
       type === "all" || type === "videos"
@@ -265,7 +277,7 @@ export const searchRouter = new Hono<AppEnv>()
       .slice(0, 6)
       .map(({ id: _id, ...record }) => record);
     const keywordPlayers =
-      type === "all" || type === "players"
+      includePlayers && (type === "all" || type === "players")
         ? await db
             .select({
               displayUsername: user.displayUsername,
@@ -286,9 +298,11 @@ export const searchRouter = new Hono<AppEnv>()
             )
             .limit(6)
         : [];
-    const semanticPlayerIds = semanticDocuments
-      .filter((document) => document.entityType === "profile")
-      .map((document) => document.entityId);
+    const semanticPlayerIds = includePlayers
+      ? semanticDocuments
+          .filter((document) => document.entityType === "profile")
+          .map((document) => document.entityId)
+      : [];
     const semanticPlayerRows =
       semanticPlayerIds.length > 0
         ? await db

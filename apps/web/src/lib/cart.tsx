@@ -38,6 +38,7 @@ interface CartContextValue {
   itemCount: number;
   openCart: () => void;
   pending: boolean;
+  quantityFor: (variantId: string) => number;
   removeItem: (variantId: string) => Promise<void>;
   subtotal: number;
   updateQuantity: (variantId: string, quantity: number) => Promise<void>;
@@ -191,6 +192,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
       itemCount: items.reduce((total, item) => total + item.quantity, 0),
       openCart: () => setIsOpen(true),
       pending,
+      quantityFor: (variantId: string) => {
+        // Only standalone lines: bundle components (groupedBy) belong to
+        // their bundle and must not be counted or mutated by variant
+        // steppers on product pages.
+        let total = 0;
+        for (const item of items) {
+          if (item.variant.id === variantId && !item.groupedBy) {
+            total += item.quantity;
+          }
+        }
+        return total;
+      },
       removeItem,
       subtotal: items.reduce(
         (total, item) => total + item.variant.unitPrice.value * item.quantity,
@@ -261,7 +274,12 @@ function CartDrawer() {
           <h2 className="flex items-center gap-2 text-lg font-black">
             <ShoppingBag className="size-5" /> Your cart
           </h2>
-          <Button onClick={closeCart} size="icon" variant="ghost">
+          <Button
+            className="rounded-lg"
+            onClick={closeCart}
+            size="icon"
+            variant="ghost"
+          >
             <X className="size-5" />
           </Button>
         </div>
@@ -304,6 +322,7 @@ function CartDrawer() {
                       <div className="mt-2 flex items-center gap-2">
                         <Button
                           aria-label="Decrease quantity"
+                          className="rounded-lg"
                           disabled={pending}
                           onClick={() =>
                             updateQuantity(item.variant.id, item.quantity - 1)
@@ -318,6 +337,7 @@ function CartDrawer() {
                         </span>
                         <Button
                           aria-label="Increase quantity"
+                          className="rounded-lg"
                           disabled={pending}
                           onClick={() =>
                             updateQuantity(item.variant.id, item.quantity + 1)
@@ -329,7 +349,7 @@ function CartDrawer() {
                         </Button>
                         <Button
                           aria-label="Remove item"
-                          className="ml-auto"
+                          className="ml-auto rounded-lg"
                           disabled={pending}
                           onClick={() => removeItem(item.variant.id)}
                           size="icon"
@@ -354,7 +374,7 @@ function CartDrawer() {
             </span>
           </div>
           <Button
-            className={cn("w-full")}
+            className={cn("w-full rounded-lg")}
             disabled={items.length === 0 || pending}
             onClick={checkout}
           >

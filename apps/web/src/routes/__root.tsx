@@ -36,8 +36,16 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
         charSet: "utf-8",
       },
       {
-        content: "width=device-width, initial-scale=1",
+        content: "width=device-width, initial-scale=1, viewport-fit=cover",
         name: "viewport",
+      },
+      {
+        content: "#0a0a0a",
+        name: "theme-color",
+      },
+      {
+        content: "light dark",
+        name: "color-scheme",
       },
       {
         title: "RallyCasts",

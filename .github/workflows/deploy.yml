@@ -377,6 +377,9 @@ jobs:
           VITE_FOURTHWALL_STOREFRONT_TOKEN: ${{ secrets.VITE_FOURTHWALL_STOREFRONT_TOKEN || vars.VITE_FOURTHWALL_STOREFRONT_TOKEN }}
           VITE_FOURTHWALL_STOREFRONT_URL: ${{ secrets.VITE_FOURTHWALL_STOREFRONT_URL || vars.VITE_FOURTHWALL_STOREFRONT_URL }}
           VITE_RADAR_PUBLISHABLE_KEY: ${{ secrets.VITE_RADAR_PUBLISHABLE_KEY }}
+          # Demo fixtures for preview stages only — production builds never
+          # set this flag, so no dummy data can ship to prod.
+          VITE_DEMO_DATA: ${{ env.STAGE != 'prod' && 'true' || '' }}
 
       - name: Validate D1 migrations bookkeeping
         run: |
