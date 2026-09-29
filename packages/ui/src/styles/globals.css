@@ -147,6 +147,14 @@
     -webkit-user-select: none;
     -webkit-touch-callout: none;
   }
+  /* Raw controls get a visible focus ring; component styles that opt out
+     of the outline replace it with their own focus treatment. */
+  :where(button, a, [role="button"], input, textarea, select, summary) {
+    &:focus-visible {
+      outline: 2px solid hsl(var(--ring));
+      outline-offset: 2px;
+    }
+  }
   /* iOS Safari zooms the page into any input below 16px; keep controls at
      the minimum on touch devices so the layout never drifts. */
   @media (pointer: coarse) {

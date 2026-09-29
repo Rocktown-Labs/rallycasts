@@ -1,6 +1,6 @@
 import { env } from "@rallycaststv/env/web";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { apiClient } from "@/lib/api-client";
@@ -159,6 +159,9 @@ export const useConversationMessages = (conversationId?: string) =>
 
 export const useConversationRealtime = (conversationId?: string) => {
   const queryClient = useQueryClient();
+  const [activeUsers, setActiveUsers] = useState<
+    { name: string; userId: string }[]
+  >([]);
 
   useEffect(() => {
     if (!conversationId) {
@@ -172,6 +175,7 @@ export const useConversationRealtime = (conversationId?: string) => {
     socket.addEventListener("message", (event) => {
       try {
         const payload = JSON.parse(event.data as string) as {
+          activeUsers?: { name: string; userId: string }[];
           type: "message" | "presence";
         };
         if (payload.type === "message") {
@@ -181,13 +185,21 @@ export const useConversationRealtime = (conversationId?: string) => {
           queryClient.invalidateQueries({ queryKey: ["conversations"] });
           queryClient.invalidateQueries({ queryKey: ["notifications"] });
         }
+        if (payload.type === "presence") {
+          setActiveUsers(payload.activeUsers ?? []);
+        }
       } catch {
         // Ignore malformed realtime frames.
       }
     });
 
-    return () => socket.close();
+    return () => {
+      setActiveUsers([]);
+      socket.close();
+    };
   }, [conversationId, queryClient]);
+
+  return { activeUsers };
 };
 
 export const useSendMessage = (conversationId?: string) => {

@@ -88,6 +88,8 @@ function createMessagesCollection(qc: QueryClient, conversationId: string) {
             param: { id: conversationId },
           })
         );
+        // Refresh the inbox previews so the new last message shows at once.
+        await qc.invalidateQueries({ queryKey: ["conversations"] });
       },
       queryClient: qc,
       queryFn: () =>
