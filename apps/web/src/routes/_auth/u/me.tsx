@@ -593,7 +593,7 @@ function TripPlanningBanner({
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/40 bg-primary/10 p-4 shadow-sm">
       <div className="flex items-center gap-3">
         <div className="rounded-lg bg-primary p-2 text-primary-foreground">
-          <Compass className="size-5 animate-pulse" />
+          <Compass className="size-5" />
         </div>
         <div>
           <p className="text-xs font-bold uppercase tracking-wider text-primary">
@@ -608,7 +608,7 @@ function TripPlanningBanner({
         </div>
       </div>
       <Button
-        className="rounded-lg gap-1.5 text-xs font-semibold cursor-pointer"
+        className="rounded-lg gap-1.5 text-xs font-semibold transition-transform duration-150 ease-out active:scale-97 cursor-pointer"
         onClick={onReset}
         size="sm"
         variant="outline"
@@ -660,7 +660,7 @@ function DashboardHeader({
           )}
         </div>
 
-        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
+        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-balance text-foreground">
           Welcome, {userName}!
         </h1>
 
@@ -682,7 +682,7 @@ function DashboardHeader({
 
       <div className="flex flex-wrap items-center gap-2">
         <Button
-          className="rounded-xl border-border bg-background/60 backdrop-blur-xs gap-1.5 text-xs font-semibold cursor-pointer hover:border-primary/40"
+          className="rounded-lg border-border bg-background/60 backdrop-blur-xs gap-1.5 text-xs font-semibold transition-transform duration-150 ease-out active:scale-97 cursor-pointer hover:border-primary/40"
           onClick={onTogglePicker}
           size="sm"
           variant="outline"
@@ -692,14 +692,15 @@ function DashboardHeader({
             ? "Close Destination Picker"
             : "Plan a Trip / Change City"}
         </Button>
-        <Link to="/u/studio">
-          <Button
-            className="rounded-xl gap-1.5 bg-primary text-primary-foreground font-bold shadow-xs hover:bg-primary/90 cursor-pointer"
-            size="sm"
-          >
-            <UploadCloud className="size-4" />
-            Record Match
-          </Button>
+        <Link
+          className={cn(
+            buttonVariants({ size: "sm" }),
+            "rounded-lg gap-1.5 bg-primary font-bold shadow-xs hover:bg-primary/90 transition-transform duration-150 ease-out active:scale-97 cursor-pointer"
+          )}
+          to="/u/studio"
+        >
+          <UploadCloud className="size-4" />
+          Record Match
         </Link>
       </div>
     </div>
@@ -763,9 +764,11 @@ function TripPlanningPicker({
         <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground pointer-events-none" />
         <input
           aria-label="Search destination city, state, or park"
-          className="h-9 w-full rounded-xl border border-input bg-background pl-9 pr-3 text-xs font-medium placeholder:text-muted-foreground outline-none focus-visible:border-primary"
+          autoComplete="off"
+          className="h-9 w-full rounded-xl border border-input bg-background pl-9 pr-3 text-xs pointer-coarse:text-base font-medium placeholder:text-muted-foreground outline-none focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50"
+          enterKeyHint="search"
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Search city, state, or park (e.g. New York, Dallas, Crestwood)..."
+          placeholder="Search city, state, or park (e.g. New York, Dallas, Crestwood)…"
           type="text"
           value={citySearchQuery}
         />
@@ -775,7 +778,7 @@ function TripPlanningPicker({
       </div>
 
       {citySearchQuery.trim().length >= 3 && placeSuggestions.length > 0 && (
-        <div className="rounded-xl border border-border bg-popover text-popover-foreground shadow-lg divide-y divide-border/40 max-h-48 overflow-y-auto max-w-md">
+        <div className="rounded-xl border border-border bg-popover text-popover-foreground shadow-lg divide-y divide-border/40 max-h-48 overflow-y-auto overscroll-contain max-w-md">
           {placeSuggestions.map((suggestion) => (
             <button
               className="w-full text-left px-3.5 py-2.5 text-xs hover:bg-muted/70 flex items-center justify-between gap-2 cursor-pointer transition-colors"
@@ -832,8 +835,11 @@ function TripPlanningPicker({
 function ActionTiles() {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <Link className="group" to="/u/studio">
-        <Card className="h-full rounded-xl border border-border/80 bg-card/60 transition-all hover:border-primary/50 hover:bg-card hover:shadow-md cursor-pointer">
+      <Link
+        className="group rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+        to="/u/studio"
+      >
+        <Card className="h-full rounded-xl border border-border/80 bg-card/60 transition-[background-color,border-color,box-shadow,transform] duration-150 hover:border-primary/50 hover:bg-card hover:shadow-md active:scale-[0.98] cursor-pointer">
           <CardHeader className="p-5 pb-3">
             <div className="flex items-center justify-between">
               <div className="rounded-lg bg-primary/10 p-2.5 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
@@ -853,8 +859,11 @@ function ActionTiles() {
         </Card>
       </Link>
 
-      <Link className="group" to="/trending">
-        <Card className="h-full rounded-xl border border-border/80 bg-card/60 transition-all hover:border-primary/50 hover:bg-card hover:shadow-md cursor-pointer">
+      <Link
+        className="group rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+        to="/trending"
+      >
+        <Card className="h-full rounded-xl border border-border/80 bg-card/60 transition-[background-color,border-color,box-shadow,transform] duration-150 hover:border-primary/50 hover:bg-card hover:shadow-md active:scale-[0.98] cursor-pointer">
           <CardHeader className="p-5 pb-3">
             <div className="flex items-center justify-between">
               <div className="rounded-lg bg-emerald-500/10 p-2.5 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
@@ -875,8 +884,11 @@ function ActionTiles() {
         </Card>
       </Link>
 
-      <Link className="group" to="/events">
-        <Card className="h-full rounded-xl border border-border/80 bg-card/60 transition-all hover:border-primary/50 hover:bg-card hover:shadow-md cursor-pointer">
+      <Link
+        className="group rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+        to="/events"
+      >
+        <Card className="h-full rounded-xl border border-border/80 bg-card/60 transition-[background-color,border-color,box-shadow,transform] duration-150 hover:border-primary/50 hover:bg-card hover:shadow-md active:scale-[0.98] cursor-pointer">
           <CardHeader className="p-5 pb-3">
             <div className="flex items-center justify-between">
               <div className="rounded-lg bg-amber-500/10 p-2.5 text-amber-500 group-hover:bg-amber-500 group-hover:text-white transition-colors">
@@ -897,8 +909,11 @@ function ActionTiles() {
         </Card>
       </Link>
 
-      <Link className="group" to="/players">
-        <Card className="h-full rounded-xl border border-border/80 bg-card/60 transition-all hover:border-primary/50 hover:bg-card hover:shadow-md cursor-pointer">
+      <Link
+        className="group rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+        to="/players"
+      >
+        <Card className="h-full rounded-xl border border-border/80 bg-card/60 transition-[background-color,border-color,box-shadow,transform] duration-150 hover:border-primary/50 hover:bg-card hover:shadow-md active:scale-[0.98] cursor-pointer">
           <CardHeader className="p-5 pb-3">
             <div className="flex items-center justify-between">
               <div className="rounded-lg bg-indigo-500/10 p-2.5 text-indigo-500 group-hover:bg-indigo-500 group-hover:text-white transition-colors">
@@ -974,7 +989,7 @@ function VenuesGrid({
           </p>
         </div>
         <Button
-          className="rounded-lg text-xs font-semibold"
+          className="rounded-lg text-xs font-semibold transition-transform duration-150 ease-out active:scale-97 cursor-pointer"
           onClick={onOpenCityPicker}
           size="sm"
           variant="outline"
@@ -1006,7 +1021,7 @@ function VenuesGrid({
         return (
           <div
             className={cn(
-              "relative flex flex-col justify-between rounded-xl border bg-card p-5 shadow-xs transition-all hover:border-primary/40 hover:shadow-md",
+              "relative flex flex-col justify-between rounded-xl border bg-card p-5 shadow-xs transition-[border-color,box-shadow] hover:border-primary/40 hover:shadow-md",
               isHomeCourt
                 ? "border-primary/40 bg-primary/5 ring-1 ring-primary/20"
                 : "border-border/80"
@@ -1055,9 +1070,6 @@ function VenuesGrid({
                     ⭐ {venue.rating.toFixed(1)}
                   </span>
                 )}
-                <span className="rounded bg-emerald-500/10 px-2 py-0.5 font-semibold text-emerald-600 dark:text-emerald-400">
-                  Pickleball Ready
-                </span>
               </div>
             </div>
 
@@ -1075,6 +1087,7 @@ function VenuesGrid({
                 Directions
               </a>
               <Link
+                aria-label="View court details & heat"
                 className={cn(
                   buttonVariants({ size: "sm", variant: "ghost" }),
                   "text-xs px-2.5 rounded-lg"
@@ -1123,7 +1136,7 @@ function TournamentsSection({
         <div className="space-y-3">
           {events.map((event) => (
             <div
-              className="flex items-center justify-between gap-3 rounded-xl border border-border/80 bg-card p-4 shadow-xs transition-all hover:border-primary/40"
+              className="flex items-center justify-between gap-3 rounded-xl border border-border/80 bg-card p-4 shadow-xs transition-colors hover:border-primary/40"
               key={event.id}
             >
               <div className="min-w-0 space-y-1">
@@ -1149,14 +1162,15 @@ function TournamentsSection({
                   })}
                 </p>
               </div>
-              <Link params={{ id: event.id }} to="/events/$id">
-                <Button
-                  className="rounded-lg text-xs shrink-0 cursor-pointer font-semibold"
-                  size="sm"
-                  variant="outline"
-                >
-                  View Bracket
-                </Button>
+              <Link
+                className={cn(
+                  buttonVariants({ size: "sm", variant: "outline" }),
+                  "rounded-lg text-xs font-semibold transition-transform duration-150 ease-out active:scale-97 cursor-pointer"
+                )}
+                params={{ id: event.id }}
+                to="/events/$id"
+              >
+                View Bracket
               </Link>
             </div>
           ))}
@@ -1167,10 +1181,14 @@ function TournamentsSection({
           <p className="text-xs font-medium text-muted-foreground">
             No active tournaments scheduled in this radius right now.
           </p>
-          <Link to="/events">
-            <Button className="text-xs text-primary" size="sm" variant="ghost">
-              Browse State Events
-            </Button>
+          <Link
+            className={cn(
+              buttonVariants({ size: "sm", variant: "ghost" }),
+              "text-xs text-primary"
+            )}
+            to="/events"
+          >
+            Browse State Events
           </Link>
         </div>
       )}
@@ -1210,7 +1228,7 @@ function PlayersSection({
         <div className="space-y-3">
           {players.map((player) => (
             <div
-              className="flex items-center justify-between gap-3 rounded-xl border border-border/80 bg-card p-3.5 shadow-xs transition-all hover:border-primary/40"
+              className="flex items-center justify-between gap-3 rounded-xl border border-border/80 bg-card p-3.5 shadow-xs transition-colors hover:border-primary/40"
               key={player.id}
             >
               <div className="flex items-center gap-3 min-w-0">
@@ -1219,7 +1237,9 @@ function PlayersSection({
                     <img
                       alt={player.name}
                       className="size-full rounded-full object-cover"
+                      height={40}
                       src={player.image}
+                      width={40}
                     />
                   ) : (
                     player.name?.slice(0, 2).toUpperCase() || "PB"
@@ -1245,7 +1265,7 @@ function PlayersSection({
               </div>
 
               <Button
-                className="rounded-lg text-xs gap-1 shrink-0 cursor-pointer font-semibold"
+                className="rounded-lg text-xs gap-1 shrink-0 transition-transform duration-150 ease-out active:scale-97 cursor-pointer font-semibold"
                 onClick={() => onConnect(player.id, player.name)}
                 size="sm"
                 variant="outline"
@@ -1262,10 +1282,14 @@ function PlayersSection({
           <p className="text-xs font-medium text-muted-foreground">
             No other players registered nearby yet.
           </p>
-          <Link to="/players">
-            <Button className="text-xs text-primary" size="sm" variant="ghost">
-              Browse All Players
-            </Button>
+          <Link
+            className={cn(
+              buttonVariants({ size: "sm", variant: "ghost" }),
+              "text-xs text-primary"
+            )}
+            to="/players"
+          >
+            Browse All Players
           </Link>
         </div>
       )}
@@ -1317,10 +1341,15 @@ function FriendsSection({
                 @{friend.username || "player"}
               </p>
             </div>
-            <Link to="/u/messages">
-              <Button className="rounded-lg" size="icon-sm" variant="ghost">
-                <MessageSquare className="size-4 text-primary" />
-              </Button>
+            <Link
+              aria-label={`Message ${friend.name}`}
+              className={cn(
+                buttonVariants({ size: "icon-sm", variant: "ghost" }),
+                "rounded-lg transition-transform duration-150 ease-out active:scale-97 cursor-pointer"
+              )}
+              to="/u/messages"
+            >
+              <MessageSquare className="size-4 text-primary" />
             </Link>
           </div>
         ))}
@@ -1346,7 +1375,7 @@ function OrganizationCard({
   role: string;
 }) {
   return (
-    <div className="flex flex-col justify-between rounded-xl border border-border/80 bg-card p-5 shadow-xs transition-all hover:border-primary/40 hover:shadow-md">
+    <div className="flex flex-col justify-between rounded-xl border border-border/80 bg-card p-5 shadow-xs transition-[border-color,box-shadow] hover:border-primary/40 hover:shadow-md">
       <div className="space-y-2">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
@@ -1389,9 +1418,10 @@ function OrganizationCard({
           <ArrowRight className="size-3" />
         </Link>
         <Link
+          aria-label={`View ${org.name} public page`}
           className={cn(
             buttonVariants({ size: "sm", variant: "outline" }),
-            "text-xs px-2.5 rounded-lg"
+            "rounded-lg transition-transform duration-150 ease-out active:scale-97 cursor-pointer"
           )}
           params={{ slug: org.slug }}
           to="/organizers/$slug"
@@ -1428,11 +1458,15 @@ function EmptyOrganizationsCard() {
         Create your club or organization (like Official RallyCasts) to host
         tournaments, seed brackets, and assign court live streams.
       </p>
-      <Link to="/events/hosts/new">
-        <Button className="mt-2 text-xs font-semibold" size="sm">
-          <Plus className="size-3.5 mr-1" />
-          Register Organization
-        </Button>
+      <Link
+        className={cn(
+          buttonVariants({ size: "sm" }),
+          "mt-2 rounded-lg text-xs font-semibold transition-transform duration-150 ease-out active:scale-97 cursor-pointer"
+        )}
+        to="/events/hosts/new"
+      >
+        <Plus className="size-3.5 mr-1" />
+        Register Organization
       </Link>
     </div>
   );
@@ -1459,15 +1493,15 @@ function OrganizationsSection({
             </span>
           )}
         </div>
-        <Link to="/events/hosts/new">
-          <Button
-            className="rounded-lg text-xs gap-1.5 font-semibold cursor-pointer"
-            size="sm"
-            variant="outline"
-          >
-            <Plus className="size-3.5" />
-            Create Organization
-          </Button>
+        <Link
+          className={cn(
+            buttonVariants({ size: "sm", variant: "outline" }),
+            "rounded-lg text-xs font-semibold transition-transform duration-150 ease-out active:scale-97 cursor-pointer"
+          )}
+          to="/events/hosts/new"
+        >
+          <Plus className="size-3.5" />
+          Create Organization
         </Link>
       </div>
 
