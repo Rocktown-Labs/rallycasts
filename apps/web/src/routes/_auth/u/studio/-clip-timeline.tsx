@@ -10,8 +10,10 @@ export const CLIP_MAX_SECONDS = 120;
  * Videos shorter than the minimum clip length can still be clipped whole,
  * so the effective minimum is the smaller of the rule and the video.
  */
-export const getEffectiveMinSeconds = (duration: number) =>
-  Math.min(CLIP_MIN_SECONDS, Math.max(0, duration));
+export const getEffectiveMinSeconds = (
+  duration: number,
+  minSeconds: number = CLIP_MIN_SECONDS
+) => Math.min(minSeconds, Math.max(0, duration));
 
 export interface ClipSelection {
   start: number;
@@ -35,10 +37,12 @@ export const initialClipSelection = (duration: number): ClipSelection => {
 export const clampClipStart = (
   start: number,
   end: number,
-  duration: number
+  duration: number,
+  minSeconds: number = CLIP_MIN_SECONDS,
+  maxSeconds: number = CLIP_MAX_SECONDS
 ): number => {
-  const min = getEffectiveMinSeconds(duration);
-  const lower = Math.max(0, end - CLIP_MAX_SECONDS);
+  const min = getEffectiveMinSeconds(duration, minSeconds);
+  const lower = Math.max(0, end - maxSeconds);
   const upper = Math.max(0, end - min);
   return Math.min(upper, Math.max(lower, start));
 };
@@ -50,11 +54,13 @@ export const clampClipStart = (
 export const clampClipEnd = (
   end: number,
   start: number,
-  duration: number
+  duration: number,
+  minSeconds: number = CLIP_MIN_SECONDS,
+  maxSeconds: number = CLIP_MAX_SECONDS
 ): number => {
-  const min = getEffectiveMinSeconds(duration);
+  const min = getEffectiveMinSeconds(duration, minSeconds);
   const lower = start + min;
-  const upper = Math.min(duration, start + CLIP_MAX_SECONDS);
+  const upper = Math.min(duration, start + maxSeconds);
   const clamped = Math.min(upper, Math.max(lower, end));
   return Math.min(duration, Math.max(0, clamped));
 };
@@ -87,6 +93,8 @@ interface ClipTrimTimelineProps {
   duration: number;
   end: number;
   frameUrls: string[];
+  maxSeconds?: number;
+  minSeconds?: number;
   onChange: (selection: ClipSelection) => void;
   onScrub?: (time: number) => void;
   start: number;
@@ -98,13 +106,15 @@ type DragMode = "end" | "start" | "window";
  * A trim timeline in the style of mobile video editors: a filmstrip of the
  * source video with draggable start/end handles, a draggable selection
  * window, dimmed footage outside the selection, and time labels. Handles
- * clamp to the 15s minimum / 2-minute maximum clip rules and are fully
- * keyboard operable.
+ * clamp to the provided length rules (the clipper passes its 15s minimum
+ * and 2-minute maximum) and are fully keyboard operable.
  */
 export function ClipTrimTimeline({
   duration,
   end,
   frameUrls,
+  maxSeconds = CLIP_MAX_SECONDS,
+  minSeconds = CLIP_MIN_SECONDS,
   onChange,
   onScrub,
   start,
@@ -112,6 +122,7 @@ export function ClipTrimTimeline({
   const trackRef = useRef<HTMLDivElement>(null);
   const dragMode = useRef<DragMode | null>(null);
   const dragOrigin = useRef({ end, pointerX: 0, start });
+  const effectiveMin = getEffectiveMinSeconds(duration, minSeconds);
 
   const timeAtPointer = useCallback(
     (clientX: number): number => {
@@ -131,24 +142,36 @@ export function ClipTrimTimeline({
 
   const updateStart = useCallback(
     (rawStart: number, scrub = true) => {
-      const nextStart = clampClipStart(rawStart, end, duration);
+      const nextStart = clampClipStart(
+        rawStart,
+        end,
+        duration,
+        minSeconds,
+        maxSeconds
+      );
       onChange({ end, start: nextStart });
       if (scrub) {
         onScrub?.(nextStart);
       }
     },
-    [duration, end, onChange, onScrub]
+    [duration, end, maxSeconds, minSeconds, onChange, onScrub]
   );
 
   const updateEnd = useCallback(
     (rawEnd: number, scrub = true) => {
-      const nextEnd = clampClipEnd(rawEnd, start, duration);
+      const nextEnd = clampClipEnd(
+        rawEnd,
+        start,
+        duration,
+        minSeconds,
+        maxSeconds
+      );
       onChange({ end: nextEnd, start });
       if (scrub) {
         onScrub?.(nextEnd);
       }
     },
-    [duration, onChange, onScrub, start]
+    [duration, maxSeconds, minSeconds, onChange, onScrub, start]
   );
 
   const handlePointerMove = useCallback(
@@ -221,18 +244,18 @@ export function ClipTrimTimeline({
       }
       if (mode === "start" && event.key === "End") {
         event.preventDefault();
-        updateStart(end - getEffectiveMinSeconds(duration));
+        updateStart(end - effectiveMin);
       }
       if (mode === "end" && event.key === "Home") {
         event.preventDefault();
-        updateEnd(start + getEffectiveMinSeconds(duration));
+        updateEnd(start + effectiveMin);
       }
       if (mode === "end" && event.key === "End") {
         event.preventDefault();
         updateEnd(duration);
       }
     },
-    [duration, end, start, updateEnd, updateStart]
+    [duration, effectiveMin, end, start, updateEnd, updateStart]
   );
 
   const startPct = duration > 0 ? Math.min(100, (start / duration) * 100) : 0;
@@ -332,8 +355,8 @@ export function ClipTrimTimeline({
         <span
           className={cn(
             "inline-flex items-center rounded-full px-2.5 py-1 font-bold tabular-nums",
-            clipSeconds >= getEffectiveMinSeconds(duration) - 0.01 &&
-              clipSeconds <= CLIP_MAX_SECONDS + 0.01
+            clipSeconds >= effectiveMin - 0.01 &&
+              clipSeconds <= maxSeconds + 0.01
               ? "bg-primary/10 text-primary"
               : "bg-destructive/10 text-destructive"
           )}
