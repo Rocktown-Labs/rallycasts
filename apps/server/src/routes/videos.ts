@@ -78,7 +78,7 @@ const uploadStateSchema = z.object({
 });
 
 const CLIP_MIN_SECONDS = 15;
-const CLIP_MAX_SECONDS = 60;
+const CLIP_MAX_SECONDS = 120;
 
 const createClipSchema = z
   .object({
@@ -90,7 +90,7 @@ const createClipSchema = z
     message: "Clip end time must be after its start time",
   })
   .refine(({ endTime, startTime }) => endTime - startTime <= CLIP_MAX_SECONDS, {
-    message: "Clips can be at most 60 seconds long",
+    message: "Clips can be at most 2 minutes long",
   });
 
 const DEFAULT_VIDEO_PAGE_SIZE = 12;
@@ -714,7 +714,7 @@ export const videosRouter = new Hono<AppEnv>()
         );
       }
 
-      // Clips run 15-60 seconds. Videos shorter than the minimum can still
+      // Clips run 15-120 seconds. Videos shorter than the minimum can still
       // be clipped whole.
       if (
         sourceVideo.durationSeconds !== null &&

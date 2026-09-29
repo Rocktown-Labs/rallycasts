@@ -42,7 +42,8 @@ describe("clip selection math", () => {
 
   it("the end handle cannot make the clip too short, too long, or pass the video end", () => {
     expect(clampClipEnd(10, 60, DURATION)).toBe(75);
-    expect(clampClipEnd(500, 60, DURATION)).toBe(120);
+    // At most 120s past the start, never past the video end.
+    expect(clampClipEnd(500, 60, DURATION)).toBe(180);
     expect(clampClipEnd(30, 0, DURATION)).toBe(30);
     // 200s is only 10s past 190s: raised to the 15s minimum.
     expect(clampClipEnd(200, 190, DURATION)).toBe(205);
@@ -132,6 +133,10 @@ describe("ClipTrimTimeline", () => {
     expect(callbacks.onChange).toHaveBeenLastCalledWith({ end: 65, start: 30 });
 
     fireEvent.keyDown(endHandle, { key: "End" });
-    expect(callbacks.onChange).toHaveBeenLastCalledWith({ end: 90, start: 30 });
+    // End jumps as far as it can: 120s past a 30s start.
+    expect(callbacks.onChange).toHaveBeenLastCalledWith({
+      end: 150,
+      start: 30,
+    });
   });
 });

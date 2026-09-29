@@ -4,7 +4,7 @@ import type { PointerEvent as ReactPointerEvent } from "react";
 import { useCallback, useRef } from "react";
 
 export const CLIP_MIN_SECONDS = 15;
-export const CLIP_MAX_SECONDS = 60;
+export const CLIP_MAX_SECONDS = 120;
 
 /**
  * Videos shorter than the minimum clip length can still be clipped whole,
@@ -98,7 +98,7 @@ type DragMode = "end" | "start" | "window";
  * A trim timeline in the style of mobile video editors: a filmstrip of the
  * source video with draggable start/end handles, a draggable selection
  * window, dimmed footage outside the selection, and time labels. Handles
- * clamp to the 15s minimum / 60s maximum clip rules and are fully
+ * clamp to the 15s minimum / 2-minute maximum clip rules and are fully
  * keyboard operable.
  */
 export function ClipTrimTimeline({
