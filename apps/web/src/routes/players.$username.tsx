@@ -1488,48 +1488,27 @@ function PlayerProfilePage() {
         currentUser={currentUser}
       />
 
-      <div className="grid grid-cols-3 gap-4 text-center">
-        <div className="p-3 bg-muted/20 border border-border/50 rounded-xl">
-          <span className="block text-xl font-bold">{videos.length}</span>
-          <span className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-semibold">
-            Videos
-          </span>
-        </div>
-        <div className="p-3 bg-muted/20 border border-border/50 rounded-xl">
-          <span className="block text-xl font-bold">
+      <div className="-mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 sm:justify-start">
+        <p className="text-sm">
+          <span className="text-base font-bold">{videos.length}</span>{" "}
+          <span className="text-muted-foreground">videos</span>
+        </p>
+        <p className="text-sm">
+          <span className="text-base font-bold">
             {profileStats.followersCount ?? 0}
-          </span>
-          <span className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-semibold">
-            Followers
-          </span>
-        </div>
-        <div className="p-3 bg-muted/20 border border-border/50 rounded-xl">
-          <span className="block text-xl font-bold">
+          </span>{" "}
+          <span className="text-muted-foreground">followers</span>
+        </p>
+        <p className="text-sm">
+          <span className="text-base font-bold">
             {profileStats.matchCount ?? 0}
-          </span>
-          <span className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-semibold">
-            Matches
-          </span>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 text-center">
-        <div className="p-3 bg-muted/20 border border-border/50 rounded-xl">
-          <span className="block text-xl font-bold">
-            {profileStats.wins ?? 0}
-          </span>
-          <span className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-semibold">
-            Wins
-          </span>
-        </div>
-        <div className="p-3 bg-muted/20 border border-border/50 rounded-xl">
-          <span className="block text-xl font-bold">
-            {profileStats.losses ?? 0}
-          </span>
-          <span className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-semibold">
-            Losses
-          </span>
-        </div>
+          </span>{" "}
+          <span className="text-muted-foreground">matches</span>
+        </p>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">
+          <Trophy className="size-3.5" />
+          {profileStats.wins ?? 0}-{profileStats.losses ?? 0}
+        </span>
       </div>
 
       <ProfileTabs activeTab={activeTab} onTabChange={setActiveTab} />
@@ -1603,9 +1582,27 @@ function ProfileGrid({ items, onItemClick }: ProfileGridProps) {
   );
 }
 
+const getVideoThumbnail = (video: VideoCardData): string | null =>
+  video.thumbnailUrl ??
+  (video.muxPlaybackId
+    ? `https://image.mux.com/${encodeURIComponent(video.muxPlaybackId)}/thumbnail.webp?time=1`
+    : null);
+
 function GridItemContent({ item }: { item: FeedItem }) {
   switch (item.type) {
     case "video": {
+      const video = item.data as VideoCardData;
+      const thumbnail = getVideoThumbnail(video);
+      if (thumbnail) {
+        return (
+          <img
+            alt={video.title}
+            className="size-full object-cover transition-transform duration-300 group-hover/photo:scale-105"
+            loading="lazy"
+            src={thumbnail}
+          />
+        );
+      }
       return (
         <div className="size-full bg-muted flex items-center justify-center">
           <Video className="size-8 text-muted-foreground" />
