@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { apiClient } from "@/lib/api-client";
 import { readApiJson } from "@/lib/hooks/api";
 
-export const Route = createFileRoute("/_auth/u/studio/videos/$id/clips")({
+export const Route = createFileRoute("/_auth/u/studio/videos/$id_/clips")({
   component: () => <VideoClipperPage />,
 });
 

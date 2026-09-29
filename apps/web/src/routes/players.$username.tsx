@@ -241,7 +241,7 @@ function PlayerHeaderActions({
         </>
       )}
       {isOwnProfile && (
-        <Link to="/u/profile">
+        <Link to="/u/settings">
           <Button
             variant="outline"
             className="rounded-lg text-xs font-semibold px-4 cursor-pointer"

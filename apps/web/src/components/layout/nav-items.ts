@@ -12,7 +12,6 @@ import {
   Trophy,
   User,
   Users,
-  Video,
   ArrowLeft,
   LayoutDashboard,
   ShieldCheck,
@@ -40,9 +39,7 @@ export const adminNavItems = [
 
 export const accountNavItems = [
   { icon: LayoutDashboard, label: "Dashboard", to: "/u/me" },
-  { icon: Video, label: "Your Videos", to: "/u/videos" },
   { icon: UploadCloud, label: "Studio", to: "/u/studio" },
-  { icon: User, label: "Profile", to: "/u/profile" },
   {
     icon: Calendar,
     label: "Casting Requests",
@@ -64,7 +61,7 @@ export const mobileDiscoverItems = [
 
 export const mobileAccountItems = [
   { icon: LayoutDashboard, label: "Dashboard", to: "/u/me" },
-  { icon: Video, label: "Videos", to: "/u/videos" },
+  { icon: UploadCloud, label: "Studio", to: "/u/studio" },
   { icon: Camera, label: "Requests", to: "/u/casts/all" },
   { icon: MessageSquare, label: "Messages", to: "/u/messages" },
   { icon: ArrowLeft, label: "Back", to: "/" },

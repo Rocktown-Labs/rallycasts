@@ -114,6 +114,9 @@ const LODGING_PLACE_TYPES = new Set([
   "rv_park",
 ]);
 const PICKLEBALL_QUERY = "pickleball";
+// Broader recall: some courts only surface under "pickleball courts" (e.g.
+// municipal rec centers), which the bare "pickleball" text query misses.
+const PICKLEBALL_COURTS_QUERY = "pickleball courts";
 const PICKLEBALL_SEARCH_RESULT_LIMIT = 20;
 
 const DISALLOWED_PLACE_TYPES = new Set([
@@ -165,6 +168,10 @@ export class GooglePlacesClient {
   ): Promise<GooglePlaceResult[]> {
     const textSearchResults = await Promise.allSettled([
       this.searchText(PICKLEBALL_QUERY, latitude, longitude, {
+        maxResultCount: PICKLEBALL_SEARCH_RESULT_LIMIT,
+        radius,
+      }),
+      this.searchText(PICKLEBALL_COURTS_QUERY, latitude, longitude, {
         maxResultCount: PICKLEBALL_SEARCH_RESULT_LIMIT,
         radius,
       }),
