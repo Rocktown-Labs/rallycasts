@@ -66,6 +66,21 @@ describe("clip selection math", () => {
     expect(formatClipTime(59.6)).toBe("1:00");
     expect(formatClipTime(125)).toBe("2:05");
   });
+
+  it("supports editor rules: near-zero minimum and no maximum", () => {
+    // The upload editor passes a 1s minimum and no length cap, so the
+    // handles move freely across the video.
+    expect(
+      clampClipStart(299, 300, DURATION, 1, Number.POSITIVE_INFINITY)
+    ).toBe(299);
+    expect(clampClipEnd(5, 0, DURATION, 1, Number.POSITIVE_INFINITY)).toBe(5);
+    expect(clampClipEnd(300, 0, DURATION, 1, Number.POSITIVE_INFINITY)).toBe(
+      300
+    );
+    // The effective minimum never exceeds the video length, even with a
+    // tiny rule: a 4s video can still be trimmed whole.
+    expect(getEffectiveMinSeconds(4, 15)).toBe(4);
+  });
 });
 
 describe("ClipTrimTimeline", () => {
