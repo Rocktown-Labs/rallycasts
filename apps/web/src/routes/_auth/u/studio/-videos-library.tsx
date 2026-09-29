@@ -1,14 +1,7 @@
 import { Button, buttonVariants } from "@rallycaststv/ui/components/button";
 import { cn } from "@rallycaststv/ui/lib/utils";
 import { Link } from "@tanstack/react-router";
-import {
-  BarChart3,
-  Clock3,
-  PlusCircle,
-  Radio,
-  Scissors,
-  Video,
-} from "lucide-react";
+import { Clock3, Radio, Scissors, Video } from "lucide-react";
 
 import { EmptyState } from "@/components/rally/cards";
 import { myVideosCollection, useLiveQuery } from "@/lib/collections";
@@ -16,9 +9,9 @@ import { myVideosCollection, useLiveQuery } from "@/lib/collections";
 type VideosSection = "clips" | "live" | "videos";
 
 const videoTabs = [
-  { icon: Video, label: "Videos", section: "videos", to: "/u/videos" },
-  { icon: Scissors, label: "Clips", section: "clips", to: "/u/videos/clips" },
-  { icon: Radio, label: "Live", section: "live", to: "/u/videos/live" },
+  { icon: Video, label: "Videos", section: "videos", to: "/u/studio" },
+  { icon: Scissors, label: "Clips", section: "clips", to: "/u/studio/clips" },
+  { icon: Radio, label: "Live", section: "live", to: "/u/studio/live" },
 ] as const;
 
 const statusLabel = {
@@ -38,7 +31,12 @@ const formatDuration = (seconds?: number | null) => {
   return `${minutes}:${String(seconds % 60).padStart(2, "0")}`;
 };
 
-export function VideosPage({
+/**
+ * The video library that lives inside Studio: section tabs plus the list of
+ * the signed-in user's videos and clips. Studio owns the page header and the
+ * quick actions; this component only renders the library.
+ */
+export function VideosLibrary({
   section = "videos",
 }: {
   section?: VideosSection;
@@ -49,26 +47,7 @@ export function VideosPage({
   const activeTab = videoTabs.find((tab) => tab.section === section);
 
   return (
-    <main className="mx-auto max-w-7xl space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
-            Your Library
-          </p>
-          <h1 className="mt-1 text-3xl font-bold">Your videos</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Review uploads, clips, and live sessions. Create and publish from
-            Studio.
-          </p>
-        </div>
-        <Link
-          className={cn(buttonVariants(), "rounded-lg")}
-          to={section === "live" ? "/u/studio" : "/u/studio/upload"}
-        >
-          <PlusCircle /> {section === "live" ? "Start in Studio" : "Upload"}
-        </Link>
-      </header>
-
+    <section className="space-y-5">
       <nav aria-label="Video library sections" className="flex gap-2 border-b">
         {videoTabs.map(({ icon: Icon, label, section: tabSection, to }) => (
           <Link key={tabSection} to={to}>
@@ -79,7 +58,7 @@ export function VideosPage({
                   ? "border-primary text-primary"
                   : "border-transparent text-muted-foreground"
               )}
-              variant={tabSection === section ? "ghost" : "ghost"}
+              variant="ghost"
             >
               <Icon /> {label}
             </Button>
@@ -104,11 +83,6 @@ export function VideosPage({
             message="Live tools will start from Studio. Scheduled streams and replays will appear here."
             title="No live sessions yet"
           />
-          <div className="mt-5 flex justify-center">
-            <Link className={cn(buttonVariants(), "rounded-lg")} to="/u/studio">
-              Open Studio
-            </Link>
-          </div>
         </div>
       ) : null}
 
@@ -182,8 +156,8 @@ export function VideosPage({
           <EmptyState
             message={
               section === "clips"
-                ? "Create clips from a Studio video workspace."
-                : "Upload your first video and we’ll take you straight into Studio while Mux processes it."
+                ? "Open a video workspace and use the clipper to cut short highlights."
+                : "Upload your first video and we’ll take you straight into the editor while Mux processes it."
             }
             title={
               section === "clips"
@@ -198,19 +172,20 @@ export function VideosPage({
             >
               Upload a video
             </Link>
-            <Link
-              className={cn(
-                buttonVariants({ variant: "outline" }),
-                "rounded-lg"
-              )}
-              to="/u/studio"
-            >
-              <BarChart3 />
-              Open Studio
-            </Link>
+            {section === "clips" ? (
+              <Link
+                className={cn(
+                  buttonVariants({ variant: "outline" }),
+                  "rounded-lg"
+                )}
+                to="/u/studio"
+              >
+                Back to videos
+              </Link>
+            ) : null}
           </div>
         </div>
       ) : null}
-    </main>
+    </section>
   );
 }

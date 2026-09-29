@@ -75,7 +75,7 @@ describe("GooglePlacesClient", () => {
         })
       );
 
-      expect(mockFetch).toHaveBeenCalledTimes(7);
+      expect(mockFetch).toHaveBeenCalledTimes(8);
       const [[calledUrl, requestInit], ...remainingCalls] =
         mockFetch.mock.calls;
       expect(calledUrl).toBe(

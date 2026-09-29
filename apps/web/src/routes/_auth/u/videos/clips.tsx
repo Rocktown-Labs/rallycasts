@@ -1,7 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
-import { VideosPage } from "./-videos-page";
-
+// The clips tab lives in Studio now.
 export const Route = createFileRoute("/_auth/u/videos/clips")({
-  component: () => <VideosPage section="clips" />,
+  beforeLoad: () => {
+    throw redirect({ to: "/u/studio/clips" });
+  },
 });

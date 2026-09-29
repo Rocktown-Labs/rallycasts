@@ -11,7 +11,7 @@ import { Checkbox } from "@rallycaststv/ui/components/checkbox";
 import { Input } from "@rallycaststv/ui/components/input";
 import { Label } from "@rallycaststv/ui/components/label";
 import { debounce } from "@tanstack/pacer";
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import {
   CheckCircle,
   MapPin,
@@ -25,6 +25,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import LinkedAccounts from "@/components/auth/linked-accounts";
+import { ProfilePreview } from "@/components/profile/profile-preview";
 import { apiClient } from "@/lib/api-client";
 import { mapGooglePlaceToCourtSuggestion } from "@/lib/google-places";
 import type { CourtSuggestion } from "@/lib/google-places";
@@ -680,34 +681,30 @@ export function ProfileEditorPage({
 }
 
 function SettingsPage() {
+  const { data } = useProfile();
+
   return (
-    <main className="mx-auto max-w-4xl space-y-6">
+    <main className="mx-auto max-w-5xl space-y-8">
       <div className="flex items-center gap-3 border-b border-border/60 pb-5">
         <Settings className="size-8 text-primary" />
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight">Settings</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Account preferences live here. Edit your public player profile from
-            Profile.
+            Your public profile, home court, roles, and linked accounts.
           </p>
         </div>
       </div>
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="rounded-xl">
-          <CardHeader>
-            <CardTitle className="text-lg">Public profile</CardTitle>
-            <CardDescription>
-              Name, handle, bio, home court, rating, and roles.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link to="/u/profile">
-              <Button className="rounded-lg">Edit profile</Button>
-            </Link>
-          </CardContent>
-        </Card>
-        <LinkedAccounts />
-      </div>
+
+      <ProfilePreview data={data} />
+
+      <ProfileEditorPage
+        showHeader
+        submitLabel="Save Profile"
+        subtitle="Update the public profile players see, including your name, handle, bio, home court, rating, and roles."
+        title="Edit Profile"
+      />
+
+      <LinkedAccounts />
     </main>
   );
 }

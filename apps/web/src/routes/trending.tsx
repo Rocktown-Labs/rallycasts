@@ -120,7 +120,7 @@ function SectionHeader({
   search?: Record<string, number | string | undefined>;
   actions?: ReactNode;
   count?: number;
-  scope?: string;
+  scope?: ReactNode;
 }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -167,18 +167,20 @@ function VenueRadiusSelect({
   radius: number;
 }) {
   return (
-    <label className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-card px-2.5 text-xs font-semibold text-muted-foreground shadow-sm">
-      <MapPin className="size-3.5 text-primary" />
-      <span className="sr-only">Park search radius</span>
+    <label
+      className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground shadow-sm"
+      title="Park search radius"
+    >
+      <MapPin className="size-3 text-primary" />
       <select
         aria-label="Park search radius"
-        className="bg-transparent text-foreground outline-none"
+        className="cursor-pointer appearance-none bg-transparent text-foreground outline-none"
         onChange={(event) => onRadiusChange(Number(event.target.value))}
         value={radius}
       >
         {VENUE_RADIUS_OPTIONS.map((option) => (
           <option key={option} value={option}>
-            {option} mi
+            Within {option} mi
           </option>
         ))}
       </select>
@@ -305,11 +307,10 @@ function ParksNearYouSection({
         title="Parks Near You"
         to="/trending"
         search={{ radius, section: "venues" }}
-        actions={
+        count={venues.length}
+        scope={
           <VenueRadiusSelect onRadiusChange={onRadiusChange} radius={radius} />
         }
-        count={venues.length}
-        scope={`Within ${radius} mi`}
       />
       {venues.length > 0 ? (
         <HorizontalScroll>
@@ -779,43 +780,28 @@ function TrendingDashboardView({
       </section>
 
       {/* Quick links */}
-      <section className="grid gap-4 sm:grid-cols-3">
+      <section className="grid grid-cols-3 gap-2 sm:gap-4">
         <Link
           to="/trending"
           search={{ radius: venueRadius, section: "venues" }}
-          className="group rounded-xl border border-border bg-card p-5 hover:border-primary/40 transition-all"
+          className="group flex min-h-24 flex-col items-center justify-center gap-2 rounded-xl bg-primary p-4 text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-primary/90 active:scale-[0.98] cursor-pointer sm:p-5"
         >
-          <MapPin className="size-5 text-primary mb-3" />
-          <h3 className="font-bold text-sm group-hover:text-primary transition-colors">
-            Browse all parks
-          </h3>
-          <p className="text-xs text-muted-foreground mt-1">
-            Explore courts across the region
-          </p>
+          <MapPin className="size-5 text-[#bcdf21]" />
+          <span className="text-xs font-semibold sm:text-sm">Parks</span>
         </Link>
         <Link
           to="/events"
-          className="group rounded-xl border border-border bg-card p-5 hover:border-primary/40 transition-all"
+          className="group flex min-h-24 flex-col items-center justify-center gap-2 rounded-xl bg-primary p-4 text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-primary/90 active:scale-[0.98] cursor-pointer sm:p-5"
         >
-          <TrendingUp className="size-5 text-primary mb-3" />
-          <h3 className="font-bold text-sm group-hover:text-primary transition-colors">
-            Tournament calendar
-          </h3>
-          <p className="text-xs text-muted-foreground mt-1">
-            Find events worth traveling for
-          </p>
+          <TrendingUp className="size-5 text-[#bcdf21]" />
+          <span className="text-xs font-semibold sm:text-sm">Events</span>
         </Link>
         <Link
           to="/players"
-          className="group rounded-xl border border-border bg-card p-5 hover:border-primary/40 transition-all"
+          className="group flex min-h-24 flex-col items-center justify-center gap-2 rounded-xl bg-primary p-4 text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-primary/90 active:scale-[0.98] cursor-pointer sm:p-5"
         >
-          <Users className="size-5 text-primary mb-3" />
-          <h3 className="font-bold text-sm group-hover:text-primary transition-colors">
-            Player directory
-          </h3>
-          <p className="text-xs text-muted-foreground mt-1">
-            Connect with nearby players
-          </p>
+          <Users className="size-5 text-[#bcdf21]" />
+          <span className="text-xs font-semibold sm:text-sm">Players</span>
         </Link>
       </section>
     </div>

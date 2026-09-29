@@ -1,7 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
-import { VideosPage } from "./-videos-page";
-
+// The live tab lives in Studio now.
 export const Route = createFileRoute("/_auth/u/videos/live")({
-  component: () => <VideosPage section="live" />,
+  beforeLoad: () => {
+    throw redirect({ to: "/u/studio/live" });
+  },
 });

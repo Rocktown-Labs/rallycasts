@@ -57,6 +57,30 @@ function HomeComponent() {
   );
 }
 
+function HeroLocationButton() {
+  const { data: profileData } = useProfile();
+  const profile = profileData?.profile as
+    | { homeCity?: string; homeState?: string }
+    | undefined;
+  const homeLabel =
+    profile?.homeCity && profile.homeState
+      ? `${profile.homeCity}, ${profile.homeState}`
+      : (profile?.homeCity ?? null);
+
+  return (
+    <Link
+      to="/trending"
+      className={cn(
+        buttonVariants({ variant: "outline" }),
+        "rounded-lg border-white/25 bg-transparent text-white transition-transform duration-150 hover:bg-white/10 hover:text-white active:scale-97 cursor-pointer"
+      )}
+    >
+      <MapPin className="size-4 text-[#bcdf21]" />
+      {homeLabel ?? "Set location"}
+    </Link>
+  );
+}
+
 function HeroBanner() {
   return (
     <section className="relative overflow-hidden rounded-2xl bg-primary p-6 text-white shadow-xl sm:p-8">
@@ -82,16 +106,7 @@ function HeroBanner() {
             <Flame className="size-4" />
             Trending Courts
           </Link>
-          <Link
-            to="/onboarding"
-            className={cn(
-              buttonVariants({ variant: "outline" }),
-              "rounded-lg border-white/25 bg-transparent text-white hover:bg-white/10 hover:text-white"
-            )}
-          >
-            <MapPin className="size-4 text-[#bcdf21]" />
-            Set location
-          </Link>
+          <HeroLocationButton />
         </div>
       </div>
     </section>
