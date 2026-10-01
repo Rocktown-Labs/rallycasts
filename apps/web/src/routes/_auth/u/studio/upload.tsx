@@ -85,7 +85,7 @@ function StudioUploadPage() {
     setIsPreparing(true);
     try {
       if (editState && isEdited(editState)) {
-        // Render the trim on-device first, then upload the result.
+        // Render the edit on-device first, then upload the result.
         const handle = startEditRender({
           duration: editState.duration,
           file,
@@ -95,6 +95,7 @@ function StudioUploadPage() {
             );
           },
           rotation: editState.rotation,
+          segments: editState.segments,
           selection: editState.selection,
         });
         setRender({ handle, progress: 0 });
