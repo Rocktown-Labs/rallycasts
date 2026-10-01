@@ -66,6 +66,7 @@ const updateVideoSchema = createVideoSchema.partial().extend({
   status: z
     .enum(["draft", "uploading", "processing", "ready", "failed", "deleted"])
     .optional(),
+  thumbnailTimeSeconds: z.number().min(0).nullable().optional(),
   thumbnailUrl: z.url().optional(),
 });
 
@@ -1037,6 +1038,9 @@ export const videosRouter = new Hono<AppEnv>()
           ...(data.visibility && data.visibility !== "public"
             ? { thumbnailUrl: null }
             : {}),
+          // A poster frame pick replaces the derived thumbnail URL; it is
+          // recomputed from the playback ID and picked time on read.
+          ...("thumbnailTimeSeconds" in data ? { thumbnailUrl: null } : {}),
           muxPlaybackId: replacementPlaybackId,
           muxPlaybackPolicy:
             currentVideo.muxPlaybackPolicy === desiredPlaybackPolicy

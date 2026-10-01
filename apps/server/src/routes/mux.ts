@@ -184,10 +184,6 @@ const applyMuxVideoUpdate = async (
       muxStatus: muxStatus ?? eventType,
       publishedAt: status === "ready" ? new Date() : undefined,
       status,
-      thumbnailUrl:
-        existingVideo?.visibility === "public" && persistedPlaybackId
-          ? `https://image.mux.com/${persistedPlaybackId}/thumbnail.webp?time=1`
-          : null,
       updatedAt: new Date(),
     })
     .where(videoFilter)

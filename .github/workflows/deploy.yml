@@ -493,7 +493,8 @@ jobs:
             0016_square_bedlam \
             0017_milky_maestro \
             0018_adorable_iron_monger \
-            0019_lovely_master_chief; do
+            0019_lovely_master_chief \
+            0020_motionless_shriek; do
             if ! printf '%s\n' "$MIGRATIONS_JSON" | jq -e --arg migration "$migration" \
               'any(.[]?.results[]?; .name == $migration or .name == ($migration + ".sql"))' \
               >/dev/null; then
@@ -502,7 +503,7 @@ jobs:
               exit 1
             fi
           done
-          echo "Production D1 migrations 0014–0019 are applied."
+          echo "Production D1 migrations 0014–0020 are applied."
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
