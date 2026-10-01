@@ -30,8 +30,31 @@ interface VideoInternalFields {
   muxStatus: unknown;
   muxUploadId: unknown;
   r2Key: unknown;
+  thumbnailTimeSeconds: unknown;
   thumbnailUrl: unknown;
 }
+
+/** The fallback poster frame Mux serves when no custom thumbnail is set. */
+export const DEFAULT_THUMBNAIL_TIME_SECONDS = 1;
+
+/**
+ * Builds a Mux image URL for a video's poster frame. The creator can pick
+ * the frame by storing `thumbnailTimeSeconds` on the video.
+ */
+export const muxThumbnailUrl = (
+  muxPlaybackId: string,
+  thumbnailTimeSeconds: unknown
+): string => {
+  const time =
+    typeof thumbnailTimeSeconds === "number" &&
+    Number.isFinite(thumbnailTimeSeconds) &&
+    thumbnailTimeSeconds >= 0
+      ? thumbnailTimeSeconds
+      : DEFAULT_THUMBNAIL_TIME_SECONDS;
+  return `https://image.mux.com/${encodeURIComponent(
+    muxPlaybackId
+  )}/thumbnail.webp?time=${time}`;
+};
 
 export const toPublicVideo = <T extends VideoInternalFields>(record: T) => {
   const {
@@ -41,6 +64,7 @@ export const toPublicVideo = <T extends VideoInternalFields>(record: T) => {
     muxStatus: _muxStatus,
     muxUploadId: _muxUploadId,
     r2Key: _r2Key,
+    thumbnailTimeSeconds,
     thumbnailUrl,
     ...publicRecord
   } = record;
@@ -50,7 +74,12 @@ export const toPublicVideo = <T extends VideoInternalFields>(record: T) => {
   return {
     ...publicRecord,
     ...(hasPublicPlayback
-      ? { muxPlaybackId, thumbnailUrl: thumbnailUrl ?? null }
+      ? {
+          muxPlaybackId,
+          thumbnailUrl:
+            (typeof thumbnailUrl === "string" && thumbnailUrl) ||
+            muxThumbnailUrl(muxPlaybackId, thumbnailTimeSeconds),
+        }
       : {}),
   };
 };

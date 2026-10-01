@@ -189,6 +189,27 @@ function VideoStudioPage() {
     },
   });
 
+  const saveThumbnailTime = useMutation({
+    mutationFn: (timeSeconds: number) =>
+      readApiJson(
+        apiClient.api.v1.videos[":id"].$patch({
+          json: { thumbnailTimeSeconds: timeSeconds },
+          param: { id },
+        })
+      ),
+    onError: (error) => {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Could not update the thumbnail."
+      );
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["video-studio", id] });
+      toast.success("Thumbnail updated");
+    },
+  });
+
   const deleteVideo = useMutation({
     mutationFn: () =>
       readApiJson(
@@ -531,6 +552,22 @@ function VideoStudioPage() {
               )}
             </div>
           </div>
+
+          <ThumbnailPickerCard
+            canPick={
+              Boolean(isReady && video.muxPlaybackId) &&
+              video.visibility === "public" &&
+              (video.durationSeconds ?? 0) > 0
+            }
+            durationSeconds={video.durationSeconds ?? 0}
+            isSaving={saveThumbnailTime.isPending}
+            muxPlaybackId={video.muxPlaybackId ?? ""}
+            onPick={(time) => saveThumbnailTime.mutate(time)}
+            selectedTimeSeconds={
+              video.thumbnailTimeSeconds ??
+              DEFAULT_STUDIO_THUMBNAIL_TIME_SECONDS
+            }
+          />
         </section>
 
         <aside className="space-y-4">
@@ -777,5 +814,90 @@ function VideoStudioPage() {
         </div>
       ) : null}
     </main>
+  );
+}
+
+const DEFAULT_STUDIO_THUMBNAIL_TIME_SECONDS = 1;
+const THUMBNAIL_CANDIDATE_FRACTIONS = [
+  0.04, 0.2, 0.35, 0.5, 0.65, 0.85,
+] as const;
+
+const formatStudioTime = (seconds: number) => {
+  const total = Math.max(0, Math.round(seconds));
+  const minutes = Math.floor(total / 60);
+  const rest = total % 60;
+  return `${minutes}:${String(rest).padStart(2, "0")}`;
+};
+
+function ThumbnailPickerCard({
+  canPick,
+  durationSeconds,
+  isSaving,
+  muxPlaybackId,
+  onPick,
+  selectedTimeSeconds,
+}: {
+  canPick: boolean;
+  durationSeconds: number;
+  isSaving: boolean;
+  muxPlaybackId: string;
+  onPick: (timeSeconds: number) => void;
+  selectedTimeSeconds: number;
+}) {
+  const candidateTimes = THUMBNAIL_CANDIDATE_FRACTIONS.map(
+    (fraction) => Math.round(durationSeconds * fraction * 10) / 10
+  );
+
+  return (
+    <div className="rounded-2xl border bg-card p-5 sm:p-6">
+      <h2 className="font-bold">Thumbnail</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Pick the frame people see before they press play.
+      </p>
+      {canPick ? (
+        <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-6">
+          {candidateTimes.map((time) => {
+            const isSelected = Math.abs(time - selectedTimeSeconds) < 0.05;
+            return (
+              <button
+                aria-pressed={isSelected}
+                aria-label={`Use the frame at ${formatStudioTime(time)} as the thumbnail`}
+                className={cn(
+                  "group relative overflow-hidden rounded-lg border transition-[border-color,transform] active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  isSelected
+                    ? "border-primary ring-2 ring-primary/40"
+                    : "border-border/60 hover:border-primary/50"
+                )}
+                disabled={isSaving}
+                key={time}
+                onClick={() => onPick(time)}
+                type="button"
+              >
+                <img
+                  alt={`Frame at ${formatStudioTime(time)}`}
+                  className="aspect-video w-full bg-muted object-cover"
+                  loading="lazy"
+                  src={`https://image.mux.com/${encodeURIComponent(
+                    muxPlaybackId
+                  )}/thumbnail.jpg?width=240&time=${time}`}
+                />
+                <span
+                  className={cn(
+                    "absolute bottom-1 right-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold text-white",
+                    isSelected && "bg-primary text-primary-foreground"
+                  )}
+                >
+                  {formatStudioTime(time)}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="mt-3 text-xs text-muted-foreground">
+          Thumbnail picking needs a public video that has finished processing.
+        </p>
+      )}
+    </div>
   );
 }

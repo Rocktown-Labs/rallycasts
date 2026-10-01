@@ -1,0 +1,1 @@
+ALTER TABLE `video` ADD `thumbnail_time_seconds` real;
