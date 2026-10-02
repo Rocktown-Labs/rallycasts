@@ -6,7 +6,7 @@ import {
   venue,
   video,
 } from "@rallycaststv/db/schema/domain";
-import { and, desc, eq, gte, isNotNull, lte } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNotNull, lte } from "drizzle-orm";
 import type { SQLiteColumn } from "drizzle-orm/sqlite-core";
 import { Hono } from "hono";
 import type { Context } from "hono";
@@ -19,7 +19,10 @@ import {
 } from "../lib/ads";
 import { haversineDistance } from "../lib/geo";
 import { syncVenueGeofence } from "../lib/geofence-sync";
-import { GooglePlacesClient } from "../lib/google-places";
+import {
+  GooglePlacesClient,
+  VENUE_DISCOVERY_VERSION,
+} from "../lib/google-places";
 import { createId } from "../lib/ids";
 import { toPublicVenue, toPublicVideo } from "../lib/public-data";
 import { syncVenueSearchDocument } from "../lib/search-index";
@@ -280,8 +283,9 @@ const fetchNearbyTrendingVenues = async (
 
   let googleVenues: GoogleDiscoveryVenue[] = [];
 
-  // 2. If D1 has no cached venues in this radius (or cached venues are older than 6 months),
-  // query Google Places to discover & cache them into D1.
+  // 2. If D1 has no cached venues in this radius (or cached venues are older than 6 months,
+  // or they were cached by an older discovery strategy), query Google Places
+  // to discover & cache them into D1.
   const SIX_MONTHS_MS = 180 * 24 * 60 * 60 * 1000;
   const isStale =
     dbVenues.length > 0 &&
@@ -290,7 +294,17 @@ const fetchNearbyTrendingVenues = async (
       return Date.now() - updated > SIX_MONTHS_MS;
     });
 
-  if (dbVenues.length === 0 || isStale) {
+  // Discovery-produced rows record the strategy version that found them.
+  // When the strategy changes (new query terms, filters), existing caches
+  // refresh once even if they are otherwise fresh.
+  const discoveredRows = dbVenues.filter((v) => v.googlePlaceId);
+  const isOutdatedDiscovery =
+    discoveredRows.length > 0 &&
+    discoveredRows.every(
+      (v) => (v.discoveryVersion ?? 1) < VENUE_DISCOVERY_VERSION
+    );
+
+  if (dbVenues.length === 0 || isStale || isOutdatedDiscovery) {
     googleVenues = await getGoogleDiscoveryVenues(
       c,
       lat,
@@ -298,6 +312,24 @@ const fetchNearbyTrendingVenues = async (
       venueRadius,
       venueFetchLimit
     );
+
+    // Stamp the area's existing discovery rows as checked under the current
+    // strategy so this refresh runs once, not on every request.
+    if (googleVenues && discoveredRows.length > 0) {
+      try {
+        await db
+          .update(venue)
+          .set({ discoveryVersion: VENUE_DISCOVERY_VERSION })
+          .where(
+            inArray(
+              venue.id,
+              discoveredRows.map((v) => v.id)
+            )
+          );
+      } catch (error) {
+        console.error("Failed to stamp venue discovery version:", error);
+      }
+    }
 
     // 3. Persist newly discovered venues to D1 so future visits within 50mi use cached data
     if (googleVenues.length > 0) {
@@ -313,6 +345,7 @@ const fetchNearbyTrendingVenues = async (
           city: gv.city || null,
           country: "US",
           createdAt: new Date(),
+          discoveryVersion: VENUE_DISCOVERY_VERSION,
           googlePlaceId: gv.googlePlaceId,
           id: createId(),
           latitude: gv.latitude,
