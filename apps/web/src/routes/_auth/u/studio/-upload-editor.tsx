@@ -105,6 +105,77 @@ export const isEdited = ({
 
 export type UploadEditProbe = "failed" | "loading" | "ready" | "unsupported";
 
+export interface EditRecipeSegment {
+  end: number;
+  start: number;
+}
+
+export interface UploadEditRecipe {
+  rotation: RotationDegrees;
+  segments: EditRecipeSegment[];
+  sourceDurationSeconds: number;
+  version: 1;
+}
+
+const roundToCentisecond = (value: number) =>
+  Math.round(Math.max(0, value) * 100) / 100;
+
+/**
+ * The non-destructive description of the edit that produced this upload:
+ * the kept ranges and rotation, measured against the creator's original
+ * file. Sent with the upload so the server can store a few hundred bytes
+ * of recipe instead of the raw file (#85).
+ */
+export const buildEditRecipe = ({
+  duration,
+  rotation,
+  segments,
+  selection,
+}: UploadEditState): UploadEditRecipe | null => {
+  const keptRanges: EditRecipeSegment[] =
+    segments.length > 0
+      ? segments
+      : [
+          {
+            end: Math.min(duration, selection.end),
+            start: Math.max(0, selection.start),
+          },
+        ];
+
+  const normalized = keptRanges
+    .map((segment) => ({
+      end: roundToCentisecond(Math.min(duration, segment.end)),
+      start: roundToCentisecond(Math.max(0, segment.start)),
+    }))
+    .filter((segment) => segment.end > segment.start)
+    .toSorted((left, right) =>
+      left.start === right.start
+        ? left.end - right.end
+        : left.start - right.start
+    );
+
+  if (normalized.length === 0) {
+    return null;
+  }
+
+  // A recipe that describes the whole video with no rotation is no
+  // transformation at all; the original is the recipe.
+  const isWholeVideo =
+    normalized.length === 1 &&
+    normalized[0].start <= 0.05 &&
+    normalized[0].end >= duration - 0.05;
+  if (rotation === 0 && isWholeVideo) {
+    return null;
+  }
+
+  return {
+    rotation,
+    segments: normalized,
+    sourceDurationSeconds: roundToCentisecond(duration),
+    version: 1,
+  };
+};
+
 interface UploadTrimEditorProps {
   file: File;
   onStateChange: (state: UploadEditState | null) => void;

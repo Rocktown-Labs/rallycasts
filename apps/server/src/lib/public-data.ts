@@ -24,6 +24,7 @@ export const toPublicVenue = <T extends VenueInternalFields>(record: T) => {
 };
 
 interface VideoInternalFields {
+  editRecipe: unknown;
   muxAssetId: unknown;
   muxPlaybackId: unknown;
   muxPlaybackPolicy: unknown;
@@ -58,6 +59,7 @@ export const muxThumbnailUrl = (
 
 export const toPublicVideo = <T extends VideoInternalFields>(record: T) => {
   const {
+    editRecipe: _editRecipe,
     muxAssetId: _muxAssetId,
     muxPlaybackId,
     muxPlaybackPolicy,

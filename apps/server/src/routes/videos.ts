@@ -1,6 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
 import { createAuth } from "@rallycaststv/auth";
 import { createDb } from "@rallycaststv/db";
+import { parseEditRecipe } from "@rallycaststv/db/lib/edit-recipe";
 import { user } from "@rallycaststv/db/schema/auth";
 import {
   friendship,
@@ -685,7 +686,15 @@ export const videosRouter = new Hono<AppEnv>()
     }
 
     const [resolved] = await resolveVideosRelations(db, [record]);
-    return c.json({ video: resolved ?? record }, HttpStatusCodes.OK);
+    return c.json(
+      {
+        video: {
+          ...(resolved ?? record),
+          editRecipe: parseEditRecipe(record.editRecipe),
+        },
+      },
+      HttpStatusCodes.OK
+    );
   })
   .post(
     "/:id/clips",

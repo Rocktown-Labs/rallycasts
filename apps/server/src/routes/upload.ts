@@ -1,5 +1,9 @@
 import { zValidator } from "@hono/zod-validator";
 import { createDb } from "@rallycaststv/db";
+import {
+  editRecipeSchema,
+  serializeEditRecipe,
+} from "@rallycaststv/db/lib/edit-recipe";
 import { video } from "@rallycaststv/db/schema/domain";
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
@@ -67,6 +71,7 @@ const hasDeclaredImageSignature = (
 
 const createMuxUploadSchema = z.object({
   description: z.string().max(2000).optional(),
+  editRecipe: editRecipeSchema.optional(),
   mediaType: z.enum(["video", "short"]).default("video"),
   title: z.string().trim().min(1).max(160),
   visibility: z.enum(["public", "friends", "private"]).default("public"),
@@ -146,6 +151,9 @@ export const uploadRouter = new Hono<AppEnv>()
         );
         const draft = {
           description: data.description,
+          editRecipe: data.editRecipe
+            ? serializeEditRecipe(data.editRecipe)
+            : null,
           id: videoId,
           mediaType: data.mediaType,
           muxPlaybackPolicy: playbackPolicy,
@@ -160,7 +168,11 @@ export const uploadRouter = new Hono<AppEnv>()
 
         await db.insert(video).values(draft);
         return c.json(
-          { uploadId, uploadUrl, video: draft },
+          {
+            uploadId,
+            uploadUrl,
+            video: { ...draft, editRecipe: data.editRecipe ?? null },
+          },
           HttpStatusCodes.CREATED
         );
       } catch (error) {

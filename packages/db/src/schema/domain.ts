@@ -167,6 +167,7 @@ export const video = sqliteTable(
     createdAt: timestamp("created_at"),
     description: text("description"),
     durationSeconds: integer("duration_seconds"),
+    editRecipe: text("edit_recipe"),
     id: text("id").primaryKey(),
     latitude: real("latitude"),
     longitude: real("longitude"),

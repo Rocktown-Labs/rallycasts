@@ -8,7 +8,12 @@ import { apiClient } from "@/lib/api-client";
 import { readApiJson } from "@/lib/hooks/api";
 import { startVideoUpload } from "@/lib/video-upload-manager";
 
-import { isEdited, startEditRender, UploadTrimEditor } from "./-upload-editor";
+import {
+  buildEditRecipe,
+  isEdited,
+  startEditRender,
+  UploadTrimEditor,
+} from "./-upload-editor";
 import type { EditRenderHandle, UploadEditState } from "./-upload-editor";
 
 export const Route = createFileRoute("/_auth/u/studio/upload")({
@@ -53,6 +58,10 @@ function StudioUploadPage() {
     const result = await readApiJson(
       apiClient.api.v1.upload.mux.$post({
         json: {
+          editRecipe:
+            editState && isEdited(editState)
+              ? (buildEditRecipe(editState) ?? undefined)
+              : undefined,
           mediaType: "video",
           title: title.trim(),
           visibility: "public",
