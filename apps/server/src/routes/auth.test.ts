@@ -73,6 +73,97 @@ describe("Better Auth configuration", () => {
     expect(body).toEqual({ ok: true });
   });
 
+  it("gives verified users a session cookie on sign-in under prod-like auth config", async () => {
+    // createAuth reads BETTER_AUTH_URL from the Worker env binding at call
+    // time, so reproduce the prod config by mutating the binding itself.
+    const previousAuthUrl = env.BETTER_AUTH_URL;
+    env.BETTER_AUTH_URL = "https://api.rallycasts.com";
+
+    try {
+      const email = `verified-signin-${crypto.randomUUID()}@example.com`;
+
+      // 1. Sign-up under prod config: email verification is required, so
+      //    no session may be issued yet (token null, no set-cookie).
+      const signUpResponse = await app.request(
+        "/api/auth/sign-up/email",
+        {
+          body: JSON.stringify({
+            email,
+            name: "Verified Sign In",
+            password: "password-12345678",
+          }),
+          headers: { "Content-Type": "application/json" },
+          method: "POST",
+        },
+        env
+      );
+
+      expect(signUpResponse.status).toBe(200);
+      const signUp = (await signUpResponse.json()) as {
+        token: string | null;
+        user: { id: string };
+      };
+      expect(signUp.token).toBeNull();
+      expect(signUpResponse.headers.get("set-cookie")).toBeNull();
+
+      // 2. Sign-in while unverified must be rejected.
+      const unverifiedResponse = await app.request(
+        "/api/auth/sign-in/email",
+        {
+          body: JSON.stringify({ email, password: "password-12345678" }),
+          headers: { "Content-Type": "application/json" },
+          method: "POST",
+        },
+        env
+      );
+      // Better Auth rejects unverified users with FORBIDDEN.
+      expect(unverifiedResponse.status).toBe(403);
+
+      // 3. Verify the email directly, then sign in: a session cookie with
+      //    the shared domain must be set this time.
+      await env.DB.prepare("update user set email_verified = 1 where id = ?")
+        .bind(signUp.user.id)
+        .run();
+
+      const signInResponse = await app.request(
+        "/api/auth/sign-in/email",
+        {
+          body: JSON.stringify({ email, password: "password-12345678" }),
+          headers: { "Content-Type": "application/json" },
+          method: "POST",
+        },
+        env
+      );
+
+      expect(signInResponse.status).toBe(200);
+      const signIn = (await signInResponse.json()) as {
+        token: string | null;
+        user: { id: string };
+      };
+      expect(signIn.token).toBeTruthy();
+      const cookie = signInResponse.headers.get("set-cookie") ?? "";
+      expect(cookie).toContain("better-auth.session_token");
+      expect(cookie).toContain("Domain=.rallycasts.com");
+      expect(cookie).toContain("HttpOnly");
+      expect(cookie).toContain("SameSite=Lax");
+
+      // 4. The session cookie authenticates the session endpoint.
+      const sessionResponse = await app.request(
+        "/api/auth/get-session",
+        { headers: { Cookie: cookie.split(";")[0] } },
+        env
+      );
+      expect(sessionResponse.status).toBe(200);
+      const session = (await sessionResponse.json()) as {
+        session: { userId: string } | null;
+        user: { id: string } | null;
+      };
+      expect(session.user?.id).toBe(signUp.user.id);
+    } finally {
+      env.BETTER_AUTH_URL = previousAuthUrl;
+    }
+  });
+
   it("redirects browser error requests to the web app error page", async () => {
     const response = await app.request(
       "/api/auth/error?error=account_not_linked&error_description=Account+exists",
