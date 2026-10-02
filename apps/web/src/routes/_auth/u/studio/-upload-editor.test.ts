@@ -1,13 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildEditRecipe,
   buildStitchedSegments,
   findNextSegmentStart,
   remapTimestampToStitched,
   segmentsOverlap,
 } from "./-upload-editor";
-
-const SECOND = 1;
 
 describe("multi-segment stitching math (#85 phase 2)", () => {
   it("orders segments by source time and assigns contiguous output offsets", () => {
@@ -23,6 +22,7 @@ describe("multi-segment stitching math (#85 phase 2)", () => {
   });
 
   it("remaps timestamps inside segments and drops everything else", () => {
+    const SECOND = 1;
     const stitched = buildStitchedSegments([
       { end: 45, start: 30 },
       { end: 150, start: 120 },
@@ -65,5 +65,53 @@ describe("multi-segment stitching math (#85 phase 2)", () => {
     expect(segmentsOverlap({ end: 185, start: 175 }, existing)).toBe(true);
     // Sits entirely in the gap.
     expect(segmentsOverlap({ end: 170, start: 100 }, existing)).toBe(false);
+  });
+});
+
+describe("buildEditRecipe (#85 recipe storage)", () => {
+  const baseState = {
+    duration: 300,
+    rotation: 0 as const,
+    segments: [],
+    selection: { end: 300, start: 0 },
+  };
+
+  it("returns null for an untouched video", () => {
+    expect(buildEditRecipe(baseState)).toBeNull();
+  });
+
+  it("normalizes a single-range trim into one explicit segment", () => {
+    const recipe = buildEditRecipe({
+      ...baseState,
+      selection: { end: 120.456, start: 30 },
+    });
+
+    expect(recipe).toEqual({
+      rotation: 0,
+      segments: [{ end: 120.46, start: 30 }],
+      sourceDurationSeconds: 300,
+      version: 1,
+    });
+  });
+
+  it("sorts and clamps multi-segment recipes", () => {
+    const recipe = buildEditRecipe({
+      ...baseState,
+      rotation: 90,
+      segments: [
+        // Clamped to duration.
+        { end: 400, start: 180 },
+        { end: 45, start: 30 },
+      ],
+      selection: { end: 1, start: 0 },
+    });
+
+    expect(recipe?.rotation).toBe(90);
+    expect(recipe?.segments).toEqual([
+      { end: 45, start: 30 },
+      { end: 300, start: 180 },
+    ]);
+    expect(recipe?.sourceDurationSeconds).toBe(300);
+    expect(recipe?.version).toBe(1);
   });
 });

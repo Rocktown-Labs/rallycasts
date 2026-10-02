@@ -430,6 +430,101 @@ describe("videos API", () => {
     });
   });
 
+  it("stores the edit recipe with a direct Mux upload and parses it for the owner", async () => {
+    const owner = await signUp("Recipe Upload Owner");
+    await markEmailVerified(owner.id);
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      Response.json(
+        {
+          data: {
+            id: "mux-upload-recipe-test",
+            new_asset_settings: { playback_policy: ["public"] },
+            status: "waiting",
+            url: "https://storage.googleapis.com/video-upload-recipe-test",
+          },
+        },
+        { status: 201 }
+      )
+    );
+
+    const recipe = {
+      rotation: 90,
+      segments: [
+        { end: 45, start: 30 },
+        { end: 180, start: 120 },
+      ],
+      sourceDurationSeconds: 300,
+      version: 1,
+    };
+    const response = await app.request(
+      "/api/v1/upload/mux",
+      {
+        body: JSON.stringify({
+          editRecipe: recipe,
+          title: "Edited rally upload",
+        }),
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: owner.cookie,
+        },
+        method: "POST",
+      },
+      { ...env, MUX_TOKEN_ID: "mux-token", MUX_TOKEN_SECRET: "mux-secret" }
+    );
+
+    expect(response.status).toBe(201);
+    const created = (await response.json()) as {
+      video: { editRecipe: typeof recipe; id: string };
+    };
+    expect(created.video.editRecipe).toEqual(recipe);
+
+    // The owner's studio view parses the stored recipe back.
+    const studioResponse = await app.request(
+      `/api/v1/videos/${created.video.id}/studio`,
+      { headers: { Cookie: owner.cookie } },
+      env
+    );
+    expect(studioResponse.status).toBe(200);
+    const studioBody = (await studioResponse.json()) as {
+      video: { editRecipe: typeof recipe };
+    };
+    expect(studioBody.video.editRecipe).toEqual(recipe);
+
+    // The public serializer never exposes the recipe, even once published.
+    await publishVideo(created.video.id, "Edited rally upload");
+    const publicResponse = await app.request(
+      `/api/v1/videos/${created.video.id}`,
+      {},
+      env
+    );
+    expect(publicResponse.status).toBe(200);
+    const publicBody = (await publicResponse.json()) as {
+      video: Record<string, unknown>;
+    };
+    expect(publicBody.video).not.toHaveProperty("editRecipe");
+  });
+
+  it("degrades corrupt stored recipes to null in the studio view", async () => {
+    const owner = await signUp("Corrupt Recipe Owner");
+    const videoId = `corrupt-recipe-${crypto.randomUUID()}`;
+    await env.DB.prepare(
+      "insert into video (id, owner_user_id, title, status, visibility, edit_recipe) values (?, ?, ?, 'ready', 'public', ?)"
+    )
+      .bind(videoId, owner.id, "Corrupt recipe rally", "{not-json")
+      .run();
+
+    const response = await app.request(
+      `/api/v1/videos/${videoId}/studio`,
+      { headers: { Cookie: owner.cookie } },
+      env
+    );
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      video: { editRecipe: unknown };
+    };
+    expect(body.video.editRecipe).toBeNull();
+  });
+
   it("paginates public videos with an opaque cursor", async () => {
     const owner = await signUp("Pagination Owner");
     await env.DB.batch(

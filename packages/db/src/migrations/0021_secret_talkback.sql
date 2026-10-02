@@ -1,0 +1,1 @@
+ALTER TABLE `video` ADD `edit_recipe` text;

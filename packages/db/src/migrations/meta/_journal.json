@@ -148,6 +148,13 @@
       "when": 1790815047464,
       "tag": "0020_motionless_shriek",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1790955288401,
+      "tag": "0021_secret_talkback",
+      "breakpoints": true
     }
   ]
 }
