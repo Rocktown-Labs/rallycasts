@@ -1,0 +1,1 @@
+ALTER TABLE `venue` ADD `discovery_version` integer;

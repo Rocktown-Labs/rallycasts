@@ -119,6 +119,14 @@ const PICKLEBALL_QUERY = "pickleball";
 const PICKLEBALL_COURTS_QUERY = "pickleball courts";
 const PICKLEBALL_SEARCH_RESULT_LIMIT = 20;
 
+/**
+ * The discovery strategy's version. Cached areas only re-run Google Places
+ * discovery when their stored rows carry the current version (or age out);
+ * bump this whenever the query or filter logic above changes so existing
+ * caches refresh once.
+ */
+export const VENUE_DISCOVERY_VERSION = 2;
+
 const DISALLOWED_PLACE_TYPES = new Set([
   "fitness_center",
   "gym",

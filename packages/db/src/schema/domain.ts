@@ -80,6 +80,7 @@ export const venue = sqliteTable(
       onDelete: "set null",
     }),
     description: text("description"),
+    discoveryVersion: integer("discovery_version"),
     googlePlaceId: text("google_place_id"),
     id: text("id").primaryKey(),
     latitude: real("latitude").notNull(),
