@@ -9,146 +9,96 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TrendingRouteImport } from './routes/trending'
-import { Route as ShopRouteImport } from './routes/shop'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as PlayersRouteImport } from './routes/players'
-import { Route as OrganizersRouteImport } from './routes/organizers'
-import { Route as MeRouteImport } from './routes/me'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as HostsRouteImport } from './routes/hosts'
-import { Route as EventsRouteImport } from './routes/events'
-import { Route as ErrorRouteImport } from './routes/error'
-import { Route as CastersRouteImport } from './routes/casters'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as SplatRouteImport } from './routes/$'
 import { Route as AuthRouteRouteImport } from './routes/_auth/route'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as ShopIndexRouteImport } from './routes/shop.index'
-import { Route as PlayersIndexRouteImport } from './routes/players.index'
-import { Route as EventsIndexRouteImport } from './routes/events.index'
-import { Route as CastersIndexRouteImport } from './routes/casters.index'
-import { Route as VideosIdRouteImport } from './routes/videos.$id'
-import { Route as VenuesIdRouteImport } from './routes/venues.$id'
-import { Route as ShopSlugRouteImport } from './routes/shop.$slug'
-import { Route as PlayersUsernameRouteImport } from './routes/players.$username'
-import { Route as PlacesIdRouteImport } from './routes/places.$id'
-import { Route as OrganizersSlugRouteImport } from './routes/organizers.$slug'
-import { Route as HostsSlugRouteImport } from './routes/hosts.$slug'
-import { Route as EventsOrganizersRouteImport } from './routes/events.organizers'
-import { Route as EventsHostsRouteImport } from './routes/events.hosts'
-import { Route as EventsIdRouteImport } from './routes/events.$id'
-import { Route as CastersIdRouteImport } from './routes/casters.$id'
-import { Route as AuthURouteImport } from './routes/_auth/u'
+import { Route as CastersRouteImport } from './routes/casters'
+import { Route as ErrorRouteImport } from './routes/error'
+import { Route as EventsRouteImport } from './routes/events'
+import { Route as HostsRouteImport } from './routes/hosts'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as MeRouteImport } from './routes/me'
+import { Route as OrganizersRouteImport } from './routes/organizers'
+import { Route as PlayersRouteImport } from './routes/players'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as ShopRouteImport } from './routes/shop'
+import { Route as TrendingRouteImport } from './routes/trending'
 import { Route as AuthOnboardingRouteImport } from './routes/_auth/onboarding'
-import { Route as EventsIdIndexRouteImport } from './routes/events.$id.index'
-import { Route as AuthUIndexRouteImport } from './routes/_auth/u/index'
-import { Route as EventsOrganizersSlugRouteImport } from './routes/events.organizers.$slug'
-import { Route as EventsHostsSlugRouteImport } from './routes/events.hosts_.$slug'
-import { Route as EventsIdPlayersRouteImport } from './routes/events.$id.players'
-import { Route as EventsIdMatchesRouteImport } from './routes/events.$id.matches'
-import { Route as EventsIdLocationsRouteImport } from './routes/events.$id.locations'
-import { Route as EventsIdBracketRouteImport } from './routes/events.$id.bracket'
-import { Route as AuthUVideosRouteImport } from './routes/_auth/u/videos'
-import { Route as AuthUSettingsRouteImport } from './routes/_auth/u/settings'
-import { Route as AuthUOrganizerRouteImport } from './routes/_auth/u/organizer'
-import { Route as AuthUNotificationsRouteImport } from './routes/_auth/u/notifications'
-import { Route as AuthUMessagesRouteImport } from './routes/_auth/u/messages'
-import { Route as AuthUMeRouteImport } from './routes/_auth/u/me'
-import { Route as AuthUHistoryRouteImport } from './routes/_auth/u/history'
-import { Route as AuthUChallengesRouteImport } from './routes/_auth/u/challenges'
-import { Route as AuthUCastsRouteImport } from './routes/_auth/u/casts'
-import { Route as AuthUAdminUsersRouteImport } from './routes/_auth/u/admin-users'
-import { Route as AuthUAdminRouteImport } from './routes/_auth/u/admin'
+import { Route as AuthURouteImport } from './routes/_auth/u'
+import { Route as CastersIndexRouteImport } from './routes/casters.index'
+import { Route as CastersIdRouteImport } from './routes/casters.$id'
+import { Route as EventsIndexRouteImport } from './routes/events.index'
+import { Route as EventsIdRouteImport } from './routes/events.$id'
+import { Route as EventsHostsRouteImport } from './routes/events.hosts'
+import { Route as EventsOrganizersRouteImport } from './routes/events.organizers'
+import { Route as HostsSlugRouteImport } from './routes/hosts.$slug'
+import { Route as OrganizersSlugRouteImport } from './routes/organizers.$slug'
+import { Route as PlacesIdRouteImport } from './routes/places.$id'
+import { Route as PlayersIndexRouteImport } from './routes/players.index'
+import { Route as PlayersUsernameRouteImport } from './routes/players.$username'
+import { Route as ShopIndexRouteImport } from './routes/shop.index'
+import { Route as ShopSlugRouteImport } from './routes/shop.$slug'
+import { Route as VenuesIdRouteImport } from './routes/venues.$id'
+import { Route as VideosIdRouteImport } from './routes/videos.$id'
 import { Route as AuthOrganizersNewRouteImport } from './routes/_auth/organizers.new'
-import { Route as AuthUVideosIndexRouteImport } from './routes/_auth/u/videos/index'
-import { Route as AuthUStudioIndexRouteImport } from './routes/_auth/u/studio/index'
-import { Route as AuthUProfileIndexRouteImport } from './routes/_auth/u/profile/index'
-import { Route as AuthUOrganizerIndexRouteImport } from './routes/_auth/u/organizer/index'
-import { Route as AuthUHistoryIndexRouteImport } from './routes/_auth/u/history/index'
-import { Route as AuthUCastsIndexRouteImport } from './routes/_auth/u/casts/index'
-import { Route as AuthUVideosMeRouteImport } from './routes/_auth/u/videos/me'
-import { Route as AuthUVideosLiveRouteImport } from './routes/_auth/u/videos/live'
-import { Route as AuthUVideosClipsRouteImport } from './routes/_auth/u/videos/clips'
-import { Route as AuthUStudioUploadRouteImport } from './routes/_auth/u/studio/upload'
-import { Route as AuthUStudioLiveRouteImport } from './routes/_auth/u/studio/live'
-import { Route as AuthUStudioClipsRouteImport } from './routes/_auth/u/studio/clips'
-import { Route as AuthUProfileMyRallycastsRouteImport } from './routes/_auth/u/profile/my-rallycasts'
-import { Route as AuthUProfileMeRouteImport } from './routes/_auth/u/profile/me'
-import { Route as AuthUProfileEarnRouteImport } from './routes/_auth/u/profile/earn'
-import { Route as AuthUProfileAnalyticsRouteImport } from './routes/_auth/u/profile/analytics'
-import { Route as AuthUOrganizerOrganizationsRouteImport } from './routes/_auth/u/organizer/organizations'
-import { Route as AuthUOrganizerEventsRouteImport } from './routes/_auth/u/organizer/events'
-import { Route as AuthUHistoryVideosRouteImport } from './routes/_auth/u/history/videos'
-import { Route as AuthUHistoryProfilesRouteImport } from './routes/_auth/u/history/profiles'
-import { Route as AuthUHistoryEventsRouteImport } from './routes/_auth/u/history/events'
-import { Route as AuthUCastsPendingRouteImport } from './routes/_auth/u/casts/pending'
-import { Route as AuthUCastsNewRouteImport } from './routes/_auth/u/casts/new'
-import { Route as AuthUCastsCompletedRouteImport } from './routes/_auth/u/casts/completed'
-import { Route as AuthUCastsApprovedRouteImport } from './routes/_auth/u/casts/approved'
-import { Route as AuthUCastsAllRouteImport } from './routes/_auth/u/casts/all'
-import { Route as AuthOrganizersSlugManageRouteImport } from './routes/_auth/organizers.$slug.manage'
-import { Route as AuthEventsOrganizersNewRouteImport } from './routes/_auth/events.organizers.new'
+import { Route as AuthUIndexRouteImport } from './routes/_auth/u/index'
+import { Route as AuthUAdminRouteImport } from './routes/_auth/u/admin'
+import { Route as AuthUAdminUsersRouteImport } from './routes/_auth/u/admin-users'
+import { Route as AuthUCastsRouteImport } from './routes/_auth/u/casts'
+import { Route as AuthUChallengesRouteImport } from './routes/_auth/u/challenges'
+import { Route as AuthUHistoryRouteImport } from './routes/_auth/u/history'
+import { Route as AuthUMeRouteImport } from './routes/_auth/u/me'
+import { Route as AuthUMessagesRouteImport } from './routes/_auth/u/messages'
+import { Route as AuthUNotificationsRouteImport } from './routes/_auth/u/notifications'
+import { Route as AuthUOrganizerRouteImport } from './routes/_auth/u/organizer'
+import { Route as AuthUSettingsRouteImport } from './routes/_auth/u/settings'
+import { Route as AuthUVideosRouteImport } from './routes/_auth/u/videos'
+import { Route as EventsIdIndexRouteImport } from './routes/events.$id.index'
+import { Route as EventsIdBracketRouteImport } from './routes/events.$id.bracket'
+import { Route as EventsIdLocationsRouteImport } from './routes/events.$id.locations'
+import { Route as EventsIdMatchesRouteImport } from './routes/events.$id.matches'
+import { Route as EventsIdPlayersRouteImport } from './routes/events.$id.players'
+import { Route as EventsHostsSlugRouteImport } from './routes/events.hosts_.$slug'
+import { Route as EventsOrganizersSlugRouteImport } from './routes/events.organizers.$slug'
 import { Route as AuthEventsHostsNewRouteImport } from './routes/_auth/events.hosts.new'
-import { Route as AuthUStudioVideosIdRouteImport } from './routes/_auth/u/studio/videos.$id'
-import { Route as AuthUOrganizerOrganizationsSlugRouteImport } from './routes/_auth/u/organizer/organizations_.$slug'
-import { Route as AuthEventsOrganizersSlugManageRouteImport } from './routes/_auth/events.organizers.$slug.manage'
+import { Route as AuthEventsOrganizersNewRouteImport } from './routes/_auth/events.organizers.new'
+import { Route as AuthOrganizersSlugManageRouteImport } from './routes/_auth/organizers.$slug.manage'
+import { Route as AuthUCastsIndexRouteImport } from './routes/_auth/u/casts/index'
+import { Route as AuthUCastsAllRouteImport } from './routes/_auth/u/casts/all'
+import { Route as AuthUCastsApprovedRouteImport } from './routes/_auth/u/casts/approved'
+import { Route as AuthUCastsCompletedRouteImport } from './routes/_auth/u/casts/completed'
+import { Route as AuthUCastsNewRouteImport } from './routes/_auth/u/casts/new'
+import { Route as AuthUCastsPendingRouteImport } from './routes/_auth/u/casts/pending'
+import { Route as AuthUHistoryIndexRouteImport } from './routes/_auth/u/history/index'
+import { Route as AuthUHistoryEventsRouteImport } from './routes/_auth/u/history/events'
+import { Route as AuthUHistoryProfilesRouteImport } from './routes/_auth/u/history/profiles'
+import { Route as AuthUHistoryVideosRouteImport } from './routes/_auth/u/history/videos'
+import { Route as AuthUOrganizerIndexRouteImport } from './routes/_auth/u/organizer/index'
+import { Route as AuthUOrganizerEventsRouteImport } from './routes/_auth/u/organizer/events'
+import { Route as AuthUOrganizerOrganizationsRouteImport } from './routes/_auth/u/organizer/organizations'
+import { Route as AuthUProfileIndexRouteImport } from './routes/_auth/u/profile/index'
+import { Route as AuthUProfileAnalyticsRouteImport } from './routes/_auth/u/profile/analytics'
+import { Route as AuthUProfileEarnRouteImport } from './routes/_auth/u/profile/earn'
+import { Route as AuthUProfileMeRouteImport } from './routes/_auth/u/profile/me'
+import { Route as AuthUProfileMyRallycastsRouteImport } from './routes/_auth/u/profile/my-rallycasts'
+import { Route as AuthUStudioIndexRouteImport } from './routes/_auth/u/studio/index'
+import { Route as AuthUStudioClipsRouteImport } from './routes/_auth/u/studio/clips'
+import { Route as AuthUStudioLiveRouteImport } from './routes/_auth/u/studio/live'
+import { Route as AuthUStudioUploadRouteImport } from './routes/_auth/u/studio/upload'
+import { Route as AuthUVideosIndexRouteImport } from './routes/_auth/u/videos/index'
+import { Route as AuthUVideosClipsRouteImport } from './routes/_auth/u/videos/clips'
+import { Route as AuthUVideosLiveRouteImport } from './routes/_auth/u/videos/live'
+import { Route as AuthUVideosMeRouteImport } from './routes/_auth/u/videos/me'
 import { Route as AuthEventsHostsSlugManageRouteImport } from './routes/_auth/events.hosts.$slug.manage'
-import { Route as AuthUStudioVideosIdClipsRouteImport } from './routes/_auth/u/studio/videos.$id_.clips'
+import { Route as AuthEventsOrganizersSlugManageRouteImport } from './routes/_auth/events.organizers.$slug.manage'
+import { Route as AuthUOrganizerOrganizationsSlugRouteImport } from './routes/_auth/u/organizer/organizations_.$slug'
+import { Route as AuthUStudioVideosIdRouteImport } from './routes/_auth/u/studio/videos.$id'
 import { Route as AuthUOrganizerOrganizationsSlugTeamRouteImport } from './routes/_auth/u/organizer/organizations_.$slug_.team'
+import { Route as AuthUStudioVideosIdClipsRouteImport } from './routes/_auth/u/studio/videos.$id_.clips'
 
-const TrendingRoute = TrendingRouteImport.update({
-  id: '/trending',
-  path: '/trending',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ShopRoute = ShopRouteImport.update({
-  id: '/shop',
-  path: '/shop',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PlayersRoute = PlayersRouteImport.update({
-  id: '/players',
-  path: '/players',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OrganizersRoute = OrganizersRouteImport.update({
-  id: '/organizers',
-  path: '/organizers',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MeRoute = MeRouteImport.update({
-  id: '/me',
-  path: '/me',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HostsRoute = HostsRouteImport.update({
-  id: '/hosts',
-  path: '/hosts',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EventsRoute = EventsRouteImport.update({
-  id: '/events',
-  path: '/events',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ErrorRoute = ErrorRouteImport.update({
-  id: '/error',
-  path: '/error',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CastersRoute = CastersRouteImport.update({
-  id: '/casters',
-  path: '/casters',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SplatRoute = SplatRouteImport.update({
@@ -160,74 +110,84 @@ const AuthRouteRoute = AuthRouteRouteImport.update({
   id: '/_auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const CastersRoute = CastersRouteImport.update({
+  id: '/casters',
+  path: '/casters',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ShopIndexRoute = ShopIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => ShopRoute,
+const ErrorRoute = ErrorRouteImport.update({
+  id: '/error',
+  path: '/error',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const PlayersIndexRoute = PlayersIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => PlayersRoute,
+const EventsRoute = EventsRouteImport.update({
+  id: '/events',
+  path: '/events',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const EventsIndexRoute = EventsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => EventsRoute,
+const HostsRoute = HostsRouteImport.update({
+  id: '/hosts',
+  path: '/hosts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MeRoute = MeRouteImport.update({
+  id: '/me',
+  path: '/me',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrganizersRoute = OrganizersRouteImport.update({
+  id: '/organizers',
+  path: '/organizers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlayersRoute = PlayersRouteImport.update({
+  id: '/players',
+  path: '/players',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShopRoute = ShopRouteImport.update({
+  id: '/shop',
+  path: '/shop',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TrendingRoute = TrendingRouteImport.update({
+  id: '/trending',
+  path: '/trending',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthOnboardingRoute = AuthOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => AuthRouteRoute,
+} as any)
+const AuthURoute = AuthURouteImport.update({
+  id: '/u',
+  path: '/u',
+  getParentRoute: () => AuthRouteRoute,
 } as any)
 const CastersIndexRoute = CastersIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => CastersRoute,
 } as any)
-const VideosIdRoute = VideosIdRouteImport.update({
-  id: '/videos/$id',
-  path: '/videos/$id',
-  getParentRoute: () => rootRouteImport,
+const CastersIdRoute = CastersIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => CastersRoute,
 } as any)
-const VenuesIdRoute = VenuesIdRouteImport.update({
-  id: '/venues/$id',
-  path: '/venues/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ShopSlugRoute = ShopSlugRouteImport.update({
-  id: '/$slug',
-  path: '/$slug',
-  getParentRoute: () => ShopRoute,
-} as any)
-const PlayersUsernameRoute = PlayersUsernameRouteImport.update({
-  id: '/$username',
-  path: '/$username',
-  getParentRoute: () => PlayersRoute,
-} as any)
-const PlacesIdRoute = PlacesIdRouteImport.update({
-  id: '/places/$id',
-  path: '/places/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OrganizersSlugRoute = OrganizersSlugRouteImport.update({
-  id: '/$slug',
-  path: '/$slug',
-  getParentRoute: () => OrganizersRoute,
-} as any)
-const HostsSlugRoute = HostsSlugRouteImport.update({
-  id: '/$slug',
-  path: '/$slug',
-  getParentRoute: () => HostsRoute,
-} as any)
-const EventsOrganizersRoute = EventsOrganizersRouteImport.update({
-  id: '/organizers',
-  path: '/organizers',
-  getParentRoute: () => EventsRoute,
-} as any)
-const EventsHostsRoute = EventsHostsRouteImport.update({
-  id: '/hosts',
-  path: '/hosts',
+const EventsIndexRoute = EventsIndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => EventsRoute,
 } as any)
 const EventsIdRoute = EventsIdRouteImport.update({
@@ -235,109 +195,69 @@ const EventsIdRoute = EventsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => EventsRoute,
 } as any)
-const CastersIdRoute = CastersIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => CastersRoute,
+const EventsHostsRoute = EventsHostsRouteImport.update({
+  id: '/hosts',
+  path: '/hosts',
+  getParentRoute: () => EventsRoute,
 } as any)
-const AuthURoute = AuthURouteImport.update({
-  id: '/u',
-  path: '/u',
-  getParentRoute: () => AuthRouteRoute,
+const EventsOrganizersRoute = EventsOrganizersRouteImport.update({
+  id: '/organizers',
+  path: '/organizers',
+  getParentRoute: () => EventsRoute,
 } as any)
-const AuthOnboardingRoute = AuthOnboardingRouteImport.update({
-  id: '/onboarding',
-  path: '/onboarding',
-  getParentRoute: () => AuthRouteRoute,
+const HostsSlugRoute = HostsSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => HostsRoute,
 } as any)
-const EventsIdIndexRoute = EventsIdIndexRouteImport.update({
+const OrganizersSlugRoute = OrganizersSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => OrganizersRoute,
+} as any)
+const PlacesIdRoute = PlacesIdRouteImport.update({
+  id: '/places/$id',
+  path: '/places/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlayersIndexRoute = PlayersIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => EventsIdRoute,
+  getParentRoute: () => PlayersRoute,
+} as any)
+const PlayersUsernameRoute = PlayersUsernameRouteImport.update({
+  id: '/$username',
+  path: '/$username',
+  getParentRoute: () => PlayersRoute,
+} as any)
+const ShopIndexRoute = ShopIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ShopRoute,
+} as any)
+const ShopSlugRoute = ShopSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => ShopRoute,
+} as any)
+const VenuesIdRoute = VenuesIdRouteImport.update({
+  id: '/venues/$id',
+  path: '/venues/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VideosIdRoute = VideosIdRouteImport.update({
+  id: '/videos/$id',
+  path: '/videos/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthOrganizersNewRoute = AuthOrganizersNewRouteImport.update({
+  id: '/organizers/new',
+  path: '/organizers/new',
+  getParentRoute: () => AuthRouteRoute,
 } as any)
 const AuthUIndexRoute = AuthUIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AuthURoute,
-} as any)
-const EventsOrganizersSlugRoute = EventsOrganizersSlugRouteImport.update({
-  id: '/$slug',
-  path: '/$slug',
-  getParentRoute: () => EventsOrganizersRoute,
-} as any)
-const EventsHostsSlugRoute = EventsHostsSlugRouteImport.update({
-  id: '/hosts_/$slug',
-  path: '/hosts/$slug',
-  getParentRoute: () => EventsRoute,
-} as any)
-const EventsIdPlayersRoute = EventsIdPlayersRouteImport.update({
-  id: '/players',
-  path: '/players',
-  getParentRoute: () => EventsIdRoute,
-} as any)
-const EventsIdMatchesRoute = EventsIdMatchesRouteImport.update({
-  id: '/matches',
-  path: '/matches',
-  getParentRoute: () => EventsIdRoute,
-} as any)
-const EventsIdLocationsRoute = EventsIdLocationsRouteImport.update({
-  id: '/locations',
-  path: '/locations',
-  getParentRoute: () => EventsIdRoute,
-} as any)
-const EventsIdBracketRoute = EventsIdBracketRouteImport.update({
-  id: '/bracket',
-  path: '/bracket',
-  getParentRoute: () => EventsIdRoute,
-} as any)
-const AuthUVideosRoute = AuthUVideosRouteImport.update({
-  id: '/videos',
-  path: '/videos',
-  getParentRoute: () => AuthURoute,
-} as any)
-const AuthUSettingsRoute = AuthUSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => AuthURoute,
-} as any)
-const AuthUOrganizerRoute = AuthUOrganizerRouteImport.update({
-  id: '/organizer',
-  path: '/organizer',
-  getParentRoute: () => AuthURoute,
-} as any)
-const AuthUNotificationsRoute = AuthUNotificationsRouteImport.update({
-  id: '/notifications',
-  path: '/notifications',
-  getParentRoute: () => AuthURoute,
-} as any)
-const AuthUMessagesRoute = AuthUMessagesRouteImport.update({
-  id: '/messages',
-  path: '/messages',
-  getParentRoute: () => AuthURoute,
-} as any)
-const AuthUMeRoute = AuthUMeRouteImport.update({
-  id: '/me',
-  path: '/me',
-  getParentRoute: () => AuthURoute,
-} as any)
-const AuthUHistoryRoute = AuthUHistoryRouteImport.update({
-  id: '/history',
-  path: '/history',
-  getParentRoute: () => AuthURoute,
-} as any)
-const AuthUChallengesRoute = AuthUChallengesRouteImport.update({
-  id: '/challenges',
-  path: '/challenges',
-  getParentRoute: () => AuthURoute,
-} as any)
-const AuthUCastsRoute = AuthUCastsRouteImport.update({
-  id: '/casts',
-  path: '/casts',
-  getParentRoute: () => AuthURoute,
-} as any)
-const AuthUAdminUsersRoute = AuthUAdminUsersRouteImport.update({
-  id: '/admin-users',
-  path: '/admin-users',
   getParentRoute: () => AuthURoute,
 } as any)
 const AuthUAdminRoute = AuthUAdminRouteImport.update({
@@ -345,69 +265,191 @@ const AuthUAdminRoute = AuthUAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthURoute,
 } as any)
-const AuthOrganizersNewRoute = AuthOrganizersNewRouteImport.update({
-  id: '/organizers/new',
-  path: '/organizers/new',
+const AuthUAdminUsersRoute = AuthUAdminUsersRouteImport.update({
+  id: '/admin-users',
+  path: '/admin-users',
+  getParentRoute: () => AuthURoute,
+} as any)
+const AuthUCastsRoute = AuthUCastsRouteImport.update({
+  id: '/casts',
+  path: '/casts',
+  getParentRoute: () => AuthURoute,
+} as any)
+const AuthUChallengesRoute = AuthUChallengesRouteImport.update({
+  id: '/challenges',
+  path: '/challenges',
+  getParentRoute: () => AuthURoute,
+} as any)
+const AuthUHistoryRoute = AuthUHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => AuthURoute,
+} as any)
+const AuthUMeRoute = AuthUMeRouteImport.update({
+  id: '/me',
+  path: '/me',
+  getParentRoute: () => AuthURoute,
+} as any)
+const AuthUMessagesRoute = AuthUMessagesRouteImport.update({
+  id: '/messages',
+  path: '/messages',
+  getParentRoute: () => AuthURoute,
+} as any)
+const AuthUNotificationsRoute = AuthUNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => AuthURoute,
+} as any)
+const AuthUOrganizerRoute = AuthUOrganizerRouteImport.update({
+  id: '/organizer',
+  path: '/organizer',
+  getParentRoute: () => AuthURoute,
+} as any)
+const AuthUSettingsRoute = AuthUSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthURoute,
+} as any)
+const AuthUVideosRoute = AuthUVideosRouteImport.update({
+  id: '/videos',
+  path: '/videos',
+  getParentRoute: () => AuthURoute,
+} as any)
+const EventsIdIndexRoute = EventsIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => EventsIdRoute,
+} as any)
+const EventsIdBracketRoute = EventsIdBracketRouteImport.update({
+  id: '/bracket',
+  path: '/bracket',
+  getParentRoute: () => EventsIdRoute,
+} as any)
+const EventsIdLocationsRoute = EventsIdLocationsRouteImport.update({
+  id: '/locations',
+  path: '/locations',
+  getParentRoute: () => EventsIdRoute,
+} as any)
+const EventsIdMatchesRoute = EventsIdMatchesRouteImport.update({
+  id: '/matches',
+  path: '/matches',
+  getParentRoute: () => EventsIdRoute,
+} as any)
+const EventsIdPlayersRoute = EventsIdPlayersRouteImport.update({
+  id: '/players',
+  path: '/players',
+  getParentRoute: () => EventsIdRoute,
+} as any)
+const EventsHostsSlugRoute = EventsHostsSlugRouteImport.update({
+  id: '/hosts_/$slug',
+  path: '/hosts/$slug',
+  getParentRoute: () => EventsRoute,
+} as any)
+const EventsOrganizersSlugRoute = EventsOrganizersSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => EventsOrganizersRoute,
+} as any)
+const AuthEventsHostsNewRoute = AuthEventsHostsNewRouteImport.update({
+  id: '/events/hosts/new',
+  path: '/events/hosts/new',
   getParentRoute: () => AuthRouteRoute,
 } as any)
-const AuthUVideosIndexRoute = AuthUVideosIndexRouteImport.update({
+const AuthEventsOrganizersNewRoute = AuthEventsOrganizersNewRouteImport.update({
+  id: '/events/organizers/new',
+  path: '/events/organizers/new',
+  getParentRoute: () => AuthRouteRoute,
+} as any)
+const AuthOrganizersSlugManageRoute =
+  AuthOrganizersSlugManageRouteImport.update({
+    id: '/organizers/$slug/manage',
+    path: '/organizers/$slug/manage',
+    getParentRoute: () => AuthRouteRoute,
+  } as any)
+const AuthUCastsIndexRoute = AuthUCastsIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AuthUVideosRoute,
+  getParentRoute: () => AuthUCastsRoute,
 } as any)
-const AuthUStudioIndexRoute = AuthUStudioIndexRouteImport.update({
-  id: '/studio/',
-  path: '/studio/',
-  getParentRoute: () => AuthURoute,
+const AuthUCastsAllRoute = AuthUCastsAllRouteImport.update({
+  id: '/all',
+  path: '/all',
+  getParentRoute: () => AuthUCastsRoute,
 } as any)
-const AuthUProfileIndexRoute = AuthUProfileIndexRouteImport.update({
-  id: '/profile/',
-  path: '/profile/',
-  getParentRoute: () => AuthURoute,
+const AuthUCastsApprovedRoute = AuthUCastsApprovedRouteImport.update({
+  id: '/approved',
+  path: '/approved',
+  getParentRoute: () => AuthUCastsRoute,
 } as any)
-const AuthUOrganizerIndexRoute = AuthUOrganizerIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AuthUOrganizerRoute,
+const AuthUCastsCompletedRoute = AuthUCastsCompletedRouteImport.update({
+  id: '/completed',
+  path: '/completed',
+  getParentRoute: () => AuthUCastsRoute,
+} as any)
+const AuthUCastsNewRoute = AuthUCastsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AuthUCastsRoute,
+} as any)
+const AuthUCastsPendingRoute = AuthUCastsPendingRouteImport.update({
+  id: '/pending',
+  path: '/pending',
+  getParentRoute: () => AuthUCastsRoute,
 } as any)
 const AuthUHistoryIndexRoute = AuthUHistoryIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthUHistoryRoute,
 } as any)
-const AuthUCastsIndexRoute = AuthUCastsIndexRouteImport.update({
+const AuthUHistoryEventsRoute = AuthUHistoryEventsRouteImport.update({
+  id: '/events',
+  path: '/events',
+  getParentRoute: () => AuthUHistoryRoute,
+} as any)
+const AuthUHistoryProfilesRoute = AuthUHistoryProfilesRouteImport.update({
+  id: '/profiles',
+  path: '/profiles',
+  getParentRoute: () => AuthUHistoryRoute,
+} as any)
+const AuthUHistoryVideosRoute = AuthUHistoryVideosRouteImport.update({
+  id: '/videos',
+  path: '/videos',
+  getParentRoute: () => AuthUHistoryRoute,
+} as any)
+const AuthUOrganizerIndexRoute = AuthUOrganizerIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AuthUCastsRoute,
+  getParentRoute: () => AuthUOrganizerRoute,
 } as any)
-const AuthUVideosMeRoute = AuthUVideosMeRouteImport.update({
-  id: '/me',
-  path: '/me',
-  getParentRoute: () => AuthUVideosRoute,
+const AuthUOrganizerEventsRoute = AuthUOrganizerEventsRouteImport.update({
+  id: '/events',
+  path: '/events',
+  getParentRoute: () => AuthUOrganizerRoute,
 } as any)
-const AuthUVideosLiveRoute = AuthUVideosLiveRouteImport.update({
-  id: '/live',
-  path: '/live',
-  getParentRoute: () => AuthUVideosRoute,
-} as any)
-const AuthUVideosClipsRoute = AuthUVideosClipsRouteImport.update({
-  id: '/clips',
-  path: '/clips',
-  getParentRoute: () => AuthUVideosRoute,
-} as any)
-const AuthUStudioUploadRoute = AuthUStudioUploadRouteImport.update({
-  id: '/studio/upload',
-  path: '/studio/upload',
+const AuthUOrganizerOrganizationsRoute =
+  AuthUOrganizerOrganizationsRouteImport.update({
+    id: '/organizations',
+    path: '/organizations',
+    getParentRoute: () => AuthUOrganizerRoute,
+  } as any)
+const AuthUProfileIndexRoute = AuthUProfileIndexRouteImport.update({
+  id: '/profile/',
+  path: '/profile/',
   getParentRoute: () => AuthURoute,
 } as any)
-const AuthUStudioLiveRoute = AuthUStudioLiveRouteImport.update({
-  id: '/studio/live',
-  path: '/studio/live',
+const AuthUProfileAnalyticsRoute = AuthUProfileAnalyticsRouteImport.update({
+  id: '/profile/analytics',
+  path: '/profile/analytics',
   getParentRoute: () => AuthURoute,
 } as any)
-const AuthUStudioClipsRoute = AuthUStudioClipsRouteImport.update({
-  id: '/studio/clips',
-  path: '/studio/clips',
+const AuthUProfileEarnRoute = AuthUProfileEarnRouteImport.update({
+  id: '/profile/earn',
+  path: '/profile/earn',
+  getParentRoute: () => AuthURoute,
+} as any)
+const AuthUProfileMeRoute = AuthUProfileMeRouteImport.update({
+  id: '/profile/me',
+  path: '/profile/me',
   getParentRoute: () => AuthURoute,
 } as any)
 const AuthUProfileMyRallycastsRoute =
@@ -416,98 +458,51 @@ const AuthUProfileMyRallycastsRoute =
     path: '/profile/my-rallycasts',
     getParentRoute: () => AuthURoute,
   } as any)
-const AuthUProfileMeRoute = AuthUProfileMeRouteImport.update({
-  id: '/profile/me',
-  path: '/profile/me',
+const AuthUStudioIndexRoute = AuthUStudioIndexRouteImport.update({
+  id: '/studio/',
+  path: '/studio/',
   getParentRoute: () => AuthURoute,
 } as any)
-const AuthUProfileEarnRoute = AuthUProfileEarnRouteImport.update({
-  id: '/profile/earn',
-  path: '/profile/earn',
+const AuthUStudioClipsRoute = AuthUStudioClipsRouteImport.update({
+  id: '/studio/clips',
+  path: '/studio/clips',
   getParentRoute: () => AuthURoute,
 } as any)
-const AuthUProfileAnalyticsRoute = AuthUProfileAnalyticsRouteImport.update({
-  id: '/profile/analytics',
-  path: '/profile/analytics',
+const AuthUStudioLiveRoute = AuthUStudioLiveRouteImport.update({
+  id: '/studio/live',
+  path: '/studio/live',
   getParentRoute: () => AuthURoute,
 } as any)
-const AuthUOrganizerOrganizationsRoute =
-  AuthUOrganizerOrganizationsRouteImport.update({
-    id: '/organizations',
-    path: '/organizations',
-    getParentRoute: () => AuthUOrganizerRoute,
-  } as any)
-const AuthUOrganizerEventsRoute = AuthUOrganizerEventsRouteImport.update({
-  id: '/events',
-  path: '/events',
-  getParentRoute: () => AuthUOrganizerRoute,
+const AuthUStudioUploadRoute = AuthUStudioUploadRouteImport.update({
+  id: '/studio/upload',
+  path: '/studio/upload',
+  getParentRoute: () => AuthURoute,
 } as any)
-const AuthUHistoryVideosRoute = AuthUHistoryVideosRouteImport.update({
-  id: '/videos',
-  path: '/videos',
-  getParentRoute: () => AuthUHistoryRoute,
+const AuthUVideosIndexRoute = AuthUVideosIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthUVideosRoute,
 } as any)
-const AuthUHistoryProfilesRoute = AuthUHistoryProfilesRouteImport.update({
-  id: '/profiles',
-  path: '/profiles',
-  getParentRoute: () => AuthUHistoryRoute,
+const AuthUVideosClipsRoute = AuthUVideosClipsRouteImport.update({
+  id: '/clips',
+  path: '/clips',
+  getParentRoute: () => AuthUVideosRoute,
 } as any)
-const AuthUHistoryEventsRoute = AuthUHistoryEventsRouteImport.update({
-  id: '/events',
-  path: '/events',
-  getParentRoute: () => AuthUHistoryRoute,
+const AuthUVideosLiveRoute = AuthUVideosLiveRouteImport.update({
+  id: '/live',
+  path: '/live',
+  getParentRoute: () => AuthUVideosRoute,
 } as any)
-const AuthUCastsPendingRoute = AuthUCastsPendingRouteImport.update({
-  id: '/pending',
-  path: '/pending',
-  getParentRoute: () => AuthUCastsRoute,
+const AuthUVideosMeRoute = AuthUVideosMeRouteImport.update({
+  id: '/me',
+  path: '/me',
+  getParentRoute: () => AuthUVideosRoute,
 } as any)
-const AuthUCastsNewRoute = AuthUCastsNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => AuthUCastsRoute,
-} as any)
-const AuthUCastsCompletedRoute = AuthUCastsCompletedRouteImport.update({
-  id: '/completed',
-  path: '/completed',
-  getParentRoute: () => AuthUCastsRoute,
-} as any)
-const AuthUCastsApprovedRoute = AuthUCastsApprovedRouteImport.update({
-  id: '/approved',
-  path: '/approved',
-  getParentRoute: () => AuthUCastsRoute,
-} as any)
-const AuthUCastsAllRoute = AuthUCastsAllRouteImport.update({
-  id: '/all',
-  path: '/all',
-  getParentRoute: () => AuthUCastsRoute,
-} as any)
-const AuthOrganizersSlugManageRoute =
-  AuthOrganizersSlugManageRouteImport.update({
-    id: '/organizers/$slug/manage',
-    path: '/organizers/$slug/manage',
+const AuthEventsHostsSlugManageRoute =
+  AuthEventsHostsSlugManageRouteImport.update({
+    id: '/events/hosts/$slug/manage',
+    path: '/events/hosts/$slug/manage',
     getParentRoute: () => AuthRouteRoute,
-  } as any)
-const AuthEventsOrganizersNewRoute = AuthEventsOrganizersNewRouteImport.update({
-  id: '/events/organizers/new',
-  path: '/events/organizers/new',
-  getParentRoute: () => AuthRouteRoute,
-} as any)
-const AuthEventsHostsNewRoute = AuthEventsHostsNewRouteImport.update({
-  id: '/events/hosts/new',
-  path: '/events/hosts/new',
-  getParentRoute: () => AuthRouteRoute,
-} as any)
-const AuthUStudioVideosIdRoute = AuthUStudioVideosIdRouteImport.update({
-  id: '/studio/videos/$id',
-  path: '/studio/videos/$id',
-  getParentRoute: () => AuthURoute,
-} as any)
-const AuthUOrganizerOrganizationsSlugRoute =
-  AuthUOrganizerOrganizationsSlugRouteImport.update({
-    id: '/organizations_/$slug',
-    path: '/organizations/$slug',
-    getParentRoute: () => AuthUOrganizerRoute,
   } as any)
 const AuthEventsOrganizersSlugManageRoute =
   AuthEventsOrganizersSlugManageRouteImport.update({
@@ -515,23 +510,28 @@ const AuthEventsOrganizersSlugManageRoute =
     path: '/events/organizers/$slug/manage',
     getParentRoute: () => AuthRouteRoute,
   } as any)
-const AuthEventsHostsSlugManageRoute =
-  AuthEventsHostsSlugManageRouteImport.update({
-    id: '/events/hosts/$slug/manage',
-    path: '/events/hosts/$slug/manage',
-    getParentRoute: () => AuthRouteRoute,
+const AuthUOrganizerOrganizationsSlugRoute =
+  AuthUOrganizerOrganizationsSlugRouteImport.update({
+    id: '/organizations_/$slug',
+    path: '/organizations/$slug',
+    getParentRoute: () => AuthUOrganizerRoute,
+  } as any)
+const AuthUStudioVideosIdRoute = AuthUStudioVideosIdRouteImport.update({
+  id: '/studio/videos/$id',
+  path: '/studio/videos/$id',
+  getParentRoute: () => AuthURoute,
+} as any)
+const AuthUOrganizerOrganizationsSlugTeamRoute =
+  AuthUOrganizerOrganizationsSlugTeamRouteImport.update({
+    id: '/organizations_/$slug_/team',
+    path: '/organizations/$slug/team',
+    getParentRoute: () => AuthUOrganizerRoute,
   } as any)
 const AuthUStudioVideosIdClipsRoute =
   AuthUStudioVideosIdClipsRouteImport.update({
     id: '/studio/videos/$id_/clips',
     path: '/studio/videos/$id/clips',
     getParentRoute: () => AuthURoute,
-  } as any)
-const AuthUOrganizerOrganizationsSlugTeamRoute =
-  AuthUOrganizerOrganizationsSlugTeamRouteImport.update({
-    id: '/organizations_/$slug_/team',
-    path: '/organizations/$slug/team',
-    getParentRoute: () => AuthUOrganizerRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -1064,81 +1064,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/trending': {
-      id: '/trending'
-      path: '/trending'
-      fullPath: '/trending'
-      preLoaderRoute: typeof TrendingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/shop': {
-      id: '/shop'
-      path: '/shop'
-      fullPath: '/shop'
-      preLoaderRoute: typeof ShopRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/players': {
-      id: '/players'
-      path: '/players'
-      fullPath: '/players'
-      preLoaderRoute: typeof PlayersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/organizers': {
-      id: '/organizers'
-      path: '/organizers'
-      fullPath: '/organizers'
-      preLoaderRoute: typeof OrganizersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/me': {
-      id: '/me'
-      path: '/me'
-      fullPath: '/me'
-      preLoaderRoute: typeof MeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/hosts': {
-      id: '/hosts'
-      path: '/hosts'
-      fullPath: '/hosts'
-      preLoaderRoute: typeof HostsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/events': {
-      id: '/events'
-      path: '/events'
-      fullPath: '/events'
-      preLoaderRoute: typeof EventsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/error': {
-      id: '/error'
-      path: '/error'
-      fullPath: '/error'
-      preLoaderRoute: typeof ErrorRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/casters': {
-      id: '/casters'
-      path: '/casters'
-      fullPath: '/casters'
-      preLoaderRoute: typeof CastersRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/$': {
@@ -1155,33 +1085,96 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/casters': {
+      id: '/casters'
+      path: '/casters'
+      fullPath: '/casters'
+      preLoaderRoute: typeof CastersRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/shop/': {
-      id: '/shop/'
-      path: '/'
-      fullPath: '/shop/'
-      preLoaderRoute: typeof ShopIndexRouteImport
-      parentRoute: typeof ShopRoute
+    '/error': {
+      id: '/error'
+      path: '/error'
+      fullPath: '/error'
+      preLoaderRoute: typeof ErrorRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/players/': {
-      id: '/players/'
-      path: '/'
-      fullPath: '/players/'
-      preLoaderRoute: typeof PlayersIndexRouteImport
-      parentRoute: typeof PlayersRoute
+    '/events': {
+      id: '/events'
+      path: '/events'
+      fullPath: '/events'
+      preLoaderRoute: typeof EventsRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/events/': {
-      id: '/events/'
-      path: '/'
-      fullPath: '/events/'
-      preLoaderRoute: typeof EventsIndexRouteImport
-      parentRoute: typeof EventsRoute
+    '/hosts': {
+      id: '/hosts'
+      path: '/hosts'
+      fullPath: '/hosts'
+      preLoaderRoute: typeof HostsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/me': {
+      id: '/me'
+      path: '/me'
+      fullPath: '/me'
+      preLoaderRoute: typeof MeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/organizers': {
+      id: '/organizers'
+      path: '/organizers'
+      fullPath: '/organizers'
+      preLoaderRoute: typeof OrganizersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/players': {
+      id: '/players'
+      path: '/players'
+      fullPath: '/players'
+      preLoaderRoute: typeof PlayersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/shop': {
+      id: '/shop'
+      path: '/shop'
+      fullPath: '/shop'
+      preLoaderRoute: typeof ShopRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/trending': {
+      id: '/trending'
+      path: '/trending'
+      fullPath: '/trending'
+      preLoaderRoute: typeof TrendingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_auth/onboarding': {
+      id: '/_auth/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof AuthOnboardingRouteImport
+      parentRoute: typeof AuthRouteRoute
+    }
+    '/_auth/u': {
+      id: '/_auth/u'
+      path: '/u'
+      fullPath: '/u'
+      preLoaderRoute: typeof AuthURouteImport
+      parentRoute: typeof AuthRouteRoute
     }
     '/casters/': {
       id: '/casters/'
@@ -1190,67 +1183,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CastersIndexRouteImport
       parentRoute: typeof CastersRoute
     }
-    '/videos/$id': {
-      id: '/videos/$id'
-      path: '/videos/$id'
-      fullPath: '/videos/$id'
-      preLoaderRoute: typeof VideosIdRouteImport
-      parentRoute: typeof rootRouteImport
+    '/casters/$id': {
+      id: '/casters/$id'
+      path: '/$id'
+      fullPath: '/casters/$id'
+      preLoaderRoute: typeof CastersIdRouteImport
+      parentRoute: typeof CastersRoute
     }
-    '/venues/$id': {
-      id: '/venues/$id'
-      path: '/venues/$id'
-      fullPath: '/venues/$id'
-      preLoaderRoute: typeof VenuesIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/shop/$slug': {
-      id: '/shop/$slug'
-      path: '/$slug'
-      fullPath: '/shop/$slug'
-      preLoaderRoute: typeof ShopSlugRouteImport
-      parentRoute: typeof ShopRoute
-    }
-    '/players/$username': {
-      id: '/players/$username'
-      path: '/$username'
-      fullPath: '/players/$username'
-      preLoaderRoute: typeof PlayersUsernameRouteImport
-      parentRoute: typeof PlayersRoute
-    }
-    '/places/$id': {
-      id: '/places/$id'
-      path: '/places/$id'
-      fullPath: '/places/$id'
-      preLoaderRoute: typeof PlacesIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/organizers/$slug': {
-      id: '/organizers/$slug'
-      path: '/$slug'
-      fullPath: '/organizers/$slug'
-      preLoaderRoute: typeof OrganizersSlugRouteImport
-      parentRoute: typeof OrganizersRoute
-    }
-    '/hosts/$slug': {
-      id: '/hosts/$slug'
-      path: '/$slug'
-      fullPath: '/hosts/$slug'
-      preLoaderRoute: typeof HostsSlugRouteImport
-      parentRoute: typeof HostsRoute
-    }
-    '/events/organizers': {
-      id: '/events/organizers'
-      path: '/organizers'
-      fullPath: '/events/organizers'
-      preLoaderRoute: typeof EventsOrganizersRouteImport
-      parentRoute: typeof EventsRoute
-    }
-    '/events/hosts': {
-      id: '/events/hosts'
-      path: '/hosts'
-      fullPath: '/events/hosts'
-      preLoaderRoute: typeof EventsHostsRouteImport
+    '/events/': {
+      id: '/events/'
+      path: '/'
+      fullPath: '/events/'
+      preLoaderRoute: typeof EventsIndexRouteImport
       parentRoute: typeof EventsRoute
     }
     '/events/$id': {
@@ -1260,151 +1204,95 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EventsIdRouteImport
       parentRoute: typeof EventsRoute
     }
-    '/casters/$id': {
-      id: '/casters/$id'
-      path: '/$id'
-      fullPath: '/casters/$id'
-      preLoaderRoute: typeof CastersIdRouteImport
-      parentRoute: typeof CastersRoute
+    '/events/hosts': {
+      id: '/events/hosts'
+      path: '/hosts'
+      fullPath: '/events/hosts'
+      preLoaderRoute: typeof EventsHostsRouteImport
+      parentRoute: typeof EventsRoute
     }
-    '/_auth/u': {
-      id: '/_auth/u'
-      path: '/u'
-      fullPath: '/u'
-      preLoaderRoute: typeof AuthURouteImport
-      parentRoute: typeof AuthRouteRoute
+    '/events/organizers': {
+      id: '/events/organizers'
+      path: '/organizers'
+      fullPath: '/events/organizers'
+      preLoaderRoute: typeof EventsOrganizersRouteImport
+      parentRoute: typeof EventsRoute
     }
-    '/_auth/onboarding': {
-      id: '/_auth/onboarding'
-      path: '/onboarding'
-      fullPath: '/onboarding'
-      preLoaderRoute: typeof AuthOnboardingRouteImport
-      parentRoute: typeof AuthRouteRoute
+    '/hosts/$slug': {
+      id: '/hosts/$slug'
+      path: '/$slug'
+      fullPath: '/hosts/$slug'
+      preLoaderRoute: typeof HostsSlugRouteImport
+      parentRoute: typeof HostsRoute
     }
-    '/events/$id/': {
-      id: '/events/$id/'
+    '/organizers/$slug': {
+      id: '/organizers/$slug'
+      path: '/$slug'
+      fullPath: '/organizers/$slug'
+      preLoaderRoute: typeof OrganizersSlugRouteImport
+      parentRoute: typeof OrganizersRoute
+    }
+    '/places/$id': {
+      id: '/places/$id'
+      path: '/places/$id'
+      fullPath: '/places/$id'
+      preLoaderRoute: typeof PlacesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/players/': {
+      id: '/players/'
       path: '/'
-      fullPath: '/events/$id/'
-      preLoaderRoute: typeof EventsIdIndexRouteImport
-      parentRoute: typeof EventsIdRoute
+      fullPath: '/players/'
+      preLoaderRoute: typeof PlayersIndexRouteImport
+      parentRoute: typeof PlayersRoute
+    }
+    '/players/$username': {
+      id: '/players/$username'
+      path: '/$username'
+      fullPath: '/players/$username'
+      preLoaderRoute: typeof PlayersUsernameRouteImport
+      parentRoute: typeof PlayersRoute
+    }
+    '/shop/': {
+      id: '/shop/'
+      path: '/'
+      fullPath: '/shop/'
+      preLoaderRoute: typeof ShopIndexRouteImport
+      parentRoute: typeof ShopRoute
+    }
+    '/shop/$slug': {
+      id: '/shop/$slug'
+      path: '/$slug'
+      fullPath: '/shop/$slug'
+      preLoaderRoute: typeof ShopSlugRouteImport
+      parentRoute: typeof ShopRoute
+    }
+    '/venues/$id': {
+      id: '/venues/$id'
+      path: '/venues/$id'
+      fullPath: '/venues/$id'
+      preLoaderRoute: typeof VenuesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/videos/$id': {
+      id: '/videos/$id'
+      path: '/videos/$id'
+      fullPath: '/videos/$id'
+      preLoaderRoute: typeof VideosIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_auth/organizers/new': {
+      id: '/_auth/organizers/new'
+      path: '/organizers/new'
+      fullPath: '/organizers/new'
+      preLoaderRoute: typeof AuthOrganizersNewRouteImport
+      parentRoute: typeof AuthRouteRoute
     }
     '/_auth/u/': {
       id: '/_auth/u/'
       path: '/'
       fullPath: '/u/'
       preLoaderRoute: typeof AuthUIndexRouteImport
-      parentRoute: typeof AuthURoute
-    }
-    '/events/organizers/$slug': {
-      id: '/events/organizers/$slug'
-      path: '/$slug'
-      fullPath: '/events/organizers/$slug'
-      preLoaderRoute: typeof EventsOrganizersSlugRouteImport
-      parentRoute: typeof EventsOrganizersRoute
-    }
-    '/events/hosts_/$slug': {
-      id: '/events/hosts_/$slug'
-      path: '/hosts/$slug'
-      fullPath: '/events/hosts/$slug'
-      preLoaderRoute: typeof EventsHostsSlugRouteImport
-      parentRoute: typeof EventsRoute
-    }
-    '/events/$id/players': {
-      id: '/events/$id/players'
-      path: '/players'
-      fullPath: '/events/$id/players'
-      preLoaderRoute: typeof EventsIdPlayersRouteImport
-      parentRoute: typeof EventsIdRoute
-    }
-    '/events/$id/matches': {
-      id: '/events/$id/matches'
-      path: '/matches'
-      fullPath: '/events/$id/matches'
-      preLoaderRoute: typeof EventsIdMatchesRouteImport
-      parentRoute: typeof EventsIdRoute
-    }
-    '/events/$id/locations': {
-      id: '/events/$id/locations'
-      path: '/locations'
-      fullPath: '/events/$id/locations'
-      preLoaderRoute: typeof EventsIdLocationsRouteImport
-      parentRoute: typeof EventsIdRoute
-    }
-    '/events/$id/bracket': {
-      id: '/events/$id/bracket'
-      path: '/bracket'
-      fullPath: '/events/$id/bracket'
-      preLoaderRoute: typeof EventsIdBracketRouteImport
-      parentRoute: typeof EventsIdRoute
-    }
-    '/_auth/u/videos': {
-      id: '/_auth/u/videos'
-      path: '/videos'
-      fullPath: '/u/videos'
-      preLoaderRoute: typeof AuthUVideosRouteImport
-      parentRoute: typeof AuthURoute
-    }
-    '/_auth/u/settings': {
-      id: '/_auth/u/settings'
-      path: '/settings'
-      fullPath: '/u/settings'
-      preLoaderRoute: typeof AuthUSettingsRouteImport
-      parentRoute: typeof AuthURoute
-    }
-    '/_auth/u/organizer': {
-      id: '/_auth/u/organizer'
-      path: '/organizer'
-      fullPath: '/u/organizer'
-      preLoaderRoute: typeof AuthUOrganizerRouteImport
-      parentRoute: typeof AuthURoute
-    }
-    '/_auth/u/notifications': {
-      id: '/_auth/u/notifications'
-      path: '/notifications'
-      fullPath: '/u/notifications'
-      preLoaderRoute: typeof AuthUNotificationsRouteImport
-      parentRoute: typeof AuthURoute
-    }
-    '/_auth/u/messages': {
-      id: '/_auth/u/messages'
-      path: '/messages'
-      fullPath: '/u/messages'
-      preLoaderRoute: typeof AuthUMessagesRouteImport
-      parentRoute: typeof AuthURoute
-    }
-    '/_auth/u/me': {
-      id: '/_auth/u/me'
-      path: '/me'
-      fullPath: '/u/me'
-      preLoaderRoute: typeof AuthUMeRouteImport
-      parentRoute: typeof AuthURoute
-    }
-    '/_auth/u/history': {
-      id: '/_auth/u/history'
-      path: '/history'
-      fullPath: '/u/history'
-      preLoaderRoute: typeof AuthUHistoryRouteImport
-      parentRoute: typeof AuthURoute
-    }
-    '/_auth/u/challenges': {
-      id: '/_auth/u/challenges'
-      path: '/challenges'
-      fullPath: '/u/challenges'
-      preLoaderRoute: typeof AuthUChallengesRouteImport
-      parentRoute: typeof AuthURoute
-    }
-    '/_auth/u/casts': {
-      id: '/_auth/u/casts'
-      path: '/casts'
-      fullPath: '/u/casts'
-      preLoaderRoute: typeof AuthUCastsRouteImport
-      parentRoute: typeof AuthURoute
-    }
-    '/_auth/u/admin-users': {
-      id: '/_auth/u/admin-users'
-      path: '/admin-users'
-      fullPath: '/u/admin-users'
-      preLoaderRoute: typeof AuthUAdminUsersRouteImport
       parentRoute: typeof AuthURoute
     }
     '/_auth/u/admin': {
@@ -1414,200 +1302,130 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthUAdminRouteImport
       parentRoute: typeof AuthURoute
     }
-    '/_auth/organizers/new': {
-      id: '/_auth/organizers/new'
-      path: '/organizers/new'
-      fullPath: '/organizers/new'
-      preLoaderRoute: typeof AuthOrganizersNewRouteImport
-      parentRoute: typeof AuthRouteRoute
-    }
-    '/_auth/u/videos/': {
-      id: '/_auth/u/videos/'
-      path: '/'
-      fullPath: '/u/videos/'
-      preLoaderRoute: typeof AuthUVideosIndexRouteImport
-      parentRoute: typeof AuthUVideosRoute
-    }
-    '/_auth/u/studio/': {
-      id: '/_auth/u/studio/'
-      path: '/studio'
-      fullPath: '/u/studio/'
-      preLoaderRoute: typeof AuthUStudioIndexRouteImport
+    '/_auth/u/admin-users': {
+      id: '/_auth/u/admin-users'
+      path: '/admin-users'
+      fullPath: '/u/admin-users'
+      preLoaderRoute: typeof AuthUAdminUsersRouteImport
       parentRoute: typeof AuthURoute
     }
-    '/_auth/u/profile/': {
-      id: '/_auth/u/profile/'
-      path: '/profile'
-      fullPath: '/u/profile/'
-      preLoaderRoute: typeof AuthUProfileIndexRouteImport
+    '/_auth/u/casts': {
+      id: '/_auth/u/casts'
+      path: '/casts'
+      fullPath: '/u/casts'
+      preLoaderRoute: typeof AuthUCastsRouteImport
       parentRoute: typeof AuthURoute
     }
-    '/_auth/u/organizer/': {
-      id: '/_auth/u/organizer/'
-      path: '/'
-      fullPath: '/u/organizer/'
-      preLoaderRoute: typeof AuthUOrganizerIndexRouteImport
-      parentRoute: typeof AuthUOrganizerRoute
+    '/_auth/u/challenges': {
+      id: '/_auth/u/challenges'
+      path: '/challenges'
+      fullPath: '/u/challenges'
+      preLoaderRoute: typeof AuthUChallengesRouteImport
+      parentRoute: typeof AuthURoute
     }
-    '/_auth/u/history/': {
-      id: '/_auth/u/history/'
-      path: '/'
-      fullPath: '/u/history/'
-      preLoaderRoute: typeof AuthUHistoryIndexRouteImport
-      parentRoute: typeof AuthUHistoryRoute
+    '/_auth/u/history': {
+      id: '/_auth/u/history'
+      path: '/history'
+      fullPath: '/u/history'
+      preLoaderRoute: typeof AuthUHistoryRouteImport
+      parentRoute: typeof AuthURoute
     }
-    '/_auth/u/casts/': {
-      id: '/_auth/u/casts/'
-      path: '/'
-      fullPath: '/u/casts/'
-      preLoaderRoute: typeof AuthUCastsIndexRouteImport
-      parentRoute: typeof AuthUCastsRoute
-    }
-    '/_auth/u/videos/me': {
-      id: '/_auth/u/videos/me'
+    '/_auth/u/me': {
+      id: '/_auth/u/me'
       path: '/me'
-      fullPath: '/u/videos/me'
-      preLoaderRoute: typeof AuthUVideosMeRouteImport
-      parentRoute: typeof AuthUVideosRoute
-    }
-    '/_auth/u/videos/live': {
-      id: '/_auth/u/videos/live'
-      path: '/live'
-      fullPath: '/u/videos/live'
-      preLoaderRoute: typeof AuthUVideosLiveRouteImport
-      parentRoute: typeof AuthUVideosRoute
-    }
-    '/_auth/u/videos/clips': {
-      id: '/_auth/u/videos/clips'
-      path: '/clips'
-      fullPath: '/u/videos/clips'
-      preLoaderRoute: typeof AuthUVideosClipsRouteImport
-      parentRoute: typeof AuthUVideosRoute
-    }
-    '/_auth/u/studio/upload': {
-      id: '/_auth/u/studio/upload'
-      path: '/studio/upload'
-      fullPath: '/u/studio/upload'
-      preLoaderRoute: typeof AuthUStudioUploadRouteImport
+      fullPath: '/u/me'
+      preLoaderRoute: typeof AuthUMeRouteImport
       parentRoute: typeof AuthURoute
     }
-    '/_auth/u/studio/live': {
-      id: '/_auth/u/studio/live'
-      path: '/studio/live'
-      fullPath: '/u/studio/live'
-      preLoaderRoute: typeof AuthUStudioLiveRouteImport
+    '/_auth/u/messages': {
+      id: '/_auth/u/messages'
+      path: '/messages'
+      fullPath: '/u/messages'
+      preLoaderRoute: typeof AuthUMessagesRouteImport
       parentRoute: typeof AuthURoute
     }
-    '/_auth/u/studio/clips': {
-      id: '/_auth/u/studio/clips'
-      path: '/studio/clips'
-      fullPath: '/u/studio/clips'
-      preLoaderRoute: typeof AuthUStudioClipsRouteImport
+    '/_auth/u/notifications': {
+      id: '/_auth/u/notifications'
+      path: '/notifications'
+      fullPath: '/u/notifications'
+      preLoaderRoute: typeof AuthUNotificationsRouteImport
       parentRoute: typeof AuthURoute
     }
-    '/_auth/u/profile/my-rallycasts': {
-      id: '/_auth/u/profile/my-rallycasts'
-      path: '/profile/my-rallycasts'
-      fullPath: '/u/profile/my-rallycasts'
-      preLoaderRoute: typeof AuthUProfileMyRallycastsRouteImport
+    '/_auth/u/organizer': {
+      id: '/_auth/u/organizer'
+      path: '/organizer'
+      fullPath: '/u/organizer'
+      preLoaderRoute: typeof AuthUOrganizerRouteImport
       parentRoute: typeof AuthURoute
     }
-    '/_auth/u/profile/me': {
-      id: '/_auth/u/profile/me'
-      path: '/profile/me'
-      fullPath: '/u/profile/me'
-      preLoaderRoute: typeof AuthUProfileMeRouteImport
+    '/_auth/u/settings': {
+      id: '/_auth/u/settings'
+      path: '/settings'
+      fullPath: '/u/settings'
+      preLoaderRoute: typeof AuthUSettingsRouteImport
       parentRoute: typeof AuthURoute
     }
-    '/_auth/u/profile/earn': {
-      id: '/_auth/u/profile/earn'
-      path: '/profile/earn'
-      fullPath: '/u/profile/earn'
-      preLoaderRoute: typeof AuthUProfileEarnRouteImport
-      parentRoute: typeof AuthURoute
-    }
-    '/_auth/u/profile/analytics': {
-      id: '/_auth/u/profile/analytics'
-      path: '/profile/analytics'
-      fullPath: '/u/profile/analytics'
-      preLoaderRoute: typeof AuthUProfileAnalyticsRouteImport
-      parentRoute: typeof AuthURoute
-    }
-    '/_auth/u/organizer/organizations': {
-      id: '/_auth/u/organizer/organizations'
-      path: '/organizations'
-      fullPath: '/u/organizer/organizations'
-      preLoaderRoute: typeof AuthUOrganizerOrganizationsRouteImport
-      parentRoute: typeof AuthUOrganizerRoute
-    }
-    '/_auth/u/organizer/events': {
-      id: '/_auth/u/organizer/events'
-      path: '/events'
-      fullPath: '/u/organizer/events'
-      preLoaderRoute: typeof AuthUOrganizerEventsRouteImport
-      parentRoute: typeof AuthUOrganizerRoute
-    }
-    '/_auth/u/history/videos': {
-      id: '/_auth/u/history/videos'
+    '/_auth/u/videos': {
+      id: '/_auth/u/videos'
       path: '/videos'
-      fullPath: '/u/history/videos'
-      preLoaderRoute: typeof AuthUHistoryVideosRouteImport
-      parentRoute: typeof AuthUHistoryRoute
+      fullPath: '/u/videos'
+      preLoaderRoute: typeof AuthUVideosRouteImport
+      parentRoute: typeof AuthURoute
     }
-    '/_auth/u/history/profiles': {
-      id: '/_auth/u/history/profiles'
-      path: '/profiles'
-      fullPath: '/u/history/profiles'
-      preLoaderRoute: typeof AuthUHistoryProfilesRouteImport
-      parentRoute: typeof AuthUHistoryRoute
+    '/events/$id/': {
+      id: '/events/$id/'
+      path: '/'
+      fullPath: '/events/$id/'
+      preLoaderRoute: typeof EventsIdIndexRouteImport
+      parentRoute: typeof EventsIdRoute
     }
-    '/_auth/u/history/events': {
-      id: '/_auth/u/history/events'
-      path: '/events'
-      fullPath: '/u/history/events'
-      preLoaderRoute: typeof AuthUHistoryEventsRouteImport
-      parentRoute: typeof AuthUHistoryRoute
+    '/events/$id/bracket': {
+      id: '/events/$id/bracket'
+      path: '/bracket'
+      fullPath: '/events/$id/bracket'
+      preLoaderRoute: typeof EventsIdBracketRouteImport
+      parentRoute: typeof EventsIdRoute
     }
-    '/_auth/u/casts/pending': {
-      id: '/_auth/u/casts/pending'
-      path: '/pending'
-      fullPath: '/u/casts/pending'
-      preLoaderRoute: typeof AuthUCastsPendingRouteImport
-      parentRoute: typeof AuthUCastsRoute
+    '/events/$id/locations': {
+      id: '/events/$id/locations'
+      path: '/locations'
+      fullPath: '/events/$id/locations'
+      preLoaderRoute: typeof EventsIdLocationsRouteImport
+      parentRoute: typeof EventsIdRoute
     }
-    '/_auth/u/casts/new': {
-      id: '/_auth/u/casts/new'
-      path: '/new'
-      fullPath: '/u/casts/new'
-      preLoaderRoute: typeof AuthUCastsNewRouteImport
-      parentRoute: typeof AuthUCastsRoute
+    '/events/$id/matches': {
+      id: '/events/$id/matches'
+      path: '/matches'
+      fullPath: '/events/$id/matches'
+      preLoaderRoute: typeof EventsIdMatchesRouteImport
+      parentRoute: typeof EventsIdRoute
     }
-    '/_auth/u/casts/completed': {
-      id: '/_auth/u/casts/completed'
-      path: '/completed'
-      fullPath: '/u/casts/completed'
-      preLoaderRoute: typeof AuthUCastsCompletedRouteImport
-      parentRoute: typeof AuthUCastsRoute
+    '/events/$id/players': {
+      id: '/events/$id/players'
+      path: '/players'
+      fullPath: '/events/$id/players'
+      preLoaderRoute: typeof EventsIdPlayersRouteImport
+      parentRoute: typeof EventsIdRoute
     }
-    '/_auth/u/casts/approved': {
-      id: '/_auth/u/casts/approved'
-      path: '/approved'
-      fullPath: '/u/casts/approved'
-      preLoaderRoute: typeof AuthUCastsApprovedRouteImport
-      parentRoute: typeof AuthUCastsRoute
+    '/events/hosts_/$slug': {
+      id: '/events/hosts_/$slug'
+      path: '/hosts/$slug'
+      fullPath: '/events/hosts/$slug'
+      preLoaderRoute: typeof EventsHostsSlugRouteImport
+      parentRoute: typeof EventsRoute
     }
-    '/_auth/u/casts/all': {
-      id: '/_auth/u/casts/all'
-      path: '/all'
-      fullPath: '/u/casts/all'
-      preLoaderRoute: typeof AuthUCastsAllRouteImport
-      parentRoute: typeof AuthUCastsRoute
+    '/events/organizers/$slug': {
+      id: '/events/organizers/$slug'
+      path: '/$slug'
+      fullPath: '/events/organizers/$slug'
+      preLoaderRoute: typeof EventsOrganizersSlugRouteImport
+      parentRoute: typeof EventsOrganizersRoute
     }
-    '/_auth/organizers/$slug/manage': {
-      id: '/_auth/organizers/$slug/manage'
-      path: '/organizers/$slug/manage'
-      fullPath: '/organizers/$slug/manage'
-      preLoaderRoute: typeof AuthOrganizersSlugManageRouteImport
+    '/_auth/events/hosts/new': {
+      id: '/_auth/events/hosts/new'
+      path: '/events/hosts/new'
+      fullPath: '/events/hosts/new'
+      preLoaderRoute: typeof AuthEventsHostsNewRouteImport
       parentRoute: typeof AuthRouteRoute
     }
     '/_auth/events/organizers/new': {
@@ -1617,33 +1435,194 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthEventsOrganizersNewRouteImport
       parentRoute: typeof AuthRouteRoute
     }
-    '/_auth/events/hosts/new': {
-      id: '/_auth/events/hosts/new'
-      path: '/events/hosts/new'
-      fullPath: '/events/hosts/new'
-      preLoaderRoute: typeof AuthEventsHostsNewRouteImport
+    '/_auth/organizers/$slug/manage': {
+      id: '/_auth/organizers/$slug/manage'
+      path: '/organizers/$slug/manage'
+      fullPath: '/organizers/$slug/manage'
+      preLoaderRoute: typeof AuthOrganizersSlugManageRouteImport
       parentRoute: typeof AuthRouteRoute
     }
-    '/_auth/u/studio/videos/$id': {
-      id: '/_auth/u/studio/videos/$id'
-      path: '/studio/videos/$id'
-      fullPath: '/u/studio/videos/$id'
-      preLoaderRoute: typeof AuthUStudioVideosIdRouteImport
-      parentRoute: typeof AuthURoute
+    '/_auth/u/casts/': {
+      id: '/_auth/u/casts/'
+      path: '/'
+      fullPath: '/u/casts/'
+      preLoaderRoute: typeof AuthUCastsIndexRouteImport
+      parentRoute: typeof AuthUCastsRoute
     }
-    '/_auth/u/organizer/organizations_/$slug': {
-      id: '/_auth/u/organizer/organizations_/$slug'
-      path: '/organizations/$slug'
-      fullPath: '/u/organizer/organizations/$slug'
-      preLoaderRoute: typeof AuthUOrganizerOrganizationsSlugRouteImport
+    '/_auth/u/casts/all': {
+      id: '/_auth/u/casts/all'
+      path: '/all'
+      fullPath: '/u/casts/all'
+      preLoaderRoute: typeof AuthUCastsAllRouteImport
+      parentRoute: typeof AuthUCastsRoute
+    }
+    '/_auth/u/casts/approved': {
+      id: '/_auth/u/casts/approved'
+      path: '/approved'
+      fullPath: '/u/casts/approved'
+      preLoaderRoute: typeof AuthUCastsApprovedRouteImport
+      parentRoute: typeof AuthUCastsRoute
+    }
+    '/_auth/u/casts/completed': {
+      id: '/_auth/u/casts/completed'
+      path: '/completed'
+      fullPath: '/u/casts/completed'
+      preLoaderRoute: typeof AuthUCastsCompletedRouteImport
+      parentRoute: typeof AuthUCastsRoute
+    }
+    '/_auth/u/casts/new': {
+      id: '/_auth/u/casts/new'
+      path: '/new'
+      fullPath: '/u/casts/new'
+      preLoaderRoute: typeof AuthUCastsNewRouteImport
+      parentRoute: typeof AuthUCastsRoute
+    }
+    '/_auth/u/casts/pending': {
+      id: '/_auth/u/casts/pending'
+      path: '/pending'
+      fullPath: '/u/casts/pending'
+      preLoaderRoute: typeof AuthUCastsPendingRouteImport
+      parentRoute: typeof AuthUCastsRoute
+    }
+    '/_auth/u/history/': {
+      id: '/_auth/u/history/'
+      path: '/'
+      fullPath: '/u/history/'
+      preLoaderRoute: typeof AuthUHistoryIndexRouteImport
+      parentRoute: typeof AuthUHistoryRoute
+    }
+    '/_auth/u/history/events': {
+      id: '/_auth/u/history/events'
+      path: '/events'
+      fullPath: '/u/history/events'
+      preLoaderRoute: typeof AuthUHistoryEventsRouteImport
+      parentRoute: typeof AuthUHistoryRoute
+    }
+    '/_auth/u/history/profiles': {
+      id: '/_auth/u/history/profiles'
+      path: '/profiles'
+      fullPath: '/u/history/profiles'
+      preLoaderRoute: typeof AuthUHistoryProfilesRouteImport
+      parentRoute: typeof AuthUHistoryRoute
+    }
+    '/_auth/u/history/videos': {
+      id: '/_auth/u/history/videos'
+      path: '/videos'
+      fullPath: '/u/history/videos'
+      preLoaderRoute: typeof AuthUHistoryVideosRouteImport
+      parentRoute: typeof AuthUHistoryRoute
+    }
+    '/_auth/u/organizer/': {
+      id: '/_auth/u/organizer/'
+      path: '/'
+      fullPath: '/u/organizer/'
+      preLoaderRoute: typeof AuthUOrganizerIndexRouteImport
       parentRoute: typeof AuthUOrganizerRoute
     }
-    '/_auth/events/organizers/$slug/manage': {
-      id: '/_auth/events/organizers/$slug/manage'
-      path: '/events/organizers/$slug/manage'
-      fullPath: '/events/organizers/$slug/manage'
-      preLoaderRoute: typeof AuthEventsOrganizersSlugManageRouteImport
-      parentRoute: typeof AuthRouteRoute
+    '/_auth/u/organizer/events': {
+      id: '/_auth/u/organizer/events'
+      path: '/events'
+      fullPath: '/u/organizer/events'
+      preLoaderRoute: typeof AuthUOrganizerEventsRouteImport
+      parentRoute: typeof AuthUOrganizerRoute
+    }
+    '/_auth/u/organizer/organizations': {
+      id: '/_auth/u/organizer/organizations'
+      path: '/organizations'
+      fullPath: '/u/organizer/organizations'
+      preLoaderRoute: typeof AuthUOrganizerOrganizationsRouteImport
+      parentRoute: typeof AuthUOrganizerRoute
+    }
+    '/_auth/u/profile/': {
+      id: '/_auth/u/profile/'
+      path: '/profile'
+      fullPath: '/u/profile/'
+      preLoaderRoute: typeof AuthUProfileIndexRouteImport
+      parentRoute: typeof AuthURoute
+    }
+    '/_auth/u/profile/analytics': {
+      id: '/_auth/u/profile/analytics'
+      path: '/profile/analytics'
+      fullPath: '/u/profile/analytics'
+      preLoaderRoute: typeof AuthUProfileAnalyticsRouteImport
+      parentRoute: typeof AuthURoute
+    }
+    '/_auth/u/profile/earn': {
+      id: '/_auth/u/profile/earn'
+      path: '/profile/earn'
+      fullPath: '/u/profile/earn'
+      preLoaderRoute: typeof AuthUProfileEarnRouteImport
+      parentRoute: typeof AuthURoute
+    }
+    '/_auth/u/profile/me': {
+      id: '/_auth/u/profile/me'
+      path: '/profile/me'
+      fullPath: '/u/profile/me'
+      preLoaderRoute: typeof AuthUProfileMeRouteImport
+      parentRoute: typeof AuthURoute
+    }
+    '/_auth/u/profile/my-rallycasts': {
+      id: '/_auth/u/profile/my-rallycasts'
+      path: '/profile/my-rallycasts'
+      fullPath: '/u/profile/my-rallycasts'
+      preLoaderRoute: typeof AuthUProfileMyRallycastsRouteImport
+      parentRoute: typeof AuthURoute
+    }
+    '/_auth/u/studio/': {
+      id: '/_auth/u/studio/'
+      path: '/studio'
+      fullPath: '/u/studio/'
+      preLoaderRoute: typeof AuthUStudioIndexRouteImport
+      parentRoute: typeof AuthURoute
+    }
+    '/_auth/u/studio/clips': {
+      id: '/_auth/u/studio/clips'
+      path: '/studio/clips'
+      fullPath: '/u/studio/clips'
+      preLoaderRoute: typeof AuthUStudioClipsRouteImport
+      parentRoute: typeof AuthURoute
+    }
+    '/_auth/u/studio/live': {
+      id: '/_auth/u/studio/live'
+      path: '/studio/live'
+      fullPath: '/u/studio/live'
+      preLoaderRoute: typeof AuthUStudioLiveRouteImport
+      parentRoute: typeof AuthURoute
+    }
+    '/_auth/u/studio/upload': {
+      id: '/_auth/u/studio/upload'
+      path: '/studio/upload'
+      fullPath: '/u/studio/upload'
+      preLoaderRoute: typeof AuthUStudioUploadRouteImport
+      parentRoute: typeof AuthURoute
+    }
+    '/_auth/u/videos/': {
+      id: '/_auth/u/videos/'
+      path: '/'
+      fullPath: '/u/videos/'
+      preLoaderRoute: typeof AuthUVideosIndexRouteImport
+      parentRoute: typeof AuthUVideosRoute
+    }
+    '/_auth/u/videos/clips': {
+      id: '/_auth/u/videos/clips'
+      path: '/clips'
+      fullPath: '/u/videos/clips'
+      preLoaderRoute: typeof AuthUVideosClipsRouteImport
+      parentRoute: typeof AuthUVideosRoute
+    }
+    '/_auth/u/videos/live': {
+      id: '/_auth/u/videos/live'
+      path: '/live'
+      fullPath: '/u/videos/live'
+      preLoaderRoute: typeof AuthUVideosLiveRouteImport
+      parentRoute: typeof AuthUVideosRoute
+    }
+    '/_auth/u/videos/me': {
+      id: '/_auth/u/videos/me'
+      path: '/me'
+      fullPath: '/u/videos/me'
+      preLoaderRoute: typeof AuthUVideosMeRouteImport
+      parentRoute: typeof AuthUVideosRoute
     }
     '/_auth/events/hosts/$slug/manage': {
       id: '/_auth/events/hosts/$slug/manage'
@@ -1652,11 +1631,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthEventsHostsSlugManageRouteImport
       parentRoute: typeof AuthRouteRoute
     }
-    '/_auth/u/studio/videos/$id_/clips': {
-      id: '/_auth/u/studio/videos/$id_/clips'
-      path: '/studio/videos/$id/clips'
-      fullPath: '/u/studio/videos/$id/clips'
-      preLoaderRoute: typeof AuthUStudioVideosIdClipsRouteImport
+    '/_auth/events/organizers/$slug/manage': {
+      id: '/_auth/events/organizers/$slug/manage'
+      path: '/events/organizers/$slug/manage'
+      fullPath: '/events/organizers/$slug/manage'
+      preLoaderRoute: typeof AuthEventsOrganizersSlugManageRouteImport
+      parentRoute: typeof AuthRouteRoute
+    }
+    '/_auth/u/organizer/organizations_/$slug': {
+      id: '/_auth/u/organizer/organizations_/$slug'
+      path: '/organizations/$slug'
+      fullPath: '/u/organizer/organizations/$slug'
+      preLoaderRoute: typeof AuthUOrganizerOrganizationsSlugRouteImport
+      parentRoute: typeof AuthUOrganizerRoute
+    }
+    '/_auth/u/studio/videos/$id': {
+      id: '/_auth/u/studio/videos/$id'
+      path: '/studio/videos/$id'
+      fullPath: '/u/studio/videos/$id'
+      preLoaderRoute: typeof AuthUStudioVideosIdRouteImport
       parentRoute: typeof AuthURoute
     }
     '/_auth/u/organizer/organizations_/$slug_/team': {
@@ -1665,6 +1658,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/u/organizer/organizations/$slug/team'
       preLoaderRoute: typeof AuthUOrganizerOrganizationsSlugTeamRouteImport
       parentRoute: typeof AuthUOrganizerRoute
+    }
+    '/_auth/u/studio/videos/$id_/clips': {
+      id: '/_auth/u/studio/videos/$id_/clips'
+      path: '/studio/videos/$id/clips'
+      fullPath: '/u/studio/videos/$id/clips'
+      preLoaderRoute: typeof AuthUStudioVideosIdClipsRouteImport
+      parentRoute: typeof AuthURoute
     }
   }
 }
