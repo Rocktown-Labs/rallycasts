@@ -26,10 +26,10 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.16.14",
+    "@cloudflare/vitest-pool-workers": "^0.22.0",
     "@cloudflare/workers-types": "catalog:",
     "@rallycaststv/config": "workspace:*",
-    "@types/node": "^22.13.14",
+    "@types/node": "^26.6.2",
     "alchemy": "catalog:",
     "tsdown": "^0.21.9",
     "typescript": "catalog:",
