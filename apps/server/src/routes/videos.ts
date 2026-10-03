@@ -36,6 +36,7 @@ import {
   DEFAULT_SHOWCASE_VIDEOS,
   ensureShowcaseVideoInDb,
 } from "../lib/showcase-videos";
+import { extractVideoUuid, slugifyVideoTitle } from "../lib/slugs";
 import type { AppEnv } from "../lib/types";
 import { requireAuth } from "../middleware/auth";
 import { requireVerifiedAuth } from "../middleware/security";
@@ -278,6 +279,55 @@ const toPublicResolvedVideo = (
   ...toPublicVideo(record),
   venue: record.venue ? toPublicVenue(record.venue) : record.venue,
 });
+
+/**
+ * Resolve a video id that may arrive as a raw UUID, a human-readable slug
+ * (`<title-slug>-<uuid>`), or a bare title slug. Raw ids win first, then the
+ * slug's embedded UUID, then a title-slug match over recent videos.
+ */
+const resolveVideoId = async (
+  db: ReturnType<typeof createDb>,
+  idOrSlug: string
+): Promise<string> => {
+  const [direct] = await db
+    .select({ id: video.id })
+    .from(video)
+    .where(and(eq(video.id, idOrSlug), ne(video.status, "deleted")))
+    .limit(1);
+
+  if (direct) {
+    return direct.id;
+  }
+
+  const embeddedUuid = extractVideoUuid(idOrSlug);
+  if (embeddedUuid && embeddedUuid !== idOrSlug) {
+    const [byUuid] = await db
+      .select({ id: video.id })
+      .from(video)
+      .where(and(eq(video.id, embeddedUuid), ne(video.status, "deleted")))
+      .limit(1);
+    if (byUuid) {
+      return byUuid.id;
+    }
+  }
+
+  // Bare title slug: match against recent videos. Bounded scan of the
+  // newest rows; misses fall through and 404 on the direct lookup below.
+  const normalized = slugifyVideoTitle(idOrSlug);
+  if (!normalized) {
+    return idOrSlug;
+  }
+  const candidates = await db
+    .select({ id: video.id, title: video.title })
+    .from(video)
+    .where(ne(video.status, "deleted"))
+    .orderBy(desc(videoSortTimestamp))
+    .limit(100);
+  const matched = candidates.find(
+    (cand) => slugifyVideoTitle(cand.title) === normalized
+  );
+  return matched?.id ?? idOrSlug;
+};
 
 export const videosRouter = new Hono<AppEnv>()
   .get("/", async (c) => {
@@ -774,7 +824,7 @@ export const videosRouter = new Hono<AppEnv>()
   )
   .get("/:id", async (c) => {
     const db = createDb(c.env.DB);
-    const id = c.req.param("id");
+    const id = await resolveVideoId(db, c.req.param("id"));
 
     await ensureShowcaseVideoInDb(db, id);
 

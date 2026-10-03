@@ -24,6 +24,8 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { getVideoSlug } from "@/lib/hooks";
+
 export interface VideoCardData {
   description?: string | null;
   durationSeconds?: number | null;
@@ -268,7 +270,7 @@ function VideoThumbnail({
   return (
     <Link
       to="/videos/$id"
-      params={{ id: video.id }}
+      params={{ id: getVideoSlug(video) }}
       className="relative aspect-video overflow-hidden rounded-xl border border-border bg-muted cursor-pointer block"
     >
       {imageUrl ? (
@@ -353,7 +355,7 @@ export function VideoCard({ video }: { video: VideoCardData }) {
         <div className="flex-1 min-w-0">
           <Link
             to="/videos/$id"
-            params={{ id: video.id }}
+            params={{ id: getVideoSlug(video) }}
             className="block text-sm font-semibold line-clamp-2 leading-snug group-hover:text-primary transition-colors hover:no-underline cursor-pointer"
           >
             {video.title}
@@ -722,7 +724,7 @@ export function RallyClipCard({ video }: { video: VideoCardData }) {
     <article className="group relative flex flex-col w-48 sm:w-56 shrink-0 snap-start overflow-hidden rounded-2xl border border-border/60 bg-card shadow-xs transition-all duration-300 hover:border-primary/50 hover:shadow-md cursor-pointer">
       <Link
         to="/videos/$id"
-        params={{ id: video.id }}
+        params={{ id: getVideoSlug(video) }}
         className="relative aspect-[9/16] w-full overflow-hidden bg-slate-950 block"
       >
         {imageUrl ? (

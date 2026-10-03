@@ -5,6 +5,7 @@ import { BadgeCheck, Building2, Calendar, MapPin, Users } from "lucide-react";
 
 import { apiClient } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
+import { getVideoSlug } from "@/lib/hooks";
 import { readApiJson } from "@/lib/hooks/api";
 
 export const Route = createFileRoute("/organizers/$slug")({
@@ -93,7 +94,7 @@ export function OrganizationProfilePage({ slug }: { slug: string }) {
             <Link
               className="rounded-xl border bg-card p-5 hover:border-primary/50"
               key={item.id}
-              params={{ id: item.id }}
+              params={{ id: getVideoSlug(item) }}
               to="/videos/$id"
             >
               <p className="font-bold">{item.title}</p>

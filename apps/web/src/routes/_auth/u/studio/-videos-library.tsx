@@ -5,6 +5,7 @@ import { Clock3, Radio, Scissors, Video } from "lucide-react";
 
 import { EmptyState } from "@/components/rally/cards";
 import { myVideosCollection, useLiveQuery } from "@/lib/collections";
+import { getVideoSlug } from "@/lib/hooks";
 
 type VideosSection = "clips" | "live" | "videos";
 
@@ -139,7 +140,7 @@ export function VideosLibrary({
                   </Button>
                 </Link>
                 {video.status === "ready" && video.visibility === "public" ? (
-                  <Link params={{ id: video.id }} to="/videos/$id">
+                  <Link params={{ id: getVideoSlug(video) }} to="/videos/$id">
                     <Button className="rounded-lg" size="sm" variant="ghost">
                       View
                     </Button>

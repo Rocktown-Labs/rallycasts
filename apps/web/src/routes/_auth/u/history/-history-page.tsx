@@ -4,7 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { Calendar, Eye, User, Video } from "lucide-react";
 
 import { EmptyState } from "@/components/rally/cards";
-import { useEvents, useFriends, useMyVideos } from "@/lib/hooks";
+import { getVideoSlug, useEvents, useFriends, useMyVideos } from "@/lib/hooks";
 
 type HistorySection = "events" | "profiles" | "videos";
 
@@ -92,7 +92,7 @@ const VideosHistory = () => {
                 : `Created ${new Date(video.createdAt).toLocaleDateString()}`}
             </p>
           </div>
-          <Link params={{ id: video.id }} to="/videos/$id">
+          <Link params={{ id: getVideoSlug(video) }} to="/videos/$id">
             <Button className="rounded-md text-xs" variant="outline">
               <Eye className="size-4" />
               Watch

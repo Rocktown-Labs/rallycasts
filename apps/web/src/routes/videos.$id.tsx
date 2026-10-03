@@ -32,6 +32,7 @@ import {
   useRecordVideoView,
   useShareEntity,
   useUnlikeVideo,
+  getVideoSlug,
   useVideo,
   useVideoComments,
   useVideoSocial,
@@ -806,7 +807,7 @@ function VideoSidebar({ otherVideos }: VideoSidebarProps) {
               <Link
                 key={vid.id}
                 to="/videos/$id"
-                params={{ id: vid.id }}
+                params={{ id: getVideoSlug(vid) }}
                 className="flex gap-3 group/rec block cursor-pointer"
               >
                 <div className="relative h-20 w-32 bg-muted rounded-lg overflow-hidden shrink-0 border border-border/50">

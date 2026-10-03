@@ -265,3 +265,26 @@ export const usePinVideoComment = (videoId: string) => {
     },
   });
 };
+
+const slugifyTitle = (text: string): string =>
+  text
+    .toLowerCase()
+    .trim()
+    .replaceAll(/[^a-z0-9]+/gu, "-")
+    .replaceAll(/^-+|-+$/gu, "");
+
+/**
+ * Human-readable URL slug for a video: `<slugified-title>-<id>`. The id
+ * suffix keeps links unique and lets the server resolve them directly.
+ * Videos without a title (and demo videos) keep their raw id.
+ */
+export const getVideoSlug = (video: {
+  id: string;
+  title?: null | string;
+}): string => {
+  if (!video.title || video.id.startsWith("demo-video-")) {
+    return video.id;
+  }
+  const slug = slugifyTitle(video.title);
+  return slug ? `${slug}-${video.id}` : video.id;
+};
