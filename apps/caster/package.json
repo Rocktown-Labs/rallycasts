@@ -55,7 +55,7 @@
   },
   "devDependencies": {
     "@rallycaststv/config": "workspace:*",
-    "@types/node": "^25.9.1",
+    "@types/node": "^26.6.2",
     "@types/react": "~19.2.14",
     "typescript": "catalog:"
   }
