@@ -11,7 +11,7 @@ import { Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { authClient } from "@/lib/auth-client";
-import { useSearch as useEntitySearch } from "@/lib/hooks";
+import { getVideoSlug, useSearch as useEntitySearch } from "@/lib/hooks";
 import type { SearchEntity } from "@/lib/hooks";
 
 const filters = [
@@ -122,7 +122,7 @@ export default function SearchForm() {
               {data.videos.slice(0, 3).map((video) => (
                 <Link
                   key={video.id}
-                  params={{ id: video.id }}
+                  params={{ id: getVideoSlug(video) }}
                   to="/videos/$id"
                   className="rounded-md px-3 py-2 text-sm hover:bg-muted"
                 >

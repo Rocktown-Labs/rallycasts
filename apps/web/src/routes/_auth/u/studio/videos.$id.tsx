@@ -25,6 +25,7 @@ import { toast } from "sonner";
 
 import { apiClient } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
+import { getVideoSlug } from "@/lib/hooks";
 import { readApiJson } from "@/lib/hooks/api";
 import { useVideoUploadState } from "@/lib/video-upload-manager";
 
@@ -100,6 +101,7 @@ function VideoStudioPage() {
     refetchInterval: 2500,
   });
   const video = videoQuery.data?.video;
+  const videoSlug = getVideoSlug({ id, title: video?.title });
   const playbackQuery = useQuery({
     enabled: Boolean(video && isPublishableVideo(video)),
     queryFn: () =>
@@ -290,7 +292,7 @@ function VideoStudioPage() {
       publish: true,
       visibility: targetVisibility,
     });
-    setPublishedVideoUrl(`${window.location.origin}/videos/${id}`);
+    setPublishedVideoUrl(`${window.location.origin}/videos/${videoSlug}`);
     setShowSuccessModal(true);
     toast.success("Video published!");
   };
@@ -334,7 +336,7 @@ function VideoStudioPage() {
                 className="rounded-lg"
                 onClick={() => {
                   setPublishedVideoUrl(
-                    `${window.location.origin}/videos/${id}`
+                    `${window.location.origin}/videos/${videoSlug}`
                   );
                   setShowSuccessModal(true);
                 }}
@@ -348,7 +350,7 @@ function VideoStudioPage() {
                   buttonVariants({ variant: "default" }),
                   "rounded-lg"
                 )}
-                params={{ id }}
+                params={{ id: videoSlug }}
                 to="/videos/$id"
               >
                 <ExternalLink className="size-4" /> View video
@@ -710,7 +712,7 @@ function VideoStudioPage() {
                     readOnly
                     value={
                       publishedVideoUrl ||
-                      `${window.location.origin}/videos/${id}`
+                      `${window.location.origin}/videos/${videoSlug}`
                     }
                   />
                   <Button
@@ -718,7 +720,7 @@ function VideoStudioPage() {
                     onClick={async () => {
                       const shareUrl =
                         publishedVideoUrl ||
-                        `${window.location.origin}/videos/${id}`;
+                        `${window.location.origin}/videos/${videoSlug}`;
                       await navigator.clipboard.writeText(shareUrl);
                       setHasCopied(true);
                       toast.success("Link copied to clipboard!");
@@ -755,7 +757,7 @@ function VideoStudioPage() {
                   buttonVariants({ variant: "default" }),
                   "rounded-lg"
                 )}
-                params={{ id }}
+                params={{ id: videoSlug }}
                 to="/videos/$id"
               >
                 <ExternalLink className="size-4" /> Watch Video

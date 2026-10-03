@@ -1,3 +1,4 @@
+import { buildVideoSlug } from "./slugs";
 import { createVenueSlug } from "./venues";
 
 interface VenueInternalFields {
@@ -25,6 +26,7 @@ export const toPublicVenue = <T extends VenueInternalFields>(record: T) => {
 
 interface VideoInternalFields {
   editRecipe: unknown;
+  id: string;
   muxAssetId: unknown;
   muxPlaybackId: unknown;
   muxPlaybackPolicy: unknown;
@@ -33,6 +35,7 @@ interface VideoInternalFields {
   r2Key: unknown;
   thumbnailTimeSeconds: unknown;
   thumbnailUrl: unknown;
+  title?: null | string;
 }
 
 /** The fallback poster frame Mux serves when no custom thumbnail is set. */
@@ -75,6 +78,7 @@ export const toPublicVideo = <T extends VideoInternalFields>(record: T) => {
 
   return {
     ...publicRecord,
+    slug: buildVideoSlug(record),
     ...(hasPublicPlayback
       ? {
           muxPlaybackId,

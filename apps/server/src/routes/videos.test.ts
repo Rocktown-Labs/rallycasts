@@ -714,4 +714,61 @@ describe("videos API", () => {
     };
     expect(updatedVideo.publishedAt).toBeTruthy();
   });
+
+  it("resolves videos by readable slug and keeps UUID URLs working", async () => {
+    const owner = await signUp("Slug Video Owner");
+    const videoId = crypto.randomUUID();
+
+    await env.DB.prepare(
+      "insert into video (id, owner_user_id, title, status, visibility) values (?, ?, ?, 'ready', 'public')"
+    )
+      .bind(videoId, owner.id, "LRAC Championship Final")
+      .run();
+
+    // Compound slug: <title-slug>-<uuid>
+    const slugResponse = await app.request(
+      `/api/v1/videos/lrac-championship-final-${videoId}`,
+      {},
+      env
+    );
+    const slugBody = (await slugResponse.json()) as {
+      video?: { id: string; slug: string; title: string };
+    };
+    expect(slugResponse.status).toBe(200);
+    expect(slugBody.video?.id).toBe(videoId);
+    expect(slugBody.video?.title).toBe("LRAC Championship Final");
+    expect(slugBody.video?.slug).toBe(`lrac-championship-final-${videoId}`);
+
+    // Bare title slug resolves through the recent-videos fallback.
+    const titleSlugResponse = await app.request(
+      "/api/v1/videos/lrac-championship-final",
+      {},
+      env
+    );
+    const titleSlugBody = (await titleSlugResponse.json()) as {
+      video?: { id: string };
+    };
+    expect(titleSlugResponse.status).toBe(200);
+    expect(titleSlugBody.video?.id).toBe(videoId);
+
+    // Raw UUIDs keep working forever: existing shares must never break.
+    const uuidResponse = await app.request(
+      `/api/v1/videos/${videoId}`,
+      {},
+      env
+    );
+    const uuidBody = (await uuidResponse.json()) as {
+      video?: { slug: string };
+    };
+    expect(uuidResponse.status).toBe(200);
+    expect(uuidBody.video?.slug).toBe(`lrac-championship-final-${videoId}`);
+
+    // Unknown slugs 404.
+    const missingResponse = await app.request(
+      "/api/v1/videos/no-such-video-anywhere",
+      {},
+      env
+    );
+    expect(missingResponse.status).toBe(404);
+  });
 });
