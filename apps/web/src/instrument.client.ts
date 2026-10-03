@@ -8,7 +8,6 @@ Sentry.init({
   },
 
   dsn: env.VITE_SENTRY_DSN,
-  enableLogs: Boolean(env.VITE_SENTRY_DSN),
   enabled: Boolean(env.VITE_SENTRY_DSN),
 
   integrations: [

@@ -10,7 +10,6 @@ import {
 export default Sentry.withSentry(
   (env?: Record<string, unknown>) => ({
     dsn: env?.SENTRY_DSN as string | undefined,
-    enableLogs: Boolean(env?.SENTRY_DSN),
     tracesSampleRate: 0.1,
   }),
   createServerEntry(
