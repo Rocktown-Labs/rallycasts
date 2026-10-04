@@ -46,6 +46,7 @@ const notifyParticipants = async (
   const participants = await getEventParticipants(db, eventId);
 
   for (const participant of participants) {
+    // oxlint-disable-next-line eslint/no-await-in-loop -- notification fan-out / queue acking; sequential by design
     await createNotification(db, {
       ...input,
       userId: participant.userId,
@@ -155,6 +156,7 @@ export default {
   ): Promise<void> {
     for (const message of batch.messages) {
       try {
+        // oxlint-disable-next-line eslint/no-await-in-loop -- notification fan-out / queue acking; sequential by design
         await processEventActivity(message.body, env);
         message.ack();
       } catch (error) {

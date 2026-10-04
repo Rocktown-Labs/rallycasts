@@ -14,8 +14,8 @@ export const CourtNotFound = ({
   <div className="relative flex min-h-[calc(100vh-var(--header-height,3.5rem))] w-full flex-col items-center justify-center overflow-hidden px-4 py-16 text-center">
     {/* Background glow effects */}
     <div className="pointer-events-none absolute inset-0 -z-10 flex items-center justify-center">
-      <div className="size-96 rounded-full bg-primary/15 blur-3xl" />
-      <div className="absolute size-72 rounded-full bg-brand-yellow/10 blur-2xl" />
+      <div className="bg-primary/15 size-96 rounded-full blur-3xl" />
+      <div className="bg-brand-yellow/10 absolute size-72 rounded-full blur-2xl" />
     </div>
 
     <div className="relative mx-auto flex max-w-xl flex-col items-center">
@@ -160,23 +160,23 @@ export const CourtNotFound = ({
       </div>
 
       {/* 404 Status Pill */}
-      <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-brand-yellow/30 bg-brand-yellow/10 px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-brand-yellow">
-        <span className="size-2 rounded-full bg-brand-yellow animate-pulse" />
+      <div className="border-brand-yellow/30 bg-brand-yellow/10 text-brand-yellow mb-4 inline-flex items-center gap-2 rounded-full border px-3.5 py-1 text-xs font-semibold tracking-wider uppercase">
+        <span className="bg-brand-yellow size-2 animate-pulse rounded-full" />
         404 &bull; Out of Bounds
       </div>
 
       {/* Headlines */}
-      <h1 className="mb-3 text-3xl font-black tracking-tight text-foreground sm:text-4xl md:text-5xl">
+      <h1 className="text-foreground mb-3 text-3xl font-black tracking-tight sm:text-4xl md:text-5xl">
         {title}
       </h1>
-      <p className="mb-8 max-w-md text-sm text-muted-foreground sm:text-base leading-relaxed">
+      <p className="text-muted-foreground mb-8 max-w-md text-sm leading-relaxed sm:text-base">
         {description}
       </p>
 
       {/* Action Buttons */}
       <div className="flex flex-wrap items-center justify-center gap-3">
         <Link to="/">
-          <Button className="h-10 rounded-lg bg-primary px-5 font-semibold text-brand-yellow hover:bg-primary/90 shadow-lg shadow-primary/20">
+          <Button className="bg-primary text-brand-yellow hover:bg-primary/90 shadow-primary/20 h-10 rounded-lg px-5 font-semibold shadow-lg">
             <Home className="mr-2 size-4" />
             Back to Home Court
           </Button>
@@ -184,46 +184,46 @@ export const CourtNotFound = ({
 
         <Link to="/events">
           <Button
-            className="h-10 rounded-lg border-border/80 px-4 font-medium hover:bg-accent/10"
+            className="border-border/80 hover:bg-accent/10 h-10 rounded-lg px-4 font-medium"
             variant="outline"
           >
-            <Calendar className="mr-2 size-4 text-primary" />
+            <Calendar className="text-primary mr-2 size-4" />
             Find Events
           </Button>
         </Link>
 
         <Link to="/players">
           <Button
-            className="h-10 rounded-lg border-border/80 px-4 font-medium hover:bg-accent/10"
+            className="border-border/80 hover:bg-accent/10 h-10 rounded-lg px-4 font-medium"
             variant="outline"
           >
-            <Users className="mr-2 size-4 text-brand-yellow" />
+            <Users className="text-brand-yellow mr-2 size-4" />
             Find Players
           </Button>
         </Link>
       </div>
 
       {/* Helpful links card */}
-      <div className="mt-12 w-full rounded-xl border border-border/50 bg-card/60 p-4 backdrop-blur-sm">
-        <div className="flex flex-wrap items-center justify-center gap-6 text-xs text-muted-foreground">
+      <div className="border-border/50 bg-card/60 mt-12 w-full rounded-xl border p-4 backdrop-blur-sm">
+        <div className="text-muted-foreground flex flex-wrap items-center justify-center gap-6 text-xs">
           <Link
-            className="flex items-center gap-1.5 transition-colors hover:text-foreground"
+            className="hover:text-foreground flex items-center gap-1.5 transition-colors"
             to="/events"
           >
-            <Compass className="size-3.5 text-primary" />
+            <Compass className="text-primary size-3.5" />
             Explore Tournaments
           </Link>
           <span className="text-border">&bull;</span>
           <Link
-            className="flex items-center gap-1.5 transition-colors hover:text-foreground"
+            className="hover:text-foreground flex items-center gap-1.5 transition-colors"
             to="/events/hosts"
           >
-            <Play className="size-3.5 text-brand-yellow" />
+            <Play className="text-brand-yellow size-3.5" />
             Tournament Hosts
           </Link>
           <span className="text-border">&bull;</span>
           <button
-            className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
+            className="hover:text-foreground inline-flex items-center gap-1.5 transition-colors"
             onClick={() => window.history.back()}
             type="button"
           >

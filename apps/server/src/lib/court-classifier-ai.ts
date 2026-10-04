@@ -36,7 +36,7 @@ export function parseGemmaJsonResponse<T>(
   try {
     return JSON.parse(cleaned) as T;
   } catch {
-    const jsonMatch = cleaned.match(/(\{[\s\S]*\}|\[[\s\S]*\])/u);
+    const jsonMatch = cleaned.match(/(?<json>\{[\s\S]*\}|\[[\s\S]*\])/u);
     if (jsonMatch?.[0]) {
       try {
         return JSON.parse(jsonMatch[0]) as T;

@@ -71,15 +71,15 @@ function HeroSection({ hasOffers }: { hasOffers: boolean }) {
   const storefrontUrl = env.VITE_FOURTHWALL_STOREFRONT_URL;
 
   return (
-    <section className="relative overflow-hidden rounded-2xl bg-primary p-6 text-white shadow-xl sm:p-8">
+    <section className="bg-primary relative overflow-hidden rounded-2xl p-6 text-white shadow-xl sm:p-8">
       <div className="relative z-10 max-w-2xl space-y-2">
-        <div className="inline-flex items-center gap-1.5 rounded-md bg-secondary/20 px-2.5 py-1 text-xs font-semibold text-[#bcdf21]">
+        <div className="bg-secondary/20 inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold text-[#bcdf21]">
           <span>RallyCasts supply</span>
         </div>
-        <h1 className="text-3xl font-logo sm:text-4xl tracking-wide lowercase">
+        <h1 className="font-logo text-3xl tracking-wide lowercase sm:text-4xl">
           shop
         </h1>
-        <p className="text-sm text-gray-200 sm:text-base leading-relaxed">
+        <p className="text-sm leading-relaxed text-gray-200 sm:text-base">
           Merch for the people playing, filming, and building pickleball
           culture. Orders are fulfilled through our connected commerce partner,
           so RallyCasts never stores card details.
@@ -140,7 +140,7 @@ function ShopSection({ selectedSlug }: { selectedSlug: string }) {
     filterContent = <FilterSkeleton />;
   } else if (collectionsError) {
     filterContent = (
-      <p className="text-sm text-destructive">
+      <p className="text-destructive text-sm">
         Couldn’t load collections. Try reloading the page.
       </p>
     );
@@ -157,12 +157,12 @@ function ShopSection({ selectedSlug }: { selectedSlug: string }) {
     <section id="shop-gallery">
       <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">
+          <p className="text-primary text-xs font-bold tracking-[0.18em] uppercase">
             The shop
           </p>
           <h2 className="mt-1 text-2xl font-black">Built for court days</h2>
         </div>
-        <ShoppingBag className="size-6 text-primary" />
+        <ShoppingBag className="text-primary size-6" />
       </div>
 
       {filterContent}
@@ -215,7 +215,7 @@ function CollectionFilter({
               "rounded-lg transition-colors",
               active
                 ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                : "border bg-background text-foreground hover:bg-muted"
+                : "bg-background text-foreground hover:bg-muted border"
             )}
             key={collection.slug}
             onClick={() => selectCollection(collection.slug)}
@@ -272,8 +272,8 @@ function ProductGallery({ selectedSlug }: { selectedSlug: string }) {
   if (error) {
     return (
       <div className="grid place-items-center rounded-2xl border border-dashed py-16 text-center">
-        <Package className="size-8 text-muted-foreground" />
-        <p className="mt-3 text-sm text-muted-foreground">
+        <Package className="text-muted-foreground size-8" />
+        <p className="text-muted-foreground mt-3 text-sm">
           Couldn’t load products. Try again in a moment.
         </p>
       </div>
@@ -283,8 +283,8 @@ function ProductGallery({ selectedSlug }: { selectedSlug: string }) {
   if (offers.length === 0) {
     return (
       <div className="grid place-items-center rounded-2xl border border-dashed py-16 text-center">
-        <Package className="size-8 text-muted-foreground" />
-        <p className="mt-3 text-sm text-muted-foreground">
+        <Package className="text-muted-foreground size-8" />
+        <p className="text-muted-foreground mt-3 text-sm">
           No products in this collection yet — the next drop is on its way.
         </p>
       </div>
@@ -309,7 +309,7 @@ function ProductSkeleton({ count = 6 }: { count?: number }) {
     <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
       {Array.from({ length: count }).map((_, index) => (
         <div
-          className="flex flex-col overflow-hidden rounded-2xl border bg-card"
+          className="bg-card flex flex-col overflow-hidden rounded-2xl border"
           key={index}
         >
           <Skeleton className="aspect-[4/3] w-full" />
@@ -329,17 +329,17 @@ function PreviewGrid() {
     <div className="grid gap-5 md:grid-cols-3">
       {merchPreview.map((item, index) => (
         <article
-          className="overflow-hidden rounded-2xl border bg-card"
+          className="bg-card overflow-hidden rounded-2xl border"
           key={item.label}
         >
           <div className="grid aspect-[4/3] place-items-center bg-[linear-gradient(145deg,hsl(var(--muted)),hsl(142_100%_18%/.2))]">
-            <span className="font-logo text-5xl text-primary/70">
+            <span className="font-logo text-primary/70 text-5xl">
               {String(index + 1).padStart(2, "0")}
             </span>
           </div>
           <div className="p-5">
             <h3 className="font-bold">{item.label}</h3>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            <p className="text-muted-foreground mt-2 text-sm leading-6">
               {item.description}
             </p>
           </div>
@@ -389,7 +389,7 @@ function ProductCard({ offer }: { offer: FwOffer }) {
   }, [offer, selectedVariant]);
 
   return (
-    <article className="flex flex-col overflow-hidden rounded-2xl border bg-card">
+    <article className="bg-card flex flex-col overflow-hidden rounded-2xl border">
       <Link
         aria-label={`${offer.name} details`}
         className="group"
@@ -409,7 +409,7 @@ function ProductCard({ offer }: { offer: FwOffer }) {
           </Link>
         </h3>
         {offer.description ? (
-          <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+          <p className="text-muted-foreground mt-1 line-clamp-2 text-sm">
             {offer.description}
           </p>
         ) : null}
@@ -418,7 +418,7 @@ function ProductCard({ offer }: { offer: FwOffer }) {
             <span className="text-lg font-black">{formatMoney(price)}</span>
           ) : null}
           {selectedVariant?.compareAtPrice ? (
-            <span className="text-sm text-muted-foreground line-through">
+            <span className="text-muted-foreground text-sm line-through">
               {formatMoney(selectedVariant.compareAtPrice)}
             </span>
           ) : null}
@@ -457,7 +457,7 @@ function ProductImage({
   const soldOut = offer.state.type === "SOLD_OUT";
 
   return (
-    <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+    <div className="bg-muted relative aspect-[4/3] overflow-hidden">
       {imageUrl ? (
         <img
           alt={name}
@@ -467,17 +467,17 @@ function ProductImage({
         />
       ) : (
         <div className="grid size-full place-items-center">
-          <Package className="size-10 text-muted-foreground" />
+          <Package className="text-muted-foreground size-10" />
         </div>
       )}
-      <div className="absolute left-3 top-3 flex gap-2">
+      <div className="absolute top-3 left-3 flex gap-2">
         {offer.type === "BUNDLE" ? (
-          <span className="rounded-full bg-primary px-2.5 py-1 text-xs font-bold text-primary-foreground">
+          <span className="bg-primary text-primary-foreground rounded-full px-2.5 py-1 text-xs font-bold">
             Bundle
           </span>
         ) : null}
         {soldOut ? (
-          <span className="rounded-full bg-destructive px-2.5 py-1 text-xs font-bold text-destructive-foreground">
+          <span className="bg-destructive text-destructive-foreground rounded-full px-2.5 py-1 text-xs font-bold">
             Sold out
           </span>
         ) : null}

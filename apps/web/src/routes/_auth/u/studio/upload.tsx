@@ -134,13 +134,13 @@ function StudioUploadPage() {
   return (
     <main className="mx-auto max-w-6xl space-y-8">
       <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
+        <p className="text-primary text-xs font-semibold tracking-[0.22em] uppercase">
           RallyCasts Studio
         </p>
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
           Upload a video
         </h1>
-        <p className="max-w-2xl text-muted-foreground">
+        <p className="text-muted-foreground max-w-2xl">
           Trim it first if you like, then let Mux handle the streaming work
           while you add details, prepare clips, and decide when it goes public.
         </p>
@@ -148,20 +148,20 @@ function StudioUploadPage() {
 
       <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="space-y-5">
-          <div className="rounded-2xl border bg-card p-5 shadow-sm sm:p-8">
+          <div className="bg-card rounded-2xl border p-5 shadow-sm sm:p-8">
             <button
-              className="flex min-h-72 w-full flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-primary/40 bg-primary/5 p-8 text-center transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="border-primary/40 bg-primary/5 hover:bg-primary/10 focus-visible:ring-primary flex min-h-72 w-full flex-col items-center justify-center gap-4 rounded-xl border border-dashed p-8 text-center transition-colors focus-visible:ring-2 focus-visible:outline-none"
               onClick={() => fileInputRef.current?.click()}
               type="button"
             >
-              <span className="grid size-16 place-items-center rounded-full bg-primary text-primary-foreground">
+              <span className="bg-primary text-primary-foreground grid size-16 place-items-center rounded-full">
                 <Upload className="size-7" />
               </span>
               <span>
                 <span className="block text-lg font-bold">
                   {file ? file.name : "Choose your video"}
                 </span>
-                <span className="mt-1 block text-sm text-muted-foreground">
+                <span className="text-muted-foreground mt-1 block text-sm">
                   {file
                     ? `${(file.size / 1024 / 1024).toFixed(1)} MB ready to upload`
                     : "MP4, MOV, WebM, and other common video formats"}
@@ -184,7 +184,7 @@ function StudioUploadPage() {
               </label>
               <input
                 aria-label="Working title"
-                className="h-11 w-full rounded-lg border bg-background px-3 outline-none transition-shadow focus:ring-2 focus:ring-primary"
+                className="bg-background focus:ring-primary h-11 w-full rounded-lg border px-3 transition-shadow outline-none focus:ring-2"
                 id="studio-title"
                 maxLength={160}
                 onChange={(event) => setTitle(event.target.value)}
@@ -194,24 +194,24 @@ function StudioUploadPage() {
             </div>
 
             {isRendering ? (
-              <div className="mt-6 space-y-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
+              <div className="border-primary/30 bg-primary/5 mt-6 space-y-3 rounded-xl border p-4">
                 <div className="flex items-center justify-between gap-3">
                   <span className="flex items-center gap-2 text-sm font-semibold">
-                    <LoaderCircle className="size-4 animate-spin text-primary" />
+                    <LoaderCircle className="text-primary size-4 animate-spin" />
                     Trimming on this device…
                   </span>
-                  <span className="text-sm font-bold text-primary tabular-nums">
+                  <span className="text-primary text-sm font-bold tabular-nums">
                     {Math.round(render.progress * 100)}%
                   </span>
                 </div>
                 <progress
                   aria-label="Edit render progress"
-                  className="h-2 w-full accent-primary"
+                  className="accent-primary h-2 w-full"
                   max={100}
                   value={Math.round(render.progress * 100)}
                 />
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-muted-foreground text-xs">
                     Only the trimmed cut will upload.
                   </p>
                   <Button
@@ -268,12 +268,12 @@ function StudioUploadPage() {
             ],
           ].map(([Icon, heading, copy]) => (
             <div
-              className="rounded-xl border bg-card p-4"
+              className="bg-card rounded-xl border p-4"
               key={String(heading)}
             >
-              <Icon className="size-5 text-primary" />
+              <Icon className="text-primary size-5" />
               <h2 className="mt-3 text-sm font-bold">{String(heading)}</h2>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
                 {String(copy)}
               </p>
             </div>

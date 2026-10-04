@@ -30,10 +30,10 @@ export function OrganizersPage() {
 
   return (
     <main className="mx-auto max-w-7xl space-y-8 px-4 py-6">
-      <section className="rounded-2xl bg-primary p-7 text-white">
+      <section className="bg-primary rounded-2xl p-7 text-white">
         <div className="flex flex-wrap items-end justify-between gap-5">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#bcdf21]">
+            <p className="text-xs font-bold tracking-[0.22em] text-[#bcdf21] uppercase">
               Tournament hosts
             </p>
             <h1 className="mt-2 text-4xl font-black">
@@ -62,23 +62,23 @@ export function OrganizersPage() {
       />
 
       {isLoading ? (
-        <div className="h-52 animate-pulse rounded-xl bg-muted" />
+        <div className="bg-muted h-52 animate-pulse rounded-xl" />
       ) : null}
       {!isLoading && organizations.length === 0 ? (
-        <p className="rounded-2xl border border-dashed p-12 text-center text-sm text-muted-foreground">
+        <p className="text-muted-foreground rounded-2xl border border-dashed p-12 text-center text-sm">
           No hosts found matching your search.
         </p>
       ) : null}
       <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {organizations.map((organization) => (
           <Link
-            className="group rounded-2xl border bg-card p-5 transition hover:border-primary/50 hover:shadow-lg"
+            className="group bg-card hover:border-primary/50 rounded-2xl border p-5 transition hover:shadow-lg"
             key={organization.id}
             params={{ slug: organization.slug }}
             to="/events/hosts/$slug"
           >
             <div className="flex items-start gap-4">
-              <div className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-xl bg-primary/10 text-primary">
+              <div className="bg-primary/10 text-primary grid size-14 shrink-0 place-items-center overflow-hidden rounded-xl">
                 {organization.logoUrl ? (
                   <img
                     alt={`${organization.name} logo`}
@@ -90,13 +90,13 @@ export function OrganizersPage() {
                 )}
               </div>
               <div className="min-w-0">
-                <h2 className="flex items-center gap-1.5 truncate font-bold group-hover:text-primary">
+                <h2 className="group-hover:text-primary flex items-center gap-1.5 truncate font-bold">
                   {organization.name}
                   {organization.isOfficial ? (
                     <BadgeCheck className="size-4 shrink-0 text-[#bcdf21]" />
                   ) : null}
                 </h2>
-                <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                <p className="text-muted-foreground mt-1 flex items-center gap-1 text-xs">
                   <MapPin className="size-3" />
                   {[organization.city, organization.state]
                     .filter(Boolean)
@@ -104,7 +104,7 @@ export function OrganizersPage() {
                 </p>
               </div>
             </div>
-            <p className="mt-4 line-clamp-3 text-sm text-muted-foreground">
+            <p className="text-muted-foreground mt-4 line-clamp-3 text-sm">
               {organization.bio ?? "Tournament and pickleball community host."}
             </p>
           </Link>

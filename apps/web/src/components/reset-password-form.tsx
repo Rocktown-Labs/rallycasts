@@ -13,7 +13,7 @@ import { useForm } from "@tanstack/react-form";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import z from "zod";
+import { z } from "zod";
 
 import { authClient } from "@/lib/auth-client";
 import { getAuthErrorMessage } from "@/lib/auth-errors";
@@ -72,13 +72,13 @@ const ResetPasswordForm = () => {
 
   if (done) {
     return (
-      <div className="mx-auto w-full mt-16 max-w-md p-4 flex flex-col justify-center min-h-[70vh]">
-        <Card className="border border-border bg-card/60 backdrop-blur-md shadow-xl rounded-xl p-2">
-          <CardHeader className="text-center pb-4">
-            <CardTitle className="text-2xl font-bold tracking-tight text-foreground mt-2">
+      <div className="mx-auto mt-16 flex min-h-[70vh] w-full max-w-md flex-col justify-center p-4">
+        <Card className="border-border bg-card/60 rounded-xl border p-2 shadow-xl backdrop-blur-md">
+          <CardHeader className="pb-4 text-center">
+            <CardTitle className="text-foreground mt-2 text-2xl font-bold tracking-tight">
               Password Updated
             </CardTitle>
-            <CardDescription className="text-xs text-muted-foreground">
+            <CardDescription className="text-muted-foreground text-xs">
               Your password has been reset successfully
             </CardDescription>
           </CardHeader>
@@ -90,7 +90,7 @@ const ResetPasswordForm = () => {
                   to: "/login",
                 })
               }
-              className="w-full h-9 text-xs font-semibold rounded-md bg-primary text-brand-yellow hover:bg-primary/95 transition-all shadow-md"
+              className="bg-primary text-brand-yellow hover:bg-primary/95 h-9 w-full rounded-md text-xs font-semibold shadow-md transition-all"
             >
               Sign In
             </Button>
@@ -102,13 +102,13 @@ const ResetPasswordForm = () => {
 
   if (!token) {
     return (
-      <div className="mx-auto w-full mt-16 max-w-md p-4 flex flex-col justify-center min-h-[70vh]">
-        <Card className="border border-border bg-card/60 backdrop-blur-md shadow-xl rounded-xl p-2">
-          <CardHeader className="text-center pb-4">
-            <CardTitle className="text-2xl font-bold tracking-tight text-foreground mt-2">
+      <div className="mx-auto mt-16 flex min-h-[70vh] w-full max-w-md flex-col justify-center p-4">
+        <Card className="border-border bg-card/60 rounded-xl border p-2 shadow-xl backdrop-blur-md">
+          <CardHeader className="pb-4 text-center">
+            <CardTitle className="text-foreground mt-2 text-2xl font-bold tracking-tight">
               Invalid Link
             </CardTitle>
-            <CardDescription className="text-xs text-muted-foreground">
+            <CardDescription className="text-muted-foreground text-xs">
               This password reset link is invalid or has expired
             </CardDescription>
           </CardHeader>
@@ -121,7 +121,7 @@ const ResetPasswordForm = () => {
                 })
               }
               variant="outline"
-              className="w-full h-9 text-xs font-semibold rounded-md"
+              className="h-9 w-full rounded-md text-xs font-semibold"
             >
               Request New Link
             </Button>
@@ -132,16 +132,16 @@ const ResetPasswordForm = () => {
   }
 
   return (
-    <div className="mx-auto w-full mt-16 max-w-md p-4 flex flex-col justify-center min-h-[70vh]">
-      <Card className="border border-border bg-card/60 backdrop-blur-md shadow-xl rounded-xl p-2">
-        <CardHeader className="text-center pb-4">
-          <div className="mx-auto mb-2 flex h-8 w-28 items-center justify-center rounded-full bg-primary text-brand-yellow font-logo text-sm lowercase">
+    <div className="mx-auto mt-16 flex min-h-[70vh] w-full max-w-md flex-col justify-center p-4">
+      <Card className="border-border bg-card/60 rounded-xl border p-2 shadow-xl backdrop-blur-md">
+        <CardHeader className="pb-4 text-center">
+          <div className="bg-primary text-brand-yellow font-logo mx-auto mb-2 flex h-8 w-28 items-center justify-center rounded-full text-sm lowercase">
             rallycasts
           </div>
-          <CardTitle className="text-2xl font-bold tracking-tight text-foreground mt-2">
+          <CardTitle className="text-foreground mt-2 text-2xl font-bold tracking-tight">
             Reset Password
           </CardTitle>
-          <CardDescription className="text-xs text-muted-foreground">
+          <CardDescription className="text-muted-foreground text-xs">
             Enter your new password below
           </CardDescription>
         </CardHeader>
@@ -172,12 +172,12 @@ const ResetPasswordForm = () => {
                       value={field.state.value}
                       onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
-                      className="h-9 text-xs rounded-md bg-background/50 border-muted focus-visible:ring-primary focus-visible:border-primary"
+                      className="bg-background/50 border-muted focus-visible:ring-primary focus-visible:border-primary h-9 rounded-md text-xs"
                     />
                     {field.state.meta.errors.map((error) => (
                       <p
                         key={error?.message}
-                        className="text-[10px] text-destructive font-medium"
+                        className="text-destructive text-[10px] font-medium"
                       >
                         {error?.message}
                       </p>
@@ -205,12 +205,12 @@ const ResetPasswordForm = () => {
                       value={field.state.value}
                       onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
-                      className="h-9 text-xs rounded-md bg-background/50 border-muted focus-visible:ring-primary focus-visible:border-primary"
+                      className="bg-background/50 border-muted focus-visible:ring-primary focus-visible:border-primary h-9 rounded-md text-xs"
                     />
                     {field.state.meta.errors.map((error) => (
                       <p
                         key={error?.message}
-                        className="text-[10px] text-destructive font-medium"
+                        className="text-destructive text-[10px] font-medium"
                       >
                         {error?.message}
                       </p>
@@ -229,7 +229,7 @@ const ResetPasswordForm = () => {
               {({ canSubmit, isSubmitting }) => (
                 <Button
                   type="submit"
-                  className="w-full h-9 mt-2 text-xs font-semibold rounded-md bg-primary text-brand-yellow hover:bg-primary/95 transition-all shadow-md"
+                  className="bg-primary text-brand-yellow hover:bg-primary/95 mt-2 h-9 w-full rounded-md text-xs font-semibold shadow-md transition-all"
                   disabled={
                     !canSubmit || isSubmitting || resetPassword.isPending
                   }

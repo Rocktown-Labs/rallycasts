@@ -321,8 +321,8 @@ function HeroHeaderCard({
   userName: string;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-linear-to-b from-card via-card/90 to-card/60 p-6 sm:p-8 shadow-md">
-      <div className="pointer-events-none absolute -right-16 -top-16 size-72 rounded-full bg-primary/10 blur-3xl" />
+    <div className="border-border/80 from-card via-card/90 to-card/60 relative overflow-hidden rounded-2xl border bg-linear-to-b p-6 shadow-md sm:p-8">
+      <div className="bg-primary/10 pointer-events-none absolute -top-16 -right-16 size-72 rounded-full blur-3xl" />
 
       <DashboardHeader
         accountTier={accountTier}
@@ -461,7 +461,7 @@ function DashboardPage() {
   );
 
   return (
-    <div className="mx-auto max-w-7xl space-y-8 px-4 py-6 sm:px-6 animate-in fade-in duration-300">
+    <div className="animate-in fade-in mx-auto max-w-7xl space-y-8 px-4 py-6 duration-300 sm:px-6">
       <TripPlanningBanner
         browsingLocation={browsingLocation}
         homeLocationLabel={homeLocationLabel}
@@ -544,18 +544,18 @@ function ParksAroundYouSection({
     <section className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Flame className="size-5 text-primary" />
-          <h2 className="text-xl font-bold tracking-tight text-foreground">
+          <Flame className="text-primary size-5" />
+          <h2 className="text-foreground text-xl font-bold tracking-tight">
             Parks Around You
           </h2>
-          <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+          <span className="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-[10px] font-bold">
             {venues.length} parks
           </span>
         </div>
         <Link
           className={cn(
             buttonVariants({ size: "sm", variant: "outline" }),
-            "rounded-lg gap-1 text-xs font-semibold"
+            "gap-1 rounded-lg text-xs font-semibold"
           )}
           search={{ radius: 50, section: "venues" }}
           to="/trending"
@@ -569,7 +569,7 @@ function ParksAroundYouSection({
         <div className="-mx-4 flex gap-4 overflow-hidden px-4 sm:mx-0 sm:px-0">
           {[1, 2, 3].map((idx) => (
             <div
-              className="h-64 w-72 shrink-0 animate-pulse rounded-xl border border-border/60 bg-muted/40"
+              className="border-border/60 bg-muted/40 h-64 w-72 shrink-0 animate-pulse rounded-xl border"
               key={idx}
             />
           ))}
@@ -577,17 +577,17 @@ function ParksAroundYouSection({
       )}
 
       {!isLoading && venues.length === 0 && (
-        <div className="rounded-xl border border-dashed border-border bg-muted/10 p-8 text-center space-y-3">
-          <MapPin className="size-8 text-muted-foreground mx-auto" />
-          <p className="text-sm font-semibold text-foreground">
+        <div className="border-border bg-muted/10 space-y-3 rounded-xl border border-dashed p-8 text-center">
+          <MapPin className="text-muted-foreground mx-auto size-8" />
+          <p className="text-foreground text-sm font-semibold">
             No parks found within 50 miles of {effectiveLocationLabel}
           </p>
-          <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+          <p className="text-muted-foreground mx-auto max-w-sm text-xs">
             Try switching destination cities with the Trip Planner or searching
             nearby municipalities.
           </p>
           <Button
-            className="rounded-lg text-xs font-semibold transition-transform duration-150 ease-out active:scale-97 cursor-pointer"
+            className="cursor-pointer rounded-lg text-xs font-semibold transition-transform duration-150 ease-out active:scale-97"
             onClick={onOpenCityPicker}
             size="sm"
             variant="outline"
@@ -600,7 +600,7 @@ function ParksAroundYouSection({
       {!isLoading && venues.length > 0 && (
         <>
           {hasHomeCourtName && !homeInResults && (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               Your home court{" "}
               <strong className="text-foreground">{homeCourtName}</strong> is
               not showing in this range yet.
@@ -636,25 +636,25 @@ function TripPlanningBanner({
     browsingLocation.label ?? browsingLocation.city ?? "Destination";
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/40 bg-primary/10 p-4 shadow-sm">
+    <div className="border-primary/40 bg-primary/10 flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4 shadow-sm">
       <div className="flex items-center gap-3">
-        <div className="rounded-lg bg-primary p-2 text-primary-foreground">
+        <div className="bg-primary text-primary-foreground rounded-lg p-2">
           <Compass className="size-5" />
         </div>
         <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-primary">
+          <p className="text-primary text-xs font-bold tracking-wider uppercase">
             ✈️ Trip Planning Mode Active
           </p>
-          <p className="text-sm font-semibold text-foreground">
+          <p className="text-foreground text-sm font-semibold">
             Showing courts, tournaments, and players for{" "}
-            <span className="underline decoration-primary">
+            <span className="decoration-primary underline">
               {browsingLocationLabel}
             </span>
           </p>
         </div>
       </div>
       <Button
-        className="rounded-lg gap-1.5 text-xs font-semibold transition-transform duration-150 ease-out active:scale-97 cursor-pointer"
+        className="cursor-pointer gap-1.5 rounded-lg text-xs font-semibold transition-transform duration-150 ease-out active:scale-97"
         onClick={onReset}
         size="sm"
         variant="outline"
@@ -689,35 +689,35 @@ function DashboardHeader({
     <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
       <div className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-primary/15 border border-primary/30 px-3 py-0.5 text-xs font-bold uppercase tracking-wider text-primary">
+          <span className="bg-primary/15 border-primary/30 text-primary rounded-full border px-3 py-0.5 text-xs font-bold tracking-wider uppercase">
             Player Hub
           </span>
-          <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+          <span className="bg-muted text-muted-foreground rounded-full px-2.5 py-0.5 text-xs font-medium">
             Tier:{" "}
             <strong className="text-foreground capitalize">
               {accountTier}
             </strong>
           </span>
           {skillLevel && (
-            <span className="rounded-full bg-brand-yellow/15 border border-brand-yellow/30 px-2.5 py-0.5 text-xs font-semibold text-amber-500 dark:text-brand-yellow flex items-center gap-1">
+            <span className="bg-brand-yellow/15 border-brand-yellow/30 dark:text-brand-yellow flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold text-amber-500">
               <Award className="size-3" />
               {skillLevel}
             </span>
           )}
         </div>
 
-        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-balance text-foreground">
+        <h1 className="text-foreground text-3xl font-extrabold tracking-tight text-balance sm:text-4xl">
           Welcome, {userName}!
         </h1>
 
-        <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-xs sm:text-sm text-muted-foreground">
-          <span className="flex items-center gap-1.5 font-medium text-foreground">
-            <MapPin className="size-4 text-primary shrink-0" />
+        <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-xs sm:text-sm">
+          <span className="text-foreground flex items-center gap-1.5 font-medium">
+            <MapPin className="text-primary size-4 shrink-0" />
             Home: {homeCourtName} ({homeLocationLabel})
           </span>
           <span>•</span>
           <span className="flex items-center gap-1.5">
-            <Globe className="size-3.5 text-muted-foreground shrink-0" />
+            <Globe className="text-muted-foreground size-3.5 shrink-0" />
             Browsing Area:{" "}
             <strong className="text-foreground">
               {effectiveLocationLabel}
@@ -728,12 +728,12 @@ function DashboardHeader({
 
       <div className="flex flex-wrap items-center gap-2">
         <Button
-          className="rounded-lg border-border bg-background/60 backdrop-blur-xs gap-1.5 text-xs font-semibold transition-transform duration-150 ease-out active:scale-97 cursor-pointer hover:border-primary/40"
+          className="border-border bg-background/60 hover:border-primary/40 cursor-pointer gap-1.5 rounded-lg text-xs font-semibold backdrop-blur-xs transition-transform duration-150 ease-out active:scale-97"
           onClick={onTogglePicker}
           size="sm"
           variant="outline"
         >
-          <Compass className="size-3.5 text-primary" />
+          <Compass className="text-primary size-3.5" />
           {isPickerOpen
             ? "Close Destination Picker"
             : "Plan a Trip / Change City"}
@@ -741,7 +741,7 @@ function DashboardHeader({
         <Link
           className={cn(
             buttonVariants({ size: "sm" }),
-            "rounded-lg gap-1.5 bg-primary font-bold shadow-xs hover:bg-primary/90 transition-transform duration-150 ease-out active:scale-97 cursor-pointer"
+            "bg-primary hover:bg-primary/90 cursor-pointer gap-1.5 rounded-lg font-bold shadow-xs transition-transform duration-150 ease-out active:scale-97"
           )}
           to="/u/studio"
         >
@@ -783,21 +783,21 @@ function TripPlanningPicker({
   }
 
   return (
-    <div className="mt-6 border-t border-border/60 pt-6 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+    <div className="border-border/60 animate-in fade-in slide-in-from-top-2 mt-6 space-y-4 border-t pt-6 duration-200">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
-            <Navigation className="size-4 text-primary" />
+          <h3 className="text-foreground flex items-center gap-1.5 text-sm font-bold">
+            <Navigation className="text-primary size-4" />
             Travel & Trip Planning
           </h3>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-muted-foreground text-xs">
             Check out courts, upcoming brackets, and local players anywhere in
             the US before you travel.
           </p>
         </div>
         {isBrowsing && (
           <button
-            className="text-xs text-primary hover:underline font-semibold cursor-pointer"
+            className="text-primary cursor-pointer text-xs font-semibold hover:underline"
             onClick={onResetLocation}
             type="button"
           >
@@ -807,11 +807,11 @@ function TripPlanningPicker({
       </div>
 
       <div className="relative max-w-md">
-        <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground pointer-events-none" />
+        <Search className="text-muted-foreground pointer-events-none absolute top-2.5 left-3 size-4" />
         <input
           aria-label="Search destination city, state, or park"
           autoComplete="off"
-          className="h-9 w-full rounded-xl border border-input bg-background pl-9 pr-3 text-xs pointer-coarse:text-base font-medium placeholder:text-muted-foreground outline-none focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50"
+          className="border-input bg-background placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 h-9 w-full rounded-xl border pr-3 pl-9 text-xs font-medium outline-none focus-visible:ring-1 pointer-coarse:text-base"
           enterKeyHint="search"
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search city, state, or park (e.g. New York, Dallas, Crestwood)…"
@@ -819,15 +819,15 @@ function TripPlanningPicker({
           value={citySearchQuery}
         />
         {isSearchingPlaces && (
-          <Loader2 className="absolute right-3 top-2.5 size-4 animate-spin text-primary" />
+          <Loader2 className="text-primary absolute top-2.5 right-3 size-4 animate-spin" />
         )}
       </div>
 
       {citySearchQuery.trim().length >= 3 && placeSuggestions.length > 0 && (
-        <div className="rounded-xl border border-border bg-popover text-popover-foreground shadow-lg divide-y divide-border/40 max-h-48 overflow-y-auto overscroll-contain max-w-md">
+        <div className="border-border bg-popover text-popover-foreground divide-border/40 max-h-48 max-w-md divide-y overflow-y-auto overscroll-contain rounded-xl border shadow-lg">
           {placeSuggestions.map((suggestion) => (
             <button
-              className="w-full text-left px-3.5 py-2.5 text-xs hover:bg-muted/70 flex items-center justify-between gap-2 cursor-pointer transition-colors"
+              className="hover:bg-muted/70 flex w-full cursor-pointer items-center justify-between gap-2 px-3.5 py-2.5 text-left text-xs transition-colors"
               key={suggestion.placeId ?? suggestion.formattedAddress}
               onClick={() =>
                 onSelectDestination({
@@ -841,14 +841,14 @@ function TripPlanningPicker({
               type="button"
             >
               <div className="min-w-0">
-                <p className="font-bold text-foreground truncate">
+                <p className="text-foreground truncate font-bold">
                   {suggestion.addressLabel}
                 </p>
-                <p className="text-[11px] text-muted-foreground truncate">
+                <p className="text-muted-foreground truncate text-[11px]">
                   {suggestion.formattedAddress}
                 </p>
               </div>
-              <span className="text-[10px] font-bold text-primary shrink-0 rounded bg-primary/10 px-2 py-0.5">
+              <span className="text-primary bg-primary/10 shrink-0 rounded px-2 py-0.5 text-[10px] font-bold">
                 Explore
               </span>
             </button>
@@ -857,13 +857,13 @@ function TripPlanningPicker({
       )}
 
       <div className="space-y-1.5">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <p className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
           Popular Pickleball Hotspots
         </p>
         <div className="flex flex-wrap gap-2">
           {POPULAR_DESTINATIONS.map((dest) => (
             <button
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border/80 bg-background px-3 py-1.5 text-xs font-medium hover:border-primary/50 hover:bg-primary/5 transition-colors cursor-pointer"
+              className="border-border/80 bg-background hover:border-primary/50 hover:bg-primary/5 inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors"
               key={dest.label}
               onClick={() => onSelectDestination(dest)}
               type="button"
@@ -913,7 +913,7 @@ function ActionStrip() {
     >
       {actionTiles.map(({ chip, icon: Icon, label, to }) => (
         <Link
-          className="group flex min-w-32 flex-col items-center gap-2.5 rounded-xl border border-border/80 bg-card/60 p-4 transition-[background-color,border-color,transform] duration-150 hover:border-primary/50 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.98] cursor-pointer"
+          className="group border-border/80 bg-card/60 hover:border-primary/50 hover:bg-card focus-visible:ring-ring/50 flex min-w-32 cursor-pointer flex-col items-center gap-2.5 rounded-xl border p-4 transition-[background-color,border-color,transform] duration-150 focus-visible:ring-2 focus-visible:outline-none active:scale-[0.98]"
           key={to}
           to={to}
         >
@@ -922,7 +922,7 @@ function ActionStrip() {
           >
             <Icon className="size-5" />
           </span>
-          <span className="text-xs font-semibold text-foreground">{label}</span>
+          <span className="text-foreground text-xs font-semibold">{label}</span>
         </Link>
       ))}
     </section>
@@ -942,13 +942,13 @@ function TournamentsSection({
     <section className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Calendar className="size-5 text-primary" />
-          <h2 className="text-lg font-bold tracking-tight text-foreground">
+          <Calendar className="text-primary size-5" />
+          <h2 className="text-foreground text-lg font-bold tracking-tight">
             Upcoming Tournaments
           </h2>
         </div>
         <Link
-          className="text-xs font-semibold text-primary hover:underline"
+          className="text-primary text-xs font-semibold hover:underline"
           to="/events"
         >
           View all brackets →
@@ -959,25 +959,25 @@ function TournamentsSection({
         <div className="space-y-3">
           {events.map((event) => (
             <div
-              className="flex items-center justify-between gap-3 rounded-xl border border-border/80 bg-card p-4 shadow-xs transition-colors hover:border-primary/40"
+              className="border-border/80 bg-card hover:border-primary/40 flex items-center justify-between gap-3 rounded-xl border p-4 shadow-xs transition-colors"
               key={event.id}
             >
               <div className="min-w-0 space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="rounded bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary capitalize">
+                  <span className="bg-primary/10 text-primary rounded px-2 py-0.5 text-[10px] font-bold capitalize">
                     {event.eventType || "Tournament"}
                   </span>
                   {"bracketType" in event &&
                   typeof event.bracketType === "string" ? (
-                    <span className="rounded bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground capitalize">
+                    <span className="bg-muted text-muted-foreground rounded px-2 py-0.5 text-[10px] font-medium capitalize">
                       {(event.bracketType as string).replace("_", " ")}
                     </span>
                   ) : null}
                 </div>
-                <p className="font-bold text-sm text-foreground truncate">
+                <p className="text-foreground truncate text-sm font-bold">
                   {event.name}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                   Starts:{" "}
                   {new Date(event.startsAt).toLocaleDateString("en-US", {
                     day: "numeric",
@@ -988,7 +988,7 @@ function TournamentsSection({
               <Link
                 className={cn(
                   buttonVariants({ size: "sm", variant: "outline" }),
-                  "rounded-lg text-xs font-semibold transition-transform duration-150 ease-out active:scale-97 cursor-pointer"
+                  "cursor-pointer rounded-lg text-xs font-semibold transition-transform duration-150 ease-out active:scale-97"
                 )}
                 params={{ id: event.id }}
                 to="/events/$id"
@@ -999,15 +999,15 @@ function TournamentsSection({
           ))}
         </div>
       ) : (
-        <div className="rounded-xl border border-border/60 bg-muted/20 p-6 text-center space-y-2">
-          <Trophy className="size-6 text-muted-foreground mx-auto" />
-          <p className="text-xs font-medium text-muted-foreground">
+        <div className="border-border/60 bg-muted/20 space-y-2 rounded-xl border p-6 text-center">
+          <Trophy className="text-muted-foreground mx-auto size-6" />
+          <p className="text-muted-foreground text-xs font-medium">
             No active tournaments scheduled in this radius right now.
           </p>
           <Link
             className={cn(
               buttonVariants({ size: "sm", variant: "ghost" }),
-              "text-xs text-primary"
+              "text-primary text-xs"
             )}
             to="/events"
           >
@@ -1034,13 +1034,13 @@ function PlayersSection({
     <section className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Users className="size-5 text-primary" />
-          <h2 className="text-lg font-bold tracking-tight text-foreground">
+          <Users className="text-primary size-5" />
+          <h2 className="text-foreground text-lg font-bold tracking-tight">
             Players in Your Area
           </h2>
         </div>
         <Link
-          className="text-xs font-semibold text-primary hover:underline"
+          className="text-primary text-xs font-semibold hover:underline"
           to="/players"
         >
           Explore directory →
@@ -1051,11 +1051,11 @@ function PlayersSection({
         <div className="space-y-3">
           {players.map((player) => (
             <div
-              className="flex items-center justify-between gap-3 rounded-xl border border-border/80 bg-card p-3.5 shadow-xs transition-colors hover:border-primary/40"
+              className="border-border/80 bg-card hover:border-primary/40 flex items-center justify-between gap-3 rounded-xl border p-3.5 shadow-xs transition-colors"
               key={player.id}
             >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="size-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center font-bold text-primary text-sm shrink-0 overflow-hidden">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="bg-primary/10 border-primary/20 text-primary flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border text-sm font-bold">
                   {player.image ? (
                     <img
                       alt={player.name}
@@ -1069,12 +1069,12 @@ function PlayersSection({
                   )}
                 </div>
                 <div className="min-w-0 space-y-0.5">
-                  <p className="font-bold text-sm text-foreground truncate">
+                  <p className="text-foreground truncate text-sm font-bold">
                     {player.name}
                   </p>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className="text-muted-foreground flex items-center gap-2 text-xs">
                     {player.skillLevel && (
-                      <span className="font-semibold text-primary capitalize">
+                      <span className="text-primary font-semibold capitalize">
                         {player.skillLevel}
                       </span>
                     )}
@@ -1088,27 +1088,27 @@ function PlayersSection({
               </div>
 
               <Button
-                className="rounded-lg text-xs gap-1 shrink-0 transition-transform duration-150 ease-out active:scale-97 cursor-pointer font-semibold"
+                className="shrink-0 cursor-pointer gap-1 rounded-lg text-xs font-semibold transition-transform duration-150 ease-out active:scale-97"
                 onClick={() => onConnect(player.id, player.name)}
                 size="sm"
                 variant="outline"
               >
-                <UserPlus className="size-3.5 text-primary" />
+                <UserPlus className="text-primary size-3.5" />
                 Connect
               </Button>
             </div>
           ))}
         </div>
       ) : (
-        <div className="rounded-xl border border-border/60 bg-muted/20 p-6 text-center space-y-2">
-          <Users className="size-6 text-muted-foreground mx-auto" />
-          <p className="text-xs font-medium text-muted-foreground">
+        <div className="border-border/60 bg-muted/20 space-y-2 rounded-xl border p-6 text-center">
+          <Users className="text-muted-foreground mx-auto size-6" />
+          <p className="text-muted-foreground text-xs font-medium">
             No other players registered nearby yet.
           </p>
           <Link
             className={cn(
               buttonVariants({ size: "sm", variant: "ghost" }),
-              "text-xs text-primary"
+              "text-primary text-xs"
             )}
             to="/players"
           >
@@ -1137,13 +1137,13 @@ function FriendsSection({
     <section className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Activity className="size-5 text-primary" />
-          <h2 className="text-lg font-bold tracking-tight text-foreground">
+          <Activity className="text-primary size-5" />
+          <h2 className="text-foreground text-lg font-bold tracking-tight">
             Your Pickleball Friends ({friends.length})
           </h2>
         </div>
         <Link
-          className="text-xs font-semibold text-primary hover:underline"
+          className="text-primary text-xs font-semibold hover:underline"
           to="/u/messages"
         >
           Open chat →
@@ -1153,14 +1153,14 @@ function FriendsSection({
       <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
         {friends.map((friend) => (
           <div
-            className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-card p-3 shadow-xs"
+            className="border-border/70 bg-card flex items-center justify-between gap-3 rounded-xl border p-3 shadow-xs"
             key={friend.id}
           >
             <div className="min-w-0">
-              <p className="font-bold text-xs text-foreground truncate">
+              <p className="text-foreground truncate text-xs font-bold">
                 {friend.name}
               </p>
-              <p className="text-[11px] text-muted-foreground truncate">
+              <p className="text-muted-foreground truncate text-[11px]">
                 @{friend.username || "player"}
               </p>
             </div>
@@ -1168,11 +1168,11 @@ function FriendsSection({
               aria-label={`Message ${friend.name}`}
               className={cn(
                 buttonVariants({ size: "icon-sm", variant: "ghost" }),
-                "rounded-lg transition-transform duration-150 ease-out active:scale-97 cursor-pointer"
+                "cursor-pointer rounded-lg transition-transform duration-150 ease-out active:scale-97"
               )}
               to="/u/messages"
             >
-              <MessageSquare className="size-4 text-primary" />
+              <MessageSquare className="text-primary size-4" />
             </Link>
           </div>
         ))}
@@ -1198,41 +1198,41 @@ function OrganizationCard({
   role: string;
 }) {
   return (
-    <div className="flex flex-col justify-between rounded-xl border border-border/80 bg-card p-5 shadow-xs transition-[border-color,box-shadow] hover:border-primary/40 hover:shadow-md">
+    <div className="border-border/80 bg-card hover:border-primary/40 flex flex-col justify-between rounded-xl border p-5 shadow-xs transition-[border-color,box-shadow] hover:shadow-md">
       <div className="space-y-2">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <div className="flex items-center gap-1.5 mb-1">
+            <div className="mb-1 flex items-center gap-1.5">
               {org.isOfficial && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary uppercase tracking-wider">
-                  <ShieldCheck className="size-3 text-primary" />
+                <span className="bg-primary/15 text-primary inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase">
+                  <ShieldCheck className="text-primary size-3" />
                   Official Org
                 </span>
               )}
-              <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground uppercase">
+              <span className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[10px] font-medium uppercase">
                 {role}
               </span>
             </div>
-            <h3 className="font-bold text-base text-foreground truncate">
+            <h3 className="text-foreground truncate text-base font-bold">
               {org.name}
             </h3>
-            <p className="text-xs text-muted-foreground truncate">
+            <p className="text-muted-foreground truncate text-xs">
               {[org.city, org.state].filter(Boolean).join(", ") || "Nationwide"}
             </p>
           </div>
         </div>
         {org.bio && (
-          <p className="text-xs text-muted-foreground line-clamp-2">
+          <p className="text-muted-foreground line-clamp-2 text-xs">
             {org.bio}
           </p>
         )}
       </div>
 
-      <div className="flex items-center gap-2 pt-4 border-t border-border/40 mt-4">
+      <div className="border-border/40 mt-4 flex items-center gap-2 border-t pt-4">
         <Link
           className={cn(
             buttonVariants({ size: "sm" }),
-            "flex-1 text-xs gap-1.5 rounded-lg bg-primary text-primary-foreground font-semibold"
+            "bg-primary text-primary-foreground flex-1 gap-1.5 rounded-lg text-xs font-semibold"
           )}
           params={{ slug: org.slug }}
           to="/u/organizer/organizations/$slug"
@@ -1244,12 +1244,12 @@ function OrganizationCard({
           aria-label={`View ${org.name} public page`}
           className={cn(
             buttonVariants({ size: "sm", variant: "outline" }),
-            "rounded-lg transition-transform duration-150 ease-out active:scale-97 cursor-pointer"
+            "cursor-pointer rounded-lg transition-transform duration-150 ease-out active:scale-97"
           )}
           params={{ slug: org.slug }}
           to="/events/hosts/$slug"
         >
-          <ExternalLink className="size-3 text-muted-foreground" />
+          <ExternalLink className="text-muted-foreground size-3" />
         </Link>
       </div>
     </div>
@@ -1272,23 +1272,23 @@ interface OrganizationItem {
 
 function EmptyOrganizationsCard() {
   return (
-    <div className="rounded-xl border border-dashed border-border p-6 text-center space-y-2 bg-muted/10">
-      <Building2 className="size-6 text-muted-foreground mx-auto" />
-      <p className="text-sm font-semibold text-foreground">
+    <div className="border-border bg-muted/10 space-y-2 rounded-xl border border-dashed p-6 text-center">
+      <Building2 className="text-muted-foreground mx-auto size-6" />
+      <p className="text-foreground text-sm font-semibold">
         No organizations registered yet
       </p>
-      <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+      <p className="text-muted-foreground mx-auto max-w-sm text-xs">
         Create your club or organization (like Official RallyCasts) to host
         tournaments, seed brackets, and assign court live streams.
       </p>
       <Link
         className={cn(
           buttonVariants({ size: "sm" }),
-          "mt-2 rounded-lg text-xs font-semibold transition-transform duration-150 ease-out active:scale-97 cursor-pointer"
+          "mt-2 cursor-pointer rounded-lg text-xs font-semibold transition-transform duration-150 ease-out active:scale-97"
         )}
         to="/events/hosts/new"
       >
-        <Plus className="size-3.5 mr-1" />
+        <Plus className="mr-1 size-3.5" />
         Register Organization
       </Link>
     </div>
@@ -1306,12 +1306,12 @@ function OrganizationsSection({
     <section className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Building2 className="size-5 text-primary" />
-          <h2 className="text-lg font-bold tracking-tight text-foreground">
+          <Building2 className="text-primary size-5" />
+          <h2 className="text-foreground text-lg font-bold tracking-tight">
             My Organizations & Clubs
           </h2>
           {myOrgs.length > 0 && (
-            <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+            <span className="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-[10px] font-bold">
               {myOrgs.length} active
             </span>
           )}
@@ -1319,7 +1319,7 @@ function OrganizationsSection({
         <Link
           className={cn(
             buttonVariants({ size: "sm", variant: "outline" }),
-            "rounded-lg text-xs font-semibold transition-transform duration-150 ease-out active:scale-97 cursor-pointer"
+            "cursor-pointer rounded-lg text-xs font-semibold transition-transform duration-150 ease-out active:scale-97"
           )}
           to="/events/hosts/new"
         >
@@ -1330,7 +1330,7 @@ function OrganizationsSection({
 
       {isLoading && (
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="h-32 animate-pulse rounded-xl border border-border/60 bg-muted/40" />
+          <div className="border-border/60 bg-muted/40 h-32 animate-pulse rounded-xl border" />
         </div>
       )}
 

@@ -31,7 +31,7 @@ export function ProfilePreview({ data }: { data: ProfilePreviewData }) {
     <Card className="rounded-xl">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
-          <UserRound className="size-5 text-primary" />
+          <UserRound className="text-primary size-5" />
           Profile view
         </CardTitle>
       </CardHeader>
@@ -43,7 +43,7 @@ export function ProfilePreview({ data }: { data: ProfilePreviewData }) {
               <h2 className="text-3xl font-extrabold tracking-tight">
                 {displayName}
               </h2>
-              <p className="mt-1 text-sm text-muted-foreground">@{username}</p>
+              <p className="text-muted-foreground mt-1 text-sm">@{username}</p>
             </div>
             <Link params={{ username }} to="/players/$username">
               <Button className="rounded-lg" variant="outline">
@@ -83,7 +83,7 @@ function ProfileAvatar({
   image?: string | null;
 }) {
   return (
-    <div className="flex size-24 items-center justify-center overflow-hidden rounded-full border bg-muted text-3xl font-bold">
+    <div className="bg-muted flex size-24 items-center justify-center overflow-hidden rounded-full border text-3xl font-bold">
       {image ? (
         <img alt={displayName} className="size-full object-cover" src={image} />
       ) : (
@@ -101,16 +101,16 @@ function ProfileMeta({
   skillLevel?: string | null;
 }) {
   return (
-    <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+    <div className="text-muted-foreground flex flex-wrap gap-3 text-sm">
       {homeLocation ? (
         <span className="inline-flex items-center gap-1">
-          <MapPin className="size-4 text-primary" />
+          <MapPin className="text-primary size-4" />
           {homeLocation}
         </span>
       ) : null}
       {skillLevel ? (
         <span className="inline-flex items-center gap-1">
-          <Star className="size-4 text-primary" />
+          <Star className="text-primary size-4" />
           {skillLevel} rating range
         </span>
       ) : null}
@@ -124,7 +124,7 @@ function RoleBadges({ roles }: { roles: (string | null)[] }) {
       {roles.map((role) =>
         role ? (
           <span
-            className="rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground"
+            className="bg-muted text-muted-foreground rounded-full px-3 py-1 text-xs font-semibold"
             key={role}
           >
             {role}

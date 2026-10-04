@@ -332,7 +332,7 @@ const resolveVideoId = async (
 export const videosRouter = new Hono<AppEnv>()
   .get("/", async (c) => {
     const db = createDb(c.env.DB);
-    const requestedLimit = Number.parseInt(c.req.query("limit") ?? "", 10);
+    const requestedLimit = Math.trunc(Number(c.req.query("limit") ?? ""));
     const limit = Number.isFinite(requestedLimit)
       ? Math.min(Math.max(requestedLimit, 1), MAX_VIDEO_PAGE_SIZE)
       : DEFAULT_VIDEO_PAGE_SIZE;
@@ -442,30 +442,33 @@ export const videosRouter = new Hono<AppEnv>()
           .filter((document) => document.embeddingStatus === "ready")
           .map((document) => document.entityId)
       );
-      for (const record of fallbackVideos.slice(0, FEED_LAZY_INDEX_LIMIT)) {
-        if (readyEntityIds.has(record.id)) {
-          continue;
-        }
-        const searchRecord = await upsertSearchDocument(db, {
-          content: [record.title, record.description]
-            .filter(Boolean)
-            .join("\n"),
-          entityId: record.id,
-          entityType: "video",
-          metadata: {
-            mediaType: record.mediaType,
-            ownerUserId: record.ownerUserId,
-            venueId: record.venueId,
-          },
-          title: record.title,
-        });
-        scheduleSearchDocumentIndex(
-          () => c.executionCtx,
-          db,
-          c.env,
-          searchRecord
-        );
-      }
+      // Each backfill upsert is independent; run them concurrently.
+      await Promise.all(
+        fallbackVideos
+          .slice(0, FEED_LAZY_INDEX_LIMIT)
+          .filter((record) => !readyEntityIds.has(record.id))
+          .map(async (record) => {
+            const searchRecord = await upsertSearchDocument(db, {
+              content: [record.title, record.description]
+                .filter(Boolean)
+                .join("\n"),
+              entityId: record.id,
+              entityType: "video",
+              metadata: {
+                mediaType: record.mediaType,
+                ownerUserId: record.ownerUserId,
+                venueId: record.venueId,
+              },
+              title: record.title,
+            });
+            scheduleSearchDocumentIndex(
+              () => c.executionCtx,
+              db,
+              c.env,
+              searchRecord
+            );
+          })
+      );
     }
 
     const semanticScores = new Map<string, number>();

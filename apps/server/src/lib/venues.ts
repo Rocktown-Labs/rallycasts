@@ -29,7 +29,9 @@ export function parseAddress(address: string): {
   const parts = address.split(",").map((part) => part.trim());
   const stateZip = parts.at(-2) || "";
 
-  const stateZipMatch = stateZip.match(/([A-Za-z\s]+)\s+(\d{5}(-\d{4})?)/u);
+  const stateZipMatch = stateZip.match(
+    /(?<state>[A-Za-z\s]+)\s+(?<zip>\d{5}(?<plusFour>-\d{4})?)/u
+  );
   const state = stateZipMatch?.[1]?.trim() ?? stateZip;
   const postalCode = stateZipMatch?.[2] ?? "";
   const city = parts.length > 2 ? parts.at(-3) || "" : "";

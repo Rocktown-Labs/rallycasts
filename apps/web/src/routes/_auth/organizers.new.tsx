@@ -20,7 +20,7 @@ const slugify = (value: string) =>
     .toLowerCase()
     .trim()
     .replaceAll(/[^a-z0-9]+/gu, "-")
-    .replaceAll(/(^-|-$)/gu, "");
+    .replaceAll(/(?<edge>^-|-$)/gu, "");
 
 export function CreateOrganizationPage() {
   const navigate = useNavigate();
@@ -75,17 +75,17 @@ export function CreateOrganizationPage() {
   return (
     <main className="mx-auto max-w-2xl space-y-6">
       <div>
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">
+        <p className="text-primary text-xs font-bold tracking-[0.2em] uppercase">
           Organizer setup
         </p>
         <h1 className="mt-1 text-3xl font-black">Create an organization</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
+        <p className="text-muted-foreground mt-2 text-sm">
           Your player profile stays separate. This page becomes the public host
           identity for tournaments and content.
         </p>
       </div>
       <form
-        className="space-y-5 rounded-2xl border bg-card p-6"
+        className="bg-card space-y-5 rounded-2xl border p-6"
         onSubmit={submit}
       >
         <label className="block space-y-2" htmlFor="organization-name">
@@ -111,7 +111,7 @@ export function CreateOrganizationPage() {
             onChange={(event) => setSlug(slugify(event.target.value))}
             value={slug}
           />
-          <span className="text-xs text-muted-foreground">
+          <span className="text-muted-foreground text-xs">
             rallycasts.com/events/hosts/{slug || "your-org"}
           </span>
         </label>
@@ -134,7 +134,7 @@ export function CreateOrganizationPage() {
           <textarea
             aria-label="Organization bio"
             id="organization-bio"
-            className="min-h-28 w-full rounded-lg border bg-background p-3 text-sm"
+            className="bg-background min-h-28 w-full rounded-lg border p-3 text-sm"
             onChange={(event) => setBio(event.target.value)}
             placeholder="Tell players what you host."
             value={bio}

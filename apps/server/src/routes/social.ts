@@ -711,6 +711,7 @@ export const socialRouter = new Hono<AppEnv>()
       }
 
       for (const participantUserId of participantUserIds) {
+        // oxlint-disable-next-line eslint/no-await-in-loop -- validation or fan-out loop; sequential by design
         if (!(await requireFriendship(db, authUser.id, participantUserId))) {
           return c.json(
             { message: "You can only message friends" },
@@ -913,6 +914,7 @@ export const socialRouter = new Hono<AppEnv>()
           continue;
         }
 
+        // oxlint-disable-next-line eslint/no-await-in-loop -- validation or fan-out loop; sequential by design
         await createLiveNotification(db, c.env, {
           actorUserId: authUser.id,
           body,

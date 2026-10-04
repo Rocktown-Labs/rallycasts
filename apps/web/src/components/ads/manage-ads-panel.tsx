@@ -120,11 +120,11 @@ export function ManageAdsPanel({
   };
 
   return (
-    <div className="rounded-2xl border bg-card p-6">
+    <div className="bg-card rounded-2xl border p-6">
       <h2 className="flex items-center gap-2 font-bold">
-        <Megaphone className="size-4 text-primary" /> Promoted tournaments
+        <Megaphone className="text-primary size-4" /> Promoted tournaments
       </h2>
-      <p className="mt-2 text-sm text-muted-foreground">
+      <p className="text-muted-foreground mt-2 text-sm">
         Boosts run as event cards across trending, search, and the home feed,
         plus skippable prerolls on related videos. Billed per thousand views
         from prepaid budget. Campaigns go live after admin review.
@@ -136,7 +136,7 @@ export function ManageAdsPanel({
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="font-bold">{campaign.name}</p>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="text-muted-foreground mt-1 text-xs">
                   {campaign.status} · ${(campaign.spentCents / 100).toFixed(2)}{" "}
                   spent of ${(campaign.fundedCents / 100).toFixed(2)} funded ·{" "}
                   {campaign.placements}
@@ -222,7 +222,7 @@ export function ManageAdsPanel({
           </div>
         ))}
         {(data?.campaigns ?? []).length === 0 ? (
-          <p className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
+          <p className="text-muted-foreground rounded-lg border border-dashed p-6 text-sm">
             No campaigns yet. Draft your first boost below.
           </p>
         ) : null}
@@ -241,7 +241,7 @@ export function ManageAdsPanel({
             Tournament
             <select
               aria-label="Tournament to promote"
-              className="mt-1 w-full rounded-md border bg-background p-2 text-sm"
+              className="bg-background mt-1 w-full rounded-md border p-2 text-sm"
               id="ad-event"
               onChange={(event) => setEventId(event.target.value)}
               value={eventId}
@@ -258,7 +258,7 @@ export function ManageAdsPanel({
             Placements
             <select
               aria-label="Ad placements"
-              className="mt-1 w-full rounded-md border bg-background p-2 text-sm"
+              className="bg-background mt-1 w-full rounded-md border p-2 text-sm"
               id="ad-placements"
               onChange={(event) =>
                 setPlacements(
@@ -300,7 +300,7 @@ export function ManageAdsPanel({
             </span>
             <select
               aria-label="Sponsor clip"
-              className="mt-1 w-full rounded-md border bg-background p-2 text-sm"
+              className="bg-background mt-1 w-full rounded-md border p-2 text-sm"
               id="ad-clip"
               onChange={(event) => setClipId(event.target.value)}
               value={clipId}
@@ -325,10 +325,10 @@ export function ManageAdsPanel({
 function CampaignStats({ campaignId }: { campaignId: string }) {
   const { data } = useAdStats(campaignId);
   if (!data) {
-    return <p className="mt-3 text-xs text-muted-foreground">Loading stats…</p>;
+    return <p className="text-muted-foreground mt-3 text-xs">Loading stats…</p>;
   }
   return (
-    <div className="mt-3 text-xs text-muted-foreground">
+    <div className="text-muted-foreground mt-3 text-xs">
       <p>
         {data.totals.impressions} impressions · {data.totals.clicks} clicks · $
         {(data.totals.spentCents / 100).toFixed(2)} spent

@@ -46,14 +46,14 @@ export default function AppShell({ children }: { children?: ReactNode } = {}) {
 
   return (
     <SidebarContext.Provider value={sidebarContextValue}>
-      <div className="flex min-h-svh bg-background text-foreground">
+      <div className="bg-background text-foreground flex min-h-svh">
         <AppSidebar collapsed={collapsed} onToggle={toggleSidebar} />
         <div
           className="flex min-w-0 flex-1 flex-col"
           data-sidebar-collapsed={collapsed}
         >
           <SiteHeader />
-          <main className="min-w-0 flex-1 overflow-x-hidden px-4 pb-24 pt-6 md:px-8 md:pb-10">
+          <main className="min-w-0 flex-1 overflow-x-hidden px-4 pt-6 pb-24 md:px-8 md:pb-10">
             {children ?? <Outlet />}
           </main>
         </div>

@@ -44,15 +44,15 @@ function PopularTimesChart({
     return (
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <Clock className="size-4 text-primary" />
-          <h3 className="font-bold text-sm">Popular Times</h3>
+          <Clock className="text-primary size-4" />
+          <h3 className="text-sm font-bold">Popular Times</h3>
         </div>
-        <div className="rounded-xl border border-border/40 bg-muted/15 backdrop-blur-xs p-6 text-center">
-          <Clock className="size-6 text-muted-foreground/40 mx-auto mb-2" />
-          <p className="text-xs font-semibold text-foreground">
+        <div className="border-border/40 bg-muted/15 rounded-xl border p-6 text-center backdrop-blur-xs">
+          <Clock className="text-muted-foreground/40 mx-auto mb-2 size-6" />
+          <p className="text-foreground text-xs font-semibold">
             No visits recorded yet this week
           </p>
-          <p className="text-[11px] text-muted-foreground mt-1 max-w-xs mx-auto">
+          <p className="text-muted-foreground mx-auto mt-1 max-w-xs text-[11px]">
             Check in below when you arrive to heat up this court and log
             activity for your community.
           </p>
@@ -66,17 +66,17 @@ function PopularTimesChart({
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <Clock className="size-4 text-primary" />
-        <h3 className="font-bold text-sm">Popular Times</h3>
+        <Clock className="text-primary size-4" />
+        <h3 className="text-sm font-bold">Popular Times</h3>
       </div>
-      <div className="flex items-end gap-1 h-24 pt-2">
+      <div className="flex h-24 items-end gap-1 pt-2">
         {peakHours.map((time) => {
           const height = `${Math.max((time.visits / max) * 100, 4)}%`;
           const isPeak = time.visits >= max * 0.9;
           return (
             <div
               key={time.hour}
-              className="flex-1 flex flex-col items-center gap-1 group relative"
+              className="group relative flex flex-1 flex-col items-center gap-1"
             >
               <div
                 className={`w-full rounded-t-md transition-all duration-200 ${
@@ -87,19 +87,19 @@ function PopularTimesChart({
                 style={{ height }}
                 title={`${time.hour}: ${time.visits} visits`}
               />
-              <span className="text-[8px] text-muted-foreground font-mono">
+              <span className="text-muted-foreground font-mono text-[8px]">
                 {String(time.hour).split(":")[0]}
               </span>
             </div>
           );
         })}
       </div>
-      <div className="flex items-center gap-3 text-[10px] text-muted-foreground pt-1">
+      <div className="text-muted-foreground flex items-center gap-3 pt-1 text-[10px]">
         <span className="flex items-center gap-1.5">
-          <span className="size-2 rounded-full bg-primary" /> Peak
+          <span className="bg-primary size-2 rounded-full" /> Peak
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="size-2 rounded-full bg-primary/25" /> Average
+          <span className="bg-primary/25 size-2 rounded-full" /> Average
         </span>
       </div>
     </div>
@@ -117,15 +117,15 @@ function WeeklyActivityChart({
     return (
       <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <Activity className="size-4 text-primary" />
-          <h3 className="font-bold text-sm">Weekly Visits</h3>
+          <Activity className="text-primary size-4" />
+          <h3 className="text-sm font-bold">Weekly Visits</h3>
         </div>
-        <div className="rounded-xl border border-border/40 bg-muted/15 backdrop-blur-xs p-6 text-center">
-          <Activity className="size-6 text-muted-foreground/40 mx-auto mb-2" />
-          <p className="text-xs font-semibold text-foreground">
+        <div className="border-border/40 bg-muted/15 rounded-xl border p-6 text-center backdrop-blur-xs">
+          <Activity className="text-muted-foreground/40 mx-auto mb-2 size-6" />
+          <p className="text-foreground text-xs font-semibold">
             No activity recorded this week
           </p>
-          <p className="text-[11px] text-muted-foreground mt-1 max-w-xs mx-auto">
+          <p className="text-muted-foreground mx-auto mt-1 max-w-xs text-[11px]">
             Weekly visits update automatically as players check in via geofence
             or app tap.
           </p>
@@ -139,17 +139,17 @@ function WeeklyActivityChart({
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <Activity className="size-4 text-primary" />
-        <h3 className="font-bold text-sm">Weekly Visits</h3>
+        <Activity className="text-primary size-4" />
+        <h3 className="text-sm font-bold">Weekly Visits</h3>
       </div>
-      <div className="flex items-end gap-2 h-20 pt-2">
+      <div className="flex h-20 items-end gap-2 pt-2">
         {peakDays.map((day) => {
           const height = `${Math.max((day.visits / max) * 100, 6)}%`;
           const isPeak = day.visits >= max * 0.9;
           return (
             <div
               key={day.day}
-              className="flex-1 flex flex-col items-center gap-1 group relative"
+              className="group relative flex flex-1 flex-col items-center gap-1"
             >
               <div
                 className={`w-full rounded-t-md transition-all duration-200 ${
@@ -160,7 +160,7 @@ function WeeklyActivityChart({
                 style={{ height }}
                 title={`${day.day}: ${day.visits} visits`}
               />
-              <span className="text-[8px] text-muted-foreground font-medium">
+              <span className="text-muted-foreground text-[8px] font-medium">
                 {day.day}
               </span>
             </div>
@@ -183,12 +183,12 @@ function MetricStat({
   trend?: string;
 }) {
   return (
-    <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border/40 hover:bg-muted/40 transition-colors">
-      <div className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary shrink-0">
+    <div className="bg-muted/30 border-border/40 hover:bg-muted/40 flex items-center gap-3 rounded-xl border p-3 transition-colors">
+      <div className="bg-primary/10 text-primary grid size-10 shrink-0 place-items-center rounded-xl">
         {icon}
       </div>
       <div>
-        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="text-muted-foreground text-xs">{label}</p>
         <p className="text-sm font-bold">{value}</p>
         {trend && (
           <p className="text-[10px] font-medium text-emerald-500">{trend}</p>
@@ -209,13 +209,13 @@ function VenueHeader({
     <div className="space-y-4">
       <Link
         to="/"
-        className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground active:scale-95 transition-all mb-1 font-medium"
+        className="text-muted-foreground hover:text-foreground mb-1 inline-flex items-center gap-1.5 text-xs font-medium transition-all active:scale-95"
       >
         <ChevronLeft className="size-3.5" /> Back to Home
       </Link>
 
       {venue.photoUrl ? (
-        <div className="relative h-56 sm:h-72 lg:h-84 w-full rounded-2xl overflow-hidden border border-border/50 shadow-md">
+        <div className="border-border/50 relative h-56 w-full overflow-hidden rounded-2xl border shadow-md sm:h-72 lg:h-84">
           <img
             src={venue.photoUrl}
             alt={venue.name}
@@ -223,41 +223,41 @@ function VenueHeader({
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
           <div className="absolute inset-x-6 bottom-6 space-y-2">
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex flex-wrap items-center gap-2">
               {venue.isHomeCourt ? (
-                <span className="inline-flex items-center gap-1 text-xs bg-[#bcdf21] text-black font-extrabold px-3 py-1 rounded-full shadow-xs">
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#bcdf21] px-3 py-1 text-xs font-extrabold text-black shadow-xs">
                   <Star className="size-3.5 fill-black" />
                   Your Home Court
                 </span>
               ) : null}
-              <span className="text-xs bg-primary text-primary-foreground font-bold px-2.5 py-0.5 rounded-full capitalize shadow-xs">
+              <span className="bg-primary text-primary-foreground rounded-full px-2.5 py-0.5 text-xs font-bold capitalize shadow-xs">
                 {venue.venueType || "park"}
               </span>
-              <span className="inline-flex items-center gap-1.5 text-xs bg-emerald-500 text-white font-bold px-2.5 py-0.5 rounded-full shadow-xs">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500 px-2.5 py-0.5 text-xs font-bold text-white shadow-xs">
                 <span className="size-2 rounded-full bg-white" />
                 Active Venue
               </span>
               {heatScore > 0 ? (
-                <span className="text-xs bg-brand-yellow text-brand-dark font-bold px-2.5 py-0.5 rounded-full shadow-xs">
+                <span className="bg-brand-yellow text-brand-dark rounded-full px-2.5 py-0.5 text-xs font-bold shadow-xs">
                   {heatScore}% Heat
                 </span>
               ) : (
-                <span className="text-xs bg-white/20 text-white font-medium px-2.5 py-0.5 rounded-full shadow-xs">
+                <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium text-white shadow-xs">
                   0% Heat • Quiet
                 </span>
               )}
             </div>
-            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white drop-shadow-md">
+            <h1 className="text-2xl font-extrabold tracking-tight text-white drop-shadow-md sm:text-4xl">
               {venue.name}
             </h1>
           </div>
         </div>
       ) : (
-        <div className="relative h-56 sm:h-72 lg:h-84 w-full rounded-2xl overflow-hidden border border-border/50 bg-gradient-to-br from-emerald-950 via-slate-950 to-teal-950 p-6 sm:p-8 flex flex-col justify-between shadow-md">
+        <div className="border-border/50 relative flex h-56 w-full flex-col justify-between overflow-hidden rounded-2xl border bg-gradient-to-br from-emerald-950 via-slate-950 to-teal-950 p-6 shadow-md sm:h-72 sm:p-8 lg:h-84">
           {/* Subtle court line markings */}
-          <div className="pointer-events-none absolute inset-0 opacity-20 overflow-hidden">
+          <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-20">
             <svg
-              className="w-full h-full text-emerald-300"
+              className="h-full w-full text-emerald-300"
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 400 200"
               preserveAspectRatio="none"
@@ -320,38 +320,38 @@ function VenueHeader({
           <div className="relative z-10 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="size-2.5 rounded-full bg-emerald-400" />
-              <span className="text-[11px] uppercase tracking-wider text-emerald-400/90 font-mono font-medium">
+              <span className="font-mono text-[11px] font-medium tracking-wider text-emerald-400/90 uppercase">
                 Live Court
               </span>
             </div>
             {heatScore > 0 ? (
-              <span className="text-xs font-bold text-brand-yellow flex items-center gap-1 bg-brand-yellow/15 px-2.5 py-1 rounded-full border border-brand-yellow/30">
-                <Flame className="size-3.5 fill-brand-yellow" />
+              <span className="text-brand-yellow bg-brand-yellow/15 border-brand-yellow/30 flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-bold">
+                <Flame className="fill-brand-yellow size-3.5" />
                 {heatScore}% Heat
               </span>
             ) : (
-              <span className="text-xs text-white/70 bg-white/10 px-2.5 py-1 rounded-full border border-white/20">
+              <span className="rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-xs text-white/70">
                 Quiet
               </span>
             )}
           </div>
 
           <div className="relative z-10 space-y-2">
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex flex-wrap items-center gap-2">
               {venue.isHomeCourt ? (
-                <span className="inline-flex items-center gap-1 text-xs bg-[#bcdf21] text-black font-extrabold px-3 py-1 rounded-full shadow-xs">
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#bcdf21] px-3 py-1 text-xs font-extrabold text-black shadow-xs">
                   <Star className="size-3.5 fill-black" />
                   Your Home Court
                 </span>
               ) : null}
-              <span className="text-xs bg-primary text-primary-foreground font-bold px-2.5 py-0.5 rounded-full capitalize shadow-xs">
+              <span className="bg-primary text-primary-foreground rounded-full px-2.5 py-0.5 text-xs font-bold capitalize shadow-xs">
                 {venue.venueType || "park"}
               </span>
-              <span className="text-xs bg-emerald-500 text-white font-bold px-2.5 py-0.5 rounded-full shadow-xs">
+              <span className="rounded-full bg-emerald-500 px-2.5 py-0.5 text-xs font-bold text-white shadow-xs">
                 Active Venue
               </span>
             </div>
-            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white drop-shadow-md">
+            <h1 className="text-2xl font-extrabold tracking-tight text-white drop-shadow-md sm:text-4xl">
               {venue.name}
             </h1>
           </div>
@@ -373,13 +373,13 @@ function VenueActivityCard({
   visitsThisWeek: number;
 }) {
   return (
-    <Card className="border border-border/50 bg-card rounded-xl shadow-sm">
-      <CardContent className="p-5 space-y-5">
+    <Card className="border-border/50 bg-card rounded-xl border shadow-sm">
+      <CardContent className="space-y-5 p-5">
         <div className="flex items-center gap-2">
-          <TrendingUp className="size-4 text-primary" />
-          <h3 className="font-bold text-sm">Live Activity & Heat</h3>
+          <TrendingUp className="text-primary size-4" />
+          <h3 className="text-sm font-bold">Live Activity & Heat</h3>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <MetricStat
             icon={<Flame className="size-4" />}
             label="Heat Score"
@@ -423,40 +423,40 @@ function VenueLocationCard({ venue }: { venue: VenueCardData }) {
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${mapQuery}`;
 
   return (
-    <Card className="border border-border/50 bg-card rounded-xl shadow-xs">
-      <CardContent className="p-6 space-y-6">
+    <Card className="border-border/50 bg-card rounded-xl border shadow-xs">
+      <CardContent className="space-y-6 p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3.5">
-            <div className="grid size-9 place-items-center rounded-lg bg-primary/10 text-primary shrink-0 mt-0.5">
+            <div className="bg-primary/10 text-primary mt-0.5 grid size-9 shrink-0 place-items-center rounded-lg">
               <MapPin className="size-4.5" />
             </div>
             <div>
-              <h3 className="font-semibold text-sm">Address & Directions</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <h3 className="text-sm font-semibold">Address & Directions</h3>
+              <p className="text-muted-foreground mt-0.5 text-xs">
                 {venue.addressLine1 || "No street address listed"}
                 {venue.addressLine2 ? `, ${venue.addressLine2}` : ""}
               </p>
-              <p className="text-xs text-muted-foreground">{location}</p>
+              <p className="text-muted-foreground text-xs">{location}</p>
             </div>
           </div>
           <a
             href={mapsUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-border/60 bg-muted/30 hover:bg-muted active:scale-[0.97] transition-all text-foreground shrink-0 shadow-2xs"
+            className="border-border/60 bg-muted/30 hover:bg-muted text-foreground inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-2xs transition-all active:scale-[0.97]"
           >
-            <Navigation className="size-3 text-primary" />
+            <Navigation className="text-primary size-3" />
             Directions
           </a>
         </div>
 
-        <div className="flex items-start gap-3.5 pt-2 border-t border-border/30">
-          <div className="grid size-9 place-items-center rounded-lg bg-emerald-500/10 text-emerald-500 shrink-0 mt-0.5">
+        <div className="border-border/30 flex items-start gap-3.5 border-t pt-2">
+          <div className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-lg bg-emerald-500/10 text-emerald-500">
             <Users className="size-4.5" />
           </div>
           <div>
-            <h3 className="font-semibold text-sm">Court Configuration</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <h3 className="text-sm font-semibold">Court Configuration</h3>
+            <p className="text-muted-foreground mt-0.5 text-xs">
               {venue.courtCount ?? 0} active pickleball court
               {(venue.courtCount ?? 0) === 1 ? "" : "s"} available
             </p>
@@ -469,12 +469,12 @@ function VenueLocationCard({ venue }: { venue: VenueCardData }) {
 
 function VenueDescriptionCard({ venue }: { venue: VenueCardData }) {
   return (
-    <Card className="border border-border/50 bg-card rounded-xl shadow-xs">
-      <CardContent className="p-6 space-y-3">
-        <h3 className="font-bold text-base flex items-center gap-1.5">
-          <Info className="size-4 text-primary" /> Court Details
+    <Card className="border-border/50 bg-card rounded-xl border shadow-xs">
+      <CardContent className="space-y-3 p-6">
+        <h3 className="flex items-center gap-1.5 text-base font-bold">
+          <Info className="text-primary size-4" /> Court Details
         </h3>
-        <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">
+        <p className="text-muted-foreground text-xs leading-relaxed whitespace-pre-wrap">
           {venue.description ||
             "Beautiful open-play venue with standard nets. Great lighting for evening matches."}
         </p>
@@ -491,10 +491,10 @@ function VenueAnalyticsCard({
   peakDays: { day: string; visits: number }[];
 }) {
   return (
-    <Card className="border border-border/50 bg-card rounded-xl shadow-xs">
-      <CardContent className="p-6 space-y-6">
+    <Card className="border-border/50 bg-card rounded-xl border shadow-xs">
+      <CardContent className="space-y-6 p-6">
         <PopularTimesChart peakHours={peakHours} />
-        <div className="border-t border-border/30 pt-4">
+        <div className="border-border/30 border-t pt-4">
           <WeeklyActivityChart peakDays={peakDays} />
         </div>
       </CardContent>
@@ -521,9 +521,9 @@ function VenueSidebar({
 }) {
   return (
     <div className="space-y-4">
-      <Card className="border border-border/50 bg-card rounded-xl shadow-xs p-4 text-center space-y-4">
-        <h3 className="font-bold text-sm">Active Events</h3>
-        <p className="text-xs text-muted-foreground">
+      <Card className="border-border/50 bg-card space-y-4 rounded-xl border p-4 text-center shadow-xs">
+        <h3 className="text-sm font-bold">Active Events</h3>
+        <p className="text-muted-foreground text-xs">
           {events.length} tournament
           {events.length === 1 ? "" : "s"} and open play scheduled at{" "}
           {venue.name}.
@@ -535,7 +535,7 @@ function VenueSidebar({
                 key={evt.id}
                 to="/events/$id"
                 params={{ id: evt.id }}
-                className="block text-xs text-primary hover:underline text-left font-medium active:scale-[0.98] transition-all"
+                className="text-primary block text-left text-xs font-medium transition-all hover:underline active:scale-[0.98]"
               >
                 {evt.name}
               </Link>
@@ -544,19 +544,19 @@ function VenueSidebar({
         )}
       </Card>
 
-      <Card className="border border-border/50 bg-card rounded-xl shadow-xs p-4 space-y-3">
+      <Card className="border-border/50 bg-card space-y-3 rounded-xl border p-4 shadow-xs">
         <div className="flex items-center gap-2">
-          <Radio className="size-4 text-primary" />
-          <h3 className="font-bold text-xs">Radar Geofence & Check-In</h3>
+          <Radio className="text-primary size-4" />
+          <h3 className="text-xs font-bold">Radar Geofence & Check-In</h3>
         </div>
-        <p className="text-[10px] text-muted-foreground leading-relaxed">
+        <p className="text-muted-foreground text-[10px] leading-relaxed">
           {isCheckedIn
             ? "You are currently checked in at this court! Your presence is contributing to the live heat map."
             : "Check in when you're playing at this court to connect with nearby players and update live court heat."}
         </p>
         {isCheckedIn ? (
           <Button
-            className="w-full rounded-lg text-xs bg-destructive text-destructive-foreground hover:bg-destructive/90 active:scale-[0.97] transition-all duration-150 shadow-2xs"
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90 w-full rounded-lg text-xs shadow-2xs transition-all duration-150 active:scale-[0.97]"
             disabled={isCheckingInOut}
             onClick={onCheckOut}
             size="sm"
@@ -565,7 +565,7 @@ function VenueSidebar({
           </Button>
         ) : (
           <Button
-            className="w-full rounded-lg text-xs font-semibold active:scale-[0.97] transition-all duration-150 shadow-2xs"
+            className="w-full rounded-lg text-xs font-semibold shadow-2xs transition-all duration-150 active:scale-[0.97]"
             disabled={isCheckingInOut}
             onClick={onCheckIn}
             size="sm"
@@ -575,12 +575,12 @@ function VenueSidebar({
         )}
       </Card>
 
-      <Card className="border border-primary/20 bg-primary/5 rounded-xl shadow-xs p-4 space-y-2.5">
+      <Card className="border-primary/20 bg-primary/5 space-y-2.5 rounded-xl border p-4 shadow-xs">
         <div className="flex items-center gap-2">
-          <Camera className="size-4 text-primary" />
-          <h3 className="font-bold text-xs">Request Caster to this Court</h3>
+          <Camera className="text-primary size-4" />
+          <h3 className="text-xs font-bold">Request Caster to this Court</h3>
         </div>
-        <p className="text-[11px] text-muted-foreground leading-relaxed">
+        <p className="text-muted-foreground text-[11px] leading-relaxed">
           Order an on-demand court camera for your match or tournament at{" "}
           {venue.name}.
         </p>
@@ -588,19 +588,19 @@ function VenueSidebar({
           <Button
             size="sm"
             variant="outline"
-            className="w-full rounded-lg text-xs font-semibold cursor-pointer border-primary/40 hover:bg-primary/10"
+            className="border-primary/40 hover:bg-primary/10 w-full cursor-pointer rounded-lg text-xs font-semibold"
           >
             Order Caster ($20/hr)
           </Button>
         </Link>
       </Card>
 
-      <Card className="border border-border/50 bg-card rounded-xl shadow-xs p-4 space-y-3">
+      <Card className="border-border/50 bg-card space-y-3 rounded-xl border p-4 shadow-xs">
         <div className="flex items-center gap-2">
-          <Users className="size-4 text-primary" />
-          <h3 className="font-bold text-xs">Active Players</h3>
+          <Users className="text-primary size-4" />
+          <h3 className="text-xs font-bold">Active Players</h3>
           {activePlayers > 0 && (
-            <span className="text-[10px] bg-emerald-500/10 text-emerald-500 font-bold px-1.5 py-0.5 rounded-full">
+            <span className="rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-500">
               {activePlayers}
             </span>
           )}
@@ -608,7 +608,7 @@ function VenueSidebar({
         <div className="flex -space-x-2">
           {Array.from({ length: Math.min(activePlayers, 5) }, (_, index) => (
             <div
-              className="grid size-8 place-items-center rounded-full border-2 border-card bg-muted text-xs font-bold shadow-2xs"
+              className="border-card bg-muted grid size-8 place-items-center rounded-full border-2 text-xs font-bold shadow-2xs"
               key={index}
               title="Active player"
             >
@@ -616,12 +616,12 @@ function VenueSidebar({
             </div>
           ))}
           {activePlayers > 5 && (
-            <div className="grid size-8 place-items-center rounded-full border-2 border-card bg-muted text-xs text-muted-foreground shadow-2xs">
+            <div className="border-card bg-muted text-muted-foreground grid size-8 place-items-center rounded-full border-2 text-xs shadow-2xs">
               +{activePlayers - 5}
             </div>
           )}
         </div>
-        <p className="text-[10px] text-muted-foreground">
+        <p className="text-muted-foreground text-[10px]">
           {activePlayers > 0
             ? `${activePlayers} players checked in now`
             : "No active players right now"}
@@ -634,11 +634,11 @@ function VenueSidebar({
 function EventsSection({ events }: { events: EventCardData[] }) {
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-bold flex items-center gap-2">
-        <Calendar className="size-5 text-primary" /> Upcoming Events
+      <h2 className="flex items-center gap-2 text-xl font-bold">
+        <Calendar className="text-primary size-5" /> Upcoming Events
       </h2>
       {events.length > 0 ? (
-        <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4">
+        <div className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-2">
           {events.map((evt: EventCardData) => {
             const dateStr = new Date(evt.startsAt).toLocaleDateString("en-US", {
               day: "numeric",
@@ -648,17 +648,17 @@ function EventsSection({ events }: { events: EventCardData[] }) {
             return (
               <Card
                 key={evt.id}
-                className="border border-border/50 bg-card hover:bg-muted/20 hover:border-primary/40 active:scale-[0.98] transition-all rounded-xl p-4 w-72 shrink-0 shadow-2xs"
+                className="border-border/50 bg-card hover:bg-muted/20 hover:border-primary/40 w-72 shrink-0 rounded-xl border p-4 shadow-2xs transition-all active:scale-[0.98]"
               >
-                <div className="flex justify-between items-start gap-2">
+                <div className="flex items-start justify-between gap-2">
                   <div>
-                    <span className="text-[10px] bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full capitalize">
+                    <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-[10px] font-bold capitalize">
                       {evt.eventType?.replace("_", " ") ?? "open play"}
                     </span>
-                    <h4 className="font-bold text-sm mt-1.5 line-clamp-1">
+                    <h4 className="mt-1.5 line-clamp-1 text-sm font-bold">
                       {evt.name}
                     </h4>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-muted-foreground mt-1 text-xs">
                       {dateStr}
                     </p>
                   </div>
@@ -666,7 +666,7 @@ function EventsSection({ events }: { events: EventCardData[] }) {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="text-xs rounded-lg active:scale-[0.97] transition-all shrink-0"
+                      className="shrink-0 rounded-lg text-xs transition-all active:scale-[0.97]"
                     >
                       Details
                     </Button>
@@ -677,7 +677,7 @@ function EventsSection({ events }: { events: EventCardData[] }) {
           })}
         </div>
       ) : (
-        <p className="text-xs text-muted-foreground bg-muted/20 border border-border/50 rounded-xl p-6 text-center">
+        <p className="text-muted-foreground bg-muted/20 border-border/50 rounded-xl border p-6 text-center text-xs">
           No upcoming tournaments or open play sessions are scheduled here at
           this time.
         </p>
@@ -701,18 +701,18 @@ function VenueDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-6 animate-pulse">
-        <div className="h-6 w-24 bg-muted rounded" />
-        <div className="h-10 w-96 bg-muted rounded" />
-        <div className="h-64 bg-muted rounded-2xl" />
+      <div className="mx-auto max-w-7xl animate-pulse space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+        <div className="bg-muted h-6 w-24 rounded" />
+        <div className="bg-muted h-10 w-96 rounded" />
+        <div className="bg-muted h-64 rounded-2xl" />
       </div>
     );
   }
 
   if (error || !data?.venue) {
     return (
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 text-center space-y-4">
-        <h2 className="text-2xl font-bold text-destructive">Venue not found</h2>
+      <div className="mx-auto max-w-7xl space-y-4 px-4 py-12 text-center sm:px-6 lg:px-8">
+        <h2 className="text-destructive text-2xl font-bold">Venue not found</h2>
         <p className="text-muted-foreground text-sm">
           The court or park you are looking for does not exist or has been
           removed.
@@ -720,7 +720,7 @@ function VenueDetailPage() {
         <Link to="/">
           <Button
             variant="outline"
-            className="rounded-lg text-xs mt-4 active:scale-[0.97] transition-all"
+            className="mt-4 rounded-lg text-xs transition-all active:scale-[0.97]"
           >
             Back to Home
           </Button>
@@ -765,7 +765,7 @@ function VenueDetailPage() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 space-y-8 animate-in fade-in duration-300">
+    <div className="animate-in fade-in mx-auto max-w-7xl space-y-8 px-4 py-6 duration-300 sm:px-6 lg:px-8">
       <VenueHeader venue={venue} heatScore={heatScore} />
       <VenueActivityCard
         heatScore={heatScore}

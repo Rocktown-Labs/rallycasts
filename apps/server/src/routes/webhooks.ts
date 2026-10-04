@@ -195,6 +195,7 @@ export const webhooksRouter = new Hono<AppEnv>()
     let failed = 0;
 
     for (const radarEvent of events) {
+      // oxlint-disable-next-line eslint/no-await-in-loop -- per-event record/send/mark flow with error tallies; batches are small
       const webhook = await recordWebhook(db, {
         eventType: radarEvent.type,
         payloadJson: JSON.stringify(radarEvent),
@@ -206,8 +207,10 @@ export const webhooksRouter = new Hono<AppEnv>()
       }
 
       try {
+        // oxlint-disable-next-line eslint/no-await-in-loop -- per-event record/send/mark flow with error tallies; batches are small
         await c.env.GEOFENCE_EVENTS.send({ body: radarEvent });
         if (webhook.id) {
+          // oxlint-disable-next-line eslint/no-await-in-loop -- per-event record/send/mark flow with error tallies; batches are small
           await db
             .update(webhookEvent)
             .set({ processedAt: new Date(), status: "processed" })
@@ -224,6 +227,7 @@ export const webhooksRouter = new Hono<AppEnv>()
           })
         );
         if (webhook.id) {
+          // oxlint-disable-next-line eslint/no-await-in-loop -- per-event record/send/mark flow with error tallies; batches are small
           await db
             .update(webhookEvent)
             .set({ status: "failed" })

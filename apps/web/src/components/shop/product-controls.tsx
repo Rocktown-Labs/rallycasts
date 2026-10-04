@@ -36,7 +36,7 @@ export function VariantSelector({
     <div className="space-y-3">
       {options.map((option) => (
         <div key={option.id}>
-          <p className="text-xs font-semibold text-muted-foreground">
+          <p className="text-muted-foreground text-xs font-semibold">
             {option.name}
           </p>
           <div className="mt-1.5 flex flex-wrap gap-2">
@@ -89,7 +89,7 @@ function OptionButton({
           ? "border-primary bg-primary text-primary-foreground"
           : "border-border bg-background text-foreground hover:border-primary/60",
         !available &&
-          "relative cursor-not-allowed overflow-hidden bg-muted text-muted-foreground before:absolute before:inset-x-0 before:h-px before:-rotate-45 before:bg-muted-foreground/40"
+          "bg-muted text-muted-foreground before:bg-muted-foreground/40 relative cursor-not-allowed overflow-hidden before:absolute before:inset-x-0 before:h-px before:-rotate-45"
       )}
       disabled={!available}
       onClick={onSelect}
@@ -182,7 +182,7 @@ export function AddToCartControls({
       <div className="flex shrink-0 items-center rounded-lg border">
         <button
           aria-label={`Remove one ${offer.name}`}
-          className="grid size-9 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+          className="text-muted-foreground hover:bg-muted hover:text-foreground grid size-9 place-items-center rounded-lg transition-colors disabled:pointer-events-none disabled:opacity-40"
           disabled={soldOut || pending || quantity === 0}
           onClick={decrease}
           type="button"
@@ -197,7 +197,7 @@ export function AddToCartControls({
         </output>
         <button
           aria-label={`Add one more ${offer.name}`}
-          className="grid size-9 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+          className="text-muted-foreground hover:bg-muted hover:text-foreground grid size-9 place-items-center rounded-lg transition-colors disabled:pointer-events-none disabled:opacity-40"
           disabled={soldOut || pending}
           onClick={increase}
           type="button"

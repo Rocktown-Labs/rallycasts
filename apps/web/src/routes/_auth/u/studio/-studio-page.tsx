@@ -36,11 +36,11 @@ export function StudioPage({
     <main className="mx-auto max-w-7xl space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
+          <p className="text-primary text-xs font-semibold tracking-[0.22em] uppercase">
             RallyCasts Studio
           </p>
           <h1 className="mt-1 text-3xl font-bold">Studio</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="text-muted-foreground mt-2 text-sm">
             Upload match footage, cut clips, and manage your videos.
           </p>
         </div>
@@ -56,32 +56,32 @@ export function StudioPage({
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {studioActions.map(({ description, icon: Icon, label, to }) => (
           <Link
-            className="group rounded-xl border border-border/80 bg-card/60 p-4 transition-[background-color,border-color,transform] duration-150 hover:border-primary/50 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.98] cursor-pointer"
+            className="group border-border/80 bg-card/60 hover:border-primary/50 hover:bg-card focus-visible:ring-ring/50 cursor-pointer rounded-xl border p-4 transition-[background-color,border-color,transform] duration-150 focus-visible:ring-2 focus-visible:outline-none active:scale-[0.98]"
             key={label}
             to={to}
           >
-            <div className="flex items-center gap-2 font-semibold text-sm">
-              <Icon className="size-4 text-primary" />
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <Icon className="text-primary size-4" />
               {label}
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+            <p className="text-muted-foreground mt-1 text-xs">{description}</p>
           </Link>
         ))}
-        <div className="rounded-xl border border-border/80 bg-card/60 p-4">
-          <div className="flex items-center gap-2 font-semibold text-sm">
-            <Radio className="size-4 text-primary" />
+        <div className="border-border/80 bg-card/60 rounded-xl border p-4">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <Radio className="text-primary size-4" />
             Go live
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="text-muted-foreground mt-1 text-xs">
             Live sessions start from courtside soon.
           </p>
         </div>
-        <div className="rounded-xl border border-border/80 bg-card/60 p-4">
-          <div className="flex items-center gap-2 font-semibold text-sm">
-            <BarChart3 className="size-4 text-primary" />
+        <div className="border-border/80 bg-card/60 rounded-xl border p-4">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <BarChart3 className="text-primary size-4" />
             Analytics
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">Coming soon.</p>
+          <p className="text-muted-foreground mt-1 text-xs">Coming soon.</p>
         </div>
       </div>
 

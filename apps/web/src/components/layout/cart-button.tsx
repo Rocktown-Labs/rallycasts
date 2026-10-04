@@ -20,7 +20,7 @@ export default function CartButton() {
     >
       <ShoppingBag className="size-5" />
       {itemCount > 0 ? (
-        <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+        <span className="bg-primary text-primary-foreground absolute -top-1 -right-1 grid size-5 place-items-center rounded-full text-[10px] font-bold">
           {itemCount > 99 ? "99+" : itemCount}
         </span>
       ) : null}

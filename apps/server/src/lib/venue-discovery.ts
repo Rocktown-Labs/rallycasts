@@ -119,6 +119,7 @@ export async function discoverAndCacheAreaVenues({
       // Index into Vectorize search index with Gemini embeddings
       for (const inserted of toInsert) {
         try {
+          // oxlint-disable-next-line eslint/no-await-in-loop -- external API sync, sequential to respect rate limits
           await syncVenueSearchDocument(
             getExecutionContext ?? getFallbackExecutionContext,
             db,
@@ -137,6 +138,7 @@ export async function discoverAndCacheAreaVenues({
       if (env.RADAR_SECRET_KEY) {
         for (const inserted of toInsert) {
           try {
+            // oxlint-disable-next-line eslint/no-await-in-loop -- external API sync, sequential to respect rate limits
             await syncVenueGeofence(env.RADAR_SECRET_KEY, {
               courtCount: 0,
               id: inserted.id,

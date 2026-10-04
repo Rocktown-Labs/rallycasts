@@ -50,7 +50,7 @@ function HorizontalScroll({
   return (
     <div
       className={cn(
-        "-mx-4 flex gap-4 overflow-x-auto px-4 pb-2 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted hover:scrollbar-thumb-muted-foreground/30",
+        "scrollbar-thumb-muted hover:scrollbar-thumb-muted-foreground/30 -mx-4 flex scrollbar-thin scrollbar-track-transparent gap-4 overflow-x-auto px-4 pb-2",
         className
       )}
     >
@@ -101,16 +101,16 @@ function LocalOrganizersSection({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="flex items-center gap-2 text-xl font-bold tracking-tight text-foreground">
-            <Building2 className="size-5 text-primary" /> Local Hosts
+          <h2 className="text-foreground flex items-center gap-2 text-xl font-bold tracking-tight">
+            <Building2 className="text-primary size-5" /> Local Hosts
           </h2>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="text-muted-foreground mt-1 text-xs">
             Clubs, leagues, and hosts creating events near {userState}.
           </p>
         </div>
         <Link
           to="/events/hosts"
-          className="rounded-md px-3 py-2 text-xs font-semibold text-primary hover:bg-muted hover:text-primary/80"
+          className="text-primary hover:bg-muted hover:text-primary/80 rounded-md px-3 py-2 text-xs font-semibold"
         >
           View All
         </Link>
@@ -121,13 +121,13 @@ function LocalOrganizersSection({
             .filter((org) => Boolean(org?.id && org?.slug))
             .map((organization) => (
               <Link
-                className="group w-72 shrink-0 rounded-lg border border-border bg-card p-4 shadow-sm transition-colors hover:border-primary/40"
+                className="group border-border bg-card hover:border-primary/40 w-72 shrink-0 rounded-lg border p-4 shadow-sm transition-colors"
                 key={organization.id}
                 params={{ slug: organization.slug }}
                 to="/events/hosts/$slug"
               >
                 <div className="flex items-start gap-3">
-                  <div className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-lg bg-primary/10 text-primary">
+                  <div className="bg-primary/10 text-primary grid size-12 shrink-0 place-items-center overflow-hidden rounded-lg">
                     {organization.logoUrl ? (
                       <img
                         alt={`${organization.name} logo`}
@@ -139,13 +139,13 @@ function LocalOrganizersSection({
                     )}
                   </div>
                   <div className="min-w-0">
-                    <h3 className="flex items-center gap-1.5 truncate text-sm font-bold group-hover:text-primary">
+                    <h3 className="group-hover:text-primary flex items-center gap-1.5 truncate text-sm font-bold">
                       {organization.name}
                       {organization.isOfficial ? (
                         <BadgeCheck className="size-4 shrink-0 text-[#bcdf21]" />
                       ) : null}
                     </h3>
-                    <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                    <p className="text-muted-foreground mt-1 flex items-center gap-1 text-xs">
                       <MapPin className="size-3" />
                       {[organization.city, organization.state]
                         .filter(Boolean)
@@ -153,7 +153,7 @@ function LocalOrganizersSection({
                     </p>
                   </div>
                 </div>
-                <p className="mt-3 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                <p className="text-muted-foreground mt-3 line-clamp-2 text-xs leading-relaxed">
                   {organization.bio ??
                     "Tournament and pickleball community host."}
                 </p>
@@ -258,7 +258,7 @@ function EventsPage() {
 
     try {
       await createEventMutation.mutateAsync({
-        capacity: Number.parseInt(capacity, 10) || 64,
+        capacity: Math.trunc(Number(capacity)) || 64,
         description: description.trim() || undefined,
         eventType: eventType as
           | "clinic"
@@ -314,11 +314,11 @@ function EventsPage() {
   const renderEventsDashboard = () => {
     if (eventsLoading) {
       return (
-        <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3 animate-in fade-in duration-300">
+        <div className="animate-in fade-in grid grid-cols-2 gap-3 duration-300 sm:gap-6 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, idx) => (
             <div
               key={idx}
-              className="h-48 animate-pulse rounded-2xl bg-muted/40 border border-border/50"
+              className="bg-muted/40 border-border/50 h-48 animate-pulse rounded-2xl border"
             />
           ))}
         </div>
@@ -355,16 +355,16 @@ function EventsPage() {
       const section = getSectionDetails();
 
       return (
-        <div className="space-y-6 animate-in fade-in duration-300">
+        <div className="animate-in fade-in space-y-6 duration-300">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold tracking-tight text-foreground">
+            <h2 className="text-foreground text-xl font-bold tracking-tight">
               {section.title} ({section.list.length})
             </h2>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setViewAllSection(null)}
-              className="rounded-md h-8 text-xs"
+              className="h-8 rounded-md text-xs"
             >
               ← Back to Dashboard
             </Button>
@@ -386,12 +386,12 @@ function EventsPage() {
     }
 
     return (
-      <div className="space-y-10 animate-in fade-in duration-500">
+      <div className="animate-in fade-in space-y-10 duration-500">
         {/* Section 1: Near You */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-              <MapPin className="size-5 text-primary" /> Near You (Within 1
+            <h2 className="text-foreground flex items-center gap-2 text-xl font-bold tracking-tight">
+              <MapPin className="text-primary size-5" /> Near You (Within 1
               Mile)
             </h2>
             {nearYouEvents.length > 0 && (
@@ -399,7 +399,7 @@ function EventsPage() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setViewAllSection("near-you")}
-                className="text-primary hover:text-primary/80 font-semibold text-xs rounded-md"
+                className="text-primary hover:text-primary/80 rounded-md text-xs font-semibold"
               >
                 View All
               </Button>
@@ -425,8 +425,8 @@ function EventsPage() {
         {/* Section 2: Statewide */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-              <Calendar className="size-5 text-primary" /> Statewide (
+            <h2 className="text-foreground flex items-center gap-2 text-xl font-bold tracking-tight">
+              <Calendar className="text-primary size-5" /> Statewide (
               {userState})
             </h2>
             {statewideEvents.length > 0 && (
@@ -434,7 +434,7 @@ function EventsPage() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setViewAllSection("state")}
-                className="text-primary hover:text-primary/80 font-semibold text-xs rounded-md"
+                className="text-primary hover:text-primary/80 rounded-md text-xs font-semibold"
               >
                 View All
               </Button>
@@ -466,15 +466,15 @@ function EventsPage() {
         {/* Section 4: Nationwide & Global */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-              <Trophy className="size-5 text-primary" /> Nationwide & Global
+            <h2 className="text-foreground flex items-center gap-2 text-xl font-bold tracking-tight">
+              <Trophy className="text-primary size-5" /> Nationwide & Global
             </h2>
             {globalEvents.length > 0 && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setViewAllSection("global")}
-                className="text-primary hover:text-primary/80 font-semibold text-xs rounded-md"
+                className="text-primary hover:text-primary/80 rounded-md text-xs font-semibold"
               >
                 View All
               </Button>
@@ -501,46 +501,46 @@ function EventsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl space-y-8 px-4 py-4 animate-in fade-in duration-300">
+    <div className="animate-in fade-in mx-auto max-w-7xl space-y-8 px-4 py-4 duration-300">
       {!viewAllSection && (
         <>
           {/* Hero Section */}
-          <div className="relative overflow-hidden rounded-2xl bg-primary p-6 text-white shadow-xl sm:p-8">
+          <div className="bg-primary relative overflow-hidden rounded-2xl p-6 text-white shadow-xl sm:p-8">
             <div className="relative z-10 max-w-2xl space-y-2">
-              <div className="inline-flex items-center gap-1.5 rounded-md bg-secondary/20 px-2.5 py-1 text-xs font-semibold text-[#bcdf21]">
+              <div className="bg-secondary/20 inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold text-[#bcdf21]">
                 <span>Tournaments, Leagues & Clinics</span>
               </div>
-              <h1 className="text-3xl font-logo sm:text-4xl tracking-wide lowercase">
+              <h1 className="font-logo text-3xl tracking-wide lowercase sm:text-4xl">
                 events
               </h1>
-              <p className="text-sm text-gray-200 sm:text-base leading-relaxed">
+              <p className="text-sm leading-relaxed text-gray-200 sm:text-base">
                 Join local tournaments, clinics, and leagues, or host your own.
               </p>
             </div>
           </div>
 
           {/* Consolidated Organizer Banner */}
-          <section className="rounded-2xl border border-border/50 bg-card p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-            <div className="space-y-2 max-w-3xl">
+          <section className="border-border/50 bg-card flex flex-col items-start justify-between gap-6 rounded-2xl border p-6 shadow-sm md:flex-row md:items-center">
+            <div className="max-w-3xl space-y-2">
               <div className="flex items-center gap-2">
-                <Trophy className="size-5 text-primary" />
-                <span className="text-[10px] bg-primary/15 text-primary font-extrabold px-2.5 py-0.5 rounded-md uppercase tracking-wider">
+                <Trophy className="text-primary size-5" />
+                <span className="bg-primary/15 text-primary rounded-md px-2.5 py-0.5 text-[10px] font-extrabold tracking-wider uppercase">
                   {isOrganizer ? "Organizer Account Active" : "Organizer Hub"}
                 </span>
               </div>
-              <h2 className="text-xl md:text-2xl font-bold tracking-tight">
+              <h2 className="text-xl font-bold tracking-tight md:text-2xl">
                 {organizerTitle}
               </h2>
-              <p className="text-xs text-muted-foreground leading-relaxed">
+              <p className="text-muted-foreground text-xs leading-relaxed">
                 {organizerCopy}
               </p>
             </div>
 
-            <div className="shrink-0 w-full md:w-auto">
+            <div className="w-full shrink-0 md:w-auto">
               {isOrganizer ? (
                 <Button
                   onClick={() => setShowCreateModal(true)}
-                  className="w-full md:w-auto rounded-lg text-xs font-semibold py-5 px-5 flex items-center gap-1.5 cursor-pointer"
+                  className="flex w-full cursor-pointer items-center gap-1.5 rounded-lg px-5 py-5 text-xs font-semibold md:w-auto"
                 >
                   <Plus className="size-4" /> Create New Event
                 </Button>
@@ -548,7 +548,7 @@ function EventsPage() {
                 <Button
                   onClick={handleUpgrade}
                   disabled={updateProfileMutation.isPending}
-                  className="w-full md:w-auto rounded-lg text-xs font-semibold py-5 px-5 flex items-center gap-1.5 cursor-pointer"
+                  className="flex w-full cursor-pointer items-center gap-1.5 rounded-lg px-5 py-5 text-xs font-semibold md:w-auto"
                 >
                   {updateProfileMutation.isPending
                     ? "Upgrading..."
@@ -566,25 +566,25 @@ function EventsPage() {
 
       {/* Create Event Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-lg bg-card border border-border rounded-xl shadow-xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
-            <div className="p-5 border-b border-border flex justify-between items-center">
+        <div className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm duration-200">
+          <div className="bg-card border-border animate-in slide-in-from-bottom-4 w-full max-w-lg overflow-hidden rounded-xl border shadow-xl duration-300">
+            <div className="border-border flex items-center justify-between border-b p-5">
               <h2 className="text-base font-bold">Create New Event</h2>
               <button
                 type="button"
                 onClick={() => setShowCreateModal(false)}
-                className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                className="text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
               >
                 <XCircle className="size-5" />
               </button>
             </div>
 
             <form onSubmit={handleCreateEvent}>
-              <div className="p-5 space-y-4 max-h-[65vh] overflow-y-auto">
+              <div className="max-h-[65vh] space-y-4 overflow-y-auto p-5">
                 <div className="space-y-1">
                   <label
                     htmlFor="eventNameInput"
-                    className="text-xs font-semibold text-muted-foreground"
+                    className="text-muted-foreground text-xs font-semibold"
                   >
                     Event Name
                   </label>
@@ -594,7 +594,7 @@ function EventsPage() {
                     value={eventName}
                     onChange={(e) => setEventName(e.target.value)}
                     required
-                    className="text-xs rounded-md"
+                    className="rounded-md text-xs"
                   />
                 </div>
 
@@ -602,7 +602,7 @@ function EventsPage() {
                   <div className="space-y-1">
                     <label
                       htmlFor="eventTypeSelect"
-                      className="text-xs font-semibold text-muted-foreground block"
+                      className="text-muted-foreground block text-xs font-semibold"
                     >
                       Event Type
                     </label>
@@ -610,7 +610,7 @@ function EventsPage() {
                       id="eventTypeSelect"
                       value={eventType}
                       onChange={(e) => setEventType(e.target.value)}
-                      className="w-full p-2.5 bg-card border border-border rounded-md text-xs focus:ring-1 focus:ring-primary focus:outline-none"
+                      className="bg-card border-border focus:ring-primary w-full rounded-md border p-2.5 text-xs focus:ring-1 focus:outline-none"
                     >
                       <option value="tournament">Tournament</option>
                       <option value="open_play">Open Play</option>
@@ -622,7 +622,7 @@ function EventsPage() {
                   <div className="space-y-1">
                     <label
                       htmlFor="organizationSelect"
-                      className="text-xs font-semibold text-muted-foreground block"
+                      className="text-muted-foreground block text-xs font-semibold"
                     >
                       Host Organization
                     </label>
@@ -632,7 +632,7 @@ function EventsPage() {
                       onChange={(e) =>
                         setSelectedOrganizationId(e.target.value)
                       }
-                      className="w-full p-2.5 bg-card border border-border rounded-md text-xs focus:ring-1 focus:ring-primary focus:outline-none"
+                      className="bg-card border-border focus:ring-primary w-full rounded-md border p-2.5 text-xs focus:ring-1 focus:outline-none"
                     >
                       <option value="">My organizer profile</option>
                       {myOrganizations.map(({ organization }) => (
@@ -656,7 +656,7 @@ function EventsPage() {
                   <div className="space-y-1">
                     <label
                       htmlFor="startsAtInput"
-                      className="text-xs font-semibold text-muted-foreground"
+                      className="text-muted-foreground text-xs font-semibold"
                     >
                       Starts At
                     </label>
@@ -666,14 +666,14 @@ function EventsPage() {
                       value={startsAt}
                       onChange={(e) => setStartsAt(e.target.value)}
                       required
-                      className="text-xs rounded-md"
+                      className="rounded-md text-xs"
                     />
                   </div>
 
                   <div className="space-y-1">
                     <label
                       htmlFor="capacityInput"
-                      className="text-xs font-semibold text-muted-foreground"
+                      className="text-muted-foreground text-xs font-semibold"
                     >
                       Capacity (Players)
                     </label>
@@ -683,7 +683,7 @@ function EventsPage() {
                       value={capacity}
                       onChange={(e) => setCapacity(e.target.value)}
                       required
-                      className="text-xs rounded-md"
+                      className="rounded-md text-xs"
                     />
                   </div>
                 </div>
@@ -691,7 +691,7 @@ function EventsPage() {
                 <div className="space-y-1">
                   <label
                     htmlFor="descriptionInput"
-                    className="text-xs font-semibold text-muted-foreground"
+                    className="text-muted-foreground text-xs font-semibold"
                   >
                     Event Description
                   </label>
@@ -702,12 +702,12 @@ function EventsPage() {
                     placeholder="Provide details about registration costs, schedules, scoring formats, and rules..."
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="w-full p-2.5 bg-card border border-border rounded-md text-xs focus:ring-1 focus:ring-primary focus:outline-none resize-none leading-normal text-foreground placeholder:text-muted-foreground"
+                    className="bg-card border-border focus:ring-primary text-foreground placeholder:text-muted-foreground w-full resize-none rounded-md border p-2.5 text-xs leading-normal focus:ring-1 focus:outline-none"
                   />
                 </div>
               </div>
 
-              <div className="p-5 border-t border-border flex gap-2">
+              <div className="border-border flex gap-2 border-t p-5">
                 <Button
                   type="button"
                   variant="outline"
@@ -719,7 +719,7 @@ function EventsPage() {
                 <Button
                   type="submit"
                   disabled={createEventMutation.isPending}
-                  className="flex-1 rounded-md text-xs font-semibold cursor-pointer"
+                  className="flex-1 cursor-pointer rounded-md text-xs font-semibold"
                 >
                   {createEventMutation.isPending
                     ? "Publishing..."

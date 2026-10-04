@@ -10,14 +10,14 @@ const tabs = [
 
 export default function ProfileTabs() {
   return (
-    <div className="flex w-fit max-w-full overflow-x-auto rounded-md bg-muted p-1">
+    <div className="bg-muted flex w-fit max-w-full overflow-x-auto rounded-md p-1">
       {tabs.map((tab) => (
         <Link
           key={tab.to}
           to={tab.to}
           activeOptions={{ exact: tab.to === "/u/profile/me" }}
           className={cn(
-            "whitespace-nowrap rounded-md px-4 py-2 text-sm text-muted-foreground"
+            "text-muted-foreground rounded-md px-4 py-2 text-sm whitespace-nowrap"
           )}
           activeProps={{ className: "bg-background text-foreground shadow-sm" }}
         >

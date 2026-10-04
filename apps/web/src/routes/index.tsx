@@ -46,7 +46,7 @@ function HomeComponent() {
   const isPersonalized = Boolean(session?.user);
 
   return (
-    <div className="mx-auto max-w-7xl space-y-12 animate-in fade-in duration-200">
+    <div className="animate-in fade-in mx-auto max-w-7xl space-y-12 duration-200">
       <HeroBanner />
 
       <HomeFeedView
@@ -72,7 +72,7 @@ function HeroLocationButton() {
       to="/trending"
       className={cn(
         buttonVariants({ variant: "outline" }),
-        "rounded-lg border-white/25 bg-transparent text-white transition-transform duration-150 hover:bg-white/10 hover:text-white active:scale-97 cursor-pointer"
+        "cursor-pointer rounded-lg border-white/25 bg-transparent text-white transition-transform duration-150 hover:bg-white/10 hover:text-white active:scale-97"
       )}
     >
       <MapPin className="size-4 text-[#bcdf21]" />
@@ -83,15 +83,15 @@ function HeroLocationButton() {
 
 function HeroBanner() {
   return (
-    <section className="relative overflow-hidden rounded-2xl bg-primary p-6 text-white shadow-xl sm:p-8">
+    <section className="bg-primary relative overflow-hidden rounded-2xl p-6 text-white shadow-xl sm:p-8">
       <div className="relative z-10 max-w-2xl space-y-2">
-        <div className="inline-flex items-center gap-1.5 rounded-md bg-secondary/20 px-2.5 py-1 text-xs font-semibold text-[#bcdf21]">
+        <div className="bg-secondary/20 inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold text-[#bcdf21]">
           <span>Pickleball around your courts</span>
         </div>
-        <h1 className="mt-3 text-2xl font-bold tracking-tight md:text-3xl lg:text-4xl text-white">
+        <h1 className="mt-3 text-2xl font-bold tracking-tight text-white md:text-3xl lg:text-4xl">
           Pickleball videos, players, and casters around you.
         </h1>
-        <p className="mt-2.5 max-w-2xl text-sm text-gray-200 sm:text-base leading-relaxed">
+        <p className="mt-2.5 max-w-2xl text-sm leading-relaxed text-gray-200 sm:text-base">
           Watch local match highlights, find active parks, and book a RallyCasts
           caster when the game deserves a clean angle.
         </p>
@@ -318,10 +318,10 @@ function HomeFeedView({
       {featuredLandscape.length > 0 ? (
         <section className="space-y-4">
           <div>
-            <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+            <h2 className="text-foreground text-xl font-bold tracking-tight sm:text-2xl">
               Featured Matches
             </h2>
-            <p className="mt-0.5 text-xs text-muted-foreground">
+            <p className="text-muted-foreground mt-0.5 text-xs">
               Recent rallies, matches, and clinics recorded with RallyCasts.
             </p>
           </div>
@@ -357,10 +357,10 @@ function HomeFeedView({
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+              <h2 className="text-foreground text-xl font-bold tracking-tight sm:text-2xl">
                 Court Activity & Tournaments
               </h2>
-              <p className="mt-0.5 text-xs text-muted-foreground">
+              <p className="text-muted-foreground mt-0.5 text-xs">
                 Upcoming open plays, tournament brackets, and player updates.
               </p>
             </div>
@@ -412,10 +412,10 @@ function MoreMatchesSection({
   return (
     <section className="space-y-4">
       <div>
-        <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+        <h2 className="text-foreground text-xl font-bold tracking-tight sm:text-2xl">
           More Matches & Highlights
         </h2>
-        <p className="mt-0.5 text-xs text-muted-foreground">
+        <p className="text-muted-foreground mt-0.5 text-xs">
           Community open play recordings, kitchen battles, and clinics.
         </p>
       </div>
@@ -483,13 +483,13 @@ function ShortsShelf({ videos }: { videos: VideoCardData[] }) {
     <section className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="flex items-center gap-2 text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+          <h2 className="text-foreground flex items-center gap-2 text-xl font-bold tracking-tight sm:text-2xl">
             <span className="flex size-7 items-center justify-center rounded-lg bg-red-600/15 text-red-500">
               <Flame className="size-4.5 fill-red-500" />
             </span>
             Highlights
           </h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">
+          <p className="text-muted-foreground mt-0.5 text-xs">
             Bite-sized points, kitchen battles, and clutch shots from the
             courts.
           </p>
@@ -498,7 +498,7 @@ function ShortsShelf({ videos }: { videos: VideoCardData[] }) {
           <Button
             variant="outline"
             size="icon"
-            className="size-8 rounded-full transition-transform active:scale-95 disabled:opacity-30 cursor-pointer"
+            className="size-8 cursor-pointer rounded-full transition-transform active:scale-95 disabled:opacity-30"
             disabled={!canScrollLeft}
             onClick={() => scrollByAmount(-280)}
             aria-label="Scroll left"
@@ -508,7 +508,7 @@ function ShortsShelf({ videos }: { videos: VideoCardData[] }) {
           <Button
             variant="outline"
             size="icon"
-            className="size-8 rounded-full transition-transform active:scale-95 disabled:opacity-30 cursor-pointer"
+            className="size-8 cursor-pointer rounded-full transition-transform active:scale-95 disabled:opacity-30"
             disabled={!canScrollRight}
             onClick={() => scrollByAmount(280)}
             aria-label="Scroll right"
@@ -520,7 +520,7 @@ function ShortsShelf({ videos }: { videos: VideoCardData[] }) {
 
       <div
         ref={scrollRef}
-        className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-3 pt-1 scroll-smooth snap-x snap-mandatory scrollbar-none touch-pan-y"
+        className="-mx-4 flex touch-pan-y snap-x snap-mandatory scrollbar-none gap-4 overflow-x-auto scroll-smooth px-4 pt-1 pb-3"
         style={{ WebkitOverflowScrolling: "touch" }}
       >
         {videos.map((video) => (
@@ -570,20 +570,20 @@ function NearbyParksSection({ venues }: { venues: VenueCardData[] }) {
     <section className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="flex items-center gap-2 text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-            <MapPin className="size-5 text-primary" />
+          <h2 className="text-foreground flex items-center gap-2 text-xl font-bold tracking-tight sm:text-2xl">
+            <MapPin className="text-primary size-5" />
             Parks near you
           </h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">
+          <p className="text-muted-foreground mt-0.5 text-xs">
             Courts with active heat, open play sessions, and checked-in players.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="hidden sm:flex items-center gap-1">
+          <div className="hidden items-center gap-1 sm:flex">
             <Button
               variant="outline"
               size="icon"
-              className="size-8 rounded-full transition-transform active:scale-95 disabled:opacity-30 cursor-pointer"
+              className="size-8 cursor-pointer rounded-full transition-transform active:scale-95 disabled:opacity-30"
               disabled={!canScrollLeft}
               onClick={() => scrollByAmount(-340)}
               aria-label="Scroll left"
@@ -593,7 +593,7 @@ function NearbyParksSection({ venues }: { venues: VenueCardData[] }) {
             <Button
               variant="outline"
               size="icon"
-              className="size-8 rounded-full transition-transform active:scale-95 disabled:opacity-30 cursor-pointer"
+              className="size-8 cursor-pointer rounded-full transition-transform active:scale-95 disabled:opacity-30"
               disabled={!canScrollRight}
               onClick={() => scrollByAmount(340)}
               aria-label="Scroll right"
@@ -606,13 +606,13 @@ function NearbyParksSection({ venues }: { venues: VenueCardData[] }) {
 
       <div
         ref={scrollRef}
-        className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-3 pt-1 scroll-smooth snap-x snap-mandatory scrollbar-none touch-pan-y"
+        className="-mx-4 flex touch-pan-y snap-x snap-mandatory scrollbar-none gap-4 overflow-x-auto scroll-smooth px-4 pt-1 pb-3"
         style={{ WebkitOverflowScrolling: "touch" }}
       >
         {venues.map((venue) => (
           <div
             key={venue.id}
-            className="w-[280px] sm:w-[320px] shrink-0 snap-start"
+            className="w-[280px] shrink-0 snap-start sm:w-[320px]"
           >
             <ParkHeatCard venue={venue} />
           </div>
@@ -649,7 +649,7 @@ function FeedSkeleton() {
       {Array.from({ length: 8 }).map((_, index) => (
         <div
           key={index}
-          className="h-52 animate-pulse rounded-xl bg-muted/50 border border-border/40"
+          className="bg-muted/50 border-border/40 h-52 animate-pulse rounded-xl border"
         />
       ))}
     </div>
@@ -673,7 +673,7 @@ function HomeFeedCard({
 
   return (
     <article className="space-y-2">
-      <div className="flex items-center gap-1.5 px-1 text-xs font-semibold text-primary">
+      <div className="text-primary flex items-center gap-1.5 px-1 text-xs font-semibold">
         <FeedItemIcon type={item.entityType} />
         <span>{item.reason}</span>
       </div>
@@ -724,23 +724,23 @@ function PostFeedCard({ post }: { post: PostFeedData }) {
     post.author?.username ?? post.author?.displayUsername ?? "player";
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5 shadow-xs transition-all duration-200 hover:border-primary/30">
+    <div className="border-border bg-card hover:border-primary/30 rounded-xl border p-5 shadow-xs transition-all duration-200">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-foreground">
+          <p className="text-foreground text-sm font-semibold">
             {post.author?.name ?? "RallyCasts player"}
           </p>
           <Link
             to="/players/$username"
             params={{ username }}
-            className="text-xs text-muted-foreground hover:text-primary transition-colors"
+            className="text-muted-foreground hover:text-primary text-xs transition-colors"
           >
             @{username}
           </Link>
         </div>
-        <MessageSquare className="size-4 text-primary" />
+        <MessageSquare className="text-primary size-4" />
       </div>
-      <p className="mt-3 line-clamp-4 text-sm text-muted-foreground leading-relaxed">
+      <p className="text-muted-foreground mt-3 line-clamp-4 text-sm leading-relaxed">
         {post.content}
       </p>
     </div>

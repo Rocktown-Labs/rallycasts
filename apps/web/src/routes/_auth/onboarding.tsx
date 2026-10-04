@@ -151,21 +151,21 @@ function OnboardingPage() {
     <div className="relative mx-auto max-w-3xl space-y-8 px-4 py-8">
       {/* Ambient background glow */}
       <div className="pointer-events-none absolute inset-0 -z-10 flex items-center justify-center">
-        <div className="size-96 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute size-72 rounded-full bg-brand-yellow/5 blur-2xl" />
+        <div className="bg-primary/10 size-96 rounded-full blur-3xl" />
+        <div className="bg-brand-yellow/5 absolute size-72 rounded-full blur-2xl" />
       </div>
 
       {/* Header */}
       <div className="space-y-2 text-center md:text-left">
-        <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 border border-primary/30 px-3 py-1 text-xs font-bold uppercase tracking-wider text-primary">
+        <div className="bg-primary/15 border-primary/30 text-primary inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold tracking-wider uppercase">
           <span>🎾 RallyCasts Setup</span>
           <span className="text-primary/60">•</span>
           <span>Takes 60 seconds</span>
         </div>
-        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
+        <h1 className="text-foreground text-3xl font-extrabold tracking-tight sm:text-4xl">
           Build the pickleball feed you wish already existed.
         </h1>
-        <p className="text-muted-foreground text-xs sm:text-sm max-w-2xl">
+        <p className="text-muted-foreground max-w-2xl text-xs sm:text-sm">
           RallyCasts is video-first, local-first, and player-first. Personalize
           your courts, tournament brackets, clips, and local community.
         </p>
@@ -173,19 +173,19 @@ function OnboardingPage() {
 
       {/* Progress Bar & Steps Bar */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span className="font-semibold text-foreground">
+        <div className="text-muted-foreground flex items-center justify-between text-xs">
+          <span className="text-foreground font-semibold">
             Step {step + 1} of {STEPS.length}: {STEPS[step]?.label}
           </span>
-          <span className="font-mono text-primary font-bold">
+          <span className="text-primary font-mono font-bold">
             {progressPercent}% Complete
           </span>
         </div>
 
         {/* Progress Bar Line */}
-        <div className="h-1.5 w-full rounded-full bg-border/60 overflow-hidden">
+        <div className="bg-border/60 h-1.5 w-full overflow-hidden rounded-full">
           <div
-            className="h-full bg-linear-to-r from-primary to-brand-yellow transition-all duration-300 ease-out"
+            className="from-primary to-brand-yellow h-full bg-linear-to-r transition-all duration-300 ease-out"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
@@ -209,7 +209,7 @@ function OnboardingPage() {
 
             return (
               <button
-                className={`flex flex-col items-center group transition-all text-center ${
+                className={`group flex flex-col items-center text-center transition-all ${
                   index < step ? "cursor-pointer" : "cursor-default"
                 }`}
                 disabled={index > step}
@@ -218,7 +218,7 @@ function OnboardingPage() {
                 type="button"
               >
                 <div
-                  className={`size-9 sm:size-10 rounded-xl flex items-center justify-center border-2 text-xs font-bold transition-all ${nodeClass}`}
+                  className={`flex size-9 items-center justify-center rounded-xl border-2 text-xs font-bold transition-all sm:size-10 ${nodeClass}`}
                 >
                   {isCompleted ? (
                     <Check className="size-4 stroke-[3]" />
@@ -227,14 +227,14 @@ function OnboardingPage() {
                   )}
                 </div>
                 <span
-                  className={`mt-1.5 text-[11px] font-semibold truncate max-w-[70px] sm:max-w-none ${getStepLabelColor(
+                  className={`mt-1.5 max-w-[70px] truncate text-[11px] font-semibold sm:max-w-none ${getStepLabelColor(
                     isActive,
                     isCompleted
                   )}`}
                 >
                   {item.label}
                 </span>
-                <span className="hidden sm:block text-[10px] text-muted-foreground truncate">
+                <span className="text-muted-foreground hidden truncate text-[10px] sm:block">
                   {item.description}
                 </span>
               </button>
@@ -244,33 +244,33 @@ function OnboardingPage() {
       </div>
 
       {/* Main Card with Step Content */}
-      <Card className="rounded-2xl border border-border/80 shadow-xl bg-card/90 backdrop-blur-md overflow-hidden">
+      <Card className="border-border/80 bg-card/90 overflow-hidden rounded-2xl border shadow-xl backdrop-blur-md">
         <CardContent className="p-6 sm:p-8">
           {isFinalizing ? (
-            <div className="py-12 px-4 text-center space-y-6 animate-in fade-in zoom-in-95 duration-500">
+            <div className="animate-in fade-in zoom-in-95 space-y-6 px-4 py-12 text-center duration-500">
               <div className="relative mx-auto size-20">
-                <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
-                <div className="relative size-20 rounded-2xl bg-primary/10 border border-primary/30 flex items-center justify-center text-primary shadow-lg shadow-primary/10">
-                  <Sparkles className="size-9 text-primary animate-spin [animation-duration:4s]" />
+                <div className="bg-primary/20 absolute inset-0 animate-ping rounded-full" />
+                <div className="bg-primary/10 border-primary/30 text-primary shadow-primary/10 relative flex size-20 items-center justify-center rounded-2xl border shadow-lg">
+                  <Sparkles className="text-primary size-9 animate-spin [animation-duration:4s]" />
                 </div>
               </div>
-              <div className="space-y-2 max-w-md mx-auto">
-                <h3 className="text-xl font-bold tracking-tight text-foreground">
+              <div className="mx-auto max-w-md space-y-2">
+                <h3 className="text-foreground text-xl font-bold tracking-tight">
                   Personalizing your pickleball hub...
                 </h3>
-                <p className="text-xs sm:text-sm text-muted-foreground">
+                <p className="text-muted-foreground text-xs sm:text-sm">
                   Discovering & geocaching courts within 50 miles of{" "}
-                  <span className="font-semibold text-foreground">
+                  <span className="text-foreground font-semibold">
                     {finalizingCity}
                   </span>
                   , indexing vector search embeddings, and building your feed.
                 </p>
               </div>
-              <div className="max-w-xs mx-auto space-y-2">
-                <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                  <div className="h-full bg-primary animate-pulse w-full" />
+              <div className="mx-auto max-w-xs space-y-2">
+                <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
+                  <div className="bg-primary h-full w-full animate-pulse" />
                 </div>
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-muted-foreground text-[11px]">
                   Setting up your Player Hub...
                 </p>
               </div>

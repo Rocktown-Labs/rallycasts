@@ -50,7 +50,7 @@ const TeamPageRoute = ({ slug }: { slug: string }) => {
   });
 
   if (isLoading || !data?.organization) {
-    return <div className="h-64 animate-pulse rounded-xl bg-muted" />;
+    return <div className="bg-muted h-64 animate-pulse rounded-xl" />;
   }
 
   const { members } = data;
@@ -59,7 +59,7 @@ const TeamPageRoute = ({ slug }: { slug: string }) => {
     <main className="mx-auto max-w-4xl space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">
+          <p className="text-primary text-xs font-bold tracking-[0.2em] uppercase">
             Host tools
           </p>
           <h1 className="text-3xl font-black">
@@ -77,7 +77,7 @@ const TeamPageRoute = ({ slug }: { slug: string }) => {
       <Card className="rounded-xl">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <UserPlus className="size-5 text-primary" />
+            <UserPlus className="text-primary size-5" />
             Add a team member
           </CardTitle>
         </CardHeader>
@@ -109,7 +109,7 @@ const TeamPageRoute = ({ slug }: { slug: string }) => {
               {addMember.isPending ? "Adding…" : "Add editor"}
             </Button>
           </form>
-          <p className="mt-2 text-xs text-muted-foreground">
+          <p className="text-muted-foreground mt-2 text-xs">
             Team members with the editor role can publish and manage tournaments
             for this organization.
           </p>
@@ -119,7 +119,7 @@ const TeamPageRoute = ({ slug }: { slug: string }) => {
       <Card className="rounded-xl">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <Users className="size-5 text-primary" />
+            <Users className="text-primary size-5" />
             Members ({members.length})
           </CardTitle>
         </CardHeader>
@@ -133,14 +133,14 @@ const TeamPageRoute = ({ slug }: { slug: string }) => {
                 <p className="flex items-center gap-1.5 truncate text-sm font-semibold">
                   {member.user.name}
                   {member.role === "owner" ? (
-                    <BadgeCheck className="size-4 shrink-0 text-primary" />
+                    <BadgeCheck className="text-primary size-4 shrink-0" />
                   ) : null}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                   @{member.user.username || member.user.id.slice(0, 8)}
                 </p>
               </div>
-              <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold capitalize text-primary">
+              <span className="bg-primary/10 text-primary rounded-full px-2.5 py-1 text-xs font-semibold capitalize">
                 {member.role}
               </span>
             </div>

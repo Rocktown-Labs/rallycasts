@@ -48,7 +48,7 @@ function NotificationsPage() {
     <main className="mx-auto max-w-5xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">
+          <p className="text-primary text-xs font-bold tracking-[0.2em] uppercase">
             Inbox
           </p>
           <h1 className="text-3xl font-black">Notifications</h1>
@@ -63,36 +63,36 @@ function NotificationsPage() {
         </Button>
       </div>
       {isLoading ? (
-        <div className="h-56 animate-pulse rounded-lg bg-muted" />
+        <div className="bg-muted h-56 animate-pulse rounded-lg" />
       ) : null}
-      <section className="rounded-lg border border-border">
+      <section className="border-border rounded-lg border">
         {notifications.length > 0 ? (
           notifications.map(({ actor, notification }) => {
             const Icon = iconForType(notification.type);
             return (
               <Link
-                className="grid grid-cols-[auto_1fr_auto] gap-3 border-b border-border p-4 last:border-b-0 hover:bg-muted/40"
+                className="border-border hover:bg-muted/40 grid grid-cols-[auto_1fr_auto] gap-3 border-b p-4 last:border-b-0"
                 key={notification.id}
                 to={notification.href}
               >
-                <span className="grid size-10 place-items-center rounded-md bg-primary/15 text-primary">
+                <span className="bg-primary/15 text-primary grid size-10 place-items-center rounded-md">
                   <Icon className="size-4" />
                 </span>
                 <span>
-                  <span className="block font-semibold text-sm">
+                  <span className="block text-sm font-semibold">
                     {notification.title}
                   </span>
-                  <span className="mt-1 block text-muted-foreground text-xs">
+                  <span className="text-muted-foreground mt-1 block text-xs">
                     {notification.body}
                   </span>
                   {actor ? (
-                    <span className="mt-1 block text-[10px] text-muted-foreground">
+                    <span className="text-muted-foreground mt-1 block text-[10px]">
                       From {actor.name}
                     </span>
                   ) : null}
                 </span>
                 {notification.readAt ? null : (
-                  <span className="mt-1 size-2 rounded-full bg-brand-yellow" />
+                  <span className="bg-brand-yellow mt-1 size-2 rounded-full" />
                 )}
               </Link>
             );

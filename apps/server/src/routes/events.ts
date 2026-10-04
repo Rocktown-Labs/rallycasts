@@ -259,6 +259,7 @@ const refundCancelledEventPayments = async (
     }
     let response: Response;
     try {
+      // oxlint-disable-next-line eslint/no-await-in-loop -- Stripe refund flow: per-payment transactional updates, sequential to respect API limits
       response = await fetch("https://api.stripe.com/v1/refunds", {
         body: new URLSearchParams({
           payment_intent: payment.stripePaymentIntentId,
@@ -280,11 +281,13 @@ const refundCancelledEventPayments = async (
       refundErrors.push(payment.id);
       continue;
     }
+    // oxlint-disable-next-line eslint/no-await-in-loop -- Stripe refund flow: per-payment transactional updates, sequential to respect API limits
     const refund = (await response.json()) as { id?: unknown };
     if (typeof refund.id !== "string") {
       refundErrors.push(payment.id);
       continue;
     }
+    // oxlint-disable-next-line eslint/no-await-in-loop -- Stripe refund flow: per-payment transactional updates, sequential to respect API limits
     const [refundedPayment] = await db
       .update(eventPayment)
       .set({
@@ -302,6 +305,7 @@ const refundCancelledEventPayments = async (
     if (!refundedPayment) {
       continue;
     }
+    // oxlint-disable-next-line eslint/no-await-in-loop -- Stripe refund flow: per-payment transactional updates, sequential to respect API limits
     await db
       .update(eventRegistration)
       .set({
@@ -310,6 +314,7 @@ const refundCancelledEventPayments = async (
         updatedAt: new Date(),
       })
       .where(eq(eventRegistration.id, registration.id));
+    // oxlint-disable-next-line eslint/no-await-in-loop -- Stripe refund flow: per-payment transactional updates, sequential to respect API limits
     await createNotification(db, {
       body: `${eventName} was cancelled, so your registration was refunded in full.`,
       entityId: eventId,
@@ -409,38 +414,41 @@ async function seedDemoUsers(
     })
     .onConflictDoNothing();
 
-  const playerIds: string[] = [primaryUserId];
+  const playerIds: string[] = [
+    primaryUserId,
+    ...SEVEN_DEMO_USERS.map((demoUser) => `demo-${demoUser.username}`),
+  ];
 
-  for (const demoUser of SEVEN_DEMO_USERS) {
-    const demoUserId = `demo-${demoUser.username}`;
-    playerIds.push(demoUserId);
-    await db
-      .insert(userTable)
-      .values({
+  await db
+    .insert(userTable)
+    .values(
+      SEVEN_DEMO_USERS.map((demoUser) => ({
         createdAt: new Date(),
         displayUsername: demoUser.name,
         email: `${demoUser.username}@rallycasts.demo`,
         emailVerified: true,
-        id: demoUserId,
+        id: `demo-${demoUser.username}`,
         name: demoUser.name,
         updatedAt: new Date(),
         username: demoUser.username,
-      })
-      .onConflictDoNothing();
+      }))
+    )
+    .onConflictDoNothing();
 
-    await db
-      .insert(userProfile)
-      .values({
-        accountTier: "free",
+  await db
+    .insert(userProfile)
+    .values(
+      SEVEN_DEMO_USERS.map((demoUser) => ({
+        accountTier: "free" as const,
         homeCity: "Searcy",
         homeState: "AR",
         isPlayer: true,
-        onboardingStatus: "complete",
+        onboardingStatus: "complete" as const,
         skillLevel: demoUser.skillLevel,
-        userId: demoUserId,
-      })
-      .onConflictDoNothing();
-  }
+        userId: `demo-${demoUser.username}`,
+      }))
+    )
+    .onConflictDoNothing();
 
   return playerIds;
 }
@@ -552,16 +560,16 @@ async function seedDemoTournamentData(
     .delete(eventRegistration)
     .where(eq(eventRegistration.eventId, eventId));
 
-  for (let index = 0; index < playerIds.length; index += 1) {
-    await db.insert(eventRegistration).values({
+  await db.insert(eventRegistration).values(
+    playerIds.map((userId, index) => ({
       createdAt: new Date(Date.now() - (playerIds.length - index) * 60_000),
       eventId,
       id: createId(),
       seed: index + 1,
-      status: "checked_in",
-      userId: playerIds[index] ?? "",
-    });
-  }
+      status: "checked_in" as const,
+      userId,
+    }))
+  );
 
   const [eventRecord] = await db
     .select()

@@ -76,7 +76,7 @@ interface Friend {
 
 function Avatar({ image, label }: { image?: null | string; label: string }) {
   return (
-    <span className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-full bg-muted">
+    <span className="bg-muted grid size-9 shrink-0 place-items-center overflow-hidden rounded-full">
       {image ? (
         <img alt="" className="size-full object-cover" src={image} />
       ) : (
@@ -138,22 +138,22 @@ const formatRelativeTime = (value: Date | string) => {
 
 function VideoLoadingSkeleton() {
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 space-y-8 animate-pulse">
-      <div className="h-6 w-32 bg-muted rounded" />
+    <div className="mx-auto max-w-7xl animate-pulse space-y-8 px-4 py-8">
+      <div className="bg-muted h-6 w-32 rounded" />
       <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
-          <div className="aspect-video w-full bg-muted rounded-xl" />
-          <div className="h-8 w-2/3 bg-muted rounded" />
-          <div className="h-12 w-full bg-muted rounded" />
+          <div className="bg-muted aspect-video w-full rounded-xl" />
+          <div className="bg-muted h-8 w-2/3 rounded" />
+          <div className="bg-muted h-12 w-full rounded" />
         </div>
         <div className="space-y-4">
-          <div className="h-6 w-40 bg-muted rounded" />
+          <div className="bg-muted h-6 w-40 rounded" />
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="flex gap-3">
-              <div className="h-20 w-32 bg-muted rounded-lg shrink-0" />
-              <div className="space-y-2 flex-1">
-                <div className="h-4 w-full bg-muted rounded" />
-                <div className="h-3 w-2/3 bg-muted rounded" />
+              <div className="bg-muted h-20 w-32 shrink-0 rounded-lg" />
+              <div className="flex-1 space-y-2">
+                <div className="bg-muted h-4 w-full rounded" />
+                <div className="bg-muted h-3 w-2/3 rounded" />
               </div>
             </div>
           ))}
@@ -165,16 +165,16 @@ function VideoLoadingSkeleton() {
 
 function VideoNotFound() {
   return (
-    <div className="mx-auto max-w-7xl px-4 py-16 text-center space-y-4">
-      <h2 className="text-2xl font-bold text-destructive animate-bounce">
+    <div className="mx-auto max-w-7xl space-y-4 px-4 py-16 text-center">
+      <h2 className="text-destructive animate-bounce text-2xl font-bold">
         Video not found
       </h2>
-      <p className="text-muted-foreground text-sm max-w-md mx-auto">
+      <p className="text-muted-foreground mx-auto max-w-md text-sm">
         The video you are trying to view does not exist, has been removed, or is
         still processing.
       </p>
       <Link to="/">
-        <Button variant="outline" className="rounded-lg text-xs mt-4">
+        <Button variant="outline" className="mt-4 rounded-lg text-xs">
           Back to Home
         </Button>
       </Link>
@@ -255,16 +255,16 @@ function VideoMetaHeader({
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl md:text-2xl font-black leading-tight tracking-tight">
+      <h1 className="text-xl leading-tight font-black tracking-tight md:text-2xl">
         {video.title}
       </h1>
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/50">
+      <div className="border-border/50 flex flex-col justify-between gap-4 border-b pb-4 sm:flex-row sm:items-center">
         <div className="flex items-center gap-3">
           <Link
             to="/players/$username"
             params={{ username: ownerUsername }}
-            className="size-12 rounded-full border border-primary/20 bg-muted overflow-hidden flex items-center justify-center font-bold text-lg cursor-pointer shrink-0 active:scale-95 transition-transform"
+            className="border-primary/20 bg-muted flex size-12 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full border text-lg font-bold transition-transform active:scale-95"
           >
             {ownerImage ? (
               <img
@@ -280,12 +280,12 @@ function VideoMetaHeader({
             <Link
               to="/players/$username"
               params={{ username: ownerUsername }}
-              className="font-extrabold text-sm text-foreground hover:text-primary transition-colors truncate block"
+              className="text-foreground hover:text-primary block truncate text-sm font-extrabold transition-colors"
             >
               {ownerName}
             </Link>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-muted-foreground text-xs">
                 @{displayUsername}
               </span>
               {venue && (
@@ -296,7 +296,7 @@ function VideoMetaHeader({
                   <Link
                     to="/venues/$id"
                     params={{ id: venue.id }}
-                    className="text-xs text-primary hover:text-primary/80 transition-colors flex items-center gap-0.5 font-semibold animate-pulse-subtle"
+                    className="text-primary hover:text-primary/80 animate-pulse-subtle flex items-center gap-0.5 text-xs font-semibold transition-colors"
                   >
                     <MapPin className="size-3 shrink-0" />
                     <span>{venue.name}</span>
@@ -309,7 +309,7 @@ function VideoMetaHeader({
             <Link to="/u/studio/videos/$id" params={{ id: video.id }}>
               <Button
                 variant="outline"
-                className="rounded-lg text-xs font-bold px-4 h-9 ml-4 active:scale-[0.97] transition-all touch-manipulation select-none"
+                className="ml-4 h-9 touch-manipulation rounded-lg px-4 text-xs font-bold transition-all select-none active:scale-[0.97]"
               >
                 Manage video
               </Button>
@@ -319,7 +319,7 @@ function VideoMetaHeader({
               disabled={isDemo}
               onClick={handleSubscribeToggle}
               variant={isSubscribed ? "secondary" : "default"}
-              className="rounded-lg text-xs font-bold px-5 h-9 ml-4 active:scale-[0.97] transition-all touch-manipulation select-none"
+              className="ml-4 h-9 touch-manipulation rounded-lg px-5 text-xs font-bold transition-all select-none active:scale-[0.97]"
             >
               {subscriptionLabel}
             </Button>
@@ -331,7 +331,7 @@ function VideoMetaHeader({
             disabled={isDemo}
             onClick={handleLikeToggle}
             variant={hasLiked ? "secondary" : "outline"}
-            className={`rounded-lg gap-2 text-xs font-bold h-9 px-4 active:scale-[0.97] transition-all touch-manipulation select-none ${
+            className={`h-9 touch-manipulation gap-2 rounded-lg px-4 text-xs font-bold transition-all select-none active:scale-[0.97] ${
               hasLiked ? "text-primary border-primary/30" : ""
             }`}
           >
@@ -342,7 +342,7 @@ function VideoMetaHeader({
           <Button
             onClick={handleShare}
             variant="outline"
-            className="rounded-lg gap-2 text-xs font-bold h-9 px-4 active:scale-[0.97] transition-all touch-manipulation select-none"
+            className="h-9 touch-manipulation gap-2 rounded-lg px-4 text-xs font-bold transition-all select-none active:scale-[0.97]"
           >
             <Share2 className="size-4" />
             Share
@@ -350,9 +350,9 @@ function VideoMetaHeader({
         </div>
       </div>
 
-      <Card className="border border-border/40 bg-muted/40 rounded-xl overflow-hidden shadow-sm">
-        <CardContent className="p-4 space-y-3 text-xs">
-          <div className="flex flex-wrap gap-x-4 gap-y-1 font-bold text-foreground">
+      <Card className="border-border/40 bg-muted/40 overflow-hidden rounded-xl border shadow-sm">
+        <CardContent className="space-y-3 p-4 text-xs">
+          <div className="text-foreground flex flex-wrap gap-x-4 gap-y-1 font-bold">
             <span>
               {viewsCount.toLocaleString()}{" "}
               {viewsCount === 1 ? "view" : "views"}
@@ -363,7 +363,7 @@ function VideoMetaHeader({
             {videoDescription}
           </p>
           {venue && (
-            <div className="flex items-center gap-1.5 text-primary pt-1 font-semibold">
+            <div className="text-primary flex items-center gap-1.5 pt-1 font-semibold">
               <MapPin className="size-3.5" />
               <Link
                 to="/venues/$id"
@@ -378,16 +378,16 @@ function VideoMetaHeader({
             </div>
           )}
           {!venue && video.venueId && (
-            <div className="flex items-center gap-1 text-primary pt-1 font-medium">
+            <div className="text-primary flex items-center gap-1 pt-1 font-medium">
               <MapPin className="size-3.5" />
               <span>Venue Location ID: {video.venueId}</span>
             </div>
           )}
 
           {taggedUsers && taggedUsers.length > 0 && (
-            <div className="pt-3 border-t border-border/20 mt-3 space-y-2">
-              <p className="font-bold text-foreground flex items-center gap-1.5">
-                <Users className="size-3.5 text-muted-foreground" />
+            <div className="border-border/20 mt-3 space-y-2 border-t pt-3">
+              <p className="text-foreground flex items-center gap-1.5 font-bold">
+                <Users className="text-muted-foreground size-3.5" />
                 In this video
               </p>
               <div className="flex flex-wrap gap-2">
@@ -400,9 +400,9 @@ function VideoMetaHeader({
                       key={u.id}
                       to="/players/$username"
                       params={{ username: u.username || "player" }}
-                      className="flex items-center gap-1.5 px-2.5 py-1 bg-background hover:bg-accent border border-border hover:border-primary/30 rounded-full text-[11px] font-semibold text-foreground hover:text-primary transition-all cursor-pointer shadow-sm"
+                      className="bg-background hover:bg-accent border-border hover:border-primary/30 text-foreground hover:text-primary flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold shadow-sm transition-all"
                     >
-                      <div className="size-4 rounded-full bg-muted overflow-hidden shrink-0 flex items-center justify-center">
+                      <div className="bg-muted flex size-4 shrink-0 items-center justify-center overflow-hidden rounded-full">
                         {u.image ? (
                           <img
                             src={u.image}
@@ -410,7 +410,7 @@ function VideoMetaHeader({
                             className="size-full object-cover"
                           />
                         ) : (
-                          <Users className="size-2 text-muted-foreground" />
+                          <Users className="text-muted-foreground size-2" />
                         )}
                       </div>
                       <span>@{u.username || u.name}</span>
@@ -444,7 +444,7 @@ interface CommentsSectionProps {
 }
 
 function renderCommentContent(content: string) {
-  const tokens = content.split(/(@[a-zA-Z0-9_.-]+)/gu);
+  const tokens = content.split(/(?<mention>@[a-zA-Z0-9_.-]+)/gu);
   return (
     <span>
       {tokens.map((token, index) => {
@@ -455,7 +455,7 @@ function renderCommentContent(content: string) {
               key={index}
               to="/players/$username"
               params={{ username }}
-              className="inline-block font-semibold text-primary hover:underline bg-primary/10 rounded px-1 py-0.5 mr-0.5 text-xs transition-colors"
+              className="text-primary bg-primary/10 mr-0.5 inline-block rounded px-1 py-0.5 text-xs font-semibold transition-colors hover:underline"
             >
               {token}
             </Link>
@@ -502,13 +502,13 @@ function CommentsSection({
   const renderCommentsContent = () => {
     if (commentsLoading) {
       return (
-        <div className="space-y-4 animate-pulse">
+        <div className="animate-pulse space-y-4">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="flex gap-3">
-              <div className="size-9 bg-muted rounded-full shrink-0" />
-              <div className="space-y-1.5 flex-1">
-                <div className="h-3 w-32 bg-muted rounded" />
-                <div className="h-4 w-full bg-muted rounded" />
+              <div className="bg-muted size-9 shrink-0 rounded-full" />
+              <div className="flex-1 space-y-1.5">
+                <div className="bg-muted h-3 w-32 rounded" />
+                <div className="bg-muted h-4 w-full rounded" />
               </div>
             </div>
           ))}
@@ -533,7 +533,7 @@ function CommentsSection({
                   <Link
                     to="/players/$username"
                     params={{ username: commentUserHandle }}
-                    className="size-9 rounded-full border border-border/30 bg-muted overflow-hidden flex items-center justify-center font-semibold text-xs cursor-pointer shrink-0 active:scale-95 transition-transform"
+                    className="border-border/30 bg-muted flex size-9 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full border text-xs font-semibold transition-transform active:scale-95"
                   >
                     {comment.user?.image ? (
                       <img
@@ -545,32 +545,32 @@ function CommentsSection({
                       commentUserName.at(0) || "P"
                     )}
                   </Link>
-                  <div className="space-y-1.5 flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
+                  <div className="min-w-0 flex-1 space-y-1.5">
+                    <div className="flex flex-wrap items-center gap-2">
                       {comment.isPinned && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold text-primary">
+                        <span className="bg-primary/10 text-primary inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold">
                           <Pin className="size-2.5" /> Pinned
                         </span>
                       )}
                       <Link
                         to="/players/$username"
                         params={{ username: commentUserHandle }}
-                        className="font-extrabold hover:text-primary transition-colors text-[11px]"
+                        className="hover:text-primary text-[11px] font-extrabold transition-colors"
                       >
                         {commentUserName}
                       </Link>
-                      <span className="text-[10px] text-muted-foreground">
+                      <span className="text-muted-foreground text-[10px]">
                         @{commentUserHandle}
                       </span>
-                      <span className="text-[9px] text-muted-foreground">
+                      <span className="text-muted-foreground text-[9px]">
                         •
                       </span>
-                      <span className="text-[9px] text-muted-foreground">
+                      <span className="text-muted-foreground text-[9px]">
                         {formatRelativeTime(comment.createdAt)}
                       </span>
                     </div>
 
-                    <p className="text-foreground leading-normal text-xs pr-4 break-words">
+                    <p className="text-foreground pr-4 text-xs leading-normal break-words">
                       {renderCommentContent(comment.content)}
                     </p>
 
@@ -597,7 +597,7 @@ function CommentsSection({
                             setReplyText(`@${commentUserHandle} `);
                           }
                         }}
-                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground hover:text-primary active:scale-[0.97] transition-all touch-manipulation select-none"
+                        className="text-muted-foreground hover:text-primary inline-flex touch-manipulation items-center gap-1 text-[11px] font-semibold transition-all select-none active:scale-[0.97]"
                       >
                         <CornerDownRight className="size-3" />
                         <span>Reply</span>
@@ -610,7 +610,7 @@ function CommentsSection({
                           onClick={() =>
                             handlePinComment(comment.id, !comment.isPinned)
                           }
-                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground hover:text-primary active:scale-[0.97] transition-all touch-manipulation select-none disabled:opacity-50"
+                          className="text-muted-foreground hover:text-primary inline-flex touch-manipulation items-center gap-1 text-[11px] font-semibold transition-all select-none active:scale-[0.97] disabled:opacity-50"
                         >
                           <Pin className="size-3" />
                           <span>{comment.isPinned ? "Unpin" : "Pin"}</span>
@@ -621,10 +621,10 @@ function CommentsSection({
                 </div>
 
                 {isReplying && (
-                  <div className="ml-12 pl-3.5 border-l-2 border-primary/40 space-y-2 animate-in fade-in-50 duration-150">
-                    <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                  <div className="border-primary/40 animate-in fade-in-50 ml-12 space-y-2 border-l-2 pl-3.5 duration-150">
+                    <div className="text-muted-foreground flex items-center justify-between text-[11px]">
                       <span className="flex items-center gap-1.5">
-                        <CornerDownRight className="size-3 text-primary" />
+                        <CornerDownRight className="text-primary size-3" />
                         <span>
                           Replying to{" "}
                           <strong className="text-foreground font-semibold">
@@ -645,13 +645,13 @@ function CommentsSection({
                     </div>
                     <form
                       onSubmit={(e) => handleInlineReplySubmit(e, comment.id)}
-                      className="flex gap-2 items-center"
+                      className="flex items-center gap-2"
                     >
                       <Input
                         value={replyText}
                         onChange={(e) => setReplyText(e.target.value)}
                         placeholder={`Reply to @${commentUserHandle}...`}
-                        className="text-base md:text-sm h-9 rounded-full bg-muted/40 border-border/60 focus-visible:ring-1 focus-visible:ring-primary px-3.5 text-foreground"
+                        className="bg-muted/40 border-border/60 focus-visible:ring-primary text-foreground h-9 rounded-full px-3.5 text-base focus-visible:ring-1 md:text-sm"
                         enterKeyHint="send"
                         autoFocus
                       />
@@ -659,7 +659,7 @@ function CommentsSection({
                         type="submit"
                         size="sm"
                         disabled={isPending || !replyText.trim()}
-                        className="h-9 rounded-full px-4 text-xs font-bold active:scale-[0.97] transition-all touch-manipulation select-none shrink-0 bg-primary text-primary-foreground"
+                        className="bg-primary text-primary-foreground h-9 shrink-0 touch-manipulation rounded-full px-4 text-xs font-bold transition-all select-none active:scale-[0.97]"
                       >
                         Reply
                       </Button>
@@ -674,9 +674,9 @@ function CommentsSection({
     }
 
     return (
-      <div className="py-10 text-center text-muted-foreground text-xs space-y-1.5 rounded-xl border border-dashed border-border/40">
-        <MessageCircle className="size-6 mx-auto text-muted-foreground/40" />
-        <p className="font-semibold text-foreground text-sm">No comments yet</p>
+      <div className="text-muted-foreground border-border/40 space-y-1.5 rounded-xl border border-dashed py-10 text-center text-xs">
+        <MessageCircle className="text-muted-foreground/40 mx-auto size-6" />
+        <p className="text-foreground text-sm font-semibold">No comments yet</p>
         <p className="text-muted-foreground text-xs">
           Be the first to share your thoughts!
         </p>
@@ -687,8 +687,8 @@ function CommentsSection({
   const renderCommentComposer = () => {
     if (isReadOnly) {
       return (
-        <div className="rounded-xl border border-border/40 bg-muted/20 p-4 text-center">
-          <p className="text-xs text-muted-foreground">
+        <div className="border-border/40 bg-muted/20 rounded-xl border p-4 text-center">
+          <p className="text-muted-foreground text-xs">
             Demo comments are read-only. Publish a real video to try likes,
             comments, and creator tools.
           </p>
@@ -698,14 +698,14 @@ function CommentsSection({
 
     if (!currentUser) {
       return (
-        <div className="p-4 rounded-xl border border-border/40 bg-muted/20 text-center space-y-3">
-          <p className="text-xs text-muted-foreground">
+        <div className="border-border/40 bg-muted/20 space-y-3 rounded-xl border p-4 text-center">
+          <p className="text-muted-foreground text-xs">
             Log in to join the conversation and comment on this video.
           </p>
           <Link to="/login">
             <Button
               size="sm"
-              className="rounded-lg text-xs font-bold active:scale-[0.97] transition-all touch-manipulation select-none"
+              className="touch-manipulation rounded-lg text-xs font-bold transition-all select-none active:scale-[0.97]"
             >
               Log In to Comment
             </Button>
@@ -723,9 +723,9 @@ function CommentsSection({
           }
           handleAddComment(commentText);
         }}
-        className="flex gap-3 items-start"
+        className="flex items-start gap-3"
       >
-        <div className="size-10 rounded-full border border-primary/20 bg-muted overflow-hidden flex items-center justify-center font-bold text-sm shrink-0">
+        <div className="border-primary/20 bg-muted flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border text-sm font-bold">
           {currentUser.image ? (
             <img
               src={currentUser.image}
@@ -741,23 +741,23 @@ function CommentsSection({
             placeholder="Add a public comment..."
             value={commentText}
             onChange={(event) => setCommentText(event.target.value)}
-            className="border-b border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:border-primary px-0 text-base md:text-sm pb-2 bg-transparent"
+            className="focus-visible:border-primary rounded-none border-x-0 border-t-0 border-b bg-transparent px-0 pb-2 text-base focus-visible:ring-0 md:text-sm"
             enterKeyHint="send"
           />
           {commentText.trim() ? (
-            <div className="flex justify-end gap-2 animate-in fade-in duration-200">
+            <div className="animate-in fade-in flex justify-end gap-2 duration-200">
               <Button
                 type="button"
                 variant="ghost"
                 onClick={() => setCommentText("")}
-                className="rounded-full text-xs font-semibold px-4 h-8 active:scale-[0.97] transition-all touch-manipulation select-none"
+                className="h-8 touch-manipulation rounded-full px-4 text-xs font-semibold transition-all select-none active:scale-[0.97]"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={isPending}
-                className="rounded-full text-xs font-semibold px-4 h-8 bg-primary text-primary-foreground active:scale-[0.97] transition-all touch-manipulation select-none"
+                className="bg-primary text-primary-foreground h-8 touch-manipulation rounded-full px-4 text-xs font-semibold transition-all select-none active:scale-[0.97]"
               >
                 Comment
               </Button>
@@ -791,7 +791,7 @@ interface VideoSidebarProps {
 function VideoSidebar({ otherVideos }: VideoSidebarProps) {
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-extrabold uppercase tracking-wider text-muted-foreground">
+      <h3 className="text-muted-foreground text-sm font-extrabold tracking-wider uppercase">
         Recommended
       </h3>
 
@@ -808,29 +808,29 @@ function VideoSidebar({ otherVideos }: VideoSidebarProps) {
                 key={vid.id}
                 to="/videos/$id"
                 params={{ id: getVideoSlug(vid) }}
-                className="flex gap-3 group/rec block cursor-pointer"
+                className="group/rec block flex cursor-pointer gap-3"
               >
-                <div className="relative h-20 w-32 bg-muted rounded-lg overflow-hidden shrink-0 border border-border/50">
+                <div className="bg-muted border-border/50 relative h-20 w-32 shrink-0 overflow-hidden rounded-lg border">
                   {vidThumbnail ? (
                     <img
                       src={vidThumbnail}
                       alt={vid.title}
-                      className="size-full object-cover group-hover/rec:scale-105 transition-transform duration-300"
+                      className="size-full object-cover transition-transform duration-300 group-hover/rec:scale-105"
                     />
                   ) : (
-                    <div className="size-full flex items-center justify-center bg-green-950/30">
-                      <VideoIcon className="size-5 text-primary" />
+                    <div className="flex size-full items-center justify-center bg-green-950/30">
+                      <VideoIcon className="text-primary size-5" />
                     </div>
                   )}
-                  <span className="absolute right-1 bottom-1 rounded bg-black/80 px-1 py-0.2 text-[9px] text-white">
+                  <span className="py-0.2 absolute right-1 bottom-1 rounded bg-black/80 px-1 text-[9px] text-white">
                     {formatDuration(vid.durationSeconds || 120)}
                   </span>
                 </div>
                 <div className="min-w-0 flex-1 space-y-1">
-                  <h4 className="font-bold text-xs text-foreground line-clamp-2 leading-snug group-hover/rec:text-primary transition-colors">
+                  <h4 className="text-foreground group-hover/rec:text-primary line-clamp-2 text-xs leading-snug font-bold transition-colors">
                     {vid.title}
                   </h4>
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-muted-foreground text-[10px]">
                     {vid.status === "ready" ? "Ready" : "Processing"}
                   </p>
                 </div>
@@ -839,8 +839,8 @@ function VideoSidebar({ otherVideos }: VideoSidebarProps) {
           })}
         </div>
       ) : (
-        <div className="p-4 rounded-xl border border-dashed border-border text-center">
-          <p className="text-xs text-muted-foreground">
+        <div className="border-border rounded-xl border border-dashed p-4 text-center">
+          <p className="text-muted-foreground text-xs">
             No other videos available.
           </p>
         </div>
@@ -886,11 +886,11 @@ function VideoSharePanel({
   };
 
   return (
-    <section className="rounded-lg border border-border bg-card p-4">
+    <section className="border-border bg-card rounded-lg border p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-bold text-sm">Share this video</h2>
-          <p className="mt-1 text-muted-foreground text-xs">
+          <h2 className="text-sm font-bold">Share this video</h2>
+          <p className="text-muted-foreground mt-1 text-xs">
             Send it to a friend in chat or copy the public link.
           </p>
         </div>
@@ -916,7 +916,7 @@ function VideoSharePanel({
         {friends.length > 0 ? (
           friends.map((friend) => (
             <button
-              className="flex items-center gap-3 rounded-lg border border-border px-3 py-2 text-left text-xs hover:bg-muted disabled:opacity-50"
+              className="border-border hover:bg-muted flex items-center gap-3 rounded-lg border px-3 py-2 text-left text-xs disabled:opacity-50"
               disabled={shareEntity.isPending}
               key={friend.id}
               onClick={() => shareWithFriend(friend)}
@@ -932,7 +932,7 @@ function VideoSharePanel({
             </button>
           ))
         ) : (
-          <p className="rounded-lg border border-dashed border-border p-4 text-center text-muted-foreground text-xs sm:col-span-2">
+          <p className="border-border text-muted-foreground rounded-lg border border-dashed p-4 text-center text-xs sm:col-span-2">
             Add friends from player profiles to share directly in chat.
           </p>
         )}
@@ -1214,11 +1214,11 @@ function VideoDetailPage() {
     typeof window === "undefined" ? `/videos/${id}` : window.location.href;
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-4 space-y-6">
+    <div className="mx-auto max-w-7xl space-y-6 px-4 py-4">
       <div>
         <Link
           to="/"
-          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors active:scale-[0.97] touch-manipulation select-none"
+          className="text-muted-foreground hover:text-foreground inline-flex touch-manipulation items-center gap-1.5 text-xs transition-colors select-none active:scale-[0.97]"
         >
           <ChevronLeft className="size-3.5" /> Back to Home
         </Link>
@@ -1254,7 +1254,7 @@ function VideoDetailPage() {
             )}
 
             {video.status !== "ready" && (
-              <p className="mt-2 inline-block rounded-full bg-yellow-500/90 px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider text-black shadow">
+              <p className="mt-2 inline-block rounded-full bg-yellow-500/90 px-3 py-1 text-[10px] font-extrabold tracking-wider text-black uppercase shadow">
                 Mux processing
               </p>
             )}

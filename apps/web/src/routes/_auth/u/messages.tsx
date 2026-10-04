@@ -71,7 +71,7 @@ function Avatar({
 }) {
   return (
     <span
-      className={`grid shrink-0 place-items-center overflow-hidden rounded-full bg-muted font-semibold text-muted-foreground ${sizeClass}`}
+      className={`bg-muted text-muted-foreground grid shrink-0 place-items-center overflow-hidden rounded-full font-semibold ${sizeClass}`}
     >
       {image ? (
         <img alt="" className="size-full object-cover" src={image} />
@@ -146,12 +146,12 @@ function NewMessageDialog({
         onClick={onClose}
         type="button"
       />
-      <div className="relative flex max-h-[500px] w-full max-w-[440px] flex-col overflow-hidden rounded-2xl border border-border bg-card text-foreground shadow-xl">
-        <div className="flex h-11 items-center justify-between border-b border-border px-4">
+      <div className="border-border bg-card text-foreground relative flex max-h-[500px] w-full max-w-[440px] flex-col overflow-hidden rounded-2xl border shadow-xl">
+        <div className="border-border flex h-11 items-center justify-between border-b px-4">
           <span className="text-base font-semibold">New message</span>
           <button
             aria-label="Close"
-            className="cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
+            className="text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
             onClick={onClose}
             type="button"
           >
@@ -159,14 +159,14 @@ function NewMessageDialog({
           </button>
         </div>
 
-        <div className="flex items-center gap-3 border-b border-border px-4 py-2">
+        <div className="border-border flex items-center gap-3 border-b px-4 py-2">
           <label className="text-sm font-semibold" htmlFor="new-message-to">
             To:
           </label>
           <input
             aria-label="To"
             autoFocus
-            className="min-w-0 flex-1 border-0 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+            className="text-foreground placeholder:text-muted-foreground min-w-0 flex-1 border-0 bg-transparent text-sm focus:outline-none"
             id="new-message-to"
             onChange={(event) => setFriendQuery(event.target.value)}
             placeholder="Search…"
@@ -180,7 +180,7 @@ function NewMessageDialog({
               const selected = selectedIds.includes(friend.id);
               return (
                 <button
-                  className="flex w-full cursor-pointer items-center justify-between px-4 py-2 text-left hover:bg-muted"
+                  className="hover:bg-muted flex w-full cursor-pointer items-center justify-between px-4 py-2 text-left"
                   key={friend.id}
                   onClick={() => toggleFriend(friend.id)}
                   type="button"
@@ -195,7 +195,7 @@ function NewMessageDialog({
                       <span className="block truncate text-sm font-bold">
                         {friend.name}
                       </span>
-                      <span className="block truncate text-xs text-muted-foreground">
+                      <span className="text-muted-foreground block truncate text-xs">
                         @{friend.username ?? friend.displayUsername ?? "player"}
                       </span>
                     </span>
@@ -214,15 +214,15 @@ function NewMessageDialog({
               );
             })
           ) : (
-            <p className="p-6 text-center text-sm text-muted-foreground">
+            <p className="text-muted-foreground p-6 text-center text-sm">
               No friends found. Add friends from player profiles first.
             </p>
           )}
         </div>
 
-        <div className="border-t border-border bg-card p-4">
+        <div className="border-border bg-card border-t p-4">
           <Button
-            className="w-full cursor-pointer rounded-xl bg-primary py-2.5 font-semibold text-brand-yellow hover:bg-primary/90"
+            className="bg-primary text-brand-yellow hover:bg-primary/90 w-full cursor-pointer rounded-xl py-2.5 font-semibold"
             disabled={selectedIds.length === 0 || startConversation.isPending}
             onClick={startChat}
           >
@@ -237,15 +237,15 @@ function NewMessageDialog({
 function EmptyInbox({ onCompose }: { onCompose: () => void }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-4 text-center">
-      <span className="mb-3 flex size-24 items-center justify-center rounded-full border-2 border-primary/30 bg-muted/40">
+      <span className="border-primary/30 bg-muted/40 mb-3 flex size-24 items-center justify-center rounded-full border-2">
         <img alt="RallyCasts" className="size-12" src="/logo.svg?v=3" />
       </span>
-      <h2 className="mb-1 text-xl font-bold text-foreground">Your messages</h2>
-      <p className="mb-5 text-sm text-muted-foreground">
+      <h2 className="text-foreground mb-1 text-xl font-bold">Your messages</h2>
+      <p className="text-muted-foreground mb-5 text-sm">
         Send a message to start a chat.
       </p>
       <Button
-        className="cursor-pointer rounded-lg bg-primary px-4 py-1.5 text-sm font-semibold text-brand-yellow hover:bg-primary/90"
+        className="bg-primary text-brand-yellow hover:bg-primary/90 cursor-pointer rounded-lg px-4 py-1.5 text-sm font-semibold"
         onClick={onCompose}
       >
         Send message
@@ -370,10 +370,10 @@ function ThreadPane({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex h-16 shrink-0 items-center gap-3 border-b border-border px-4">
+      <header className="border-border flex h-16 shrink-0 items-center gap-3 border-b px-4">
         <button
           aria-label="Back to conversations"
-          className="cursor-pointer text-muted-foreground transition-colors hover:text-foreground md:hidden"
+          className="text-muted-foreground hover:text-foreground cursor-pointer transition-colors md:hidden"
           onClick={onBack}
           type="button"
         >
@@ -387,7 +387,7 @@ function ThreadPane({
         <div className="min-w-0">
           <h2 className="truncate text-sm font-semibold">{title}</h2>
           {othersOnline ? (
-            <p className="text-xs text-muted-foreground">Active now</p>
+            <p className="text-muted-foreground text-xs">Active now</p>
           ) : null}
         </div>
       </header>
@@ -413,7 +413,7 @@ function ThreadPane({
                   }`}
                 >
                   {!mine && participantNames.length > 1 ? (
-                    <p className="mb-0.5 text-xs font-semibold text-muted-foreground">
+                    <p className="text-muted-foreground mb-0.5 text-xs font-semibold">
                       {sender.name}
                     </p>
                   ) : null}
@@ -435,26 +435,26 @@ function ThreadPane({
             );
           })
         ) : (
-          <div className="grid h-full place-items-center text-center text-sm text-muted-foreground">
+          <div className="text-muted-foreground grid h-full place-items-center text-center text-sm">
             No messages yet. Say hello 👋
           </div>
         )}
       </div>
 
       <form
-        className="flex shrink-0 items-center gap-3 border-t border-border p-3 pb-[calc(4rem+max(0.75rem,env(safe-area-inset-bottom)))] md:p-4"
+        className="border-border flex shrink-0 items-center gap-3 border-t p-3 pb-[calc(4rem+max(0.75rem,env(safe-area-inset-bottom)))] md:p-4"
         onSubmit={submitMessage}
       >
         <input
           aria-label="Message"
-          className="min-w-0 flex-1 rounded-full border-0 bg-muted px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-0"
+          className="bg-muted text-foreground placeholder:text-muted-foreground min-w-0 flex-1 rounded-full border-0 px-4 py-2.5 text-sm focus:ring-0 focus:outline-none"
           onChange={(event) => setDraft(event.target.value)}
           placeholder="Message…"
           value={draft}
         />
         <Button
           aria-label="Send message"
-          className="cursor-pointer rounded-full bg-primary text-brand-yellow hover:bg-primary/90"
+          className="bg-primary text-brand-yellow hover:bg-primary/90 cursor-pointer rounded-full"
           disabled={!draft.trim()}
           size="icon"
           type="submit"
@@ -506,7 +506,7 @@ function ConversationRow({
 
   return (
     <button
-      className={`flex w-full cursor-pointer items-center gap-3 px-4 py-2 text-left transition-colors hover:bg-muted ${
+      className={`hover:bg-muted flex w-full cursor-pointer items-center gap-3 px-4 py-2 text-left transition-colors ${
         active ? "bg-muted" : ""
       }`}
       onClick={() => onSelect(conversation.id)}
@@ -527,8 +527,8 @@ function ConversationRow({
         <span
           className={`block truncate text-sm ${
             unreadCount > 0
-              ? "font-bold text-foreground"
-              : "font-semibold text-foreground"
+              ? "text-foreground font-bold"
+              : "text-foreground font-semibold"
           }`}
         >
           {title}
@@ -536,7 +536,7 @@ function ConversationRow({
         <span
           className={`block truncate text-sm ${
             unreadCount > 0
-              ? "font-medium text-foreground/80"
+              ? "text-foreground/80 font-medium"
               : "text-muted-foreground"
           }`}
         >
@@ -544,11 +544,11 @@ function ConversationRow({
         </span>
       </span>
       <span className="flex shrink-0 flex-col items-end gap-1.5">
-        <span className="text-xs text-muted-foreground">
+        <span className="text-muted-foreground text-xs">
           {relativeTime(lastMessage?.createdAt ?? conversation.updatedAt)}
         </span>
         {unreadCount > 0 ? (
-          <span className="grid size-5 place-items-center rounded-full bg-brand-yellow text-[10px] font-bold text-black">
+          <span className="bg-brand-yellow grid size-5 place-items-center rounded-full text-[10px] font-bold text-black">
             {unreadCount}
           </span>
         ) : null}
@@ -594,13 +594,13 @@ function InboxPane({
     <div
       className={`${
         activeId ? "hidden" : "flex"
-      } w-full flex-col border-r border-border md:flex md:w-[390px] md:min-w-[390px]`}
+      } border-border w-full flex-col border-r md:flex md:w-[390px] md:min-w-[390px]`}
     >
       <div className="flex h-14 shrink-0 items-center justify-between px-6">
         <div className="flex min-w-0 items-center gap-1.5">
           <Link
             aria-label="Back to dashboard"
-            className="cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
+            className="text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
             to="/u/me"
           >
             <ChevronLeft className="size-5" />
@@ -609,7 +609,7 @@ function InboxPane({
         </div>
         <button
           aria-label="New message"
-          className="cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
+          className="text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
           onClick={onCompose}
           type="button"
         >
@@ -620,7 +620,7 @@ function InboxPane({
       <div className="shrink-0 px-6 pb-3">
         <input
           aria-label="Search conversations"
-          className="w-full rounded-lg border-0 bg-muted px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-0"
+          className="bg-muted text-foreground placeholder:text-muted-foreground w-full rounded-lg border-0 px-4 py-2 text-sm focus:ring-0 focus:outline-none"
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Search"
           value={query}
@@ -648,12 +648,12 @@ function InboxPane({
         </button>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+      <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
         {tab === "requests" ? (
           <div className="grid place-items-center px-6 py-16 text-center">
             <div>
               <p className="font-semibold">No message requests</p>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="text-muted-foreground mt-1 text-sm">
                 Requests from people you don&apos;t follow will land here.
               </p>
             </div>
@@ -666,10 +666,10 @@ function InboxPane({
                 className="flex animate-pulse items-center gap-3 px-4 py-3"
                 key={index}
               >
-                <span className="size-14 rounded-full bg-muted" />
+                <span className="bg-muted size-14 rounded-full" />
                 <span className="flex-1 space-y-2">
-                  <span className="block h-3 w-1/3 rounded bg-muted" />
-                  <span className="block h-3 w-2/3 rounded bg-muted" />
+                  <span className="bg-muted block h-3 w-1/3 rounded" />
+                  <span className="bg-muted block h-3 w-2/3 rounded" />
                 </span>
               </div>
             ))}
@@ -700,12 +700,12 @@ function InboxPane({
           : null}
         {showEmpty ? (
           <div className="grid place-items-center gap-3 px-6 py-16 text-center">
-            <span className="grid size-12 place-items-center rounded-full border-2 border-border">
+            <span className="border-border grid size-12 place-items-center rounded-full border-2">
               <MessageSquare className="size-5" />
             </span>
             <div>
               <p className="font-semibold">No conversations yet</p>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="text-muted-foreground mt-1 text-sm">
                 Start a chat with a friend to talk through events, open play, or
                 shared videos.
               </p>

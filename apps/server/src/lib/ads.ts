@@ -454,34 +454,32 @@ const rollUpCampaignSpend = async (
   campaignById: Map<string, typeof adCampaign.$inferSelect>,
   touchedCampaigns: Set<string>
 ) => {
-  const completedCampaignIds: string[] = [];
-  for (const campaignId of touchedCampaigns) {
-    const stats = await db
-      .select({ spentCents: adDailyStat.spentCents })
-      .from(adDailyStat)
-      .where(eq(adDailyStat.campaignId, campaignId));
-    let spent = 0;
-    for (const row of stats) {
-      spent += row.spentCents;
-    }
-    const campaign = campaignById.get(campaignId);
-    const cap = campaign
-      ? Math.min(campaign.totalBudgetCents, campaign.fundedCents)
-      : 0;
-    if (campaign && campaign.status === "active" && spent >= cap) {
+  // Each campaign's stats read + spend write is independent of the others.
+  const rollups = await Promise.all(
+    [...touchedCampaigns].map(async (campaignId) => {
+      const stats = await db
+        .select({ spentCents: adDailyStat.spentCents })
+        .from(adDailyStat)
+        .where(eq(adDailyStat.campaignId, campaignId));
+      const spent = stats.reduce((total, row) => total + row.spentCents, 0);
+      const campaign = campaignById.get(campaignId);
+      const cap = campaign
+        ? Math.min(campaign.totalBudgetCents, campaign.fundedCents)
+        : 0;
+      const nowCompleted =
+        campaign !== undefined && campaign.status === "active" && spent >= cap;
       await db
         .update(adCampaign)
-        .set({ spentCents: spent, status: "completed", updatedAt: new Date() })
+        .set(
+          nowCompleted
+            ? { spentCents: spent, status: "completed", updatedAt: new Date() }
+            : { spentCents: spent, updatedAt: new Date() }
+        )
         .where(eq(adCampaign.id, campaignId));
-      completedCampaignIds.push(campaignId);
-    } else {
-      await db
-        .update(adCampaign)
-        .set({ spentCents: spent, updatedAt: new Date() })
-        .where(eq(adCampaign.id, campaignId));
-    }
-  }
-  return completedCampaignIds;
+      return nowCompleted ? campaignId : null;
+    })
+  );
+  return rollups.filter((id): id is string => id !== null);
 };
 
 const writeAdsTelemetry = async (
@@ -493,6 +491,7 @@ const writeAdsTelemetry = async (
   }
   try {
     for (const message of messages) {
+      // oxlint-disable-next-line eslint/no-await-in-loop -- telemetry writes are buffered; must never fail the batch
       await env.ADS_ANALYTICS.writeDataPoint({
         blobs: [
           message.campaignId,
@@ -571,6 +570,7 @@ export const aggregateAdEvents = async (
   let impressions = 0;
   let clicks = 0;
   const touchedCampaigns = new Set<string>();
+  const bucketUpserts: Promise<unknown>[] = [];
   for (const group of groups.values()) {
     impressions += group.impressions;
     clicks += group.clicks;
@@ -578,9 +578,10 @@ export const aggregateAdEvents = async (
     if (!campaign) {
       continue;
     }
-    await upsertDailyBucket(db, campaign, group);
+    bucketUpserts.push(upsertDailyBucket(db, campaign, group));
     touchedCampaigns.add(group.campaignId);
   }
+  await Promise.all(bucketUpserts);
 
   const completedCampaignIds = await rollUpCampaignSpend(
     db,

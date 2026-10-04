@@ -282,6 +282,7 @@ const handleMatchReadyNotification = async (
       continue;
     }
 
+    // oxlint-disable-next-line eslint/no-await-in-loop -- notification fan-out; small batches
     await notifyPlayerForMatch(db, env, eventRecord, matchRecord, playerId);
     notificationsSent.push(playerId);
   }

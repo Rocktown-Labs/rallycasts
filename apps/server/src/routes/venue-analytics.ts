@@ -165,7 +165,7 @@ export const venueAnalyticsRouter = new Hono<AppEnv>().get(
         isCheckedIn,
         peakDays: peakDays.map((record) => ({
           day: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][
-            Number.parseInt(record.day, 10)
+            Math.trunc(Number(record.day))
           ],
           visits: record.visits,
         })),

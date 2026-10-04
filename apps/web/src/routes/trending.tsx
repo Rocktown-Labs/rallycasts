@@ -96,7 +96,7 @@ function HorizontalScroll({
   return (
     <div
       className={cn(
-        "-mx-4 flex gap-4 overflow-x-auto px-4 pb-2 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted hover:scrollbar-thumb-muted-foreground/30",
+        "scrollbar-thumb-muted hover:scrollbar-thumb-muted-foreground/30 -mx-4 flex scrollbar-thin scrollbar-track-transparent gap-4 overflow-x-auto px-4 pb-2",
         className
       )}
     >
@@ -131,12 +131,12 @@ function SectionHeader({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {scope && (
-            <span className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+            <span className="bg-muted text-muted-foreground rounded-md px-2 py-0.5 text-[10px] font-semibold">
               {scope}
             </span>
           )}
           {count !== undefined && count > 0 && (
-            <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+            <span className="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-[10px] font-semibold">
               {count}
             </span>
           )}
@@ -168,13 +168,13 @@ function VenueRadiusSelect({
 }) {
   return (
     <label
-      className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground shadow-sm"
+      className="bg-muted text-muted-foreground inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold shadow-sm"
       title="Park search radius"
     >
-      <MapPin className="size-3 text-primary" />
+      <MapPin className="text-primary size-3" />
       <select
         aria-label="Park search radius"
-        className="cursor-pointer appearance-none bg-transparent text-foreground outline-none"
+        className="text-foreground cursor-pointer appearance-none bg-transparent outline-none"
         onChange={(event) => onRadiusChange(Number(event.target.value))}
         value={radius}
       >
@@ -218,7 +218,7 @@ function LocationStatus({
 
   if (isLoading && !location) {
     return (
-      <span className="text-xs text-muted-foreground animate-pulse">
+      <span className="text-muted-foreground animate-pulse text-xs">
         Locating you...
       </span>
     );
@@ -229,7 +229,7 @@ function LocationStatus({
       <Button
         size="sm"
         variant="ghost"
-        className="rounded-lg text-xs text-muted-foreground"
+        className="text-muted-foreground rounded-lg text-xs"
         onClick={requestLocation}
       >
         Use my location
@@ -248,7 +248,7 @@ function LocationStatus({
       <button
         type="button"
         onClick={requestLocation}
-        className="flex items-center gap-1 text-xs font-semibold text-white hover:text-white/80 transition-colors"
+        className="flex items-center gap-1 text-xs font-semibold text-white transition-colors hover:text-white/80"
       >
         <MapPin className="size-3" />
         {isApiFallback ? "Demo fallback" : locationLabel}
@@ -269,12 +269,12 @@ function HeroStatusMessages({
   return (
     <>
       {isLocationFallback && (
-        <p className="text-xs font-medium text-[#bcdf21] pt-1">
+        <p className="pt-1 text-xs font-medium text-[#bcdf21]">
           Showing Northwest Arkansas while we wait for exact location.
         </p>
       )}
       {isApiFallback && (
-        <p className="text-xs font-medium text-rose-200 pt-1">
+        <p className="pt-1 text-xs font-medium text-rose-200">
           Trending API is unavailable, so this page is showing demo data instead
           of live nearby parks.
         </p>
@@ -303,7 +303,7 @@ function ParksNearYouSection({
   return (
     <section className="space-y-4">
       <SectionHeader
-        icon={<Flame className="size-5 text-primary" />}
+        icon={<Flame className="text-primary size-5" />}
         title="Parks Near You"
         to="/trending"
         search={{ radius, section: "venues" }}
@@ -367,18 +367,18 @@ function VenuesViewSection({
     : "Allow location to search Google Places and RallyCasts parks near you.";
 
   return (
-    <div className="mx-auto max-w-7xl space-y-8 px-4 py-4 animate-in fade-in duration-300">
+    <div className="animate-in fade-in mx-auto max-w-7xl space-y-8 px-4 py-4 duration-300">
       {/* Banner */}
-      <div className="relative overflow-hidden rounded-xl bg-primary p-6 text-white shadow-xl sm:p-8">
+      <div className="bg-primary relative overflow-hidden rounded-xl p-6 text-white shadow-xl sm:p-8">
         <div className="relative z-10 max-w-2xl space-y-2">
-          <div className="inline-flex items-center gap-1.5 rounded-md bg-secondary/20 px-2.5 py-1 text-xs font-semibold text-[#bcdf21]">
+          <div className="bg-secondary/20 inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold text-[#bcdf21]">
             <Flame className="size-3" />
             <span>Parks Near You</span>
           </div>
-          <h1 className="text-3xl font-logo sm:text-4xl tracking-wide lowercase">
+          <h1 className="font-logo text-3xl tracking-wide lowercase sm:text-4xl">
             venues
           </h1>
-          <p className="text-sm text-gray-200 sm:text-base leading-relaxed">
+          <p className="text-sm leading-relaxed text-gray-200 sm:text-base">
             Explore local pickleball and padel courts, tracked by active
             check-ins.
           </p>
@@ -390,7 +390,7 @@ function VenuesViewSection({
           <h2 className="text-xl font-bold">
             Nearby Pickleball Parks ({venues.length})
           </h2>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-muted-foreground text-xs">
             Showing places within {radius} miles.
           </p>
         </div>
@@ -416,8 +416,8 @@ function VenuesViewSection({
               <ParkHeatCard key={venue.id} venue={venue} />
             ))}
           </div>
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
-            <p className="text-xs text-muted-foreground">
+          <div className="border-border flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+            <p className="text-muted-foreground text-xs">
               Page {pagination?.page ?? page}
               {pagination?.totalCount
                 ? ` of ${Math.max(
@@ -511,18 +511,18 @@ function VideosViewSection() {
   }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   return (
-    <div className="mx-auto max-w-7xl space-y-8 px-4 py-4 animate-in fade-in duration-300">
+    <div className="animate-in fade-in mx-auto max-w-7xl space-y-8 px-4 py-4 duration-300">
       {/* Banner */}
-      <div className="relative overflow-hidden rounded-xl bg-primary p-6 text-white shadow-xl sm:p-8">
+      <div className="bg-primary relative overflow-hidden rounded-xl p-6 text-white shadow-xl sm:p-8">
         <div className="relative z-10 max-w-2xl space-y-2">
-          <div className="inline-flex items-center gap-1.5 rounded-md bg-secondary/20 px-2.5 py-1 text-xs font-semibold text-[#bcdf21]">
+          <div className="bg-secondary/20 inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold text-[#bcdf21]">
             <Video className="size-3" />
             <span>Trending Highlights</span>
           </div>
-          <h1 className="text-3xl font-logo sm:text-4xl tracking-wide lowercase">
+          <h1 className="font-logo text-3xl tracking-wide lowercase sm:text-4xl">
             videos
           </h1>
-          <p className="text-sm text-gray-200 sm:text-base leading-relaxed">
+          <p className="text-sm leading-relaxed text-gray-200 sm:text-base">
             Watch top rallies, matches, and gameplay clips captured by the
             community.
           </p>
@@ -530,7 +530,7 @@ function VideosViewSection() {
       </div>
 
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold flex-1 truncate">
+        <h2 className="flex-1 truncate text-xl font-bold">
           All Videos ({videos.length})
         </h2>
         <Link
@@ -545,7 +545,7 @@ function VideosViewSection() {
       </div>
 
       {isLoading ? (
-        <div className="h-72 animate-pulse rounded-xl bg-muted" />
+        <div className="bg-muted h-72 animate-pulse rounded-xl" />
       ) : null}
       {videos.length > 0 ? (
         <div className="grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-3">
@@ -564,12 +564,12 @@ function VideosViewSection() {
         className="flex min-h-12 items-center justify-center"
       >
         {isFetchingNextPage ? (
-          <span className="text-xs text-muted-foreground">
+          <span className="text-muted-foreground text-xs">
             Loading more rallies…
           </span>
         ) : null}
         {!hasNextPage && videos.length > 0 ? (
-          <span className="text-xs text-muted-foreground">
+          <span className="text-muted-foreground text-xs">
             You’re all caught up.
           </span>
         ) : null}
@@ -614,17 +614,17 @@ function TrendingDashboardView({
   return (
     <div className="mx-auto max-w-7xl space-y-10">
       {/* Hero */}
-      <section className="relative overflow-hidden rounded-xl bg-primary p-6 text-white shadow-xl">
+      <section className="bg-primary relative overflow-hidden rounded-xl p-6 text-white shadow-xl">
         <div className="flex flex-col justify-between">
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="relative z-10 flex flex-col justify-between gap-4 md:flex-row md:items-center">
             <div className="max-w-xl space-y-2">
-              <div className="inline-flex items-center gap-1.5 rounded-md bg-secondary/20 px-2.5 py-1 text-xs font-semibold text-[#bcdf21]">
+              <div className="bg-secondary/20 inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold text-[#bcdf21]">
                 <span>Happening near you</span>
               </div>
-              <h1 className="text-3xl font-logo tracking-wide lowercase sm:text-4xl">
+              <h1 className="font-logo text-3xl tracking-wide lowercase sm:text-4xl">
                 trending
               </h1>
-              <p className="text-sm text-gray-200 sm:text-base leading-relaxed">
+              <p className="text-sm leading-relaxed text-gray-200 sm:text-base">
                 Spot active parks, nearby players, local clips, and events worth
                 playing in.
               </p>
@@ -690,7 +690,7 @@ function TrendingDashboardView({
       </section>
 
       {isLoading ? (
-        <div className="h-72 animate-pulse rounded-lg bg-muted" />
+        <div className="bg-muted h-72 animate-pulse rounded-lg" />
       ) : null}
 
       <ParksNearYouSection
@@ -704,7 +704,7 @@ function TrendingDashboardView({
       {/* Trending Videos */}
       <section className="space-y-4">
         <SectionHeader
-          icon={<Video className="size-5 text-primary" />}
+          icon={<Video className="text-primary size-5" />}
           title="Trending Videos"
           to="/trending"
           search={{ section: "videos" }}
@@ -730,7 +730,7 @@ function TrendingDashboardView({
       {/* Top Players Nearby */}
       <section className="space-y-4">
         <SectionHeader
-          icon={<Users className="size-5 text-primary" />}
+          icon={<Users className="text-primary size-5" />}
           title="Top Players Nearby"
           to="/players"
           search={{ section: "near-you" }}
@@ -756,7 +756,7 @@ function TrendingDashboardView({
       {/* Events Worth Joining */}
       <section className="space-y-4">
         <SectionHeader
-          icon={<Calendar className="size-5 text-primary" />}
+          icon={<Calendar className="text-primary size-5" />}
           title="Events Worth Joining"
           to="/events"
           search={{ section: "near-you" }}
@@ -784,21 +784,21 @@ function TrendingDashboardView({
         <Link
           to="/trending"
           search={{ radius: venueRadius, section: "venues" }}
-          className="group flex min-h-24 flex-col items-center justify-center gap-2 rounded-xl bg-primary p-4 text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-primary/90 active:scale-[0.98] cursor-pointer sm:p-5"
+          className="group bg-primary hover:bg-primary/90 flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl p-4 text-white shadow-sm transition-[background-color,transform] duration-150 active:scale-[0.98] sm:p-5"
         >
           <MapPin className="size-5 text-[#bcdf21]" />
           <span className="text-xs font-semibold sm:text-sm">Parks</span>
         </Link>
         <Link
           to="/events"
-          className="group flex min-h-24 flex-col items-center justify-center gap-2 rounded-xl bg-primary p-4 text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-primary/90 active:scale-[0.98] cursor-pointer sm:p-5"
+          className="group bg-primary hover:bg-primary/90 flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl p-4 text-white shadow-sm transition-[background-color,transform] duration-150 active:scale-[0.98] sm:p-5"
         >
           <TrendingUp className="size-5 text-[#bcdf21]" />
           <span className="text-xs font-semibold sm:text-sm">Events</span>
         </Link>
         <Link
           to="/players"
-          className="group flex min-h-24 flex-col items-center justify-center gap-2 rounded-xl bg-primary p-4 text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-primary/90 active:scale-[0.98] cursor-pointer sm:p-5"
+          className="group bg-primary hover:bg-primary/90 flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl p-4 text-white shadow-sm transition-[background-color,transform] duration-150 active:scale-[0.98] sm:p-5"
         >
           <Users className="size-5 text-[#bcdf21]" />
           <span className="text-xs font-semibold sm:text-sm">Players</span>

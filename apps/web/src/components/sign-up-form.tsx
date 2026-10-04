@@ -18,7 +18,7 @@ import { useForm } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import z from "zod";
+import { z } from "zod";
 
 import { authClient } from "@/lib/auth-client";
 import { getAuthErrorMessage } from "@/lib/auth-errors";
@@ -122,25 +122,25 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
   if (verificationSent) {
     return (
       <div className="mx-auto mt-10 flex min-h-[80vh] w-full max-w-md flex-col justify-center p-4">
-        <Card className="rounded-xl border border-border bg-card/60 p-2 shadow-xl backdrop-blur-md">
+        <Card className="border-border bg-card/60 rounded-xl border p-2 shadow-xl backdrop-blur-md">
           <CardHeader className="pb-4 text-center">
-            <CardTitle className="mt-2 text-2xl font-bold tracking-tight text-foreground">
+            <CardTitle className="text-foreground mt-2 text-2xl font-bold tracking-tight">
               Check Your Email
             </CardTitle>
-            <CardDescription className="text-xs text-muted-foreground">
+            <CardDescription className="text-muted-foreground text-xs">
               We sent a verification link to your email address. Verify your
               account before signing in.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-center text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-center text-sm">
               If you do not see it, check your spam folder. You can also send a
               fresh link.
             </p>
             <Button
               onClick={() => void resendVerification()}
               disabled={isResending}
-              className="h-9 w-full rounded-md bg-primary text-xs font-semibold text-brand-yellow hover:bg-primary/95"
+              className="bg-primary text-brand-yellow hover:bg-primary/95 h-9 w-full rounded-md text-xs font-semibold"
             >
               {isResending ? "Sending..." : "Resend Verification Email"}
             </Button>
@@ -158,18 +158,18 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
   }
 
   return (
-    <div className="mx-auto w-full mt-10 max-w-md p-4 flex flex-col justify-center min-h-[80vh]">
-      <Card className="border border-border bg-card/60 backdrop-blur-md shadow-xl rounded-xl p-2">
-        <CardHeader className="text-center pb-4">
+    <div className="mx-auto mt-10 flex min-h-[80vh] w-full max-w-md flex-col justify-center p-4">
+      <Card className="border-border bg-card/60 rounded-xl border p-2 shadow-xl backdrop-blur-md">
+        <CardHeader className="pb-4 text-center">
           <img
             src="/logo.svg?v=3"
             alt="RallyCasts"
             className="mx-auto mb-4 h-12 w-auto"
           />
-          <CardTitle className="text-2xl font-bold tracking-tight text-foreground mt-2">
+          <CardTitle className="text-foreground mt-2 text-2xl font-bold tracking-tight">
             Create Account
           </CardTitle>
-          <CardDescription className="text-xs text-muted-foreground">
+          <CardDescription className="text-muted-foreground text-xs">
             Sign up to start sharing court updates and follow local players
           </CardDescription>
         </CardHeader>
@@ -183,10 +183,10 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
           >
             {signInSocial.isPending ? "Connecting..." : "Continue with Google"}
           </Button>
-          <div className="my-4 flex items-center gap-3 text-[10px] text-muted-foreground">
-            <div className="h-px flex-1 bg-border" />
+          <div className="text-muted-foreground my-4 flex items-center gap-3 text-[10px]">
+            <div className="bg-border h-px flex-1" />
             <span>OR SIGN UP WITH EMAIL</span>
-            <div className="h-px flex-1 bg-border" />
+            <div className="bg-border h-px flex-1" />
           </div>
           <form
             onSubmit={(e) => {
@@ -213,7 +213,7 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
                       value={field.state.value}
                       onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
-                      className="h-9 text-xs rounded-md bg-background/50 border-muted focus-visible:ring-primary focus-visible:border-primary"
+                      className="bg-background/50 border-muted focus-visible:ring-primary focus-visible:border-primary h-9 rounded-md text-xs"
                     />
                     {field.state.meta.errors.map((error, i) => (
                       <p
@@ -222,7 +222,7 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
                             ? error
                             : (error as { message?: string })?.message || i
                         }
-                        className="text-[10px] text-destructive font-medium"
+                        className="text-destructive text-[10px] font-medium"
                       >
                         {typeof error === "string"
                           ? error
@@ -252,7 +252,7 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
                       value={field.state.value}
                       onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
-                      className="h-9 text-xs rounded-md bg-background/50 border-muted focus-visible:ring-primary focus-visible:border-primary"
+                      className="bg-background/50 border-muted focus-visible:ring-primary focus-visible:border-primary h-9 rounded-md text-xs"
                     />
                     {field.state.meta.errors.map((error, i) => (
                       <p
@@ -261,7 +261,7 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
                             ? error
                             : (error as { message?: string })?.message || i
                         }
-                        className="text-[10px] text-destructive font-medium"
+                        className="text-destructive text-[10px] font-medium"
                       >
                         {typeof error === "string"
                           ? error
@@ -291,7 +291,7 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
                       value={field.state.value}
                       onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
-                      className="h-9 text-xs rounded-md bg-background/50 border-muted focus-visible:ring-primary focus-visible:border-primary"
+                      className="bg-background/50 border-muted focus-visible:ring-primary focus-visible:border-primary h-9 rounded-md text-xs"
                     />
                     {field.state.meta.errors.map((error, i) => (
                       <p
@@ -300,7 +300,7 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
                             ? error
                             : (error as { message?: string })?.message || i
                         }
-                        className="text-[10px] text-destructive font-medium"
+                        className="text-destructive text-[10px] font-medium"
                       >
                         {typeof error === "string"
                           ? error
@@ -323,19 +323,19 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
                       onCheckedChange={(checked) =>
                         field.handleChange(!!checked)
                       }
-                      className="mt-0.5 animate-in fade-in zoom-in-50 duration-200"
+                      className="animate-in fade-in zoom-in-50 mt-0.5 duration-200"
                     />
                     <div className="space-y-1">
                       <Label
                         htmlFor={field.name}
-                        className="text-[11px] font-medium text-muted-foreground leading-normal cursor-pointer select-none"
+                        className="text-muted-foreground cursor-pointer text-[11px] leading-normal font-medium select-none"
                       >
                         I accept the{" "}
                         <a
                           href="/terms"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-primary hover:underline font-semibold"
+                          className="text-primary font-semibold hover:underline"
                         >
                           Terms of Service
                         </a>{" "}
@@ -344,7 +344,7 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
                           href="/privacy"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-primary hover:underline font-semibold"
+                          className="text-primary font-semibold hover:underline"
                         >
                           Privacy Policy
                         </a>
@@ -357,7 +357,7 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
                               ? error
                               : (error as { message?: string })?.message || i
                           }
-                          className="text-[10px] text-destructive font-medium"
+                          className="text-destructive text-[10px] font-medium"
                         >
                           {typeof error === "string"
                             ? error
@@ -379,7 +379,7 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
               {({ canSubmit, isSubmitting }) => (
                 <Button
                   type="submit"
-                  className="w-full h-9 mt-2 text-xs font-semibold rounded-md bg-primary text-brand-yellow hover:bg-primary/95 transition-all shadow-md"
+                  className="bg-primary text-brand-yellow hover:bg-primary/95 mt-2 h-9 w-full rounded-md text-xs font-semibold shadow-md transition-all"
                   disabled={!canSubmit || isSubmitting || signUpEmail.isPending}
                 >
                   {isSubmitting || signUpEmail.isPending
@@ -397,7 +397,7 @@ const SignUpForm = ({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) => {
             <Button
               variant="link"
               onClick={onSwitchToSignIn}
-              className="text-primary dark:text-brand-yellow font-semibold hover:underline p-0 h-auto text-xs cursor-pointer"
+              className="text-primary dark:text-brand-yellow h-auto cursor-pointer p-0 text-xs font-semibold hover:underline"
             >
               Sign In
             </Button>

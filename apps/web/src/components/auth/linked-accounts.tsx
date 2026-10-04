@@ -71,7 +71,7 @@ const LinkedAccounts = () => {
     <Card className="rounded-xl">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
-          <Link2 className="size-5 text-primary" /> Login methods
+          <Link2 className="text-primary size-5" /> Login methods
         </CardTitle>
         <CardDescription>
           Link Google to sign in without a password. We only allow unlinking
@@ -81,14 +81,14 @@ const LinkedAccounts = () => {
       <CardContent className="space-y-3">
         {linkedAccounts.map((account) => (
           <div
-            className="flex items-center justify-between gap-3 rounded-lg border border-border/60 p-3"
+            className="border-border/60 flex items-center justify-between gap-3 rounded-lg border p-3"
             key={account.id}
           >
             <div>
               <p className="text-sm font-semibold">
                 {providerLabel(account.providerId)}
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 {account.providerId === "credential"
                   ? "Your RallyCasts password"
                   : "Connected social account"}

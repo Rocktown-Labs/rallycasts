@@ -5,8 +5,8 @@
  */
 
 export interface ImaAdDisplayContainer {
-  destroy(): void;
-  initialize(): void;
+  destroy: () => void;
+  initialize: () => void;
 }
 
 export interface ImaAdsRequest {
@@ -16,18 +16,18 @@ export interface ImaAdsRequest {
 }
 
 export interface ImaAdsManager {
-  destroy(): void;
-  init(width: number, height: number, viewMode: string): void;
-  start(): void;
+  destroy: () => void;
+  init: (width: number, height: number, viewMode: string) => void;
+  start: () => void;
 }
 
 export interface ImaAdsManagerLoadedEvent {
-  getAdsManager(videoElement: HTMLVideoElement | null): ImaAdsManager;
+  getAdsManager: (videoElement: HTMLVideoElement | null) => ImaAdsManager;
 }
 
 export interface ImaAdsLoader {
-  contentComplete(): void;
-  destroy(): void;
+  contentComplete: () => void;
+  destroy: () => void;
 }
 
 export interface ImaSdk {
@@ -44,11 +44,11 @@ export interface ImaSdk {
     };
   };
   AdsLoader: new (container: ImaAdDisplayContainer) => ImaAdsLoader & {
-    addEventListener(
+    addEventListener: (
       type: string,
       handler: (event: ImaAdsManagerLoadedEvent) => void
-    ): void;
-    requestAds(request: ImaAdsRequest): void;
+    ) => void;
+    requestAds: (request: ImaAdsRequest) => void;
   };
   AdsManagerLoadedEvent: { Type: { ADS_MANAGER_LOADED: string } };
   AdsRequest: new () => ImaAdsRequest;

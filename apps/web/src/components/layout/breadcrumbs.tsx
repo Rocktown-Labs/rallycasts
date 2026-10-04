@@ -110,18 +110,18 @@ export default function Breadcrumbs() {
         return (
           <div key={pathname} className="flex min-w-0 items-center gap-1.5">
             {index > 0 ? (
-              <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+              <ChevronRight className="text-muted-foreground size-4 shrink-0" />
             ) : null}
             <Link
               to={pathname}
               className={cn(
                 "inline-flex h-7 items-center justify-center rounded-full px-3.5 text-xs font-semibold transition-all duration-150 active:scale-97",
                 isLast
-                  ? "bg-[#183e1c] text-[#bcdf21] border border-[#2d6833] shadow-xs hover:bg-[#1f4e24] hover:text-[#d4f842]"
+                  ? "border border-[#2d6833] bg-[#183e1c] text-[#bcdf21] shadow-xs hover:bg-[#1f4e24] hover:text-[#d4f842]"
                   : "text-muted-foreground hover:bg-muted/50 hover:text-foreground px-2.5"
               )}
             >
-              <span className="truncate max-w-36">{label}</span>
+              <span className="max-w-36 truncate">{label}</span>
             </Link>
           </div>
         );

@@ -88,10 +88,12 @@ test("serves public launch routes in a real browser", async ({ page }) => {
     "/casters",
     "/shop",
   ]) {
+    // oxlint-disable-next-line eslint/no-await-in-loop -- sequential test steps by design
     const response = await page.goto(path);
     expect(response?.ok(), `${path} did not return a successful response`).toBe(
       true
     );
+    // oxlint-disable-next-line eslint/no-await-in-loop -- sequential test steps by design
     await expect(page.locator("body")).not.toContainText(
       "Internal Server Error"
     );
@@ -151,6 +153,7 @@ test("returns signed playback URLs for private videos and clips", async ({
   await login(page);
 
   for (const videoId of [fixtures.privateVideoId, fixtures.clipVideoId]) {
+    // oxlint-disable-next-line eslint/no-await-in-loop -- sequential test steps by design
     const response = await apiRequest(
       page,
       `/api/v1/videos/${videoId}/playback`

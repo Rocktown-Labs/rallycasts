@@ -406,10 +406,13 @@ export const adsRouter = new Hono<AppEnv>()
       venueId: validation.venueId,
       videoCpmCents: validation.videoCpmCents,
     });
-    for (const creative of creativeCheck.creatives) {
-      await db
-        .insert(adCreative)
-        .values({ ...creative, campaignId, id: createId() });
+    const creatives = creativeCheck.creatives.map((creative) => ({
+      ...creative,
+      campaignId,
+      id: createId(),
+    }));
+    if (creatives.length > 0) {
+      await db.insert(adCreative).values(creatives);
     }
     const [campaign] = await db
       .select()
@@ -773,6 +776,7 @@ const withSignedTracking = async (
   for (const trackingEvent of events) {
     signed = signed.replaceAll(
       `${base}?pending=${trackingEvent}`,
+      // oxlint-disable-next-line eslint/no-await-in-loop -- signature replacement chains on the previous result
       await signFor(trackingEvent)
     );
   }
@@ -960,6 +964,7 @@ const validateCreatives = async (
     if (!videoId) {
       return { error: "Preroll creatives require a video", ok: false };
     }
+    // oxlint-disable-next-line eslint/no-await-in-loop -- signature replacement chains on the previous result
     const [clip] = await db
       .select()
       .from(video)
@@ -982,6 +987,7 @@ const validateCreatives = async (
         ok: false,
       };
     }
+    // oxlint-disable-next-line eslint/no-await-in-loop -- signature replacement chains on the previous result
     if (!(await isOrgMember(db, organizationId, clip.ownerUserId))) {
       return {
         error: "Sponsor clip must belong to your organization",

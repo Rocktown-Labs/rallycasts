@@ -129,6 +129,7 @@ describe("casting job status transitions", () => {
     expect(skipAhead.status).toBe(403);
 
     for (const status of ["arrived", "recording", "uploading", "completed"]) {
+      // oxlint-disable-next-line eslint/no-await-in-loop -- sequential test setup
       const response = await patchStatus(jobId, caster.cookie, status);
       expect(response.status).toBe(200);
     }

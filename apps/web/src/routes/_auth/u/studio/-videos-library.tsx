@@ -57,7 +57,7 @@ export function VideosLibrary({
                 "rounded-b-none border-b-2",
                 tabSection === section
                   ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground"
+                  : "text-muted-foreground border-transparent"
               )}
               variant="ghost"
             >
@@ -71,7 +71,7 @@ export function VideosLibrary({
         <div className="flex flex-col gap-2">
           {Array.from({ length: 4 }, (_, index) => (
             <div
-              className="h-24 rounded-xl bg-muted"
+              className="bg-muted h-24 rounded-xl"
               key={`video-loading-${index + 1}`}
             />
           ))}
@@ -79,7 +79,7 @@ export function VideosLibrary({
       ) : null}
 
       {!isLoading && section === "live" ? (
-        <div className="rounded-2xl border bg-card p-8">
+        <div className="bg-card rounded-2xl border p-8">
           <EmptyState
             message="Live tools will start from Studio. Scheduled streams and replays will appear here."
             title="No live sessions yet"
@@ -88,8 +88,8 @@ export function VideosLibrary({
       ) : null}
 
       {!isLoading && section !== "live" && activeItems.length > 0 ? (
-        <div className="overflow-hidden rounded-2xl border bg-card">
-          <div className="hidden grid-cols-[minmax(0,1fr)_8rem_8rem_7rem_8rem] gap-4 border-b bg-muted/40 px-5 py-3 text-xs font-semibold text-muted-foreground md:grid">
+        <div className="bg-card overflow-hidden rounded-2xl border">
+          <div className="bg-muted/40 text-muted-foreground hidden grid-cols-[minmax(0,1fr)_8rem_8rem_7rem_8rem] gap-4 border-b px-5 py-3 text-xs font-semibold md:grid">
             <span>{activeTab?.label}</span>
             <span>Visibility</span>
             <span>Status</span>
@@ -102,7 +102,7 @@ export function VideosLibrary({
               key={video.id}
             >
               <Link
-                className="flex min-w-0 items-center gap-4 hover:text-primary"
+                className="hover:text-primary flex min-w-0 items-center gap-4"
                 params={{ id: video.id }}
                 to="/u/studio/videos/$id"
               >
@@ -115,22 +115,22 @@ export function VideosLibrary({
                     />
                   ) : (
                     <div className="grid size-full place-items-center">
-                      <Video className="size-7 text-primary/70" />
+                      <Video className="text-primary/70 size-7" />
                     </div>
                   )}
                 </div>
                 <div className="min-w-0">
                   <p className="truncate font-bold">{video.title}</p>
-                  <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                  <p className="text-muted-foreground mt-1 line-clamp-2 text-xs">
                     {video.description || "Add a description in Studio"}
                   </p>
                 </div>
               </Link>
               <span className="text-sm capitalize">{video.visibility}</span>
-              <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs font-semibold">
+              <span className="bg-muted inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold">
                 <Clock3 className="size-3" /> {statusLabel[video.status]}
               </span>
-              <span className="text-sm text-muted-foreground">
+              <span className="text-muted-foreground text-sm">
                 {formatDuration(video.durationSeconds)}
               </span>
               <div className="flex gap-2">
@@ -153,7 +153,7 @@ export function VideosLibrary({
       ) : null}
 
       {!isLoading && section !== "live" && activeItems.length === 0 ? (
-        <div className="rounded-2xl border bg-card p-8">
+        <div className="bg-card rounded-2xl border p-8">
           <EmptyState
             message={
               section === "clips"

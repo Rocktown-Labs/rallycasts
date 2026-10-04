@@ -64,14 +64,14 @@ const NotificationButton = () => {
       >
         <Bell className="size-4" />
         {unread > 0 ? (
-          <span className="-right-0.5 -top-0.5 absolute grid size-4 place-items-center rounded-full bg-brand-yellow text-[10px] font-bold text-black">
+          <span className="bg-brand-yellow absolute -top-0.5 -right-0.5 grid size-4 place-items-center rounded-full text-[10px] font-bold text-black">
             {unread}
           </span>
         ) : null}
       </Button>
       {open ? (
-        <div className="absolute top-11 right-0 z-50 w-80 overflow-hidden rounded-lg border border-border bg-popover shadow-xl">
-          <div className="border-b border-border px-4 py-3">
+        <div className="border-border bg-popover absolute top-11 right-0 z-50 w-80 overflow-hidden rounded-lg border shadow-xl">
+          <div className="border-border border-b px-4 py-3">
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm font-semibold">Notifications</p>
               <Link
@@ -87,24 +87,24 @@ const NotificationButton = () => {
             {notifications.length > 0 ? (
               notifications.map(({ href, icon: Icon, id, message, title }) => (
                 <Link
-                  className="grid grid-cols-[auto_1fr] gap-3 border-b border-border px-4 py-3 text-sm last:border-b-0 hover:bg-muted"
+                  className="border-border hover:bg-muted grid grid-cols-[auto_1fr] gap-3 border-b px-4 py-3 text-sm last:border-b-0"
                   key={id}
                   onClick={() => setOpen(false)}
                   to={href}
                 >
-                  <span className="grid size-9 place-items-center rounded-md bg-primary/15 text-primary">
+                  <span className="bg-primary/15 text-primary grid size-9 place-items-center rounded-md">
                     <Icon className="size-4" />
                   </span>
                   <span>
                     <span className="block font-medium">{title}</span>
-                    <span className="mt-1 block text-muted-foreground">
+                    <span className="text-muted-foreground mt-1 block">
                       {message}
                     </span>
                   </span>
                 </Link>
               ))
             ) : (
-              <p className="px-4 py-8 text-center text-muted-foreground text-sm">
+              <p className="text-muted-foreground px-4 py-8 text-center text-sm">
                 No notifications yet.
               </p>
             )}

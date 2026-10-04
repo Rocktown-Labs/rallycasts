@@ -261,7 +261,7 @@ function CartDrawer() {
     <dialog
       open
       aria-label="Shopping cart"
-      className="fixed inset-0 z-50 m-0 h-full max-h-none w-full max-w-none border-0 bg-transparent p-0 text-foreground"
+      className="text-foreground fixed inset-0 z-50 m-0 h-full max-h-none w-full max-w-none border-0 bg-transparent p-0"
     >
       <button
         aria-label="Close cart"
@@ -269,7 +269,7 @@ function CartDrawer() {
         onClick={closeCart}
         type="button"
       />
-      <aside className="absolute inset-y-0 right-0 flex w-full max-w-md flex-col border-l bg-background shadow-xl">
+      <aside className="bg-background absolute inset-y-0 right-0 flex w-full max-w-md flex-col border-l shadow-xl">
         <div className="flex items-center justify-between border-b px-5 py-4">
           <h2 className="flex items-center gap-2 text-lg font-black">
             <ShoppingBag className="size-5" /> Your cart
@@ -286,7 +286,7 @@ function CartDrawer() {
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
           {items.length === 0 ? (
-            <p className="mt-10 text-center text-sm text-muted-foreground">
+            <p className="text-muted-foreground mt-10 text-center text-sm">
               Your cart is empty. Grab some court-day gear.
             </p>
           ) : (
@@ -305,15 +305,15 @@ function CartDrawer() {
                         src={imageUrl}
                       />
                     ) : (
-                      <div className="grid size-16 place-items-center rounded-lg bg-muted">
-                        <ShoppingBag className="size-5 text-muted-foreground" />
+                      <div className="bg-muted grid size-16 place-items-center rounded-lg">
+                        <ShoppingBag className="text-muted-foreground size-5" />
                       </div>
                     )}
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-bold">
                         {item.variant.product.name}
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-muted-foreground text-xs">
                         {item.variant.name}
                       </p>
                       <p className="mt-1 text-sm font-semibold">
@@ -380,7 +380,7 @@ function CartDrawer() {
           >
             Checkout with Fourthwall
           </Button>
-          <p className="mt-2 text-center text-xs text-muted-foreground">
+          <p className="text-muted-foreground mt-2 text-center text-xs">
             Shipping and taxes are calculated at checkout. RallyCasts never
             stores card details.
           </p>

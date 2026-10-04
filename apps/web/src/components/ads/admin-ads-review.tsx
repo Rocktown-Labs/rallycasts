@@ -20,7 +20,7 @@ export function AdminAdsReview() {
     <Card className="rounded-lg">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Megaphone className="size-4 text-primary" /> Ad approvals
+          <Megaphone className="text-primary size-4" /> Ad approvals
         </CardTitle>
         <CardDescription>
           Organizer boosts go live across cards and video prerolls after review.
@@ -29,17 +29,17 @@ export function AdminAdsReview() {
       </CardHeader>
       <CardContent className="grid gap-3">
         {campaigns.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             No campaigns awaiting review.
           </p>
         ) : (
           campaigns.map((campaign) => (
             <div
-              className="rounded-lg border border-border p-4"
+              className="border-border rounded-lg border p-4"
               key={campaign.adCampaign.id}
             >
               <p className="font-semibold">{campaign.adCampaign.name}</p>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="text-muted-foreground mt-1 text-sm">
                 {campaign.event.name} ·{" "}
                 {(campaign.adCampaign.totalBudgetCents / 100).toFixed(0)} total
                 budget · {(campaign.adCampaign.fundedCents / 100).toFixed(2)}{" "}

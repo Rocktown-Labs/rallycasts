@@ -42,9 +42,9 @@ function ProductDetailPage() {
 function LaunchingSoon({ slug }: { slug: string }) {
   return (
     <main className="mx-auto max-w-2xl px-4 py-16 text-center">
-      <Package className="mx-auto size-10 text-muted-foreground" />
+      <Package className="text-muted-foreground mx-auto size-10" />
       <h1 className="mt-4 text-2xl font-black">{slug}</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
+      <p className="text-muted-foreground mt-2 text-sm">
         The storefront is launching soon. Check back to see this product.
       </p>
       <Link
@@ -102,9 +102,9 @@ function ProductDetail({ slug }: { slug: string }) {
   if (error || !offer) {
     return (
       <main className="mx-auto max-w-2xl px-4 py-16 text-center">
-        <Package className="mx-auto size-10 text-muted-foreground" />
+        <Package className="text-muted-foreground mx-auto size-10" />
         <h1 className="mt-4 text-2xl font-black">Product not found</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
+        <p className="text-muted-foreground mt-2 text-sm">
           This product may have sold out or moved. Browse the shop for the
           latest drop.
         </p>
@@ -124,7 +124,7 @@ function ProductDetail({ slug }: { slug: string }) {
   return (
     <main className="mx-auto max-w-6xl px-4 py-6">
       <Link
-        className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
+        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-xs font-semibold transition-colors"
         to="/shop"
       >
         <ChevronLeft className="size-4" /> Back to shop
@@ -173,7 +173,7 @@ function ProductGallery({
 
   return (
     <div className="space-y-3">
-      <div className="relative aspect-square overflow-hidden rounded-2xl border bg-muted">
+      <div className="bg-muted relative aspect-square overflow-hidden rounded-2xl border">
         {activeImageUrl ? (
           <img
             alt={offer.name}
@@ -182,17 +182,17 @@ function ProductGallery({
           />
         ) : (
           <div className="grid size-full place-items-center">
-            <Package className="size-12 text-muted-foreground" />
+            <Package className="text-muted-foreground size-12" />
           </div>
         )}
-        <div className="absolute left-3 top-3 flex gap-2">
+        <div className="absolute top-3 left-3 flex gap-2">
           {offer.type === "BUNDLE" ? (
-            <span className="rounded-full bg-primary px-2.5 py-1 text-xs font-bold text-primary-foreground">
+            <span className="bg-primary text-primary-foreground rounded-full px-2.5 py-1 text-xs font-bold">
               Bundle
             </span>
           ) : null}
           {soldOut ? (
-            <span className="rounded-full bg-destructive px-2.5 py-1 text-xs font-bold text-destructive-foreground">
+            <span className="bg-destructive text-destructive-foreground rounded-full px-2.5 py-1 text-xs font-bold">
               Sold out
             </span>
           ) : null}
@@ -212,7 +212,7 @@ function ProductGallery({
                 className={cn(
                   "size-20 shrink-0 overflow-hidden rounded-lg border transition-all",
                   index === activeIndex
-                    ? "border-primary ring-2 ring-primary/60"
+                    ? "border-primary ring-primary/60 ring-2"
                     : "border-border opacity-70 hover:opacity-100"
                 )}
                 key={image.id ?? url}
@@ -267,14 +267,14 @@ function ProductInfo({
           <span className="text-2xl font-black">{formatMoney(price)}</span>
         ) : null}
         {compareAtPrice ? (
-          <span className="text-sm text-muted-foreground line-through">
+          <span className="text-muted-foreground text-sm line-through">
             {formatMoney(compareAtPrice)}
           </span>
         ) : null}
       </div>
 
       {offer.description ? (
-        <p className="mt-4 text-sm leading-6 text-muted-foreground">
+        <p className="text-muted-foreground mt-4 text-sm leading-6">
           {offer.description}
         </p>
       ) : null}
@@ -345,7 +345,7 @@ function StockLine({
 function BundleContents({ offers }: { offers: FwProduct[] }) {
   return (
     <div className="mt-8">
-      <h2 className="text-sm font-black uppercase tracking-[0.14em] text-primary">
+      <h2 className="text-primary text-sm font-black tracking-[0.14em] uppercase">
         What’s included
       </h2>
       <ul className="mt-3 space-y-2">
@@ -354,7 +354,7 @@ function BundleContents({ offers }: { offers: FwProduct[] }) {
           const bundledPrice = displayPriceFor(bundled);
           return (
             <li
-              className="flex items-center gap-3 rounded-lg border bg-card p-3"
+              className="bg-card flex items-center gap-3 rounded-lg border p-3"
               key={bundled.id}
             >
               {bundledImageUrl ? (
@@ -365,17 +365,17 @@ function BundleContents({ offers }: { offers: FwProduct[] }) {
                   src={bundledImageUrl}
                 />
               ) : (
-                <div className="grid size-12 place-items-center rounded-md bg-muted">
-                  <ShoppingBag className="size-4 text-muted-foreground" />
+                <div className="bg-muted grid size-12 place-items-center rounded-md">
+                  <ShoppingBag className="text-muted-foreground size-4" />
                 </div>
               )}
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-bold">{bundled.name}</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                   {bundledPrice ? formatMoney(bundledPrice) : "—"}
                 </p>
               </div>
-              <Check className="size-4 shrink-0 text-primary" />
+              <Check className="text-primary size-4 shrink-0" />
             </li>
           );
         })}
@@ -407,7 +407,7 @@ function ProductDetailsSections({ offer }: { offer: FwOffer }) {
               {/* Merchant-authored HTML from Fourthwall product details,
                   sanitized client-side before injection. */}
               <div
-                className="mt-2 text-sm leading-6 text-muted-foreground [&_a]:text-primary [&_a]:underline"
+                className="text-muted-foreground [&_a]:text-primary mt-2 text-sm leading-6 [&_a]:underline"
                 dangerouslySetInnerHTML={{
                   __html: sanitizeMerchantHtml(section.bodyHtml),
                 }}

@@ -55,15 +55,15 @@ const OrganizerOrganizationsPage = () => {
 
   return (
     <div className="mx-auto max-w-7xl space-y-8">
-      <section className="flex flex-col gap-4 rounded-lg border border-border bg-card p-6 md:flex-row md:items-center md:justify-between">
+      <section className="border-border bg-card flex flex-col gap-4 rounded-lg border p-6 md:flex-row md:items-center md:justify-between">
         <div>
-          <p className="text-sm font-semibold text-primary">
+          <p className="text-primary text-sm font-semibold">
             Organization Management
           </p>
           <h1 className="mt-2 text-3xl font-extrabold tracking-tight">
             Manage the host identities behind your tournaments.
           </h1>
-          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+          <p className="text-muted-foreground mt-2 max-w-2xl text-sm">
             Keep organization names, locations, members, payout setup, and
             tournament links together without mixing them into a player profile.
           </p>
@@ -85,7 +85,7 @@ const OrganizerOrganizationsPage = () => {
       />
 
       {isLoading ? (
-        <div className="h-80 animate-pulse rounded-lg bg-muted" />
+        <div className="bg-muted h-80 animate-pulse rounded-lg" />
       ) : null}
 
       {organizations.length === 0 && !isLoading ? (
@@ -106,7 +106,7 @@ const OrganizerOrganizationsPage = () => {
           <Card className="rounded-lg" key={organization.id}>
             <CardHeader className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div className="flex min-w-0 gap-4">
-                <div className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-lg bg-primary/10 text-primary">
+                <div className="bg-primary/10 text-primary grid size-14 shrink-0 place-items-center overflow-hidden rounded-lg">
                   {organization.logoUrl ? (
                     <img
                       alt={`${organization.name} logo`}
@@ -121,10 +121,10 @@ const OrganizerOrganizationsPage = () => {
                   <CardTitle className="flex items-center gap-2 truncate text-lg">
                     {organization.name}
                     {organization.isOfficial ? (
-                      <BadgeCheck className="size-4 shrink-0 text-primary" />
+                      <BadgeCheck className="text-primary size-4 shrink-0" />
                     ) : null}
                   </CardTitle>
-                  <p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+                  <p className="text-muted-foreground mt-2 flex items-center gap-1 text-xs">
                     <MapPin className="size-3.5" />
                     {[organization.city, organization.state]
                       .filter(Boolean)
@@ -132,30 +132,30 @@ const OrganizerOrganizationsPage = () => {
                   </p>
                 </div>
               </div>
-              <span className="w-fit rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold capitalize text-primary">
+              <span className="bg-primary/10 text-primary w-fit rounded-full px-3 py-1 text-xs font-semibold capitalize">
                 {role}
               </span>
             </CardHeader>
             <CardContent className="space-y-5">
-              <p className="line-clamp-3 text-sm text-muted-foreground">
+              <p className="text-muted-foreground line-clamp-3 text-sm">
                 {organization.bio ??
                   "Add a bio so players know what this organization hosts."}
               </p>
               <div className="grid gap-3 text-sm sm:grid-cols-3">
                 <div className="rounded-md border p-3">
-                  <p className="text-xs text-muted-foreground">Public slug</p>
+                  <p className="text-muted-foreground text-xs">Public slug</p>
                   <p className="mt-1 truncate font-semibold">
                     {organization.slug}
                   </p>
                 </div>
                 <div className="rounded-md border p-3">
-                  <p className="text-xs text-muted-foreground">Payouts</p>
+                  <p className="text-muted-foreground text-xs">Payouts</p>
                   <p className="mt-1 truncate font-semibold capitalize">
                     {organization.stripeOnboardingStatus.replaceAll("_", " ")}
                   </p>
                 </div>
                 <div className="rounded-md border p-3">
-                  <p className="text-xs text-muted-foreground">Updated</p>
+                  <p className="text-muted-foreground text-xs">Updated</p>
                   <p className="mt-1 truncate font-semibold">
                     {new Date(organization.updatedAt).toLocaleDateString()}
                   </p>

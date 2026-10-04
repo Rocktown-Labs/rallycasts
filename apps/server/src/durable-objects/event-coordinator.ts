@@ -63,6 +63,7 @@ const updateExistingBracketMatches = async (
     }
     const playerOneUserId = winners[index];
     const playerTwoUserId = winners[index + 1];
+    // oxlint-disable-next-line eslint/no-await-in-loop -- bracket advancement updates matches in order
     await db
       .update(eventMatch)
       .set({

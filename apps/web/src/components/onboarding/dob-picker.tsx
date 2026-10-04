@@ -30,8 +30,8 @@ const getDaysInMonth = (monthStr: string, yearStr: string) => {
   if (!monthStr) {
     return 31;
   }
-  const m = Number.parseInt(monthStr, 10);
-  const y = yearStr ? Number.parseInt(yearStr, 10) : 2000;
+  const m = Math.trunc(Number(monthStr));
+  const y = yearStr ? Math.trunc(Number(yearStr)) : 2000;
   return new Date(y, m, 0).getDate();
 };
 
@@ -39,9 +39,9 @@ const calculateAge = (month: string, day: string, year: string) => {
   if (!month || !day || !year || year.length < 4) {
     return null;
   }
-  const m = Number.parseInt(month, 10);
-  const d = Number.parseInt(day, 10);
-  const y = Number.parseInt(year, 10);
+  const m = Math.trunc(Number(month));
+  const d = Math.trunc(Number(day));
+  const y = Math.trunc(Number(year));
   const today = new Date();
   let age = today.getFullYear() - y;
   const monthDelta = today.getMonth() - (m - 1);
@@ -158,7 +158,7 @@ export function DateOfBirthPicker({
           Date of Birth
           {required && (
             <span
-              className="text-destructive font-bold ml-1"
+              className="text-destructive ml-1 font-bold"
               aria-hidden="true"
             >
               *
@@ -166,7 +166,7 @@ export function DateOfBirthPicker({
           )}
         </Label>
         <button
-          className="text-xs text-muted-foreground hover:text-foreground underline transition-colors cursor-pointer"
+          className="text-muted-foreground hover:text-foreground cursor-pointer text-xs underline transition-colors"
           onClick={() =>
             setMode((prev) => (prev === "picker" ? "text" : "picker"))
           }
@@ -184,7 +184,7 @@ export function DateOfBirthPicker({
           <div>
             <select
               aria-label="Birth Month"
-              className="h-10 w-full rounded-lg border border-input bg-background/50 px-2.5 py-1 text-xs font-medium text-foreground transition-colors outline-none focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+              className="border-input bg-background/50 text-foreground focus-visible:border-ring focus-visible:ring-ring h-10 w-full cursor-pointer rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors outline-none focus-visible:ring-1"
               onChange={(e) => handlePickerChange(e.target.value, day, year)}
               value={month}
             >
@@ -201,14 +201,14 @@ export function DateOfBirthPicker({
           <div>
             <select
               aria-label="Birth Day"
-              className="h-10 w-full rounded-lg border border-input bg-background/50 px-2.5 py-1 text-xs font-medium text-foreground transition-colors outline-none focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+              className="border-input bg-background/50 text-foreground focus-visible:border-ring focus-visible:ring-ring h-10 w-full cursor-pointer rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors outline-none focus-visible:ring-1"
               onChange={(e) => handlePickerChange(month, e.target.value, year)}
               value={day}
             >
               <option value="">Day</option>
               {daysList.map((d) => (
                 <option key={d} value={d}>
-                  {Number.parseInt(d, 10)}
+                  {Math.trunc(Number(d))}
                 </option>
               ))}
             </select>
@@ -218,7 +218,7 @@ export function DateOfBirthPicker({
           <div>
             <select
               aria-label="Birth Year"
-              className="h-10 w-full rounded-lg border border-input bg-background/50 px-2.5 py-1 text-xs font-medium text-foreground transition-colors outline-none focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+              className="border-input bg-background/50 text-foreground focus-visible:border-ring focus-visible:ring-ring h-10 w-full cursor-pointer rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors outline-none focus-visible:ring-1"
               onChange={(e) => handlePickerChange(month, day, e.target.value)}
               value={year}
             >
@@ -233,10 +233,10 @@ export function DateOfBirthPicker({
         </div>
       ) : (
         <div className="relative">
-          <Calendar className="absolute left-3 top-2.5 size-4 text-muted-foreground pointer-events-none" />
+          <Calendar className="text-muted-foreground pointer-events-none absolute top-2.5 left-3 size-4" />
           <input
             aria-label="Date of Birth"
-            className="h-10 w-full rounded-lg border border-input bg-background/50 pl-9 pr-3 py-1 text-xs font-medium text-foreground transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring"
+            className="border-input bg-background/50 text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring h-10 w-full rounded-lg border py-1 pr-3 pl-9 text-xs font-medium transition-colors outline-none focus-visible:ring-1"
             id={id}
             maxLength={10}
             onChange={(e) => handleTextChange(e.target.value)}
@@ -268,7 +268,7 @@ function renderAgeStatus({
 }) {
   if (isEligible) {
     return (
-      <div className="flex items-center gap-1.5 text-xs text-emerald-500 font-medium">
+      <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-500">
         <Check className="size-3.5 stroke-[2.5]" />
         <span>Age: {age} years old • Eligible RallyCasts player</span>
       </div>
@@ -277,7 +277,7 @@ function renderAgeStatus({
 
   if (isUnderage) {
     return (
-      <div className="flex items-center gap-1.5 text-xs text-destructive font-medium">
+      <div className="text-destructive flex items-center gap-1.5 text-xs font-medium">
         <Info className="size-3.5" />
         <span>Age: {age} • Players must be at least 13 years old to join</span>
       </div>
@@ -285,11 +285,11 @@ function renderAgeStatus({
   }
 
   if (error) {
-    return <p className="text-xs text-destructive">{error}</p>;
+    return <p className="text-destructive text-xs">{error}</p>;
   }
 
   return (
-    <p className="text-[11px] text-muted-foreground">
+    <p className="text-muted-foreground text-[11px]">
       Must be at least 13 years old to join RallyCasts.
     </p>
   );

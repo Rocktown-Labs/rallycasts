@@ -73,10 +73,10 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
   const [paymentSplit, setPaymentSplit] = useState<"host" | "split">("host");
   const [notes, setNotes] = useState("");
 
-  const hours = Number.parseFloat(requestedHours) || 1;
+  const hours = Number(requestedHours || 1);
   const basePrice = hours * STANDARD_HOURLY_RATE;
   const activeTip = isCustomTip
-    ? Math.max(0, Number.parseFloat(customTip) || 0)
+    ? Math.max(0, Number(customTip || 0))
     : tipAmount;
   const totalPrice = basePrice + activeTip;
 
@@ -130,16 +130,16 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <section className="rounded-2xl border border-primary/30 bg-card p-5 sm:p-6 shadow-xs">
-      <div className="mb-5 flex items-start justify-between gap-3 border-b border-border/60 pb-4">
+    <section className="border-primary/30 bg-card rounded-2xl border p-5 shadow-xs sm:p-6">
+      <div className="border-border/60 mb-5 flex items-start justify-between gap-3 border-b pb-4">
         <div>
-          <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-500 mb-2">
+          <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-500">
             <span>ON-DEMAND COURT CAMERA</span>
           </div>
-          <h2 className="text-xl font-bold text-foreground">
+          <h2 className="text-foreground text-xl font-bold">
             Order a Caster by the Hour
           </h2>
-          <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+          <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
             Order on-court recording hours like an Uber. A verified caster shows
             up to your park with a 4K camera rig, records your match, and
             delivers footage for your private review & approval.
@@ -151,13 +151,13 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
           size="icon"
           variant="ghost"
         >
-          <XCircle className="size-5 text-muted-foreground hover:text-foreground" />
+          <XCircle className="text-muted-foreground hover:text-foreground size-5" />
         </Button>
       </div>
 
       <form className="grid gap-5 md:grid-cols-2" onSubmit={submitRequest}>
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-3.5 text-xs text-muted-foreground md:col-span-2 flex items-start gap-2.5">
-          <ShieldCheck className="size-4 text-emerald-500 shrink-0 mt-0.5" />
+        <div className="border-primary/20 bg-primary/5 text-muted-foreground flex items-start gap-2.5 rounded-xl border p-3.5 text-xs md:col-span-2">
+          <ShieldCheck className="mt-0.5 size-4 shrink-0 text-emerald-500" />
           <p>
             <strong className="text-foreground">
               Private Review & Approval Guarantee:
@@ -172,8 +172,8 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
           className="grid gap-1.5 text-sm font-semibold"
           htmlFor="casting-place"
         >
-          <span className="flex items-center gap-2 text-foreground">
-            <MapPin className="size-4 text-primary" />
+          <span className="text-foreground flex items-center gap-2">
+            <MapPin className="text-primary size-4" />
             Park or Facility
           </span>
           <Input
@@ -189,7 +189,7 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
           className="grid gap-1.5 text-sm font-semibold"
           htmlFor="casting-court"
         >
-          <span className="flex items-center gap-2 text-foreground">
+          <span className="text-foreground flex items-center gap-2">
             Court Number
           </span>
           <Input
@@ -205,8 +205,8 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
           className="grid gap-1.5 text-sm font-semibold"
           htmlFor="casting-start"
         >
-          <span className="flex items-center gap-2 text-foreground">
-            <CalendarClock className="size-4 text-primary" />
+          <span className="text-foreground flex items-center gap-2">
+            <CalendarClock className="text-primary size-4" />
             Match Date & Start Time
           </span>
           <Input
@@ -222,7 +222,7 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
           className="grid gap-1.5 text-sm font-semibold"
           htmlFor="casting-end"
         >
-          <span className="flex items-center gap-2 text-foreground">
+          <span className="text-foreground flex items-center gap-2">
             Estimated End Time (Optional)
           </span>
           <Input
@@ -237,12 +237,12 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
         <div className="grid gap-2 md:col-span-2">
           <div className="flex items-center justify-between">
             <label
-              className="text-sm font-semibold text-foreground"
+              className="text-foreground text-sm font-semibold"
               htmlFor="casting-hours"
             >
               Recording Duration ($20/hr standard rate)
             </label>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-muted-foreground text-xs">
               {hours} hr{hours === 1 ? "" : "s"} = ${basePrice.toFixed(2)}
             </span>
           </div>
@@ -252,7 +252,7 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
                 key={hrs}
                 type="button"
                 className={cn(
-                  "rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer",
+                  "cursor-pointer rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all",
                   hours === hrs
                     ? "border-primary bg-primary text-primary-foreground shadow-2xs"
                     : "border-border bg-muted/20 hover:border-primary/50 text-foreground"
@@ -263,8 +263,8 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
                 {hrs * STANDARD_HOURLY_RATE})
               </button>
             ))}
-            <div className="flex items-center gap-1.5 ml-2">
-              <span className="text-xs text-muted-foreground">Custom:</span>
+            <div className="ml-2 flex items-center gap-1.5">
+              <span className="text-muted-foreground text-xs">Custom:</span>
               <Input
                 id="casting-hours"
                 min="0.5"
@@ -272,20 +272,20 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
                 type="number"
                 value={requestedHours}
                 onChange={(e) => setRequestedHours(e.target.value)}
-                className="h-8 w-20 text-xs rounded-lg"
+                className="h-8 w-20 rounded-lg text-xs"
               />
             </div>
           </div>
         </div>
 
         {/* Tipping Section */}
-        <div className="grid gap-2 md:col-span-2 border-t border-border/60 pt-4">
+        <div className="border-border/60 grid gap-2 border-t pt-4 md:col-span-2">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold flex items-center gap-2 text-foreground">
+            <span className="text-foreground flex items-center gap-2 text-sm font-semibold">
               <HeartHandshake className="size-4 text-emerald-500" />
               Optional Caster Tip
             </span>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-muted-foreground text-xs">
               100% of tips go directly to your court caster
             </span>
           </div>
@@ -295,10 +295,10 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
                 key={tip}
                 type="button"
                 className={cn(
-                  "rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer",
+                  "cursor-pointer rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all",
                   !isCustomTip && tipAmount === tip
-                    ? "border-emerald-500 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 shadow-2xs"
-                    : "border-border bg-muted/20 hover:border-emerald-500/50 text-foreground"
+                    ? "border-emerald-500 bg-emerald-500/15 text-emerald-600 shadow-2xs dark:text-emerald-400"
+                    : "border-border bg-muted/20 text-foreground hover:border-emerald-500/50"
                 )}
                 onClick={() => {
                   setIsCustomTip(false);
@@ -311,10 +311,10 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
             <button
               type="button"
               className={cn(
-                "rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer",
+                "cursor-pointer rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all",
                 isCustomTip
-                  ? "border-emerald-500 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 shadow-2xs"
-                  : "border-border bg-muted/20 hover:border-emerald-500/50 text-foreground"
+                  ? "border-emerald-500 bg-emerald-500/15 text-emerald-600 shadow-2xs dark:text-emerald-400"
+                  : "border-border bg-muted/20 text-foreground hover:border-emerald-500/50"
               )}
               onClick={() => setIsCustomTip(true)}
             >
@@ -322,7 +322,7 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
             </button>
             {isCustomTip && (
               <div className="relative inline-flex items-center">
-                <span className="absolute left-2.5 text-xs text-muted-foreground">
+                <span className="text-muted-foreground absolute left-2.5 text-xs">
                   $
                 </span>
                 <Input
@@ -332,7 +332,7 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
                   placeholder="0"
                   value={customTip}
                   onChange={(e) => setCustomTip(e.target.value)}
-                  className="h-8 w-24 pl-6 text-xs rounded-lg"
+                  className="h-8 w-24 rounded-lg pl-6 text-xs"
                   autoFocus
                 />
               </div>
@@ -345,8 +345,8 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
           className="grid gap-1.5 text-sm font-semibold md:col-span-2"
           htmlFor="casting-participants"
         >
-          <span className="flex items-center gap-2 text-foreground">
-            <Users className="size-4 text-primary" />
+          <span className="text-foreground flex items-center gap-2">
+            <Users className="text-primary size-4" />
             Who is playing?
           </span>
           <Input
@@ -359,7 +359,7 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
 
         {/* Payment Split */}
         <div className="grid gap-2 md:col-span-2">
-          <p className="text-sm font-semibold text-foreground">
+          <p className="text-foreground text-sm font-semibold">
             Payment Coverage
           </p>
           <div className="grid gap-2 sm:grid-cols-2">
@@ -376,7 +376,7 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
               ],
             ].map(([value, label, description]) => (
               <button
-                className={`rounded-xl border p-3.5 text-left transition-colors cursor-pointer ${
+                className={`cursor-pointer rounded-xl border p-3.5 text-left transition-colors ${
                   paymentSplit === value
                     ? "border-primary bg-primary/10"
                     : "border-border bg-muted/10 hover:border-primary/40"
@@ -385,10 +385,10 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
                 onClick={() => setPaymentSplit(value as "host" | "split")}
                 type="button"
               >
-                <span className="block text-sm font-bold text-foreground">
+                <span className="text-foreground block text-sm font-bold">
                   {label}
                 </span>
-                <span className="mt-1 block text-xs text-muted-foreground">
+                <span className="text-muted-foreground mt-1 block text-xs">
                   {description}
                 </span>
               </button>
@@ -405,7 +405,7 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
           <textarea
             id="casting-notes"
             aria-label="Request notes"
-            className="min-h-20 rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none transition-shadow focus:ring-2 focus:ring-primary"
+            className="border-border bg-background focus:ring-primary min-h-20 rounded-xl border px-3 py-2 text-sm transition-shadow outline-none focus:ring-2"
             onChange={(event) => setNotes(event.target.value)}
             placeholder="E.g., high-angle baseline angle preferred, tournament bracket match, or coaching notes."
             value={notes}
@@ -413,8 +413,8 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
         </label>
 
         {/* Checkout Summary Box */}
-        <div className="rounded-xl border border-border/80 bg-muted/30 p-4 md:col-span-2 space-y-2">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <div className="border-border/80 bg-muted/30 space-y-2 rounded-xl border p-4 md:col-span-2">
+          <div className="text-muted-foreground flex items-center justify-between text-xs">
             <span>
               Casting Service ({hours} hr{hours === 1 ? "" : "s"} @ $
               {STANDARD_HOURLY_RATE}/hr)
@@ -422,24 +422,24 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
             <span>${basePrice.toFixed(2)}</span>
           </div>
           {activeTip > 0 && (
-            <div className="flex items-center justify-between text-xs text-emerald-500 font-medium">
+            <div className="flex items-center justify-between text-xs font-medium text-emerald-500">
               <span>Caster Tip</span>
               <span>+${activeTip.toFixed(2)}</span>
             </div>
           )}
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <div className="text-muted-foreground flex items-center justify-between text-xs">
             <span>Platform Processing & Delivery</span>
-            <span className="text-emerald-500 font-semibold">Included</span>
+            <span className="font-semibold text-emerald-500">Included</span>
           </div>
-          <div className="border-t border-border/60 pt-2 flex items-center justify-between text-sm font-bold text-foreground">
+          <div className="border-border/60 text-foreground flex items-center justify-between border-t pt-2 text-sm font-bold">
             <span>Total Due Now</span>
-            <span className="text-lg text-emerald-500 font-extrabold">
+            <span className="text-lg font-extrabold text-emerald-500">
               ${totalPrice.toFixed(2)}
             </span>
           </div>
         </div>
 
-        <div className="md:col-span-2 flex items-center justify-end gap-3 pt-2">
+        <div className="flex items-center justify-end gap-3 pt-2 md:col-span-2">
           <Button
             type="button"
             variant="outline"
@@ -449,7 +449,7 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
             Cancel
           </Button>
           <Button
-            className="rounded-xl bg-primary text-primary-foreground font-bold px-6 py-2.5 shadow-xs cursor-pointer flex items-center gap-2"
+            className="bg-primary text-primary-foreground flex cursor-pointer items-center gap-2 rounded-xl px-6 py-2.5 font-bold shadow-xs"
             type="submit"
           >
             <CreditCard className="size-4" />
@@ -479,11 +479,11 @@ export function CastingRequestsPage({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold">Casting Requests</h1>
-          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+          <p className="text-muted-foreground mt-2 max-w-2xl text-sm">
             Request a RallyCaster to record a match, tournament, clinic, or
             challenge at your court.
           </p>
-          <nav className="mt-6 flex rounded-md bg-muted p-1">
+          <nav className="bg-muted mt-6 flex rounded-md p-1">
             {requestTabs.map((tab) => (
               <Link key={tab.status} to={tab.to}>
                 <Button
@@ -515,9 +515,9 @@ export function CastingRequestsPage({
         />
       ) : null}
       {isLoading ? (
-        <div className="h-72 animate-pulse rounded-lg bg-muted" />
+        <div className="bg-muted h-72 animate-pulse rounded-lg" />
       ) : null}
-      <div className="rounded-xl border border-border p-6">
+      <div className="border-border rounded-xl border p-6">
         <h2 className="mb-5 text-xl font-bold">{activeTab?.label}</h2>
         {jobs.length > 0 ? (
           <div className="grid gap-4">
