@@ -148,7 +148,7 @@ export function useGeolocation(enabled = true): {
   const [currentLocation, setCurrentLocation] = useState<
     GeoLocation | undefined
   >(() => getStoredLocation());
-  const [browsingLocation, setBrowsingLocationState] = useState<
+  const [browsingLocation, setBrowsingLocation] = useState<
     GeoLocation | undefined
   >(() => getStoredBrowsingLocation());
   const [error, setError] = useState<string | null>(null);
@@ -162,7 +162,7 @@ export function useGeolocation(enabled = true): {
     }
 
     const handleSync = () => {
-      setBrowsingLocationState(getStoredBrowsingLocation());
+      setBrowsingLocation(getStoredBrowsingLocation());
       const stored = getStoredLocation();
       if (stored) {
         setCurrentLocation(stored);
@@ -177,14 +177,14 @@ export function useGeolocation(enabled = true): {
     };
   }, []);
 
-  const setBrowsingLocation = useCallback((loc: GeoLocation | null) => {
+  const updateBrowsingLocation = useCallback((loc: GeoLocation | null) => {
     setStoredBrowsingLocation(loc);
-    setBrowsingLocationState(loc ?? undefined);
+    setBrowsingLocation(loc ?? undefined);
   }, []);
 
   const resetToCurrentLocation = useCallback(() => {
     setStoredBrowsingLocation(null);
-    setBrowsingLocationState(undefined);
+    setBrowsingLocation(undefined);
   }, []);
 
   const persistLocation = useCallback((nextLocation: GeoLocation) => {
@@ -300,6 +300,6 @@ export function useGeolocation(enabled = true): {
     location: effectiveLocation,
     requestLocation,
     resetToCurrentLocation,
-    setBrowsingLocation,
+    setBrowsingLocation: updateBrowsingLocation,
   };
 }

@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import path from "node:path";
 
 import { registerMediabunnyServer } from "@mediabunny/server";
 import {
@@ -20,7 +20,10 @@ import { beforeAll, describe, expect, it } from "vitest";
 // what an arbitrary trim range uses today).
 
 // Vitest runs with apps/web as the working directory.
-const FIXTURE_PATH = resolve(process.cwd(), "tests/fixtures/trim-sample.m4a");
+const FIXTURE_PATH = path.resolve(
+  process.cwd(),
+  "tests/fixtures/trim-sample.m4a"
+);
 
 const loadFixtureBlob = (): Blob =>
   new Blob([readFileSync(FIXTURE_PATH)], { type: "audio/mp4" });

@@ -15,10 +15,12 @@ import { toast } from "sonner";
 import { apiClient } from "@/lib/api-client";
 import { readApiJson } from "@/lib/hooks/api";
 
+const TeamPage = () => <TeamPageRoute slug={Route.useParams().slug} />;
+
 export const Route = createFileRoute(
   "/_auth/u/organizer/organizations_/$slug_/team"
 )({
-  component: () => <TeamPageRoute slug={Route.useParams().slug} />,
+  component: TeamPage,
 });
 
 const getOrganization = (slug: string) =>

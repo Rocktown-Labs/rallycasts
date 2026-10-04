@@ -1,5 +1,5 @@
 import { Outlet } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 
 import { SetupGuide } from "../onboarding/setup-guide";
@@ -10,7 +10,7 @@ import SiteHeader from "./site-header";
 
 export default function AppShell({ children }: { children?: ReactNode } = {}) {
   const [collapsed, setCollapsed] = useState(false);
-  const toggleSidebar = () => setCollapsed((value) => !value);
+  const toggleSidebar = useCallback(() => setCollapsed((value) => !value), []);
 
   useEffect(() => {
     const promptedKey = "rallycasts-location-prompted";
@@ -39,8 +39,13 @@ export default function AppShell({ children }: { children?: ReactNode } = {}) {
     );
   }, []);
 
+  const sidebarContextValue = useMemo(
+    () => ({ collapsed, setCollapsed, toggleSidebar }),
+    [collapsed, toggleSidebar]
+  );
+
   return (
-    <SidebarContext.Provider value={{ collapsed, setCollapsed, toggleSidebar }}>
+    <SidebarContext.Provider value={sidebarContextValue}>
       <div className="flex min-h-svh bg-background text-foreground">
         <AppSidebar collapsed={collapsed} onToggle={toggleSidebar} />
         <div

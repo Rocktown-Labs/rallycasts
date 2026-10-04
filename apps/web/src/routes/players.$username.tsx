@@ -1005,6 +1005,7 @@ function ProfileTabs({
     <div className="border-b border-border flex justify-center gap-6">
       {tabs.map((tab) => (
         <button
+          type="button"
           key={tab.value}
           onClick={() => onTabChange(tab.value)}
           className={`pb-3 text-xs sm:text-sm font-bold tracking-wider uppercase flex items-center gap-1.5 border-b-2 transition-all cursor-pointer ${
@@ -1749,6 +1750,7 @@ function FeedDetailModal({
       {/* Navigation Arrows */}
       {hasPrevious && (
         <button
+          type="button"
           onClick={handlePrevious}
           className="absolute left-4 top-1/2 -translate-y-1/2 z-20 text-white bg-black/60 hover:bg-black/80 p-2 rounded-full cursor-pointer transition-colors"
           aria-label="Previous item"
@@ -1758,6 +1760,7 @@ function FeedDetailModal({
       )}
       {hasNext && (
         <button
+          type="button"
           onClick={handleNext}
           className="absolute right-4 top-1/2 -translate-y-1/2 z-20 text-white bg-black/60 hover:bg-black/80 p-2 rounded-full cursor-pointer transition-colors"
           aria-label="Next item"
@@ -1768,6 +1771,7 @@ function FeedDetailModal({
 
       {/* Close Button */}
       <button
+        type="button"
         onClick={onClose}
         className="absolute top-4 right-4 z-20 text-white bg-black/60 hover:bg-black/80 p-2 rounded-full cursor-pointer transition-colors"
         aria-label="Close"
@@ -1777,6 +1781,7 @@ function FeedDetailModal({
 
       {/* Back Button */}
       <button
+        type="button"
         onClick={onClose}
         className="absolute top-4 left-4 z-20 text-white bg-black/60 hover:bg-black/80 p-2 rounded-full cursor-pointer transition-colors flex items-center gap-2"
       >
@@ -1826,6 +1831,7 @@ function FeedDetailModal({
             <div className="flex items-center justify-center gap-1.5">
               {items.map((_, index) => (
                 <button
+                  type="button"
                   key={index}
                   onClick={() => onNavigate(index)}
                   className={`size-2 rounded-full transition-all cursor-pointer ${

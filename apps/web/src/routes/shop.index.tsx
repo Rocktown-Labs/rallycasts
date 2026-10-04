@@ -362,10 +362,15 @@ function ProductCard({ offer }: { offer: FwOffer }) {
     [firstVariant]
   );
   const [selectedOptions, setSelectedOptions] = useState(initialOptions);
-
-  useEffect(() => {
+  // Reset the selection when the product's option set changes. Adjusting
+  // state during render is the sanctioned React pattern: no stale frame,
+  // no extra effect.
+  const [previousInitialOptions, setPreviousInitialOptions] =
+    useState(initialOptions);
+  if (previousInitialOptions !== initialOptions) {
+    setPreviousInitialOptions(initialOptions);
     setSelectedOptions(initialOptions);
-  }, [initialOptions]);
+  }
 
   const selectedVariant = product
     ? (findVariantByOptions(product, selectedOptions) ?? firstVariant)

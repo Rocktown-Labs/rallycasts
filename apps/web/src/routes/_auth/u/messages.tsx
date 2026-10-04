@@ -736,13 +736,14 @@ function MessagesPage() {
   // Collapse the app sidebar while the messenger is open so the inbox pane
   // gets the full width, and restore the user's preference on leave.
   const { collapsed: sidebarCollapsed, setCollapsed } = useSidebar();
-  const previousCollapsedRef = useRef(sidebarCollapsed);
+  // Capture the pre-messages sidebar state at mount (the initial value of a
+  // ref is only read on first render) so exiting the page restores it.
+  const initialCollapsedRef = useRef(sidebarCollapsed);
   useEffect(() => {
-    previousCollapsedRef.current = sidebarCollapsed;
+    const initialCollapsed = initialCollapsedRef.current;
     setCollapsed(true);
-    return () => setCollapsed(previousCollapsedRef.current);
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    return () => setCollapsed(initialCollapsed);
+  }, [setCollapsed]);
 
   const { data: conversations = [], isLoading } = useLiveQuery(
     conversationsCollection

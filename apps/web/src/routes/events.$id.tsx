@@ -16,7 +16,7 @@ import {
   MapPin,
   Info,
 } from "lucide-react";
-import { createContext, useContext } from "react";
+import { createContext, useContext, useMemo } from "react";
 
 import { apiClient } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
@@ -136,14 +136,17 @@ function EventLayout() {
     year: "numeric",
   });
 
-  const details = {
-    imageUrl:
-      "linear-gradient(135deg, hsl(142 100% 18% / 0.6), hsl(78 100% 60% / 0.15))",
-    location: eventData.venueId
-      ? "Venue details available below"
-      : "Location to be announced",
-    tags: [eventData.eventType, "pickleball"],
-  };
+  const details = useMemo(
+    () => ({
+      imageUrl:
+        "linear-gradient(135deg, hsl(142 100% 18% / 0.6), hsl(78 100% 60% / 0.15))",
+      location: eventData.venueId
+        ? "Venue details available below"
+        : "Location to be announced",
+      tags: [eventData.eventType, "pickleball"],
+    }),
+    [eventData.eventType, eventData.venueId]
+  );
   const manageableOrganizationIds = new Set(
     (organizationsData?.organizations ?? []).map(
       ({ organization }) => organization.id
@@ -154,6 +157,11 @@ function EventLayout() {
     organizationIds: manageableOrganizationIds,
     userId: sessionData?.user?.id,
   });
+
+  const eventContextValue = useMemo(
+    () => ({ canManageEvent, details, event: eventData }),
+    [canManageEvent, details, eventData]
+  );
 
   const activeLinkClass = "border-primary text-primary font-bold";
   const inactiveLinkClass =
@@ -284,9 +292,7 @@ function EventLayout() {
 
       {/* Tab content */}
       <div className="pt-2">
-        <EventContext.Provider
-          value={{ canManageEvent, details, event: eventData }}
-        >
+        <EventContext.Provider value={eventContextValue}>
           <Outlet />
         </EventContext.Provider>
       </div>

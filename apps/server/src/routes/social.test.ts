@@ -52,39 +52,39 @@ const jsonRequest = (
     env
   );
 
-describe("social API", () => {
-  const befriend = async (
-    requester: { cookie: string; id: string },
-    recipient: { cookie: string; id: string }
-  ) => {
-    const requestResponse = await jsonRequest(
-      "/api/v1/social/friend-requests",
-      requester.cookie,
-      { toUserId: recipient.id }
-    );
-    expect(requestResponse.status).toBe(201);
+const befriend = async (
+  requester: { cookie: string; id: string },
+  recipient: { cookie: string; id: string }
+) => {
+  const requestResponse = await jsonRequest(
+    "/api/v1/social/friend-requests",
+    requester.cookie,
+    { toUserId: recipient.id }
+  );
+  expect(requestResponse.status).toBe(201);
 
-    const requestsResponse = await app.request(
-      "/api/v1/social/friend-requests",
-      {
-        headers: { Cookie: recipient.cookie },
-      },
-      env
-    );
-    const requestData = (await requestsResponse.json()) as {
-      requests: { request: { id: string } }[];
-    };
-    const requestId = requestData.requests[0]?.request.id;
-    expect(requestId).toBeTruthy();
-
-    const acceptResponse = await jsonRequest(
-      `/api/v1/social/friend-requests/${requestId}/respond`,
-      recipient.cookie,
-      { status: "accepted" }
-    );
-    expect(acceptResponse.status).toBe(200);
+  const requestsResponse = await app.request(
+    "/api/v1/social/friend-requests",
+    {
+      headers: { Cookie: recipient.cookie },
+    },
+    env
+  );
+  const requestData = (await requestsResponse.json()) as {
+    requests: { request: { id: string } }[];
   };
+  const requestId = requestData.requests[0]?.request.id;
+  expect(requestId).toBeTruthy();
 
+  const acceptResponse = await jsonRequest(
+    `/api/v1/social/friend-requests/${requestId}/respond`,
+    recipient.cookie,
+    { status: "accepted" }
+  );
+  expect(acceptResponse.status).toBe(200);
+};
+
+describe("social API", () => {
   it("creates friend request notifications and accepts friendships", async () => {
     const alice = await signUp("Alice Rally");
     const bob = await signUp("Bob Kitchen");

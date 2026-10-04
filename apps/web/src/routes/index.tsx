@@ -284,6 +284,10 @@ function HomeFeedView({
     [rawFeedItems]
   );
 
+  // Called before any early return: the loading skeleton below must not
+  // change the hook count between renders, or React throws.
+  const { collapsed: sidebarCollapsed } = useSidebar();
+
   if (isLoading) {
     return (
       <FeedSectionShell isLoading={true} title="Featured Matches">
@@ -292,7 +296,6 @@ function HomeFeedView({
     );
   }
 
-  const { collapsed: sidebarCollapsed } = useSidebar();
   const videoGridClass = sidebarCollapsed
     ? "grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
     : "grid gap-6 sm:grid-cols-2 lg:grid-cols-3";
