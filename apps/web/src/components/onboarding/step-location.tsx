@@ -207,41 +207,41 @@ const StepLocationForm = (props: React.ComponentProps<typeof StepLocation>) => {
               <h2 className="text-xl font-bold tracking-tight">
                 Where is your home court?
               </h2>
-              <p className="text-xs sm:text-sm text-muted-foreground">
+              <p className="text-muted-foreground text-xs sm:text-sm">
                 Connect your local court so we can match you with local players,
                 nearby tournament brackets, and court highlights.
               </p>
             </div>
 
             {/* Quick Geolocation button */}
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 p-3.5 shadow-xs">
-              <div className="flex items-center gap-2.5 text-xs text-foreground/80">
-                <div className="rounded-lg bg-primary/10 p-1.5 text-primary">
+            <div className="border-primary/20 bg-primary/5 flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3.5 shadow-xs">
+              <div className="text-foreground/80 flex items-center gap-2.5 text-xs">
+                <div className="bg-primary/10 text-primary rounded-lg p-1.5">
                   <Compass className="size-4 shrink-0" />
                 </div>
                 <div>
-                  <p className="font-semibold text-foreground">
+                  <p className="text-foreground font-semibold">
                     Instant court matching
                   </p>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-muted-foreground text-[11px]">
                     Auto-detect city and state from your current device location
                   </p>
                 </div>
               </div>
               <button
-                className="inline-flex items-center gap-1.5 rounded-lg bg-background border border-border/80 px-3.5 py-1.5 text-xs font-semibold hover:border-primary/50 hover:bg-accent transition-colors cursor-pointer shadow-xs"
+                className="bg-background border-border/80 hover:border-primary/50 hover:bg-accent inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-3.5 py-1.5 text-xs font-semibold shadow-xs transition-colors"
                 disabled={isGeoLoading}
                 onClick={handleUseCurrentLocation}
                 type="button"
               >
                 {isGeoLoading ? (
                   <>
-                    <Loader2 className="size-3.5 animate-spin text-primary" />
+                    <Loader2 className="text-primary size-3.5 animate-spin" />
                     Locating...
                   </>
                 ) : (
                   <>
-                    <MapPin className="size-3.5 text-primary" />
+                    <MapPin className="text-primary size-3.5" />
                     Use Current Location
                   </>
                 )}
@@ -295,24 +295,24 @@ const StepLocationForm = (props: React.ComponentProps<typeof StepLocation>) => {
                   Search for your home court or park
                   <span
                     aria-hidden="true"
-                    className="ml-1 font-bold text-destructive"
+                    className="text-destructive ml-1 font-bold"
                   >
                     *
                   </span>
                 </label>
                 {isFetching && (
-                  <span className="flex items-center gap-1 text-[11px] text-muted-foreground animate-pulse">
-                    <Loader2 className="size-3 animate-spin text-primary" />
+                  <span className="text-muted-foreground flex animate-pulse items-center gap-1 text-[11px]">
+                    <Loader2 className="text-primary size-3 animate-spin" />
                     Searching venues...
                   </span>
                 )}
               </div>
 
               <div className="relative">
-                <Search className="absolute left-3 top-3 size-4 text-muted-foreground pointer-events-none" />
+                <Search className="text-muted-foreground pointer-events-none absolute top-3 left-3 size-4" />
                 <input
                   aria-label="Search courts"
-                  className="h-10 w-full rounded-xl border border-input bg-background/50 pl-9 pr-3 py-1 text-xs sm:text-sm font-medium transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring"
+                  className="border-input bg-background/50 placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring h-10 w-full rounded-xl border py-1 pr-3 pl-9 text-xs font-medium transition-colors outline-none focus-visible:ring-1 sm:text-sm"
                   id="court-search-input"
                   onChange={(e) => handleSearchInput(e.target.value)}
                   onFocus={() => setShowDropdown(true)}
@@ -323,12 +323,12 @@ const StepLocationForm = (props: React.ComponentProps<typeof StepLocation>) => {
               </div>
 
               {courtError && (
-                <p className="text-xs text-destructive">{courtError}</p>
+                <p className="text-destructive text-xs">{courtError}</p>
               )}
 
               {/* Dropdown with Google Places Results or Custom Court Option */}
               {showDropdown && debouncedQuery.length >= 2 && (
-                <div className="absolute z-30 w-full mt-1 rounded-xl border border-border bg-popover text-popover-foreground shadow-xl max-h-64 overflow-y-auto divide-y divide-border/40">
+                <div className="border-border bg-popover text-popover-foreground divide-border/40 absolute z-30 mt-1 max-h-64 w-full divide-y overflow-y-auto rounded-xl border shadow-xl">
                   {renderCourtSuggestions({
                     debouncedQuery,
                     isFetching,
@@ -342,24 +342,24 @@ const StepLocationForm = (props: React.ComponentProps<typeof StepLocation>) => {
 
             {/* Selected Pinned Court Card */}
             {homeCourtName ? (
-              <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 flex items-center justify-between gap-3 shadow-xs">
-                <div className="flex items-start gap-3 min-w-0">
-                  <CheckCircle2 className="size-5 text-primary shrink-0 mt-0.5" />
+              <div className="border-primary/30 bg-primary/5 flex items-center justify-between gap-3 rounded-xl border p-4 shadow-xs">
+                <div className="flex min-w-0 items-start gap-3">
+                  <CheckCircle2 className="text-primary mt-0.5 size-5 shrink-0" />
                   <div className="min-w-0 space-y-0.5">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-primary flex items-center gap-1">
-                      <Sparkles className="size-3 text-brand-yellow" />
+                    <p className="text-primary flex items-center gap-1 text-[10px] font-bold tracking-wider uppercase">
+                      <Sparkles className="text-brand-yellow size-3" />
                       Pinned Home Court
                     </p>
-                    <p className="text-sm font-bold text-foreground truncate">
+                    <p className="text-foreground truncate text-sm font-bold">
                       {homeCourtName}
                     </p>
-                    <p className="text-xs text-muted-foreground truncate">
+                    <p className="text-muted-foreground truncate text-xs">
                       {[homeCity, homeState].filter(Boolean).join(", ")}
                     </p>
                   </div>
                 </div>
                 <button
-                  className="text-xs text-muted-foreground hover:text-foreground underline shrink-0 cursor-pointer font-medium"
+                  className="text-muted-foreground hover:text-foreground shrink-0 cursor-pointer text-xs font-medium underline"
                   onClick={() => {
                     form.setFieldValue("location.homeCourtName", "");
                     setSearchQuery("");
@@ -374,14 +374,14 @@ const StepLocationForm = (props: React.ComponentProps<typeof StepLocation>) => {
             {/* Navigation buttons */}
             <div className="flex items-center justify-between pt-2">
               <button
-                className="inline-flex h-10 items-center justify-center rounded-xl border border-input bg-background/50 px-5 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground cursor-pointer"
+                className="border-input bg-background/50 hover:bg-accent hover:text-accent-foreground inline-flex h-10 cursor-pointer items-center justify-center rounded-xl border px-5 text-sm font-medium transition-colors"
                 onClick={() => setStep(0)}
                 type="button"
               >
                 Back
               </button>
               <button
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-primary px-6 text-sm font-bold text-primary-foreground shadow-xs transition-all hover:bg-primary/90 hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl px-6 text-sm font-bold shadow-xs transition-all hover:scale-[1.01] active:scale-[0.99]"
                 onClick={handleContinue}
                 type="button"
               >
@@ -411,8 +411,8 @@ function renderCourtSuggestions({
 }) {
   if (isFetching) {
     return (
-      <div className="p-4 text-xs text-muted-foreground text-center flex items-center justify-center gap-2">
-        <Loader2 className="size-3.5 animate-spin text-primary" />
+      <div className="text-muted-foreground flex items-center justify-center gap-2 p-4 text-center text-xs">
+        <Loader2 className="text-primary size-3.5 animate-spin" />
         Searching pickleball courts...
       </div>
     );
@@ -420,17 +420,17 @@ function renderCourtSuggestions({
 
   if (suggestions.length === 0) {
     return (
-      <div className="p-4 text-xs text-center space-y-2.5">
+      <div className="space-y-2.5 p-4 text-center text-xs">
         <p className="text-muted-foreground">
-          No venues found matching "{debouncedQuery}".
+          No venues found matching &quot;{debouncedQuery}&quot;.
         </p>
         <button
-          className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 border border-primary/30 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors cursor-pointer"
+          className="bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors"
           onClick={() => onSelectCustom(debouncedQuery)}
           type="button"
         >
           <MapPin className="size-3.5" />
-          Use "{debouncedQuery}" as my home court
+          Use &quot;{debouncedQuery}&quot; as my home court
         </button>
       </div>
     );
@@ -440,32 +440,32 @@ function renderCourtSuggestions({
     <>
       {suggestions.map((addr) => (
         <button
-          className="w-full text-left px-4 py-3 text-xs hover:bg-muted/70 flex items-start gap-3 transition-colors cursor-pointer"
+          className="hover:bg-muted/70 flex w-full cursor-pointer items-start gap-3 px-4 py-3 text-left text-xs transition-colors"
           key={addr.placeId ?? addr.formattedAddress}
           onClick={() => onSelectCourt(addr)}
           type="button"
         >
-          <MapPin className="size-4 text-primary shrink-0 mt-0.5" />
+          <MapPin className="text-primary mt-0.5 size-4 shrink-0" />
           <div className="min-w-0 flex-1">
-            <span className="font-bold text-foreground block truncate">
+            <span className="text-foreground block truncate font-bold">
               {addr.addressLabel}
             </span>
-            <span className="text-[11px] text-muted-foreground block truncate">
+            <span className="text-muted-foreground block truncate text-[11px]">
               {addr.formattedAddress}
             </span>
           </div>
-          <span className="rounded-full bg-primary/10 border border-primary/20 px-2 py-0.5 text-[10px] font-semibold text-primary shrink-0">
+          <span className="bg-primary/10 border-primary/20 text-primary shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold">
             Select
           </span>
         </button>
       ))}
-      <div className="p-2.5 border-t border-border/40 text-center bg-muted/20">
+      <div className="border-border/40 bg-muted/20 border-t p-2.5 text-center">
         <button
-          className="text-xs text-primary hover:underline font-medium cursor-pointer"
+          className="text-primary cursor-pointer text-xs font-medium hover:underline"
           onClick={() => onSelectCustom(debouncedQuery)}
           type="button"
         >
-          Can't find it? Use "{debouncedQuery}" as my home court
+          Can&apos;t find it? Use &quot;{debouncedQuery}&quot; as my home court
         </button>
       </div>
     </>

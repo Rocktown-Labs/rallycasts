@@ -145,14 +145,14 @@ function CompletedTournamentBanner({
   onReseed: () => void;
 }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-brand-yellow/10 border border-brand-yellow/30 p-4">
+    <div className="bg-brand-yellow/10 border-brand-yellow/30 flex flex-wrap items-center justify-between gap-4 rounded-xl border p-4">
       <div className="flex items-center gap-3">
-        <Trophy className="size-7 text-brand-yellow" />
+        <Trophy className="text-brand-yellow size-7" />
         <div>
-          <h3 className="font-bold text-sm text-foreground">
+          <h3 className="text-foreground text-sm font-bold">
             Tournament Completed!
           </h3>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-muted-foreground text-xs">
             All matches have concluded and final standings have been recorded.
           </p>
         </div>
@@ -164,7 +164,7 @@ function CompletedTournamentBanner({
         disabled={isPending}
         className="gap-1.5 rounded-lg"
       >
-        <Sparkles className="size-3.5 text-primary" /> Re-Seed Tournament
+        <Sparkles className="text-primary size-3.5" /> Re-Seed Tournament
       </Button>
     </div>
   );
@@ -192,24 +192,24 @@ function ActiveUserMatchBanner({
   userName: string;
 }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-card border border-primary/20 p-4 shadow-sm">
+    <div className="bg-card border-primary/20 flex flex-wrap items-center justify-between gap-4 rounded-xl border p-4 shadow-sm">
       <div className="space-y-1">
         <div className="flex items-center gap-2">
-          <span className="rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[10px] font-black uppercase">
+          <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-[10px] font-black uppercase">
             Your Active Match
           </span>
-          <span className="text-xs text-muted-foreground font-medium">
+          <span className="text-muted-foreground text-xs font-medium">
             {getRoundLabel(round, false)} · {courtLabel ?? "Court 1"}
           </span>
         </div>
-        <p className="text-base font-bold flex items-center gap-2">
+        <p className="flex items-center gap-2 text-base font-bold">
           <span>
             {userName}{" "}
-            <span className="text-xs text-muted-foreground font-normal">
+            <span className="text-muted-foreground text-xs font-normal">
               (Seed 1)
             </span>
           </span>
-          <span className="text-xs font-normal text-muted-foreground">vs</span>
+          <span className="text-muted-foreground text-xs font-normal">vs</span>
           <span>{opponentName}</span>
         </p>
       </div>
@@ -222,7 +222,7 @@ function ActiveUserMatchBanner({
           disabled={isTesting}
           className="gap-1.5 rounded-lg"
         >
-          <Bell className="size-3.5 text-primary" />
+          <Bell className="text-primary size-3.5" />
           Send Match Call (In-App & Email)
         </Button>
 
@@ -265,7 +265,7 @@ function MatchParticipantRow({
   return (
     <div
       className={`flex items-center justify-between ${
-        isWinner ? "font-black text-primary" : "font-semibold"
+        isWinner ? "text-primary font-black" : "font-semibold"
       }`}
     >
       <span className="truncate">{name}</span>
@@ -323,23 +323,23 @@ function BracketMatchCard({
     <article
       className={`rounded-xl border p-4 transition-all ${
         isUserMatch
-          ? "border-primary/60 bg-primary/[0.03] ring-1 ring-primary/20 shadow-sm"
+          ? "border-primary/60 bg-primary/[0.03] ring-primary/20 shadow-sm ring-1"
           : "border-border bg-card"
       }`}
       key={match.id}
     >
-      <div className="mb-3 flex items-center justify-between text-[10px] text-muted-foreground">
-        <span className="font-semibold text-foreground flex items-center gap-1">
+      <div className="text-muted-foreground mb-3 flex items-center justify-between text-[10px]">
+        <span className="text-foreground flex items-center gap-1 font-semibold">
           📍 {courtText}
         </span>
         <div className="flex items-center gap-1.5">
           {isUserMatch && (
-            <span className="rounded bg-primary/10 px-1 py-0.5 font-black text-[9px] text-primary">
+            <span className="bg-primary/10 text-primary rounded px-1 py-0.5 text-[9px] font-black">
               YOU
             </span>
           )}
           <span
-            className={`capitalize font-bold px-1.5 py-0.5 rounded text-[9px] ${getStatusBadgeClassName(
+            className={`rounded px-1.5 py-0.5 text-[9px] font-bold capitalize ${getStatusBadgeClassName(
               match.status
             )}`}
           >
@@ -378,7 +378,7 @@ function BracketMatchCard({
             title="Send match court call notification"
             variant="outline"
           >
-            <Bell className="size-3.5 text-primary" />
+            <Bell className="text-primary size-3.5" />
           </Button>
         )}
       </div>
@@ -396,10 +396,10 @@ function DirectorModeBar({
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
       <div className="flex items-center gap-2">
-        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <span className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
           Director Mode:
         </span>
-        <div className="inline-flex rounded-lg border bg-muted/40 p-0.5 text-xs font-medium">
+        <div className="bg-muted/40 inline-flex rounded-lg border p-0.5 text-xs font-medium">
           <button
             type="button"
             onClick={() => onModeChange("intelligent")}
@@ -426,7 +426,7 @@ function DirectorModeBar({
       </div>
 
       <div className="flex items-center gap-2 text-xs">
-        <span className="inline-block size-2 rounded-full bg-emerald-500 animate-pulse" />
+        <span className="inline-block size-2 animate-pulse rounded-full bg-emerald-500" />
         <span className="text-muted-foreground font-medium">
           {advancementMode === "intelligent"
             ? "Automatic court queuing & notifications enabled"
@@ -473,7 +473,7 @@ function BracketColumnsGrid({
     : previewRounds;
 
   return (
-    <div className="grid min-w-0 gap-5 overflow-x-auto lg:grid-flow-col lg:auto-cols-[minmax(18rem,1fr)]">
+    <div className="grid min-w-0 gap-5 overflow-x-auto lg:auto-cols-[minmax(18rem,1fr)] lg:grid-flow-col">
       {roundsToRender.map((roundData) => {
         const realMatches = backendMatches.filter(
           ({ match }) => match.round === roundData.round
@@ -484,7 +484,7 @@ function BracketColumnsGrid({
             : [];
         return (
           <section className="min-w-64 space-y-3" key={roundData.round}>
-            <h3 className="text-center text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">
+            <h3 className="text-muted-foreground text-center text-xs font-black tracking-[0.18em] uppercase">
               {getRoundLabel(roundData.round, hasRealBracket)}
             </h3>
             {hasRealBracket
@@ -502,19 +502,19 @@ function BracketColumnsGrid({
                 ))
               : previewMatches.map((match) => (
                   <article
-                    className="rounded-xl border bg-card p-4"
+                    className="bg-card rounded-xl border p-4"
                     key={match.id}
                   >
-                    <div className="mb-3 flex items-center justify-between text-[10px] text-muted-foreground">
+                    <div className="text-muted-foreground mb-3 flex items-center justify-between text-[10px]">
                       <span>{match.court}</span>
                       {match.status === "completed" ? (
-                        <CheckCircle2 className="size-3 text-primary" />
+                        <CheckCircle2 className="text-primary size-3" />
                       ) : (
                         <Radio className="size-3" />
                       )}
                     </div>
                     <p className="text-sm font-bold">{match.one}</p>
-                    <p className="my-1 flex items-center gap-1 text-[10px] text-muted-foreground">
+                    <p className="text-muted-foreground my-1 flex items-center gap-1 text-[10px]">
                       <Swords className="size-3" /> {match.score}
                     </p>
                     <p className="text-sm font-bold">{match.two}</p>
@@ -547,25 +547,25 @@ function BracketHeader({
     <div className="flex flex-wrap items-center justify-between gap-4">
       <div>
         <h2 className="flex items-center gap-2 text-xl font-bold">
-          <Award className="size-5 text-primary" /> Tournament bracket
+          <Award className="text-primary size-5" /> Tournament bracket
         </h2>
-        <p className="mt-1 text-xs text-muted-foreground">
+        <p className="text-muted-foreground mt-1 text-xs">
           Seeds create round one. Confirmed winners automatically advance and
           receive their next court assignment.
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <Button
-          className="gap-1.5 rounded-lg font-bold cursor-pointer"
+          className="cursor-pointer gap-1.5 rounded-lg font-bold"
           disabled={isSeeding}
           onClick={onSeedDemo}
           variant="outline"
         >
-          <Sparkles className="size-4 text-primary" />
+          <Sparkles className="text-primary size-4" />
           Seed 8 Demo Players & Live Bracket
         </Button>
         <Button
-          className="rounded-lg cursor-pointer"
+          className="cursor-pointer rounded-lg"
           disabled={isGenerating}
           onClick={onGenerate}
         >
@@ -655,7 +655,7 @@ function DirectorSection({
   userName: string;
 }) {
   return (
-    <section className="rounded-2xl border bg-gradient-to-br from-card to-muted/20 p-5 shadow-sm space-y-4">
+    <section className="from-card to-muted/20 space-y-4 rounded-2xl border bg-gradient-to-br p-5 shadow-sm">
       <DirectorModeBar
         advancementMode={advancementMode}
         onModeChange={onModeChange}
@@ -805,10 +805,10 @@ function EventBracketTab() {
       )}
 
       {showPreviewNotice ? (
-        <div className="rounded-xl border border-dashed bg-muted/20 p-4 text-xs text-muted-foreground">
+        <div className="bg-muted/20 text-muted-foreground rounded-xl border border-dashed p-4 text-xs">
           Preview mode: this sample shows how a seeded eight-player bracket
-          progresses. Click "Seed 8 Demo Players & Live Bracket" to launch the
-          tournament director.
+          progresses. Click &quot;Seed 8 Demo Players & Live Bracket&quot; to
+          launch the tournament director.
         </div>
       ) : null}
 

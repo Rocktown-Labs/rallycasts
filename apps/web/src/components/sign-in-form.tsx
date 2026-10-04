@@ -17,7 +17,7 @@ import { useForm } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import z from "zod";
+import { z } from "zod";
 
 import { authClient } from "@/lib/auth-client";
 import { getAuthErrorCode, getAuthErrorMessage } from "@/lib/auth-errors";
@@ -107,18 +107,18 @@ const SignInForm = ({ onSwitchToSignUp }: { onSwitchToSignUp: () => void }) => {
   }
 
   return (
-    <div className="mx-auto w-full mt-16 max-w-md p-4 flex flex-col justify-center min-h-[70vh]">
-      <Card className="border border-border bg-card/60 backdrop-blur-md shadow-xl rounded-xl p-2">
-        <CardHeader className="text-center pb-4">
+    <div className="mx-auto mt-16 flex min-h-[70vh] w-full max-w-md flex-col justify-center p-4">
+      <Card className="border-border bg-card/60 rounded-xl border p-2 shadow-xl backdrop-blur-md">
+        <CardHeader className="pb-4 text-center">
           <img
             src="/logo.svg?v=3"
             alt="RallyCasts"
             className="mx-auto mb-4 h-12 w-auto"
           />
-          <CardTitle className="text-2xl font-bold tracking-tight text-foreground mt-2">
+          <CardTitle className="text-foreground mt-2 text-2xl font-bold tracking-tight">
             Welcome Back
           </CardTitle>
-          <CardDescription className="text-xs text-muted-foreground">
+          <CardDescription className="text-muted-foreground text-xs">
             Sign in to access your dashboard and follow home courts
           </CardDescription>
         </CardHeader>
@@ -132,10 +132,10 @@ const SignInForm = ({ onSwitchToSignUp }: { onSwitchToSignUp: () => void }) => {
           >
             {signInSocial.isPending ? "Connecting..." : "Continue with Google"}
           </Button>
-          <div className="my-4 flex items-center gap-3 text-[10px] text-muted-foreground">
-            <div className="h-px flex-1 bg-border" />
+          <div className="text-muted-foreground my-4 flex items-center gap-3 text-[10px]">
+            <div className="bg-border h-px flex-1" />
             <span>OR SIGN IN WITH EMAIL</span>
-            <div className="h-px flex-1 bg-border" />
+            <div className="bg-border h-px flex-1" />
           </div>
           <form
             onSubmit={(e) => {
@@ -163,12 +163,12 @@ const SignInForm = ({ onSwitchToSignUp }: { onSwitchToSignUp: () => void }) => {
                       value={field.state.value}
                       onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
-                      className="h-9 text-xs rounded-md bg-background/50 border-muted focus-visible:ring-primary focus-visible:border-primary"
+                      className="bg-background/50 border-muted focus-visible:ring-primary focus-visible:border-primary h-9 rounded-md text-xs"
                     />
                     {field.state.meta.errors.map((error) => (
                       <p
                         key={error?.message}
-                        className="text-[10px] text-destructive font-medium"
+                        className="text-destructive text-[10px] font-medium"
                       >
                         {error?.message}
                       </p>
@@ -196,12 +196,12 @@ const SignInForm = ({ onSwitchToSignUp }: { onSwitchToSignUp: () => void }) => {
                       value={field.state.value}
                       onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
-                      className="h-9 text-xs rounded-md bg-background/50 border-muted focus-visible:ring-primary focus-visible:border-primary"
+                      className="bg-background/50 border-muted focus-visible:ring-primary focus-visible:border-primary h-9 rounded-md text-xs"
                     />
                     {field.state.meta.errors.map((error) => (
                       <p
                         key={error?.message}
-                        className="text-[10px] text-destructive font-medium"
+                        className="text-destructive text-[10px] font-medium"
                       >
                         {error?.message}
                       </p>
@@ -220,7 +220,7 @@ const SignInForm = ({ onSwitchToSignUp }: { onSwitchToSignUp: () => void }) => {
               {({ canSubmit, isSubmitting }) => (
                 <Button
                   type="submit"
-                  className="w-full h-9 mt-2 text-xs font-semibold rounded-md bg-primary text-brand-yellow hover:bg-primary/95 transition-all shadow-md"
+                  className="bg-primary text-brand-yellow hover:bg-primary/95 mt-2 h-9 w-full rounded-md text-xs font-semibold shadow-md transition-all"
                   disabled={!canSubmit || isSubmitting || signInEmail.isPending}
                 >
                   {isSubmitting || signInEmail.isPending
@@ -232,8 +232,8 @@ const SignInForm = ({ onSwitchToSignUp }: { onSwitchToSignUp: () => void }) => {
           </form>
 
           {verificationEmail && (
-            <div className="mt-4 rounded-md border border-brand-yellow/40 bg-brand-yellow/10 p-3 text-center">
-              <p className="text-xs text-muted-foreground">
+            <div className="border-brand-yellow/40 bg-brand-yellow/10 mt-4 rounded-md border p-3 text-center">
+              <p className="text-muted-foreground text-xs">
                 Your email is not verified. Check your inbox or resend the
                 verification link.
               </p>
@@ -242,7 +242,7 @@ const SignInForm = ({ onSwitchToSignUp }: { onSwitchToSignUp: () => void }) => {
                 variant="link"
                 onClick={() => void resendVerification()}
                 disabled={isResending}
-                className="h-auto p-0 pt-2 text-xs font-semibold text-primary hover:underline dark:text-brand-yellow"
+                className="text-primary dark:text-brand-yellow h-auto p-0 pt-2 text-xs font-semibold hover:underline"
               >
                 {isResending ? "Sending..." : "Resend verification email"}
               </Button>
@@ -258,7 +258,7 @@ const SignInForm = ({ onSwitchToSignUp }: { onSwitchToSignUp: () => void }) => {
                   to: "/login",
                 })
               }
-              className="text-muted-foreground hover:text-primary dark:hover:text-brand-yellow font-medium hover:underline p-0 h-auto text-[11px] cursor-pointer"
+              className="text-muted-foreground hover:text-primary dark:hover:text-brand-yellow h-auto cursor-pointer p-0 text-[11px] font-medium hover:underline"
             >
               Forgot your password?
             </Button>
@@ -269,7 +269,7 @@ const SignInForm = ({ onSwitchToSignUp }: { onSwitchToSignUp: () => void }) => {
             <Button
               variant="link"
               onClick={onSwitchToSignUp}
-              className="text-primary dark:text-brand-yellow font-semibold hover:underline p-0 h-auto text-xs cursor-pointer"
+              className="text-primary dark:text-brand-yellow h-auto cursor-pointer p-0 text-xs font-semibold hover:underline"
             >
               Sign Up
             </Button>

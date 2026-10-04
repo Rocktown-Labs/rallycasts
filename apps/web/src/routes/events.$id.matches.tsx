@@ -121,14 +121,14 @@ function PresetButtons({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      <span className="text-[10px] uppercase font-bold text-muted-foreground mr-1">
+      <span className="text-muted-foreground mr-1 text-[10px] font-bold uppercase">
         Presets:
       </span>
       {p1Id ? (
         <button
           type="button"
           onClick={() => onSelect(11, 7, p1Id)}
-          className="rounded border bg-muted/40 px-2 py-0.5 text-[10px] font-bold text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all cursor-pointer"
+          className="bg-muted/40 text-muted-foreground hover:bg-primary/10 hover:text-primary cursor-pointer rounded border px-2 py-0.5 text-[10px] font-bold transition-all"
         >
           11–7 ({p1Name})
         </button>
@@ -137,7 +137,7 @@ function PresetButtons({
         <button
           type="button"
           onClick={() => onSelect(7, 11, p2Id)}
-          className="rounded border bg-muted/40 px-2 py-0.5 text-[10px] font-bold text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all cursor-pointer"
+          className="bg-muted/40 text-muted-foreground hover:bg-primary/10 hover:text-primary cursor-pointer rounded border px-2 py-0.5 text-[10px] font-bold transition-all"
         >
           11–7 ({p2Name})
         </button>
@@ -146,7 +146,7 @@ function PresetButtons({
         <button
           type="button"
           onClick={() => onSelect(11, 9, p1Id)}
-          className="rounded border bg-muted/40 px-2 py-0.5 text-[10px] font-bold text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all cursor-pointer"
+          className="bg-muted/40 text-muted-foreground hover:bg-primary/10 hover:text-primary cursor-pointer rounded border px-2 py-0.5 text-[10px] font-bold transition-all"
         >
           11–9 ({p1Name})
         </button>
@@ -207,7 +207,7 @@ function ScoreInputs({
         aria-label={`${p1Name} score`}
         value={playerOneScore}
         onChange={(event) => onP1ScoreChange(event.target.value)}
-        className="h-8 w-16 text-xs font-mono"
+        className="h-8 w-16 font-mono text-xs"
         inputMode="numeric"
         placeholder="0"
       />
@@ -215,7 +215,7 @@ function ScoreInputs({
         aria-label={`${p2Name} score`}
         value={playerTwoScore}
         onChange={(event) => onP2ScoreChange(event.target.value)}
-        className="h-8 w-16 text-xs font-mono"
+        className="h-8 w-16 font-mono text-xs"
         inputMode="numeric"
         placeholder="0"
       />
@@ -223,7 +223,7 @@ function ScoreInputs({
         aria-label="Winner"
         value={winnerUserId}
         onChange={(event) => onWinnerChange(event.target.value)}
-        className="h-8 rounded-md border border-border bg-background px-2 text-xs font-medium"
+        className="border-border bg-background h-8 rounded-md border px-2 text-xs font-medium"
       >
         <option value={p1UserId}>Winner: {p1Name}</option>
         <option value={p2UserId}>Winner: {p2Name}</option>
@@ -278,8 +278,8 @@ function ScoreSubmitForm({
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    const firstScore = Number.parseInt(playerOneScore, 10);
-    const secondScore = Number.parseInt(playerTwoScore, 10);
+    const firstScore = Math.trunc(Number(playerOneScore));
+    const secondScore = Math.trunc(Number(playerTwoScore));
 
     if (
       Number.isNaN(firstScore) ||
@@ -300,7 +300,7 @@ function ScoreSubmitForm({
   };
 
   return (
-    <div className="space-y-3 pt-2 border-t border-border/40">
+    <div className="border-border/40 space-y-3 border-t pt-2">
       <PresetButtons
         p1Id={match.playerOneUserId}
         p2Id={match.playerTwoUserId}
@@ -356,13 +356,13 @@ function EventMatchesTab() {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
+    <div className="animate-in fade-in space-y-6 duration-300">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            <Swords className="size-5 text-primary" /> Event Matches
+          <h2 className="flex items-center gap-2 text-xl font-bold">
+            <Swords className="text-primary size-5" /> Event Matches
           </h2>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-muted-foreground mt-1 text-xs">
             Review court schedules, active matches, and historical tournament
             results.
           </p>
@@ -370,7 +370,7 @@ function EventMatchesTab() {
 
         {hasBackendMatches && (
           <div className="flex items-center gap-2">
-            <div className="inline-flex rounded-lg border bg-muted/40 p-0.5 text-xs font-medium">
+            <div className="bg-muted/40 inline-flex rounded-lg border p-0.5 text-xs font-medium">
               <button
                 type="button"
                 onClick={() => setAdvancementMode("intelligent")}
@@ -408,37 +408,37 @@ function EventMatchesTab() {
               return (
                 <Card
                   key={row.match.id}
-                  className={`border rounded-xl overflow-hidden shadow-sm transition-all ${
+                  className={`overflow-hidden rounded-xl border shadow-sm transition-all ${
                     isUserMatch
-                      ? "border-primary/50 bg-primary/[0.02] ring-1 ring-primary/20"
+                      ? "border-primary/50 bg-primary/[0.02] ring-primary/20 ring-1"
                       : "border-border/50 bg-card"
                   }`}
                 >
-                  <CardContent className="p-4 space-y-4">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <CardContent className="space-y-4 p-4">
+                    <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full capitalize">
+                          <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-[10px] font-bold capitalize">
                             Round {row.match.round}
                           </span>
                           <span
-                            className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${getMatchStatusClass(
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase ${getMatchStatusClass(
                               getDisplayStatus(row.match.status)
                             )}`}
                           >
                             {row.match.status}
                           </span>
                           {isUserMatch && (
-                            <span className="rounded bg-primary/10 px-1.5 py-0.5 font-black text-[9px] text-primary">
+                            <span className="bg-primary/10 text-primary rounded px-1.5 py-0.5 text-[9px] font-black">
                               YOUR MATCH
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-3 font-semibold text-sm">
+                        <div className="flex items-center gap-3 text-sm font-semibold">
                           <span className="text-foreground font-bold">
                             {row.playerOne?.name ?? "TBD"}
                           </span>
-                          <span className="text-xs text-muted-foreground font-normal">
+                          <span className="text-muted-foreground text-xs font-normal">
                             vs
                           </span>
                           <span className="text-foreground font-bold">
@@ -447,15 +447,15 @@ function EventMatchesTab() {
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
+                      <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
                         <span className="inline-flex items-center gap-1 font-medium">
                           <MapPin className="size-3.5" />{" "}
                           {row.match.courtLabel ?? "Court TBD"}
                         </span>
                         {row.match.playerOneScore !== null &&
                           row.match.playerTwoScore !== null && (
-                            <span className="inline-flex items-center gap-1 font-bold text-foreground">
-                              <Trophy className="size-3.5 text-brand-yellow" />{" "}
+                            <span className="text-foreground inline-flex items-center gap-1 font-bold">
+                              <Trophy className="text-brand-yellow size-3.5" />{" "}
                               {row.match.playerOneScore}-
                               {row.match.playerTwoScore}
                             </span>
@@ -466,10 +466,10 @@ function EventMatchesTab() {
                             size="sm"
                             variant="outline"
                             onClick={handleCallMatch}
-                            className="h-7 text-xs gap-1"
+                            className="h-7 gap-1 text-xs"
                             title="Call match to court and notify players"
                           >
-                            <Bell className="size-3 text-primary" /> Call Court
+                            <Bell className="text-primary size-3" /> Call Court
                           </Button>
                         )}
                       </div>
@@ -490,23 +490,23 @@ function EventMatchesTab() {
           : fallbackMatches.map((match) => (
               <Card
                 key={match.id}
-                className="border border-border/50 bg-card rounded-xl overflow-hidden shadow-sm"
+                className="border-border/50 bg-card overflow-hidden rounded-xl border shadow-sm"
               >
-                <CardContent className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <CardContent className="flex flex-col justify-between gap-4 p-4 md:flex-row md:items-center">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full capitalize">
+                      <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-[10px] font-bold capitalize">
                         {match.round}
                       </span>
                       <span
-                        className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${getMatchStatusClass(
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase ${getMatchStatusClass(
                           match.status
                         )}`}
                       >
                         {match.status}
                       </span>
                     </div>
-                    <div className="flex items-center gap-3 font-semibold text-sm">
+                    <div className="flex items-center gap-3 text-sm font-semibold">
                       <span
                         className={
                           match.status === "completed" &&
@@ -517,14 +517,14 @@ function EventMatchesTab() {
                       >
                         {match.t1}
                       </span>
-                      <span className="text-xs text-muted-foreground font-normal">
+                      <span className="text-muted-foreground text-xs font-normal">
                         vs
                       </span>
                       <span>{match.t2}</span>
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
+                  <div className="text-muted-foreground flex flex-wrap items-center gap-x-6 gap-y-2 text-xs">
                     <span className="inline-flex items-center gap-1">
                       <Clock className="size-3.5" /> {match.time}
                     </span>
@@ -532,13 +532,13 @@ function EventMatchesTab() {
                       <MapPin className="size-3.5" /> {match.court}
                     </span>
                     {match.score && (
-                      <span className="inline-flex items-center gap-1 font-bold text-foreground">
-                        <Trophy className="size-3.5 text-brand-yellow" />{" "}
+                      <span className="text-foreground inline-flex items-center gap-1 font-bold">
+                        <Trophy className="text-brand-yellow size-3.5" />{" "}
                         {match.score}
                       </span>
                     )}
                     {match.caster && (
-                      <span className="inline-flex items-center gap-1 text-red-400 font-medium">
+                      <span className="inline-flex items-center gap-1 font-medium text-red-400">
                         <Video className="size-3.5" /> Casted: {match.caster}
                       </span>
                     )}

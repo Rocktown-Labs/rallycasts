@@ -79,9 +79,9 @@ export const venuesRouter = new Hono<AppEnv>()
     const lngParam = c.req.query("lng");
     const radiusParam = c.req.query("radius");
 
-    const lat = latParam ? Number.parseFloat(latParam) : undefined;
-    const lng = lngParam ? Number.parseFloat(lngParam) : undefined;
-    const radius = radiusParam ? Number.parseFloat(radiusParam) : 50;
+    const lat = latParam ? Number(latParam) : undefined;
+    const lng = lngParam ? Number(lngParam) : undefined;
+    const radius = radiusParam ? Number(radiusParam) : 50;
 
     const hasLocation =
       lat !== undefined &&

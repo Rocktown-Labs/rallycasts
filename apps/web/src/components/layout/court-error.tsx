@@ -76,17 +76,17 @@ export const CourtError = ({
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-var(--header-height,3.5rem))] w-full flex-col items-center justify-center px-4 py-16 text-center animate-in fade-in duration-200">
+    <div className="animate-in fade-in flex min-h-[calc(100vh-var(--header-height,3.5rem))] w-full flex-col items-center justify-center px-4 py-16 text-center duration-200">
       <div className="mx-auto flex w-full max-w-md flex-col items-center">
-        <div className="mb-6 flex size-14 items-center justify-center rounded-2xl border border-destructive/20 bg-destructive/10 text-destructive shadow-sm">
+        <div className="border-destructive/20 bg-destructive/10 text-destructive mb-6 flex size-14 items-center justify-center rounded-2xl border shadow-sm">
           <PickleballMark />
         </div>
 
         <div role="alert">
-          <h1 className="text-3xl font-black tracking-tight text-foreground sm:text-4xl">
+          <h1 className="text-foreground text-3xl font-black tracking-tight sm:text-4xl">
             {heading}
           </h1>
-          <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">
+          <p className="text-muted-foreground mx-auto mt-3 max-w-sm text-sm leading-relaxed">
             {body}
           </p>
         </div>
@@ -95,14 +95,14 @@ export const CourtError = ({
           {isAccountNotLinked ? (
             <>
               <Link to="/login">
-                <Button className="h-9 rounded-lg px-4 font-medium transition-transform duration-150 ease-out active:scale-97 cursor-pointer">
+                <Button className="h-9 cursor-pointer rounded-lg px-4 font-medium transition-transform duration-150 ease-out active:scale-97">
                   <LogIn className="size-3.5" />
                   Sign In
                 </Button>
               </Link>
               <Link to="/reset-password">
                 <Button
-                  className="h-9 rounded-lg px-4 font-medium transition-transform duration-150 ease-out active:scale-97 hover:bg-accent/10 cursor-pointer"
+                  className="hover:bg-accent/10 h-9 cursor-pointer rounded-lg px-4 font-medium transition-transform duration-150 ease-out active:scale-97"
                   variant="outline"
                 >
                   <KeyRound className="size-3.5" />
@@ -113,7 +113,7 @@ export const CourtError = ({
           ) : (
             <>
               <Button
-                className="h-9 rounded-lg px-4 font-medium transition-transform duration-150 ease-out active:scale-97 cursor-pointer"
+                className="h-9 cursor-pointer rounded-lg px-4 font-medium transition-transform duration-150 ease-out active:scale-97"
                 onClick={handleRetry}
                 type="button"
               >
@@ -122,7 +122,7 @@ export const CourtError = ({
               </Button>
               <Link to="/">
                 <Button
-                  className="h-9 rounded-lg px-4 font-medium transition-transform duration-150 ease-out active:scale-97 hover:bg-accent/10 cursor-pointer"
+                  className="hover:bg-accent/10 h-9 cursor-pointer rounded-lg px-4 font-medium transition-transform duration-150 ease-out active:scale-97"
                   variant="outline"
                 >
                   <Home className="size-3.5" />
@@ -138,7 +138,7 @@ export const CourtError = ({
             <button
               aria-controls="court-error-details"
               aria-expanded={showDetails}
-              className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground cursor-pointer"
+              className="text-muted-foreground hover:text-foreground inline-flex cursor-pointer items-center gap-1 text-xs font-medium transition-colors"
               onClick={() => setShowDetails(!showDetails)}
               type="button"
             >
@@ -152,18 +152,18 @@ export const CourtError = ({
 
             {showDetails && (
               <div
-                className="mt-2 rounded-lg border border-border/80 bg-muted/40 p-3 font-mono text-xs break-all text-muted-foreground"
+                className="border-border/80 bg-muted/40 text-muted-foreground mt-2 rounded-lg border p-3 font-mono text-xs break-all"
                 id="court-error-details"
               >
                 {resolvedCode && (
                   <p>
-                    <span className="font-semibold text-foreground">Code:</span>{" "}
+                    <span className="text-foreground font-semibold">Code:</span>{" "}
                     {resolvedCode}
                   </p>
                 )}
                 {errorDescription && (
                   <p className="mt-1">
-                    <span className="font-semibold text-foreground">
+                    <span className="text-foreground font-semibold">
                       Description:
                     </span>{" "}
                     {errorDescription}
@@ -171,7 +171,7 @@ export const CourtError = ({
                 )}
                 {rawMessage && (
                   <p className="mt-1">
-                    <span className="font-semibold text-foreground">
+                    <span className="text-foreground font-semibold">
                       Message:
                     </span>{" "}
                     {rawMessage}

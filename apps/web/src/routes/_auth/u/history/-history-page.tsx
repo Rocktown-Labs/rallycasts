@@ -25,7 +25,7 @@ const historyTabs = [
 ] as const;
 
 const HistoryRowsSkeleton = () => (
-  <div className="divide-y divide-border">
+  <div className="divide-border divide-y">
     {Array.from({ length: 3 }).map((_, index) => (
       <div
         className="grid gap-4 py-5 md:grid-cols-[9rem_1fr_auto] md:items-center"
@@ -69,13 +69,13 @@ const VideosHistory = () => {
   }
 
   return (
-    <div className="divide-y divide-border">
+    <div className="divide-border divide-y">
       {videos.map((video) => (
         <div
           className="grid gap-4 py-5 md:grid-cols-[9rem_1fr_auto] md:items-center"
           key={video.id}
         >
-          <div className="relative aspect-video overflow-hidden rounded-md bg-muted">
+          <div className="bg-muted relative aspect-video overflow-hidden rounded-md">
             {video.thumbnailUrl ? (
               <img
                 alt={video.title}
@@ -85,7 +85,7 @@ const VideosHistory = () => {
             ) : null}
           </div>
           <div>
-            <h3 className="font-medium text-sm">{video.title}</h3>
+            <h3 className="text-sm font-medium">{video.title}</h3>
             <p className="text-muted-foreground text-xs">
               {video.publishedAt
                 ? `Published ${new Date(video.publishedAt).toLocaleDateString()}`
@@ -131,14 +131,14 @@ const ProfilesHistory = () => {
   }
 
   return (
-    <div className="divide-y divide-border">
+    <div className="divide-border divide-y">
       {friends.map((friend) => (
         <div
           className="flex flex-wrap items-center justify-between gap-3 py-4"
           key={friend.id}
         >
           <div>
-            <h3 className="font-medium text-sm">{friend.name}</h3>
+            <h3 className="text-sm font-medium">{friend.name}</h3>
             <p className="text-muted-foreground text-xs">
               @{friend.username ?? friend.displayUsername ?? "player"}
             </p>
@@ -186,14 +186,14 @@ const EventsHistory = () => {
   }
 
   return (
-    <div className="divide-y divide-border">
+    <div className="divide-border divide-y">
       {events.map((event) => (
         <div
           className="flex flex-wrap items-center justify-between gap-3 py-4"
           key={event.id}
         >
           <div>
-            <h3 className="font-medium text-sm">{event.name}</h3>
+            <h3 className="text-sm font-medium">{event.name}</h3>
             <p className="text-muted-foreground text-xs">
               {new Date(event.startsAt).toLocaleDateString()} ·{" "}
               {event.eventType?.replaceAll("_", " ") ?? ""}
@@ -217,7 +217,7 @@ export const HistoryPage = ({ section }: { section: HistorySection }) => {
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <h1 className="text-3xl font-bold">Your History</h1>
-      <nav className="flex w-fit rounded-md bg-muted p-1">
+      <nav className="bg-muted flex w-fit rounded-md p-1">
         {historyTabs.map(({ icon: Icon, label, section: tabSection, to }) => (
           <Link key={tabSection} to={to}>
             <Button
@@ -230,9 +230,9 @@ export const HistoryPage = ({ section }: { section: HistorySection }) => {
           </Link>
         ))}
       </nav>
-      <div className="rounded-lg border border-border p-6">
+      <div className="border-border rounded-lg border p-6">
         <h2 className="mb-5 flex items-center gap-2 text-xl font-bold">
-          <ActiveIcon className="size-5 text-primary" />
+          <ActiveIcon className="text-primary size-5" />
           {activeTab?.label}
         </h2>
         {section === "videos" ? <VideosHistory /> : null}

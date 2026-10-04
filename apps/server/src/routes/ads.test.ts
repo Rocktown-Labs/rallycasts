@@ -272,6 +272,7 @@ describe("ads campaigns", () => {
     // 200 impressions at the pinned $5 video CPM exhaust the $1 budget.
     for (let index = 0; index < 200; index += 1) {
       const exp = String(Date.now() + 86_400_000);
+      // oxlint-disable-next-line eslint/no-await-in-loop -- sequential test setup
       const sig = await signBeaconParams(BEACON_SECRET, {
         c: campaignId,
         cr: creative?.id ?? "",
@@ -279,6 +280,7 @@ describe("ads campaigns", () => {
         exp,
         p: "preroll",
       });
+      // oxlint-disable-next-line eslint/no-await-in-loop -- sequential test setup
       const beacon = await app.request(
         `/api/v1/ads/beacon?c=${campaignId}&cr=${creative?.id}&p=preroll&ev=impression&exp=${exp}&sig=${sig}`,
         { method: "GET" },

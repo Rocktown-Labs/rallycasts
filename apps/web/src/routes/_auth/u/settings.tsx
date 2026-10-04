@@ -301,13 +301,13 @@ export function ProfileEditorPage({
   let dropdownContent = null;
   if (isSearchingPlaces) {
     dropdownContent = (
-      <div className="p-4 text-xs text-muted-foreground text-center animate-pulse">
+      <div className="text-muted-foreground animate-pulse p-4 text-center text-xs">
         Searching venues...
       </div>
     );
   } else if (suggestions.length === 0) {
     dropdownContent = (
-      <div className="p-3 text-xs text-muted-foreground text-center">
+      <div className="text-muted-foreground p-3 text-center text-xs">
         No matches found.
       </div>
     );
@@ -319,14 +319,14 @@ export function ProfileEditorPage({
             key={idx}
             type="button"
             onClick={() => selectAddress(addr)}
-            className="w-full text-left px-4 py-2.5 text-sm hover:bg-muted flex items-center gap-2 border-b border-border/50 last:border-0"
+            className="hover:bg-muted border-border/50 flex w-full items-center gap-2 border-b px-4 py-2.5 text-left text-sm last:border-0"
           >
-            <MapPin className="size-4 text-primary shrink-0" />
+            <MapPin className="text-primary size-4 shrink-0" />
             <div>
-              <span className="font-semibold block text-xs sm:text-sm">
+              <span className="block text-xs font-semibold sm:text-sm">
                 {addr.addressLabel || addr.formattedAddress.split(",")[0]}
               </span>
-              <span className="text-[11px] text-muted-foreground block">
+              <span className="text-muted-foreground block text-[11px]">
                 {addr.formattedAddress}
               </span>
             </div>
@@ -337,31 +337,31 @@ export function ProfileEditorPage({
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8 animate-in fade-in duration-300">
+    <div className="animate-in fade-in mx-auto max-w-4xl space-y-8 duration-300">
       {showHeader ? (
-        <div className="flex items-center gap-3 border-b border-border/60 pb-5">
-          <Settings className="size-8 text-primary" />
+        <div className="border-border/60 flex items-center gap-3 border-b pb-5">
+          <Settings className="text-primary size-8" />
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight">{title}</h1>
-            <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
+            <p className="text-muted-foreground mt-1 text-sm">{subtitle}</p>
           </div>
         </div>
       ) : null}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* 1. Public Profile Card */}
-        <Card className="border border-border bg-card/40 backdrop-blur-sm rounded-xl overflow-hidden shadow-sm">
+        <Card className="border-border bg-card/40 overflow-hidden rounded-xl border shadow-sm backdrop-blur-sm">
           <CardHeader>
-            <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <User className="size-5 text-primary" /> Public Profile
+            <CardTitle className="flex items-center gap-2 text-lg font-bold">
+              <User className="text-primary size-5" /> Public Profile
             </CardTitle>
             <CardDescription className="text-xs">
               Manage your display name, unique handle, and short biography.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center gap-4 border-b border-border/40 pb-4">
-              <div className="size-16 rounded-full bg-muted flex items-center justify-center text-lg font-bold overflow-hidden border border-border">
+            <div className="border-border/40 flex items-center gap-4 border-b pb-4">
+              <div className="bg-muted border-border flex size-16 items-center justify-center overflow-hidden rounded-full border text-lg font-bold">
                 {user?.image ? (
                   <img
                     alt="Avatar"
@@ -376,7 +376,7 @@ export function ProfileEditorPage({
                 <p className="text-sm font-semibold">
                   {user?.name || "RallyCasts User"}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                   @{user?.username || "player"}
                 </p>
               </div>
@@ -392,7 +392,7 @@ export function ProfileEditorPage({
                   onChange={(e) =>
                     setForm((prev) => ({ ...prev, name: e.target.value }))
                   }
-                  className="rounded-md bg-muted/20 border-border/80"
+                  className="bg-muted/20 border-border/80 rounded-md"
                 />
               </div>
 
@@ -405,26 +405,26 @@ export function ProfileEditorPage({
                   onChange={(e) =>
                     setForm((prev) => ({ ...prev, username: e.target.value }))
                   }
-                  className="rounded-md bg-muted/20 border-border/80"
+                  className="bg-muted/20 border-border/80 rounded-md"
                 />
                 {isCheckingUsername && (
-                  <p className="text-xs text-muted-foreground px-2 animate-pulse mt-1">
+                  <p className="text-muted-foreground mt-1 animate-pulse px-2 text-xs">
                     Checking availability...
                   </p>
                 )}
                 {usernameError && (
-                  <p className="text-xs text-destructive px-2 mt-1">
+                  <p className="text-destructive mt-1 px-2 text-xs">
                     {usernameError}
                   </p>
                 )}
                 {usernameSuccess &&
                   form.username !== (user?.username || user?.displayUsername) &&
                   !usernameError && (
-                    <p className="text-xs text-emerald-600 flex items-center gap-1 px-2 mt-1">
+                    <p className="mt-1 flex items-center gap-1 px-2 text-xs text-emerald-600">
                       <CheckCircle className="size-3" /> Available
                     </p>
                   )}
-                <p className="text-[10px] text-muted-foreground px-2">
+                <p className="text-muted-foreground px-2 text-[10px]">
                   Allowed characters: letters, numbers, underscores. Must be
                   unique.
                 </p>
@@ -441,17 +441,17 @@ export function ProfileEditorPage({
                 onChange={(e) =>
                   setForm((prev) => ({ ...prev, bio: e.target.value }))
                 }
-                className="min-h-24 w-full rounded-xl border border-border/80 bg-muted/20 px-3 py-2 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-primary transition-all"
+                className="border-border/80 bg-muted/20 focus-visible:ring-ring focus-visible:border-primary min-h-24 w-full rounded-xl border px-3 py-2 text-sm transition-all outline-none focus-visible:ring-1"
               />
             </div>
           </CardContent>
         </Card>
 
         {/* 2. Home Court & Location Card */}
-        <Card className="border border-border bg-card/40 backdrop-blur-sm rounded-xl overflow-hidden shadow-sm">
+        <Card className="border-border bg-card/40 overflow-hidden rounded-xl border shadow-sm backdrop-blur-sm">
           <CardHeader>
-            <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <MapPin className="size-5 text-primary" /> Home Court & Location
+            <CardTitle className="flex items-center gap-2 text-lg font-bold">
+              <MapPin className="text-primary size-5" /> Home Court & Location
             </CardTitle>
             <CardDescription className="text-xs">
               Search Google Places to find and pin your primary court location.
@@ -464,7 +464,7 @@ export function ProfileEditorPage({
                 Search Home Court (Google Places)
               </Label>
               <div className="relative">
-                <Search className="absolute left-3 top-3 size-4 text-muted-foreground" />
+                <Search className="text-muted-foreground absolute top-3 left-3 size-4" />
                 <Input
                   id="venue-places-search"
                   placeholder="Type court name or location, e.g. Crestwood Park..."
@@ -474,14 +474,14 @@ export function ProfileEditorPage({
                     setShowDropdown(true);
                   }}
                   onFocus={() => setShowDropdown(true)}
-                  className="pl-9 rounded-md bg-muted/20 border-border/80"
+                  className="bg-muted/20 border-border/80 rounded-md pl-9"
                 />
               </div>
 
               {/* suggestions list */}
               {showDropdown &&
                 (searchQuery.length >= 3 || isSearchingPlaces) && (
-                  <div className="absolute z-20 w-full mt-1 bg-popover border border-border rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                  <div className="bg-popover border-border absolute z-20 mt-1 max-h-60 w-full overflow-y-auto rounded-xl border shadow-lg">
                     {dropdownContent}
                   </div>
                 )}
@@ -489,14 +489,14 @@ export function ProfileEditorPage({
 
             {/* Selected court display */}
             {form.homeCourtName && (
-              <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 flex items-start gap-3">
-                <CheckCircle className="size-5 text-primary shrink-0 mt-0.5" />
+              <div className="border-primary/20 bg-primary/5 flex items-start gap-3 rounded-xl border p-4">
+                <CheckCircle className="text-primary mt-0.5 size-5 shrink-0" />
                 <div className="space-y-1">
-                  <p className="text-xs font-semibold uppercase text-primary tracking-wider">
+                  <p className="text-primary text-xs font-semibold tracking-wider uppercase">
                     Pinned Home Venue
                   </p>
                   <p className="text-sm font-bold">{form.homeCourtName}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-muted-foreground text-xs">
                     {form.homeCity}, {form.homeState} (ID:{" "}
                     {form.radarPlaceId || "custom"})
                   </p>
@@ -505,7 +505,7 @@ export function ProfileEditorPage({
             )}
 
             {/* Manual City/State override if they want */}
-            <div className="grid gap-4 md:grid-cols-2 pt-2 border-t border-border/40">
+            <div className="border-border/40 grid gap-4 border-t pt-2 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="settings-city">Override Home City</Label>
                 <Input
@@ -515,7 +515,7 @@ export function ProfileEditorPage({
                   onChange={(e) =>
                     setForm((prev) => ({ ...prev, homeCity: e.target.value }))
                   }
-                  className="rounded-md bg-muted/20 border-border/80"
+                  className="bg-muted/20 border-border/80 rounded-md"
                 />
               </div>
 
@@ -528,17 +528,17 @@ export function ProfileEditorPage({
                   onChange={(e) =>
                     setForm((prev) => ({ ...prev, homeState: e.target.value }))
                   }
-                  className="rounded-md bg-muted/20 border-border/80"
+                  className="bg-muted/20 border-border/80 rounded-md"
                 />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border border-border bg-card/40 backdrop-blur-sm rounded-xl overflow-hidden shadow-sm">
+        <Card className="border-border bg-card/40 overflow-hidden rounded-xl border shadow-sm backdrop-blur-sm">
           <CardHeader>
-            <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <Sparkles className="size-5 text-primary" /> Rating
+            <CardTitle className="flex items-center gap-2 text-lg font-bold">
+              <Sparkles className="text-primary size-5" /> Rating
             </CardTitle>
             <CardDescription className="text-xs">
               Pick the closest DUPR-style range for matchmaking and challenge
@@ -573,7 +573,7 @@ export function ProfileEditorPage({
                   type="button"
                 >
                   <span className="block text-sm font-bold">{label}</span>
-                  <span className="mt-1 block text-xs text-muted-foreground">
+                  <span className="text-muted-foreground mt-1 block text-xs">
                     {description}
                   </span>
                 </button>
@@ -583,10 +583,10 @@ export function ProfileEditorPage({
         </Card>
 
         {/* 3. Community Roles Card */}
-        <Card className="border border-border bg-card/40 backdrop-blur-sm rounded-xl overflow-hidden shadow-sm">
+        <Card className="border-border bg-card/40 overflow-hidden rounded-xl border shadow-sm backdrop-blur-sm">
           <CardHeader>
-            <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <Sparkles className="size-5 text-primary" /> Community Roles
+            <CardTitle className="flex items-center gap-2 text-lg font-bold">
+              <Sparkles className="text-primary size-5" /> Community Roles
             </CardTitle>
             <CardDescription className="text-xs">
               Select which parts of the pickleball community you participate in.
@@ -594,7 +594,7 @@ export function ProfileEditorPage({
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Player role */}
-            <div className="flex items-start gap-3 rounded-lg border border-border/40 bg-muted/5 p-4">
+            <div className="border-border/40 bg-muted/5 flex items-start gap-3 rounded-lg border p-4">
               <Checkbox
                 id="role-player"
                 checked={form.isPlayer}
@@ -605,11 +605,11 @@ export function ProfileEditorPage({
               <div className="grid gap-1.5 leading-none">
                 <Label
                   htmlFor="role-player"
-                  className="font-semibold cursor-pointer"
+                  className="cursor-pointer font-semibold"
                 >
                   Player profile
                 </Label>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                   You play games, request recordings, track your local ratings,
                   and challenge players.
                 </p>
@@ -617,7 +617,7 @@ export function ProfileEditorPage({
             </div>
 
             {/* Organizer role */}
-            <div className="flex items-start gap-3 rounded-lg border border-border/40 bg-muted/5 p-4">
+            <div className="border-border/40 bg-muted/5 flex items-start gap-3 rounded-lg border p-4">
               <Checkbox
                 id="role-organizer"
                 checked={form.isOrganizer}
@@ -628,11 +628,11 @@ export function ProfileEditorPage({
               <div className="grid gap-1.5 leading-none">
                 <Label
                   htmlFor="role-organizer"
-                  className="font-semibold cursor-pointer"
+                  className="cursor-pointer font-semibold"
                 >
                   Organizer tools
                 </Label>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                   You manage leagues, venues, host tournaments, publish
                   brackets, and request professional recording coverage.
                 </p>
@@ -640,7 +640,7 @@ export function ProfileEditorPage({
             </div>
 
             {/* Caster role */}
-            <div className="flex items-start gap-3 rounded-lg border border-border/40 bg-muted/5 p-4">
+            <div className="border-border/40 bg-muted/5 flex items-start gap-3 rounded-lg border p-4">
               <Checkbox
                 id="role-caster"
                 checked={form.isCaster}
@@ -651,11 +651,11 @@ export function ProfileEditorPage({
               <div className="grid gap-1.5 leading-none">
                 <Label
                   htmlFor="role-caster"
-                  className="font-semibold cursor-pointer"
+                  className="cursor-pointer font-semibold"
                 >
                   Caster tools
                 </Label>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                   You stream, record commentary, analyze matches, and publish
                   featured content on the platform.
                 </p>
@@ -669,7 +669,7 @@ export function ProfileEditorPage({
           <Button
             type="submit"
             disabled={updateProfile.isPending}
-            className="bg-primary text-brand-yellow font-bold hover:bg-primary/95 rounded-md px-6 gap-2"
+            className="bg-primary text-brand-yellow hover:bg-primary/95 gap-2 rounded-md px-6 font-bold"
           >
             <Save className="size-4" />
             {updateProfile.isPending ? "Saving..." : submitLabel}
@@ -685,11 +685,11 @@ function SettingsPage() {
 
   return (
     <main className="mx-auto max-w-5xl space-y-8">
-      <div className="flex items-center gap-3 border-b border-border/60 pb-5">
-        <Settings className="size-8 text-primary" />
+      <div className="border-border/60 flex items-center gap-3 border-b pb-5">
+        <Settings className="text-primary size-8" />
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight">Settings</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-muted-foreground mt-1 text-sm">
             Your public profile, home court, roles, and linked accounts.
           </p>
         </div>

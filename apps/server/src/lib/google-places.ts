@@ -144,7 +144,7 @@ const DISALLOWED_PLACE_TYPES = new Set([
 ]);
 
 const NON_PICKLEBALL_NAME_REGEX =
-  /\b(disc\s*golf|golf\s*(club|course|range)|soccer|baseball|football|track(\s*and|\s*&)?\s*field|grappling|kickboxing|martial\s*arts|karate|taekwondo|jiu\s*jitsu|boxing|planet\s*fitness|crossfit|fitness(\s*llc)?|outfitters|skate\s*park|ice\s*rink|hockey|pool|aquatic)\b/iu;
+  /\b(?<otherSport>disc\s*golf|golf\s*(?<golfPlace>club|course|range)|soccer|baseball|football|track(?<trackJoiner>\s*and|\s*&)?\s*field|grappling|kickboxing|martial\s*arts|karate|taekwondo|jiu\s*jitsu|boxing|planet\s*fitness|crossfit|fitness(?<llc>\s*llc)?|outfitters|skate\s*park|ice\s*rink|hockey|pool|aquatic)\b/iu;
 
 export class GooglePlacesClient {
   private apiKey: string;
@@ -392,7 +392,7 @@ export class GooglePlacesClient {
 
     const isTennisOrRacquet =
       place.types.includes("tennis_court") ||
-      /\b(tennis|racquet|racket)\b/iu.test(place.name);
+      /\b(?<tennis>tennis|racquet|racket)\b/iu.test(place.name);
     if (isTennisOrRacquet) {
       return true;
     }

@@ -87,22 +87,22 @@ function RegistrationModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="w-full max-w-md bg-card border border-border rounded-xl shadow-xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
-        <div className="p-5 border-b border-border flex justify-between items-center">
+    <div className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm duration-200">
+      <div className="bg-card border-border animate-in slide-in-from-bottom-4 w-full max-w-md overflow-hidden rounded-xl border shadow-xl duration-300">
+        <div className="border-border flex items-center justify-between border-b p-5">
           <h2 className="text-base font-bold">Event Registration</h2>
           <button
             type="button"
             onClick={onClose}
-            className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            className="text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
           >
             <XCircle className="size-5" />
           </button>
         </div>
 
-        <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+        <div className="max-h-[70vh] space-y-4 overflow-y-auto p-5">
           <div>
-            <span className="text-xs font-semibold text-muted-foreground block mb-2">
+            <span className="text-muted-foreground mb-2 block text-xs font-semibold">
               Select Registration Mode
             </span>
             <div className="grid grid-cols-2 gap-2">
@@ -112,7 +112,7 @@ function RegistrationModal({
                   setRegMode("singles");
                   setSelectedPartner(null);
                 }}
-                className={`p-3 rounded-lg border text-xs font-semibold flex flex-col items-center gap-1.5 transition-all cursor-pointer ${
+                className={`flex cursor-pointer flex-col items-center gap-1.5 rounded-lg border p-3 text-xs font-semibold transition-all ${
                   regMode === "singles"
                     ? "border-primary bg-primary/10 text-primary"
                     : "border-border hover:bg-muted/30 text-muted-foreground"
@@ -124,7 +124,7 @@ function RegistrationModal({
               <button
                 type="button"
                 onClick={() => setRegMode("doubles")}
-                className={`p-3 rounded-lg border text-xs font-semibold flex flex-col items-center gap-1.5 transition-all cursor-pointer ${
+                className={`flex cursor-pointer flex-col items-center gap-1.5 rounded-lg border p-3 text-xs font-semibold transition-all ${
                   regMode === "doubles"
                     ? "border-primary bg-primary/10 text-primary"
                     : "border-border hover:bg-muted/30 text-muted-foreground"
@@ -138,18 +138,18 @@ function RegistrationModal({
 
           {regMode === "doubles" && (
             <div className="space-y-2">
-              <span className="text-xs font-semibold text-muted-foreground block">
+              <span className="text-muted-foreground block text-xs font-semibold">
                 Find and Invite a Partner
               </span>
               {selectedPartner ? (
-                <div className="flex items-center justify-between p-3 rounded-lg bg-primary/5 border border-primary/20 text-xs">
+                <div className="bg-primary/5 border-primary/20 flex items-center justify-between rounded-lg border p-3 text-xs">
                   <div className="flex items-center gap-2">
-                    <div className="size-7 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold">
+                    <div className="bg-primary/20 text-primary flex size-7 items-center justify-center rounded-full font-bold">
                       {selectedPartner.name[0]}
                     </div>
                     <div>
                       <p className="font-semibold">{selectedPartner.name}</p>
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="text-muted-foreground text-[10px]">
                         @{selectedPartner.username}
                       </p>
                     </div>
@@ -157,7 +157,7 @@ function RegistrationModal({
                   <button
                     type="button"
                     onClick={() => setSelectedPartner(null)}
-                    className="text-red-400 hover:text-red-500 font-semibold cursor-pointer"
+                    className="cursor-pointer font-semibold text-red-400 hover:text-red-500"
                   >
                     Remove
                   </button>
@@ -165,7 +165,7 @@ function RegistrationModal({
               ) : (
                 <div className="space-y-2">
                   <div className="relative">
-                    <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
+                    <Search className="text-muted-foreground absolute top-2.5 left-2.5 size-4" />
                     <Input
                       placeholder="Search players by name/username..."
                       value={searchQuery}
@@ -175,7 +175,7 @@ function RegistrationModal({
                   </div>
 
                   {searchQuery && searchResults.length > 0 && (
-                    <div className="border border-border rounded-lg bg-card max-h-40 overflow-y-auto divide-y divide-border/50">
+                    <div className="border-border bg-card divide-border/50 max-h-40 divide-y overflow-y-auto rounded-lg border">
                       {searchResults.map((player) => (
                         <button
                           key={player.id}
@@ -189,27 +189,27 @@ function RegistrationModal({
                             });
                             setSearchQuery("");
                           }}
-                          className="w-full text-left p-2.5 hover:bg-muted/40 flex items-center justify-between text-xs cursor-pointer transition-colors"
+                          className="hover:bg-muted/40 flex w-full cursor-pointer items-center justify-between p-2.5 text-left text-xs transition-colors"
                         >
                           <div className="flex items-center gap-2">
-                            <div className="size-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold">
+                            <div className="bg-muted flex size-6 items-center justify-center rounded-full text-[10px] font-bold">
                               {player.name[0]}
                             </div>
                             <div>
                               <p className="font-semibold">{player.name}</p>
-                              <p className="text-[10px] text-muted-foreground">
+                              <p className="text-muted-foreground text-[10px]">
                                 @{player.username || player.displayUsername}
                               </p>
                             </div>
                           </div>
-                          <PlusCircle className="size-4 text-primary" />
+                          <PlusCircle className="text-primary size-4" />
                         </button>
                       ))}
                     </div>
                   )}
                   {searchQuery && searchResults.length === 0 && (
-                    <p className="text-[11px] text-muted-foreground text-center py-2">
-                      No players found matching "{searchQuery}"
+                    <p className="text-muted-foreground py-2 text-center text-[11px]">
+                      No players found matching &quot;{searchQuery}&quot;
                     </p>
                   )}
                 </div>
@@ -217,11 +217,11 @@ function RegistrationModal({
             </div>
           )}
 
-          <div className="border-t border-border/50 pt-4 space-y-3">
-            <span className="text-xs font-semibold text-muted-foreground block">
+          <div className="border-border/50 space-y-3 border-t pt-4">
+            <span className="text-muted-foreground block text-xs font-semibold">
               Payment Details
             </span>
-            <div className="text-xs bg-muted/20 p-3 rounded-lg border border-border/30 space-y-1.5">
+            <div className="bg-muted/20 border-border/30 space-y-1.5 rounded-lg border p-3 text-xs">
               <div className="flex justify-between">
                 <span>Registration Cost:</span>
                 <span>
@@ -230,7 +230,7 @@ function RegistrationModal({
                     : "Free"}
                 </span>
               </div>
-              <div className="flex justify-between font-bold text-foreground">
+              <div className="text-foreground flex justify-between font-bold">
                 <span>Total Charged:</span>
                 <span>
                   {entryFeeCents > 0
@@ -239,14 +239,14 @@ function RegistrationModal({
                 </span>
               </div>
             </div>
-            <p className="text-[10px] text-muted-foreground leading-normal">
+            <p className="text-muted-foreground text-[10px] leading-normal">
               Paid entry opens Stripe-hosted Checkout. Your spot is confirmed
               only after RallyCasts receives the signed payment webhook.
             </p>
           </div>
         </div>
 
-        <div className="p-5 border-t border-border flex gap-2">
+        <div className="border-border flex gap-2 border-t p-5">
           <Button
             variant="outline"
             onClick={onClose}
@@ -256,7 +256,7 @@ function RegistrationModal({
           </Button>
           <Button
             onClick={handlePayAndRegister}
-            className="flex-1 rounded-lg text-xs font-semibold cursor-pointer"
+            className="flex-1 cursor-pointer rounded-lg text-xs font-semibold"
           >
             {entryFeeCents > 0 ? "Continue to Checkout" : "Register"}
           </Button>
@@ -379,25 +379,25 @@ function EventOverviewTab() {
   };
 
   return (
-    <div className="grid gap-6 md:grid-cols-[2fr_1fr] animate-in fade-in duration-300">
+    <div className="animate-in fade-in grid gap-6 duration-300 md:grid-cols-[2fr_1fr]">
       <div className="space-y-6">
-        <Card className="border border-border/50 bg-card rounded-xl shadow-sm">
-          <CardContent className="p-6 space-y-6">
+        <Card className="border-border/50 bg-card rounded-xl border shadow-sm">
+          <CardContent className="space-y-6 p-6">
             <div className="flex items-start gap-3.5">
-              <Calendar className="size-5 text-primary mt-0.5" />
+              <Calendar className="text-primary mt-0.5 size-5" />
               <div>
-                <h3 className="font-semibold text-sm">Date</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <h3 className="text-sm font-semibold">Date</h3>
+                <p className="text-muted-foreground mt-0.5 text-xs">
                   {formattedDate}
                 </p>
               </div>
             </div>
 
             <div className="flex items-start gap-3.5">
-              <Clock className="size-5 text-primary mt-0.5" />
+              <Clock className="text-primary mt-0.5 size-5" />
               <div>
-                <h3 className="font-semibold text-sm">Time</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <h3 className="text-sm font-semibold">Time</h3>
+                <p className="text-muted-foreground mt-0.5 text-xs">
                   {formattedTime}
                 </p>
               </div>
@@ -405,13 +405,13 @@ function EventOverviewTab() {
 
             {event.venueId && (
               <div className="flex items-start gap-3.5">
-                <MapPin className="size-5 text-primary mt-0.5" />
+                <MapPin className="text-primary mt-0.5 size-5" />
                 <div>
-                  <h3 className="font-semibold text-sm">Venue</h3>
+                  <h3 className="text-sm font-semibold">Venue</h3>
                   <Link
                     to="/venues/$id"
                     params={{ id: event.venueId }}
-                    className="text-xs text-primary hover:underline font-medium mt-0.5 block"
+                    className="text-primary mt-0.5 block text-xs font-medium hover:underline"
                   >
                     View Venue Details
                   </Link>
@@ -420,17 +420,17 @@ function EventOverviewTab() {
             )}
 
             <div className="flex items-start gap-3.5">
-              <Users className="size-5 text-primary mt-0.5" />
+              <Users className="text-primary mt-0.5 size-5" />
               <div>
-                <h3 className="font-semibold text-sm">Player Capacity</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <h3 className="text-sm font-semibold">Player Capacity</h3>
+                <p className="text-muted-foreground mt-0.5 text-xs">
                   {event.capacity
                     ? `${registrationCount}/${event.capacity}`
                     : "Open entry"}
                 </p>
-                <div className="mt-2 h-2 w-44 overflow-hidden rounded-full bg-muted">
+                <div className="bg-muted mt-2 h-2 w-44 overflow-hidden rounded-full">
                   <div
-                    className="h-full rounded-full bg-primary transition-all"
+                    className="bg-primary h-full rounded-full transition-all"
                     style={{ width: `${progressPercent}%` }}
                   />
                 </div>
@@ -439,12 +439,12 @@ function EventOverviewTab() {
           </CardContent>
         </Card>
 
-        <Card className="border border-border/50 bg-card rounded-xl shadow-sm">
-          <CardContent className="p-6 space-y-3">
-            <h3 className="font-bold text-base flex items-center gap-1.5">
-              <Info className="size-4 text-primary" /> Description
+        <Card className="border-border/50 bg-card rounded-xl border shadow-sm">
+          <CardContent className="space-y-3 p-6">
+            <h3 className="flex items-center gap-1.5 text-base font-bold">
+              <Info className="text-primary size-4" /> Description
             </h3>
-            <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">
+            <p className="text-muted-foreground text-xs leading-relaxed whitespace-pre-wrap">
               {event.description ||
                 "No description provided for this pickleball event."}
             </p>
@@ -454,13 +454,13 @@ function EventOverviewTab() {
 
       <div className="space-y-4">
         {canManageEvent ? (
-          <Card className="rounded-xl border border-primary/30 bg-primary/5 p-5 shadow-sm">
+          <Card className="border-primary/30 bg-primary/5 rounded-xl border p-5 shadow-sm">
             <div className="space-y-4">
               <div>
-                <h3 className="flex items-center gap-2 text-sm font-bold text-primary">
+                <h3 className="text-primary flex items-center gap-2 text-sm font-bold">
                   <Settings className="size-4" /> Organizer Tools
                 </h3>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="text-muted-foreground mt-1 text-xs">
                   Manage registrations, generate brackets, update match flow,
                   and change event status from the organizer console.
                 </p>
@@ -501,36 +501,36 @@ function EventOverviewTab() {
         ) : null}
 
         {isRegistered ? (
-          <Card className="border border-green-500/30 bg-green-500/5 rounded-xl shadow-sm p-5 space-y-4">
+          <Card className="space-y-4 rounded-xl border border-green-500/30 bg-green-500/5 p-5 shadow-sm">
             <div className="flex items-start gap-3">
-              <CheckCircle2 className="size-5 text-green-500 shrink-0 mt-0.5" />
+              <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-green-500" />
               <div>
-                <h3 className="font-bold text-sm text-green-400">
-                  You're Registered!
+                <h3 className="text-sm font-bold text-green-400">
+                  You&apos;re Registered!
                 </h3>
-                <p className="text-xs text-muted-foreground mt-1">
-                  You have reserved a spot. We've notified your partner if you
-                  added one.
+                <p className="text-muted-foreground mt-1 text-xs">
+                  You have reserved a spot. We&apos;ve notified your partner if
+                  you added one.
                 </p>
               </div>
             </div>
 
-            <div className="text-xs bg-muted/30 p-3 rounded-lg border border-border/30 space-y-1.5">
+            <div className="bg-muted/30 border-border/30 space-y-1.5 rounded-lg border p-3 text-xs">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Mode:</span>
-                <span className="font-semibold capitalize text-foreground">
+                <span className="text-foreground font-semibold capitalize">
                   {registeredTeam?.mode ?? "singles"}
                 </span>
               </div>
               {registeredTeam?.partner && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Partner:</span>
-                  <span className="font-semibold text-foreground">
+                  <span className="text-foreground font-semibold">
                     {registeredTeam.partner}
                   </span>
                 </div>
               )}
-              <div className="flex justify-between border-t border-border/20 pt-1.5 mt-1.5 font-bold">
+              <div className="border-border/20 mt-1.5 flex justify-between border-t pt-1.5 font-bold">
                 <span className="text-muted-foreground font-normal">
                   Status:
                 </span>
@@ -552,19 +552,19 @@ function EventOverviewTab() {
               onClick={handleCancelRegistration}
               disabled={leaveEvent.isPending}
               variant="outline"
-              className="w-full rounded-lg text-xs font-semibold py-4 border-red-500/20 text-red-400 hover:bg-red-500/10"
+              className="w-full rounded-lg border-red-500/20 py-4 text-xs font-semibold text-red-400 hover:bg-red-500/10"
             >
               Cancel Registration
             </Button>
           </Card>
         ) : (
-          <Card className="border border-border/50 bg-card rounded-xl shadow-sm p-5 text-center space-y-4">
-            <h3 className="font-bold text-sm">Are you playing?</h3>
-            <p className="text-xs text-muted-foreground">
+          <Card className="border-border/50 bg-card space-y-4 rounded-xl border p-5 text-center shadow-sm">
+            <h3 className="text-sm font-bold">Are you playing?</h3>
+            <p className="text-muted-foreground text-xs">
               Sign up to reserve your spot on the courts and get notifications
               about bracket updates.
             </p>
-            <div className="text-xs bg-muted/40 p-3 rounded-lg text-left border border-border/30 space-y-1">
+            <div className="bg-muted/40 border-border/30 space-y-1 rounded-lg border p-3 text-left text-xs">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Entry fee:</span>
                 <span className="font-bold">
@@ -583,7 +583,7 @@ function EventOverviewTab() {
                 setShowModal(true);
               }}
               disabled={joinEvent.isPending}
-              className="w-full rounded-lg text-xs font-semibold py-5 cursor-pointer"
+              className="w-full cursor-pointer rounded-lg py-5 text-xs font-semibold"
             >
               Register for Event
             </Button>

@@ -78,14 +78,14 @@ function StatusBreakdown({
       </CardHeader>
       <CardContent className="grid gap-3">
         {entries.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No records yet.</p>
+          <p className="text-muted-foreground text-sm">No records yet.</p>
         ) : (
           entries.map(([status, count]) => (
             <div
               className="flex items-center justify-between gap-4 text-sm"
               key={status}
             >
-              <span className="capitalize text-muted-foreground">
+              <span className="text-muted-foreground capitalize">
                 {status.replaceAll("_", " ")}
               </span>
               <span className="font-semibold">{formatNumber(count)}</span>
@@ -152,14 +152,14 @@ function AdminDashboardPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-8">
-      <section className="rounded-lg border border-border bg-card p-6">
+      <section className="border-border bg-card rounded-lg border p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="max-w-3xl">
-            <p className="text-sm font-semibold text-primary">Platform Admin</p>
+            <p className="text-primary text-sm font-semibold">Platform Admin</p>
             <h1 className="mt-2 text-3xl font-extrabold tracking-tight md:text-4xl">
               RallyCasts operating room
             </h1>
-            <p className="mt-3 text-sm text-muted-foreground">
+            <p className="text-muted-foreground mt-3 text-sm">
               Watch the onboarding funnel, content inventory, system readiness,
               and search index health before the public launch data reset.
             </p>
@@ -220,15 +220,15 @@ function AdminDashboardPage() {
               ["API version", data.health.apiVersion === "v1"],
             ].map(([label, healthy]) => (
               <div
-                className="flex items-center justify-between rounded-lg border border-border p-4"
+                className="border-border flex items-center justify-between rounded-lg border p-4"
                 key={String(label)}
               >
                 <span className="text-sm font-medium">{label}</span>
-                <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                <span className="text-muted-foreground inline-flex items-center gap-2 text-sm">
                   {healthy ? (
-                    <CheckCircle2 className="size-4 text-primary" />
+                    <CheckCircle2 className="text-primary size-4" />
                   ) : (
-                    <AlertTriangle className="size-4 text-destructive" />
+                    <AlertTriangle className="text-destructive size-4" />
                   )}
                   {healthy ? "Ready" : "Needs setup"}
                 </span>
@@ -247,26 +247,26 @@ function AdminDashboardPage() {
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
             <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="rounded-lg border border-border p-3">
+              <div className="border-border rounded-lg border p-3">
                 <p className="text-muted-foreground">Pending</p>
                 <p className="mt-1 text-xl font-bold">
                   {formatNumber(data.search.pending)}
                 </p>
               </div>
-              <div className="rounded-lg border border-border p-3">
+              <div className="border-border rounded-lg border p-3">
                 <p className="text-muted-foreground">Failed</p>
                 <p className="mt-1 text-xl font-bold">
                   {formatNumber(data.search.failed)}
                 </p>
               </div>
-              <div className="rounded-lg border border-border p-3">
+              <div className="border-border rounded-lg border p-3">
                 <p className="text-muted-foreground">Total</p>
                 <p className="mt-1 text-xl font-bold">
                   {formatNumber(data.search.documents)}
                 </p>
               </div>
             </div>
-            <div className="rounded-lg border border-border p-3">
+            <div className="border-border rounded-lg border p-3">
               <p className="mb-2 font-semibold">Embedding models</p>
               {Object.entries(data.search.embeddingModels).length === 0 ? (
                 <p className="text-muted-foreground">No embeddings yet.</p>
@@ -277,7 +277,7 @@ function AdminDashboardPage() {
                       className="flex items-center justify-between gap-4"
                       key={model}
                     >
-                      <span className="truncate text-muted-foreground">
+                      <span className="text-muted-foreground truncate">
                         {model}
                       </span>
                       <span className="font-semibold">
@@ -315,7 +315,7 @@ function AdminDashboardPage() {
             <div className="flex items-center justify-between gap-2">
               <CardTitle>Recent Users</CardTitle>
               <Link
-                className="text-sm font-semibold text-primary hover:underline"
+                className="text-primary text-sm font-semibold hover:underline"
                 to="/u/admin-users"
               >
                 Manage users
@@ -327,21 +327,21 @@ function AdminDashboardPage() {
           </CardHeader>
           <CardContent>
             {data.recentUsers.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No users yet.</p>
+              <p className="text-muted-foreground text-sm">No users yet.</p>
             ) : (
               <div className="grid gap-3">
                 {data.recentUsers.map((record) => (
                   <div
-                    className="flex flex-col gap-1 rounded-lg border border-border p-3 md:flex-row md:items-center md:justify-between"
+                    className="border-border flex flex-col gap-1 rounded-lg border p-3 md:flex-row md:items-center md:justify-between"
                     key={record.id}
                   >
                     <div>
                       <p className="font-semibold">{record.name}</p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-muted-foreground text-sm">
                         {record.email}
                       </p>
                     </div>
-                    <div className="text-sm text-muted-foreground md:text-right">
+                    <div className="text-muted-foreground text-sm md:text-right">
                       <p className="capitalize">
                         {record.onboardingStatus.replaceAll("_", " ")}
                       </p>
@@ -371,11 +371,11 @@ function AdminDashboardPage() {
               ["Notifications", data.totals.notifications],
             ].map(([label, value]) => (
               <div
-                className="flex items-center justify-between gap-4 border-b border-border pb-3 last:border-b-0 last:pb-0"
+                className="border-border flex items-center justify-between gap-4 border-b pb-3 last:border-b-0 last:pb-0"
                 key={label}
               >
-                <span className="inline-flex items-center gap-2 text-muted-foreground">
-                  <Activity className="size-4 text-primary" />
+                <span className="text-muted-foreground inline-flex items-center gap-2">
+                  <Activity className="text-primary size-4" />
                   {label}
                 </span>
                 <span className="font-semibold">

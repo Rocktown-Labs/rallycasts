@@ -51,16 +51,16 @@ function EventPlayersTab() {
   const hasRegisteredPlayers = registeredPlayers.length > 0;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
+    <div className="animate-in fade-in space-y-6 duration-300">
       <div>
-        <h2 className="text-xl font-bold flex items-center gap-2">
-          <Users className="size-5 text-primary" /> Registered Teams (
+        <h2 className="flex items-center gap-2 text-xl font-bold">
+          <Users className="text-primary size-5" /> Registered Teams (
           {hasRegisteredPlayers
             ? `${registeredPlayers.length} players`
             : `${fallbackTeams.length * 2} players`}
           )
         </h2>
-        <p className="text-xs text-muted-foreground mt-1">
+        <p className="text-muted-foreground mt-1 text-xs">
           Review the player seeds, DUPR ratings, and team profiles for this
           event.
         </p>
@@ -71,14 +71,14 @@ function EventPlayersTab() {
           ? registeredPlayers.map(({ player, registration }, index) => (
               <Card
                 key={registration.id}
-                className="border border-border/50 bg-card rounded-xl overflow-hidden shadow-sm hover:border-primary/30 transition-all"
+                className="border-border/50 bg-card hover:border-primary/30 overflow-hidden rounded-xl border shadow-sm transition-all"
               >
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex justify-between items-center pb-2 border-b border-border/40">
-                    <span className="text-xs text-primary font-bold">
+                <CardContent className="space-y-3 p-4">
+                  <div className="border-border/40 flex items-center justify-between border-b pb-2">
+                    <span className="text-primary text-xs font-bold">
                       Seed #{registration.seed ?? index + 1}
                     </span>
-                    <span className="text-[10px] bg-muted px-2 py-0.5 rounded text-muted-foreground font-semibold capitalize">
+                    <span className="bg-muted text-muted-foreground rounded px-2 py-0.5 text-[10px] font-semibold capitalize">
                       {registration.status}
                     </span>
                   </div>
@@ -86,9 +86,9 @@ function EventPlayersTab() {
                   <Link
                     to="/players/$username"
                     params={{ username: player.username ?? player.id }}
-                    className="flex items-center gap-2.5 hover:text-primary transition-colors text-xs font-semibold"
+                    className="hover:text-primary flex items-center gap-2.5 text-xs font-semibold transition-colors"
                   >
-                    <div className="size-9 rounded-full bg-muted flex items-center justify-center font-bold text-foreground overflow-hidden">
+                    <div className="bg-muted text-foreground flex size-9 items-center justify-center overflow-hidden rounded-full font-bold">
                       {player.image ? (
                         <img
                           src={player.image}
@@ -101,7 +101,7 @@ function EventPlayersTab() {
                     </div>
                     <div>
                       <p>{player.name}</p>
-                      <p className="text-[10px] text-muted-foreground font-normal">
+                      <p className="text-muted-foreground text-[10px] font-normal">
                         @{player.username || player.displayUsername || "player"}
                       </p>
                     </div>
@@ -112,14 +112,14 @@ function EventPlayersTab() {
           : fallbackTeams.map((team) => (
               <Card
                 key={team.rank}
-                className="border border-border/50 bg-card rounded-xl overflow-hidden shadow-sm hover:border-primary/30 transition-all"
+                className="border-border/50 bg-card hover:border-primary/30 overflow-hidden rounded-xl border shadow-sm transition-all"
               >
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex justify-between items-center pb-2 border-b border-border/40">
-                    <span className="text-xs text-primary font-bold">
+                <CardContent className="space-y-3 p-4">
+                  <div className="border-border/40 flex items-center justify-between border-b pb-2">
+                    <span className="text-primary text-xs font-bold">
                       Seed #{team.seed}
                     </span>
-                    <span className="text-[10px] bg-muted px-2 py-0.5 rounded text-muted-foreground font-semibold">
+                    <span className="bg-muted text-muted-foreground rounded px-2 py-0.5 text-[10px] font-semibold">
                       Team Rank #{team.rank}
                     </span>
                   </div>
@@ -130,30 +130,30 @@ function EventPlayersTab() {
                       <Link
                         to="/players/$username"
                         params={{ username: team.p1.username }}
-                        className="flex items-center gap-2.5 hover:text-primary transition-colors text-xs font-semibold"
+                        className="hover:text-primary flex items-center gap-2.5 text-xs font-semibold transition-colors"
                       >
-                        <div className="size-8 rounded-full bg-muted flex items-center justify-center font-bold text-foreground">
+                        <div className="bg-muted text-foreground flex size-8 items-center justify-center rounded-full font-bold">
                           {team.p1.name[0]}
                         </div>
                         <div>
                           <p>{team.p1.name}</p>
-                          <p className="text-[10px] text-muted-foreground font-normal">
+                          <p className="text-muted-foreground text-[10px] font-normal">
                             @{team.p1.username}
                           </p>
                         </div>
                       </Link>
-                      <span className="inline-flex items-center gap-1 text-[10px] text-brand-yellow font-bold bg-yellow-500/10 px-1.5 py-0.5 rounded">
+                      <span className="text-brand-yellow inline-flex items-center gap-1 rounded bg-yellow-500/10 px-1.5 py-0.5 text-[10px] font-bold">
                         <Star className="size-3 fill-current" />{" "}
                         {team.p1.rating}
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-center text-muted-foreground/30 text-xs">
-                      <div className="h-px bg-border/50 flex-1" />
-                      <span className="px-2 font-bold text-[9px] uppercase tracking-wider">
+                    <div className="text-muted-foreground/30 flex items-center justify-center text-xs">
+                      <div className="bg-border/50 h-px flex-1" />
+                      <span className="px-2 text-[9px] font-bold tracking-wider uppercase">
                         and
                       </span>
-                      <div className="h-px bg-border/50 flex-1" />
+                      <div className="bg-border/50 h-px flex-1" />
                     </div>
 
                     {/* Player 2 */}
@@ -161,19 +161,19 @@ function EventPlayersTab() {
                       <Link
                         to="/players/$username"
                         params={{ username: team.p2.username }}
-                        className="flex items-center gap-2.5 hover:text-primary transition-colors text-xs font-semibold"
+                        className="hover:text-primary flex items-center gap-2.5 text-xs font-semibold transition-colors"
                       >
-                        <div className="size-8 rounded-full bg-muted flex items-center justify-center font-bold text-foreground">
+                        <div className="bg-muted text-foreground flex size-8 items-center justify-center rounded-full font-bold">
                           {team.p2.name[0]}
                         </div>
                         <div>
                           <p>{team.p2.name}</p>
-                          <p className="text-[10px] text-muted-foreground font-normal">
+                          <p className="text-muted-foreground text-[10px] font-normal">
                             @{team.p2.username}
                           </p>
                         </div>
                       </Link>
-                      <span className="inline-flex items-center gap-1 text-[10px] text-brand-yellow font-bold bg-yellow-500/10 px-1.5 py-0.5 rounded">
+                      <span className="text-brand-yellow inline-flex items-center gap-1 rounded bg-yellow-500/10 px-1.5 py-0.5 text-[10px] font-bold">
                         <Star className="size-3 fill-current" />{" "}
                         {team.p2.rating}
                       </span>

@@ -30,11 +30,11 @@ function EarnPage() {
           trend="Become a caster to start"
         />
       </div>
-      <div className="rounded-lg border border-border p-6">
+      <div className="border-border rounded-lg border p-6">
         <h2 className="text-2xl font-bold">
           Turn your phone into a court-side studio.
         </h2>
-        <p className="mt-3 max-w-2xl text-muted-foreground">
+        <p className="text-muted-foreground mt-3 max-w-2xl">
           Premium earning setup will connect to Stripe onboarding once checkout
           and Connect account creation are complete.
         </p>

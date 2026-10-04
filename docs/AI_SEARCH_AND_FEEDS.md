@@ -12,13 +12,13 @@ There is no generic AI or chat route.
 
 ### Search documents currently produced
 
-| Entity             | Embedded text                           | Metadata                       | Trigger                                  |
-| ------------------ | --------------------------------------- | ------------------------------ | ---------------------------------------- |
-| Public ready video | Title and description                   | Media type, owner ID, venue ID | Ready upload, public video create/update |
-| Post               | Post content and generated author title | Author user ID                 | Post creation                            |
-| Published event    | Event title, summary, and venue context | Organizer/user and venue IDs   | Event create/update and paid checkout    |
-| Venue              | Park name, address, and city/state      | Venue and Google Place IDs     | Venue enrichment/create/update           |
-| Public profile     | Display name, username, and bio         | User ID                        | Profile update or admin backfill         |
+| Entity | Embedded text | Metadata | Trigger |
+| --- | --- | --- | --- |
+| Public ready video | Title and description | Media type, owner ID, venue ID | Ready upload, public video create/update |
+| Post | Post content and generated author title | Author user ID | Post creation |
+| Published event | Event title, summary, and venue context | Organizer/user and venue IDs | Event create/update and paid checkout |
+| Venue | Park name, address, and city/state | Venue and Google Place IDs | Venue enrichment/create/update |
+| Public profile | Display name, username, and bio | User ID | Profile update or admin backfill |
 
 Organizations are not currently a search-document entity type. They should be added once organization profiles move beyond route scaffolding into durable public profiles and authored content.
 
@@ -35,14 +35,14 @@ Organizations are not currently a search-document entity type. They should be ad
 
 These fields may influence recommendations when the user has supplied them or generated the associated behavior:
 
-| Signal group      | Fields/events                                                       | Good uses                                                        |
-| ----------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| Player intent     | Skill level, bio, player/caster/organizer roles                     | Skill-appropriate clips, clinics, casting, and organizer content |
-| Coarse location   | Home city/state, home court or venue ID                             | Nearby parks, events, players, and locally relevant videos       |
-| Social graph      | Friendships, followed/tagged players, organization membership       | Content from people and organizations the player knows           |
-| Engagement        | Likes, comments, shares, event registrations, challenges            | Topic and creator affinity                                       |
-| Content           | Title, description, media type, tagged players, venue, organization | Semantic candidate generation and diversity                      |
-| Freshness/quality | Published time, completion rate, hides/reports, playback readiness  | Recency, quality, and safety ranking                             |
+| Signal group | Fields/events | Good uses |
+| --- | --- | --- |
+| Player intent | Skill level, bio, player/caster/organizer roles | Skill-appropriate clips, clinics, casting, and organizer content |
+| Coarse location | Home city/state, home court or venue ID | Nearby parks, events, players, and locally relevant videos |
+| Social graph | Friendships, followed/tagged players, organization membership | Content from people and organizations the player knows |
+| Engagement | Likes, comments, shares, event registrations, challenges | Topic and creator affinity |
+| Content | Title, description, media type, tagged players, venue, organization | Semantic candidate generation and diversity |
+| Freshness/quality | Published time, completion rate, hides/reports, playback readiness | Recency, quality, and safety ranking |
 
 The current schema does not store follows, feed impressions, watch time/completion, hides, reports, or explicit content preferences. Those should be added before calling the feed personalized; likes alone create a narrow and easily biased signal.
 

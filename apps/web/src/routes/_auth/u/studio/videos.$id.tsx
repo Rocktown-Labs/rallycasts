@@ -77,12 +77,12 @@ const isPublishableVideo = (video: {
 
 function StatusIcon({ status }: { status: keyof typeof statusCopy }) {
   if (status === "failed") {
-    return <CircleAlert className="size-5 text-destructive" />;
+    return <CircleAlert className="text-destructive size-5" />;
   }
   if (status === "ready") {
-    return <Check className="size-5 text-primary" />;
+    return <Check className="text-primary size-5" />;
   }
-  return <Clock3 className="size-5 text-primary" />;
+  return <Clock3 className="text-primary size-5" />;
 }
 
 // oxlint-disable-next-line complexity -- Studio combines upload, metadata, and playback states.
@@ -234,7 +234,7 @@ function VideoStudioPage() {
   if (videoQuery.isLoading || !video) {
     return (
       <div className="grid min-h-96 place-items-center">
-        <LoaderCircle className="size-8 animate-spin text-primary" />
+        <LoaderCircle className="text-primary size-8 animate-spin" />
       </div>
     );
   }
@@ -301,14 +301,14 @@ function VideoStudioPage() {
     <main className="mx-auto max-w-7xl space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
+          <p className="text-primary text-xs font-semibold tracking-[0.22em] uppercase">
             RallyCasts Studio
           </p>
           <h1 className="mt-1 text-3xl font-bold">Video details</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button
-            className="rounded-lg text-destructive hover:bg-destructive/10 hover:text-destructive"
+            className="text-destructive hover:bg-destructive/10 hover:text-destructive rounded-lg"
             disabled={deleteVideo.isPending}
             onClick={() => setShowDeleteModal(true)}
             type="button"
@@ -343,7 +343,7 @@ function VideoStudioPage() {
                 type="button"
                 variant="secondary"
               >
-                <Check className="size-4 text-primary" /> Published
+                <Check className="text-primary size-4" /> Published
               </Button>
               <Link
                 className={cn(
@@ -376,20 +376,20 @@ function VideoStudioPage() {
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
         <section className="space-y-6">
-          <div className="rounded-2xl border bg-card p-5 shadow-sm sm:p-6">
+          <div className="bg-card rounded-2xl border p-5 shadow-sm sm:p-6">
             <div className="space-y-2">
               <label className="text-sm font-semibold" htmlFor="video-title">
                 Title
               </label>
               <input
                 aria-label="Video title"
-                className="h-12 w-full rounded-lg border bg-background px-3 text-base outline-none focus:ring-2 focus:ring-primary"
+                className="bg-background focus:ring-primary h-12 w-full rounded-lg border px-3 text-base outline-none focus:ring-2"
                 id="video-title"
                 maxLength={160}
                 onChange={(event) => setTitle(event.target.value)}
                 value={title}
               />
-              <p className="text-right text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-right text-xs">
                 {title.length}/160
               </p>
             </div>
@@ -403,14 +403,14 @@ function VideoStudioPage() {
               </label>
               <textarea
                 aria-label="Video description"
-                className="min-h-56 w-full resize-y rounded-lg border bg-background p-3 outline-none focus:ring-2 focus:ring-primary"
+                className="bg-background focus:ring-primary min-h-56 w-full resize-y rounded-lg border p-3 outline-none focus:ring-2"
                 id="video-description"
                 maxLength={2000}
                 onChange={(event) => setDescription(event.target.value)}
                 placeholder="Tell viewers what this RallyCast is about…"
                 value={description}
               />
-              <p className="text-right text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-right text-xs">
                 {description.length}/2000
               </p>
             </div>
@@ -421,10 +421,10 @@ function VideoStudioPage() {
                   Players in this video
                 </label>
                 <div className="relative">
-                  <Search className="absolute left-3 top-3 size-4 text-muted-foreground" />
+                  <Search className="text-muted-foreground absolute top-3 left-3 size-4" />
                   <input
                     aria-label="Search players to tag"
-                    className="h-10 w-full rounded-lg border bg-background pl-9 pr-3 text-sm"
+                    className="bg-background h-10 w-full rounded-lg border pr-3 pl-9 text-sm"
                     id="player-tags"
                     onChange={(event) => setPlayerQuery(event.target.value)}
                     placeholder="Search players"
@@ -432,10 +432,10 @@ function VideoStudioPage() {
                   />
                 </div>
                 {playerResults.length > 0 ? (
-                  <div className="max-h-40 overflow-y-auto rounded-lg border bg-background p-1">
+                  <div className="bg-background max-h-40 overflow-y-auto rounded-lg border p-1">
                     {playerResults.slice(0, 6).map((player) => (
                       <button
-                        className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm hover:bg-muted"
+                        className="hover:bg-muted flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm"
                         key={player.id}
                         onClick={() => {
                           setTaggedPlayers((current) => [...current, player]);
@@ -443,9 +443,9 @@ function VideoStudioPage() {
                         }}
                         type="button"
                       >
-                        <Users className="size-4 text-primary" />
+                        <Users className="text-primary size-4" />
                         <span>{player.name}</span>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-muted-foreground text-xs">
                           @{player.username}
                         </span>
                       </button>
@@ -455,7 +455,7 @@ function VideoStudioPage() {
                 <div className="flex flex-wrap gap-2">
                   {taggedPlayers.map((player) => (
                     <span
-                      className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs"
+                      className="bg-muted inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs"
                       key={player.id}
                     >
                       {player.name}
@@ -480,10 +480,10 @@ function VideoStudioPage() {
                   Park or venue
                 </label>
                 <div className="relative">
-                  <MapPin className="absolute left-3 top-3 size-4 text-muted-foreground" />
+                  <MapPin className="text-muted-foreground absolute top-3 left-3 size-4" />
                   <input
                     aria-label="Search parks and venues"
-                    className="h-10 w-full rounded-lg border bg-background pl-9 pr-3 text-sm"
+                    className="bg-background h-10 w-full rounded-lg border pr-3 pl-9 text-sm"
                     id="video-park"
                     onChange={(event) => setPlaceQuery(event.target.value)}
                     placeholder="Search Google Places"
@@ -491,10 +491,10 @@ function VideoStudioPage() {
                   />
                 </div>
                 {placeResults.length > 0 ? (
-                  <div className="max-h-40 overflow-y-auto rounded-lg border bg-background p-1">
+                  <div className="bg-background max-h-40 overflow-y-auto rounded-lg border p-1">
                     {placeResults.slice(0, 6).map((place) => (
                       <button
-                        className="block w-full rounded-md px-2 py-2 text-left hover:bg-muted"
+                        className="hover:bg-muted block w-full rounded-md px-2 py-2 text-left"
                         key={place.placeId}
                         onClick={() => void selectGoogleVenue(place)}
                         type="button"
@@ -502,7 +502,7 @@ function VideoStudioPage() {
                         <span className="block text-sm font-semibold">
                           {place.name}
                         </span>
-                        <span className="block text-xs text-muted-foreground">
+                        <span className="text-muted-foreground block text-xs">
                           {place.address}
                         </span>
                       </button>
@@ -510,9 +510,9 @@ function VideoStudioPage() {
                   </div>
                 ) : null}
                 {selectedVenue ? (
-                  <div className="flex items-center justify-between rounded-lg bg-muted p-3 text-sm">
+                  <div className="bg-muted flex items-center justify-between rounded-lg p-3 text-sm">
                     <span className="flex items-center gap-2 font-semibold">
-                      <MapPin className="size-4 text-primary" />
+                      <MapPin className="text-primary size-4" />
                       {selectedVenue.name}
                     </span>
                     <button
@@ -528,11 +528,11 @@ function VideoStudioPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border bg-card p-5 sm:p-6">
+          <div className="bg-card rounded-2xl border p-5 sm:p-6">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <h2 className="font-bold">Create clips</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
+                <p className="text-muted-foreground mt-1 text-sm">
                   Turn the full video into focused 1–2 minute RallyClips.
                 </p>
               </div>
@@ -573,7 +573,7 @@ function VideoStudioPage() {
         </section>
 
         <aside className="space-y-4">
-          <div className="overflow-hidden rounded-2xl border bg-card">
+          <div className="bg-card overflow-hidden rounded-2xl border">
             <div className="aspect-video bg-black">
               {isReady && playbackQuery.data?.playbackUrl ? (
                 <MuxPlayer
@@ -584,7 +584,7 @@ function VideoStudioPage() {
                 />
               ) : (
                 <div className="grid size-full place-items-center bg-[radial-gradient(circle_at_center,hsl(var(--primary)/.14),transparent_65%)]">
-                  <Film className="size-12 text-primary/70" />
+                  <Film className="text-primary/70 size-12" />
                 </div>
               )}
             </div>
@@ -595,7 +595,7 @@ function VideoStudioPage() {
                   <p className="text-sm font-bold">
                     {statusCopy[effectiveStatus]}
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-muted-foreground text-xs">
                     {effectiveStatus === "uploading"
                       ? `${upload.progress}% uploaded`
                       : "This page updates automatically."}
@@ -605,23 +605,23 @@ function VideoStudioPage() {
               {effectiveStatus === "uploading" ? (
                 <progress
                   aria-label={`${upload.progress}% uploaded`}
-                  className="h-2 w-full overflow-hidden rounded-full accent-primary"
+                  className="accent-primary h-2 w-full overflow-hidden rounded-full"
                   max={100}
                   value={upload.progress}
                 />
               ) : null}
               {upload.error ? (
-                <p className="text-xs text-destructive">{upload.error}</p>
+                <p className="text-destructive text-xs">{upload.error}</p>
               ) : null}
             </div>
           </div>
 
-          <div className="rounded-2xl border bg-card p-4">
+          <div className="bg-card rounded-2xl border p-4">
             <label className="text-sm font-bold" htmlFor="video-visibility">
               Visibility
             </label>
             <select
-              className="mt-3 h-11 w-full rounded-lg border bg-background px-3"
+              className="bg-background mt-3 h-11 w-full rounded-lg border px-3"
               id="video-visibility"
               onChange={(event) =>
                 setVisibility(event.target.value as Visibility)
@@ -632,7 +632,7 @@ function VideoStudioPage() {
               <option value="friends">Friends</option>
               <option value="public">Public</option>
             </select>
-            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+            <p className="text-muted-foreground mt-2 text-xs leading-relaxed">
               Videos default to public so the community can watch your play. You
               can change this to friends only or private at any time.
             </p>
@@ -644,26 +644,26 @@ function VideoStudioPage() {
         <div
           aria-labelledby="success-modal-title"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm animate-in fade-in duration-200"
+          className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm duration-200"
         >
-          <div className="w-full max-w-lg rounded-2xl border bg-card p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="bg-card animate-in zoom-in-95 w-full max-w-lg rounded-2xl border p-6 shadow-2xl duration-200">
             <div className="flex items-center justify-between border-b pb-4">
               <div className="flex items-center gap-3">
-                <div className="grid size-10 place-items-center rounded-full bg-primary/10 text-primary">
+                <div className="bg-primary/10 text-primary grid size-10 place-items-center rounded-full">
                   <Check className="size-6" />
                 </div>
                 <div>
                   <h2 className="text-xl font-bold" id="success-modal-title">
                     Your RallyCast is Live!
                   </h2>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-muted-foreground text-xs">
                     Video published successfully to RallyCasts
                   </p>
                 </div>
               </div>
               <button
                 aria-label="Close dialog"
-                className="rounded-lg p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                className="text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg p-1 transition-colors"
                 onClick={() => setShowSuccessModal(false)}
                 type="button"
               >
@@ -672,24 +672,24 @@ function VideoStudioPage() {
             </div>
 
             <div className="mt-5 space-y-4">
-              <div className="rounded-xl border bg-muted/40 p-4 space-y-2">
+              <div className="bg-muted/40 space-y-2 rounded-xl border p-4">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="font-semibold text-sm line-clamp-1">
+                  <p className="line-clamp-1 text-sm font-semibold">
                     {title || video.title}
                   </p>
-                  <span className="capitalize rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-semibold text-primary">
+                  <span className="bg-primary/15 text-primary rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize">
                     {visibility}
                   </span>
                 </div>
                 {selectedVenue ? (
-                  <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <MapPin className="size-3.5 text-primary shrink-0" />
+                  <p className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                    <MapPin className="text-primary size-3.5 shrink-0" />
                     <span className="truncate">{selectedVenue.name}</span>
                   </p>
                 ) : null}
                 {taggedPlayers.length > 0 ? (
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Users className="size-3.5 text-primary shrink-0" />
+                  <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                    <Users className="text-primary size-3.5 shrink-0" />
                     <span className="truncate">
                       {taggedPlayers.map((p) => p.name).join(", ")}
                     </span>
@@ -699,7 +699,7 @@ function VideoStudioPage() {
 
               <div className="space-y-1.5">
                 <label
-                  className="text-xs font-semibold text-muted-foreground"
+                  className="text-muted-foreground text-xs font-semibold"
                   htmlFor="share-video-url"
                 >
                   Share Link
@@ -707,7 +707,7 @@ function VideoStudioPage() {
                 <div className="flex items-center gap-2">
                   <input
                     aria-label="Share video link"
-                    className="h-10 w-full rounded-lg border bg-background px-3 text-xs font-mono select-all outline-none focus:ring-2 focus:ring-primary"
+                    className="bg-background focus:ring-primary h-10 w-full rounded-lg border px-3 font-mono text-xs outline-none select-all focus:ring-2"
                     id="share-video-url"
                     readOnly
                     value={
@@ -731,7 +731,7 @@ function VideoStudioPage() {
                     variant="outline"
                   >
                     {hasCopied ? (
-                      <Check className="size-3.5 text-primary" />
+                      <Check className="text-primary size-3.5" />
                     ) : (
                       <Copy className="size-3.5" />
                     )}
@@ -771,18 +771,18 @@ function VideoStudioPage() {
         <div
           aria-labelledby="delete-modal-title"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm animate-in fade-in duration-200"
+          className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm duration-200"
         >
-          <div className="w-full max-w-md rounded-2xl border bg-card p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="bg-card animate-in zoom-in-95 w-full max-w-md rounded-2xl border p-6 shadow-2xl duration-200">
             <div className="flex items-start gap-4">
-              <div className="grid size-10 shrink-0 place-items-center rounded-full bg-destructive/15 text-destructive">
+              <div className="bg-destructive/15 text-destructive grid size-10 shrink-0 place-items-center rounded-full">
                 <Trash2 className="size-5" />
               </div>
               <div className="space-y-1">
                 <h2 className="text-lg font-bold" id="delete-modal-title">
                   Delete this video?
                 </h2>
-                <p className="text-sm text-muted-foreground leading-relaxed">
+                <p className="text-muted-foreground text-sm leading-relaxed">
                   This will permanently remove the video and all associated
                   media from RallyCasts and Mux. This action cannot be undone.
                 </p>
@@ -851,9 +851,9 @@ function ThumbnailPickerCard({
   );
 
   return (
-    <div className="rounded-2xl border bg-card p-5 sm:p-6">
+    <div className="bg-card rounded-2xl border p-5 sm:p-6">
       <h2 className="font-bold">Thumbnail</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
+      <p className="text-muted-foreground mt-1 text-sm">
         Pick the frame people see before they press play.
       </p>
       {canPick ? (
@@ -865,9 +865,9 @@ function ThumbnailPickerCard({
                 aria-pressed={isSelected}
                 aria-label={`Use the frame at ${formatStudioTime(time)} as the thumbnail`}
                 className={cn(
-                  "group relative overflow-hidden rounded-lg border transition-[border-color,transform] active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "group focus-visible:ring-ring relative cursor-pointer overflow-hidden rounded-lg border transition-[border-color,transform] focus-visible:ring-2 focus-visible:outline-none active:scale-[0.98]",
                   isSelected
-                    ? "border-primary ring-2 ring-primary/40"
+                    ? "border-primary ring-primary/40 ring-2"
                     : "border-border/60 hover:border-primary/50"
                 )}
                 disabled={isSaving}
@@ -877,7 +877,7 @@ function ThumbnailPickerCard({
               >
                 <img
                   alt={`Frame at ${formatStudioTime(time)}`}
-                  className="aspect-video w-full bg-muted object-cover"
+                  className="bg-muted aspect-video w-full object-cover"
                   loading="lazy"
                   src={`https://image.mux.com/${encodeURIComponent(
                     muxPlaybackId
@@ -885,7 +885,7 @@ function ThumbnailPickerCard({
                 />
                 <span
                   className={cn(
-                    "absolute bottom-1 right-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold text-white",
+                    "absolute right-1 bottom-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold text-white",
                     isSelected && "bg-primary text-primary-foreground"
                   )}
                 >
@@ -896,7 +896,7 @@ function ThumbnailPickerCard({
           })}
         </div>
       ) : (
-        <p className="mt-3 text-xs text-muted-foreground">
+        <p className="text-muted-foreground mt-3 text-xs">
           Thumbnail picking needs a public video that has finished processing.
         </p>
       )}

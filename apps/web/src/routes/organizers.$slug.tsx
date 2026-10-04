@@ -26,7 +26,7 @@ export function OrganizationProfilePage({ slug }: { slug: string }) {
   });
   if (isLoading) {
     return (
-      <div className="mx-auto h-72 max-w-7xl animate-pulse rounded-xl bg-muted" />
+      <div className="bg-muted mx-auto h-72 max-w-7xl animate-pulse rounded-xl" />
     );
   }
   if (!data?.organization) {
@@ -39,10 +39,10 @@ export function OrganizationProfilePage({ slug }: { slug: string }) {
 
   return (
     <main className="mx-auto max-w-7xl space-y-8 px-4 py-6">
-      <section className="rounded-2xl border bg-card p-7">
+      <section className="bg-card rounded-2xl border p-7">
         <div className="flex flex-wrap items-start justify-between gap-6">
           <div className="flex gap-5">
-            <div className="grid size-20 place-items-center overflow-hidden rounded-2xl bg-primary/10 text-primary">
+            <div className="bg-primary/10 text-primary grid size-20 place-items-center overflow-hidden rounded-2xl">
               {organization.logoUrl ? (
                 <img
                   alt=""
@@ -60,7 +60,7 @@ export function OrganizationProfilePage({ slug }: { slug: string }) {
                   <BadgeCheck className="size-6 text-[#bcdf21]" />
                 ) : null}
               </h1>
-              <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
+              <p className="text-muted-foreground mt-1 flex items-center gap-1 text-sm">
                 <MapPin className="size-4" />
                 {[organization.city, organization.state]
                   .filter(Boolean)
@@ -74,7 +74,7 @@ export function OrganizationProfilePage({ slug }: { slug: string }) {
             </Link>
           ) : null}
         </div>
-        <p className="mt-6 max-w-3xl text-sm leading-6 text-muted-foreground">
+        <p className="text-muted-foreground mt-6 max-w-3xl text-sm leading-6">
           {organization.bio ?? "This organization has not added a bio yet."}
         </p>
       </section>
@@ -84,7 +84,7 @@ export function OrganizationProfilePage({ slug }: { slug: string }) {
         <div className="grid gap-4 md:grid-cols-2">
           {posts.slice(0, 4).map((item) => (
             <article
-              className="rounded-xl border bg-card p-5 text-sm"
+              className="bg-card rounded-xl border p-5 text-sm"
               key={item.id}
             >
               {item.content}
@@ -92,19 +92,19 @@ export function OrganizationProfilePage({ slug }: { slug: string }) {
           ))}
           {videos.slice(0, 4).map((item) => (
             <Link
-              className="rounded-xl border bg-card p-5 hover:border-primary/50"
+              className="bg-card hover:border-primary/50 rounded-xl border p-5"
               key={item.id}
               params={{ id: getVideoSlug(item) }}
               to="/videos/$id"
             >
               <p className="font-bold">{item.title}</p>
-              <p className="mt-1 text-xs capitalize text-muted-foreground">
+              <p className="text-muted-foreground mt-1 text-xs capitalize">
                 {item.status} · {item.visibility}
               </p>
             </Link>
           ))}
           {posts.length === 0 && videos.length === 0 ? (
-            <p className="rounded-xl border border-dashed p-8 text-sm text-muted-foreground">
+            <p className="text-muted-foreground rounded-xl border border-dashed p-8 text-sm">
               No organization updates yet.
             </p>
           ) : null}
@@ -113,21 +113,21 @@ export function OrganizationProfilePage({ slug }: { slug: string }) {
 
       <section>
         <h2 className="mb-4 flex items-center gap-2 text-xl font-bold">
-          <Calendar className="size-5 text-primary" /> Tournaments and events
+          <Calendar className="text-primary size-5" /> Tournaments and events
         </h2>
         <div className="grid gap-4 md:grid-cols-2">
           {events.map((item) => (
             <Link
-              className="rounded-xl border bg-card p-5 hover:border-primary/50"
+              className="bg-card hover:border-primary/50 rounded-xl border p-5"
               key={item.id}
               params={{ id: item.id }}
               to="/events/$id"
             >
               <p className="font-bold">{item.name}</p>
-              <p className="mt-2 text-xs text-muted-foreground">
+              <p className="text-muted-foreground mt-2 text-xs">
                 {new Date(item.startsAt).toLocaleString()} · {item.status}
               </p>
-              <p className="mt-3 text-sm font-semibold text-primary">
+              <p className="text-primary mt-3 text-sm font-semibold">
                 {item.entryFeeCents > 0
                   ? `$${(item.entryFeeCents / 100).toFixed(2)} entry`
                   : "Free entry"}
@@ -135,7 +135,7 @@ export function OrganizationProfilePage({ slug }: { slug: string }) {
             </Link>
           ))}
           {events.length === 0 ? (
-            <p className="rounded-xl border border-dashed p-8 text-sm text-muted-foreground">
+            <p className="text-muted-foreground rounded-xl border border-dashed p-8 text-sm">
               No tournaments published yet.
             </p>
           ) : null}
@@ -144,12 +144,12 @@ export function OrganizationProfilePage({ slug }: { slug: string }) {
 
       <section>
         <h2 className="mb-4 flex items-center gap-2 text-xl font-bold">
-          <Users className="size-5 text-primary" /> Team
+          <Users className="text-primary size-5" /> Team
         </h2>
         <div className="flex flex-wrap gap-3">
           {members.map((member) => (
             <Link
-              className="rounded-full border bg-card px-4 py-2 text-sm"
+              className="bg-card rounded-full border px-4 py-2 text-sm"
               key={member.user.id}
               params={{ username: member.user.username ?? "player" }}
               to="/players/$username"

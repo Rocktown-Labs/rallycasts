@@ -276,16 +276,16 @@ const StepProfileForm = (props: React.ComponentProps<typeof StepProfile>) => {
               <h2 className="text-xl font-bold tracking-tight">
                 Who are you on the courts?
               </h2>
-              <p className="text-xs sm:text-sm text-muted-foreground">
+              <p className="text-muted-foreground text-xs sm:text-sm">
                 Pick your avatar and handle so other players can find,
                 challenge, and team up with you.
               </p>
             </div>
 
             {/* Player Card Live Preview */}
-            <div className="relative overflow-hidden rounded-xl border border-primary/20 bg-linear-to-r from-primary/10 via-primary/5 to-background p-4 shadow-xs">
+            <div className="border-primary/20 from-primary/10 via-primary/5 to-background relative overflow-hidden rounded-xl border bg-linear-to-r p-4 shadow-xs">
               <div className="flex items-center gap-3.5">
-                <div className="size-14 rounded-full border-2 border-primary/40 p-0.5 shrink-0 bg-background shadow-inner flex items-center justify-center overflow-hidden">
+                <div className="border-primary/40 bg-background flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 p-0.5 shadow-inner">
                   {imageValue ? (
                     <img
                       alt="Avatar preview"
@@ -298,14 +298,14 @@ const StepProfileForm = (props: React.ComponentProps<typeof StepProfile>) => {
                 </div>
                 <div className="min-w-0 flex-1 space-y-0.5">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-bold truncate">
+                    <p className="truncate text-sm font-bold">
                       {nameValue || "Your Name"}
                     </p>
-                    <span className="inline-flex items-center rounded-full bg-brand-yellow/15 border border-brand-yellow/30 px-2 py-0.2 text-[10px] font-semibold text-brand-yellow">
+                    <span className="bg-brand-yellow/15 border-brand-yellow/30 py-0.2 text-brand-yellow inline-flex items-center rounded-full border px-2 text-[10px] font-semibold">
                       Player
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground truncate">
+                  <p className="text-muted-foreground truncate text-xs">
                     @{usernameValue || "handle"}
                     {parsedDob ? ` • Age ${parsedDob.age}` : ""}
                   </p>
@@ -321,7 +321,7 @@ const StepProfileForm = (props: React.ComponentProps<typeof StepProfile>) => {
                 </span>
                 {imageValue && (
                   <button
-                    className="text-xs text-muted-foreground hover:text-foreground underline transition-colors cursor-pointer"
+                    className="text-muted-foreground hover:text-foreground cursor-pointer text-xs underline transition-colors"
                     onClick={() => form.setFieldValue("profile.image", "")}
                     type="button"
                   >
@@ -329,7 +329,7 @@ const StepProfileForm = (props: React.ComponentProps<typeof StepProfile>) => {
                   </button>
                 )}
               </div>
-              <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+              <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
                 {PRESET_AVATARS.map((preset) => {
                   const svgDataUrl = generateEmojiAvatar(
                     preset.emoji,
@@ -347,7 +347,7 @@ const StepProfileForm = (props: React.ComponentProps<typeof StepProfile>) => {
                   return (
                     <button
                       key={preset.emoji}
-                      className={`group relative flex flex-col items-center gap-1.5 rounded-xl border p-2 transition-all cursor-pointer ${avatarCardClass}`}
+                      className={`group relative flex cursor-pointer flex-col items-center gap-1.5 rounded-xl border p-2 transition-all ${avatarCardClass}`}
                       onClick={() => {
                         form.setFieldValue("profile.image", svgDataUrl);
                       }}
@@ -355,18 +355,18 @@ const StepProfileForm = (props: React.ComponentProps<typeof StepProfile>) => {
                       type="button"
                     >
                       <div
-                        className="size-10 sm:size-11 rounded-full flex items-center justify-center text-lg sm:text-xl shadow-xs transition-transform group-hover:scale-105"
+                        className="flex size-10 items-center justify-center rounded-full text-lg shadow-xs transition-transform group-hover:scale-105 sm:size-11 sm:text-xl"
                         style={{
                           background: `linear-gradient(135deg, ${preset.start}, ${preset.end})`,
                         }}
                       >
                         <span className="select-none">{preset.emoji}</span>
                       </div>
-                      <span className="text-[10px] font-medium text-center truncate max-w-full text-muted-foreground group-hover:text-foreground">
+                      <span className="text-muted-foreground group-hover:text-foreground max-w-full truncate text-center text-[10px] font-medium">
                         {preset.name}
                       </span>
                       {isSelected && (
-                        <div className="absolute top-1 right-1 rounded-full bg-primary text-primary-foreground p-0.5 shadow-xs">
+                        <div className="bg-primary text-primary-foreground absolute top-1 right-1 rounded-full p-0.5 shadow-xs">
                           <Check className="size-2.5 stroke-[3]" />
                         </div>
                       )}
@@ -430,7 +430,7 @@ const StepProfileForm = (props: React.ComponentProps<typeof StepProfile>) => {
             {/* Action Button */}
             <div className="flex justify-end pt-2">
               <button
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-primary px-6 text-sm font-bold text-primary-foreground shadow-xs transition-all hover:bg-primary/90 hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl px-6 text-sm font-bold shadow-xs transition-all hover:scale-[1.01] active:scale-[0.99]"
                 onClick={handleContinue}
                 type="button"
               >
@@ -460,7 +460,7 @@ function renderUsernameStatus({
 }) {
   if (isCheckingUsername) {
     return (
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground animate-pulse">
+      <div className="text-muted-foreground flex animate-pulse items-center gap-1.5 text-xs">
         <Loader2 className="size-3.5 animate-spin" />
         <span>Checking availability...</span>
       </div>
@@ -469,8 +469,8 @@ function renderUsernameStatus({
 
   if (usernameSuccess && usernameSource === "bloom_filter") {
     return (
-      <div className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500/10 border border-emerald-500/25 px-2 py-0.5 text-xs text-emerald-400 font-medium">
-        <Sparkles className="size-3 text-emerald-400 shrink-0" />
+      <div className="inline-flex items-center gap-1.5 rounded-md border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-400">
+        <Sparkles className="size-3 shrink-0 text-emerald-400" />
         <span>@{usernameValue} is available (verified via bloom filter)</span>
       </div>
     );
@@ -478,8 +478,8 @@ function renderUsernameStatus({
 
   if (usernameSuccess && usernameSource === "current_user") {
     return (
-      <div className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 border border-primary/25 px-2 py-0.5 text-xs text-primary font-medium">
-        <User className="size-3 text-primary shrink-0" />
+      <div className="bg-primary/10 border-primary/25 text-primary inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium">
+        <User className="text-primary size-3 shrink-0" />
         <span>@{usernameValue} (your current account handle)</span>
       </div>
     );
@@ -487,8 +487,8 @@ function renderUsernameStatus({
 
   if (usernameSuccess && !usernameError) {
     return (
-      <div className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500/10 border border-emerald-500/25 px-2 py-0.5 text-xs text-emerald-400 font-medium">
-        <CheckCircle2 className="size-3 text-emerald-400 shrink-0" />
+      <div className="inline-flex items-center gap-1.5 rounded-md border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-400">
+        <CheckCircle2 className="size-3 shrink-0 text-emerald-400" />
         <span>@{usernameValue} is available</span>
       </div>
     );
@@ -496,8 +496,8 @@ function renderUsernameStatus({
 
   if (usernameError) {
     return (
-      <div className="inline-flex items-center gap-1.5 rounded-md bg-destructive/10 border border-destructive/25 px-2 py-0.5 text-xs text-destructive font-medium">
-        <AlertCircle className="size-3 text-destructive shrink-0" />
+      <div className="bg-destructive/10 border-destructive/25 text-destructive inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium">
+        <AlertCircle className="text-destructive size-3 shrink-0" />
         <span>{usernameError}</span>
       </div>
     );

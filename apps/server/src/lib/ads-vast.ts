@@ -1,6 +1,6 @@
 import type { adCampaign, adCreative } from "@rallycaststv/db/schema/domain";
 
-import type { AdEventKind, AdPlacement } from "./ads";
+import type { AdEventKind } from "./ads";
 
 const escapeXml = (value: string) =>
   value
@@ -119,6 +119,6 @@ export const isAllowedVastMediaUrl = (url: string): boolean => {
   }
 };
 
-export type { AdPlacement };
+export type { AdPlacement } from "./ads";
 export type CampaignRow = typeof adCampaign.$inferSelect;
 export type CreativeRow = typeof adCreative.$inferSelect;

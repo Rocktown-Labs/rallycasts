@@ -150,7 +150,7 @@ function PlayerHeaderActions({
   const navigate = useNavigate();
 
   return (
-    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-2">
+    <div className="flex flex-wrap items-center justify-center gap-2 pt-2 sm:justify-start">
       {!isOwnProfile && (
         <>
           <Button
@@ -169,7 +169,7 @@ function PlayerHeaderActions({
               handleFriendAction();
             }}
             variant={friendStatus === "friends" ? "default" : "outline"}
-            className="rounded-lg text-xs font-semibold px-4 flex items-center gap-1.5 transition-all cursor-pointer"
+            className="flex cursor-pointer items-center gap-1.5 rounded-lg px-4 text-xs font-semibold transition-all"
           >
             {renderFriendButtonContent()}
           </Button>
@@ -195,7 +195,7 @@ function PlayerHeaderActions({
               );
             }}
             variant={isFollowing ? "outline" : "default"}
-            className="rounded-lg text-xs font-semibold px-4 transition-all cursor-pointer"
+            className="cursor-pointer rounded-lg px-4 text-xs font-semibold transition-all"
           >
             {isFollowing ? "Following" : "Follow"}
           </Button>
@@ -216,25 +216,25 @@ function PlayerHeaderActions({
               handleLike();
             }}
             variant="outline"
-            className="rounded-lg text-xs font-semibold px-3 flex items-center justify-center cursor-pointer"
+            className="flex cursor-pointer items-center justify-center rounded-lg px-3 text-xs font-semibold"
             aria-label="Like profile"
           >
             <Heart
-              className={`size-4 ${isLiked ? "text-red-500 fill-current" : ""}`}
+              className={`size-4 ${isLiked ? "fill-current text-red-500" : ""}`}
             />
           </Button>
 
           <Button
             onClick={onOpenDM}
             variant="outline"
-            className="rounded-lg text-xs font-semibold px-4 flex items-center gap-1.5 cursor-pointer"
+            className="flex cursor-pointer items-center gap-1.5 rounded-lg px-4 text-xs font-semibold"
           >
             <MessageSquare className="size-3.5" /> DM
           </Button>
 
           <Button
             onClick={onOpenChallenge}
-            className="rounded-lg text-xs font-semibold px-4 flex items-center gap-1.5 bg-brand-yellow text-black hover:bg-brand-yellow/80 cursor-pointer"
+            className="bg-brand-yellow hover:bg-brand-yellow/80 flex cursor-pointer items-center gap-1.5 rounded-lg px-4 text-xs font-semibold text-black"
           >
             <Swords className="size-3.5" /> Challenge
           </Button>
@@ -244,7 +244,7 @@ function PlayerHeaderActions({
         <Link to="/u/settings">
           <Button
             variant="outline"
-            className="rounded-lg text-xs font-semibold px-4 cursor-pointer"
+            className="cursor-pointer rounded-lg px-4 text-xs font-semibold"
           >
             Edit Profile
           </Button>
@@ -314,8 +314,8 @@ function PlayerHeader({
   };
 
   return (
-    <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 pb-6 border-b border-border/50">
-      <div className="size-24 sm:size-28 rounded-full border-4 border-primary/20 bg-muted flex items-center justify-center text-3xl font-extrabold overflow-hidden shadow-inner">
+    <div className="border-border/50 flex flex-col items-center gap-6 border-b pb-6 sm:flex-row sm:items-start">
+      <div className="border-primary/20 bg-muted flex size-24 items-center justify-center overflow-hidden rounded-full border-4 text-3xl font-extrabold shadow-inner sm:size-28">
         {player.image ? (
           <img
             src={player.image}
@@ -326,12 +326,12 @@ function PlayerHeader({
           (player.name || player.username || "P").at(0)
         )}
       </div>
-      <div className="flex-1 text-center sm:text-left space-y-3 min-w-0">
-        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
+      <div className="min-w-0 flex-1 space-y-3 text-center sm:text-left">
+        <div className="flex flex-wrap items-center justify-center gap-3 sm:justify-start">
           <h1 className="text-2xl font-extrabold tracking-tight">
             {player.name || `@${player.username || player.displayUsername}`}
           </h1>
-          <span className="text-xs bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full capitalize">
+          <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-xs font-bold capitalize">
             {player.skillLevel || "open play"}
           </span>
         </div>
@@ -341,28 +341,28 @@ function PlayerHeader({
           </p>
         )}
 
-        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-muted-foreground">
+        <div className="text-muted-foreground flex flex-wrap items-center justify-center gap-4 text-xs sm:justify-start">
           {location && (
             <span className="inline-flex items-center gap-1.5">
-              <MapPin className="size-3.5 text-primary" /> {location}
+              <MapPin className="text-primary size-3.5" /> {location}
             </span>
           )}
           <span className="inline-flex items-center gap-1.5">
-            <Star className="size-3.5 text-brand-yellow fill-current" /> DUPR{" "}
+            <Star className="text-brand-yellow size-3.5 fill-current" /> DUPR{" "}
             {player.skillLevel
               ? duprRatings[player.skillLevel] || "open play"
               : "open play"}
           </span>
           <span className="inline-flex items-center gap-1.5">
             <Heart
-              className={`size-3.5 ${isLiked ? "text-red-500 fill-current" : "text-muted-foreground"}`}
+              className={`size-3.5 ${isLiked ? "fill-current text-red-500" : "text-muted-foreground"}`}
             />{" "}
             {likesCount} likes
           </span>
         </div>
 
         {player.bio && (
-          <p className="text-sm leading-relaxed max-w-xl text-foreground/90">
+          <p className="text-foreground/90 max-w-xl text-sm leading-relaxed">
             {player.bio}
           </p>
         )}
@@ -515,26 +515,26 @@ function ChallengeModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="w-full max-w-md bg-card border border-border rounded-xl shadow-xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
-        <div className="p-5 border-b border-border flex justify-between items-center">
-          <h2 className="text-base font-bold flex items-center gap-1.5">
-            <Swords className="size-4 text-primary" /> Issue Challenge to{" "}
+    <div className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm duration-200">
+      <div className="bg-card border-border animate-in slide-in-from-bottom-4 w-full max-w-md overflow-hidden rounded-xl border shadow-xl duration-300">
+        <div className="border-border flex items-center justify-between border-b p-5">
+          <h2 className="flex items-center gap-1.5 text-base font-bold">
+            <Swords className="text-primary size-4" /> Issue Challenge to{" "}
             {playerName}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            className="text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
           >
             <XCircle className="size-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="p-5 space-y-4 max-h-[65vh] overflow-y-auto">
+          <div className="max-h-[65vh] space-y-4 overflow-y-auto p-5">
             <div>
-              <span className="text-xs font-semibold text-muted-foreground block mb-2">
+              <span className="text-muted-foreground mb-2 block text-xs font-semibold">
                 Match Type
               </span>
               <div className="grid grid-cols-2 gap-2">
@@ -544,7 +544,7 @@ function ChallengeModal({
                     setChallengeMode("singles");
                     setSelectedPartner(null);
                   }}
-                  className={`p-2.5 rounded-lg border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  className={`flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border p-2.5 text-xs font-semibold transition-all ${
                     challengeMode === "singles"
                       ? "border-primary bg-primary/10 text-primary"
                       : "border-border hover:bg-muted/30 text-muted-foreground"
@@ -555,7 +555,7 @@ function ChallengeModal({
                 <button
                   type="button"
                   onClick={() => setChallengeMode("doubles")}
-                  className={`p-2.5 rounded-lg border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  className={`flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border p-2.5 text-xs font-semibold transition-all ${
                     challengeMode === "doubles"
                       ? "border-primary bg-primary/10 text-primary"
                       : "border-border hover:bg-muted/30 text-muted-foreground"
@@ -577,17 +577,17 @@ function ChallengeModal({
                   className="mt-1.5 text-xs"
                 />
                 {selectedPartner && (
-                  <div className="flex items-center justify-between p-2.5 bg-primary/5 border border-primary/20 rounded-lg text-xs mt-2">
+                  <div className="bg-primary/5 border-primary/20 mt-2 flex items-center justify-between rounded-lg border p-2.5 text-xs">
                     <div>
                       <p className="font-semibold">{selectedPartner.name}</p>
-                      <p className="text-[9px] text-muted-foreground">
+                      <p className="text-muted-foreground text-[9px]">
                         @{selectedPartner.username}
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={() => setSelectedPartner(null)}
-                      className="text-red-400 hover:text-red-500 font-semibold cursor-pointer"
+                      className="cursor-pointer font-semibold text-red-400 hover:text-red-500"
                     >
                       Remove
                     </button>
@@ -596,7 +596,7 @@ function ChallengeModal({
                 {!selectedPartner &&
                   partnerSearch &&
                   searchResults.length > 0 && (
-                    <div className="border border-border rounded-lg bg-card max-h-36 overflow-y-auto divide-y divide-border/50 mt-1">
+                    <div className="border-border bg-card divide-border/50 mt-1 max-h-36 divide-y overflow-y-auto rounded-lg border">
                       {searchResults.map((p) => (
                         <button
                           key={p.id}
@@ -609,10 +609,10 @@ function ChallengeModal({
                             });
                             setPartnerSearch("");
                           }}
-                          className="w-full text-left p-2 hover:bg-muted/40 flex items-center justify-between text-xs cursor-pointer"
+                          className="hover:bg-muted/40 flex w-full cursor-pointer items-center justify-between p-2 text-left text-xs"
                         >
                           <span>{p.name}</span>
-                          <PlusCircle className="size-3.5 text-primary" />
+                          <PlusCircle className="text-primary size-3.5" />
                         </button>
                       ))}
                     </div>
@@ -676,15 +676,15 @@ function ChallengeModal({
                 placeholder="E.g. Let's play singles, best of 3 games!"
                 value={challengeMsg}
                 onChange={(e) => setChallengeMsg(e.target.value)}
-                className="w-full mt-1.5 p-2.5 bg-card border border-border rounded-md text-xs focus:ring-1 focus:ring-primary focus:outline-none resize-none leading-normal text-foreground placeholder:text-muted-foreground"
+                className="bg-card border-border focus:ring-primary text-foreground placeholder:text-muted-foreground mt-1.5 w-full resize-none rounded-md border p-2.5 text-xs leading-normal focus:ring-1 focus:outline-none"
               />
             </div>
 
-            <div className="border-t border-border/50 pt-4 space-y-3">
+            <div className="border-border/50 space-y-3 border-t pt-4">
               <div className="flex items-center justify-between">
                 <Label
                   htmlFor="casterCheckbox"
-                  className="flex items-center gap-1 cursor-pointer"
+                  className="flex cursor-pointer items-center gap-1"
                 >
                   <Video className="size-4 text-red-500" /> Request Caster
                   Recording
@@ -695,13 +695,13 @@ function ChallengeModal({
                   aria-label="Request Caster Recording"
                   checked={requestCasting}
                   onChange={(e) => setRequestCasting(e.target.checked)}
-                  className="rounded border-border bg-card text-primary focus:ring-primary focus:outline-none cursor-pointer"
+                  className="border-border bg-card text-primary focus:ring-primary cursor-pointer rounded focus:outline-none"
                 />
               </div>
 
               {requestCasting && (
-                <div className="space-y-2 animate-in fade-in duration-200">
-                  <span className="text-[11px] font-semibold text-muted-foreground block">
+                <div className="animate-in fade-in space-y-2 duration-200">
+                  <span className="text-muted-foreground block text-[11px] font-semibold">
                     Casting Cost Split Setup (Rate: $50)
                   </span>
                   <div className="space-y-1.5">
@@ -718,7 +718,7 @@ function ChallengeModal({
                       />
                       <Label
                         htmlFor="split1"
-                        className="text-[11px] text-foreground cursor-pointer"
+                        className="text-foreground cursor-pointer text-[11px]"
                       >
                         Challenger pays 100% ($50)
                       </Label>
@@ -736,7 +736,7 @@ function ChallengeModal({
                       />
                       <Label
                         htmlFor="split2"
-                        className="text-[11px] text-foreground cursor-pointer"
+                        className="text-foreground cursor-pointer text-[11px]"
                       >
                         Split 50/50 with opponent ($25 each)
                       </Label>
@@ -755,7 +755,7 @@ function ChallengeModal({
                         />
                         <Label
                           htmlFor="split4"
-                          className="text-[11px] text-foreground cursor-pointer"
+                          className="text-foreground cursor-pointer text-[11px]"
                         >
                           Split 4 ways ($12.50 each)
                         </Label>
@@ -778,7 +778,7 @@ function ChallengeModal({
             </div>
           </div>
 
-          <div className="p-5 border-t border-border flex gap-2">
+          <div className="border-border flex gap-2 border-t p-5">
             <Button
               type="button"
               variant="outline"
@@ -789,7 +789,7 @@ function ChallengeModal({
             </Button>
             <Button
               type="submit"
-              className="flex-1 rounded-lg text-xs font-semibold cursor-pointer"
+              className="flex-1 cursor-pointer rounded-lg text-xs font-semibold"
             >
               Send Challenge Request
             </Button>
@@ -824,11 +824,11 @@ function DMChatModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="w-full max-w-md bg-card border border-border rounded-xl shadow-xl overflow-hidden flex flex-col h-[500px] animate-in slide-in-from-bottom-4 duration-300">
-        <div className="p-4 border-b border-border flex justify-between items-center shrink-0">
+    <div className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm duration-200">
+      <div className="bg-card border-border animate-in slide-in-from-bottom-4 flex h-[500px] w-full max-w-md flex-col overflow-hidden rounded-xl border shadow-xl duration-300">
+        <div className="border-border flex shrink-0 items-center justify-between border-b p-4">
           <div className="flex items-center gap-2">
-            <div className="size-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-xs">
+            <div className="bg-primary/20 text-primary flex size-8 items-center justify-center rounded-full text-xs font-bold">
               {playerName[0]}
             </div>
             <div>
@@ -839,20 +839,20 @@ function DMChatModal({
           <button
             type="button"
             onClick={onClose}
-            className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            className="text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
           >
             <XCircle className="size-5" />
           </button>
         </div>
 
-        <div className="flex-1 p-4 overflow-y-auto space-y-3.5 bg-muted/10">
+        <div className="bg-muted/10 flex-1 space-y-3.5 overflow-y-auto p-4">
           {chatLog.map((chat, idx) => (
             <div
               key={idx}
-              className={`flex flex-col max-w-[80%] ${chat.sender === "me" ? "ml-auto items-end" : "mr-auto items-start"}`}
+              className={`flex max-w-[80%] flex-col ${chat.sender === "me" ? "ml-auto items-end" : "mr-auto items-start"}`}
             >
               <div
-                className={`p-3 rounded-2xl text-xs ${
+                className={`rounded-2xl p-3 text-xs ${
                   chat.sender === "me"
                     ? "bg-primary text-primary-foreground rounded-tr-none"
                     : "bg-muted text-foreground rounded-tl-none"
@@ -860,7 +860,7 @@ function DMChatModal({
               >
                 {chat.text}
               </div>
-              <span className="text-[9px] text-muted-foreground mt-1 px-1">
+              <span className="text-muted-foreground mt-1 px-1 text-[9px]">
                 {chat.time}
               </span>
             </div>
@@ -869,7 +869,7 @@ function DMChatModal({
 
         <form
           onSubmit={onSendMessage}
-          className="p-3 border-t border-border flex gap-2 shrink-0"
+          className="border-border flex shrink-0 gap-2 border-t p-3"
         >
           <Input
             aria-label="Message text"
@@ -880,7 +880,7 @@ function DMChatModal({
           />
           <Button
             type="submit"
-            className="px-4 rounded-lg text-xs font-semibold cursor-pointer"
+            className="cursor-pointer rounded-lg px-4 text-xs font-semibold"
           >
             Send
           </Button>
@@ -1002,16 +1002,16 @@ function ProfileTabs({
   ];
 
   return (
-    <div className="border-b border-border flex justify-center gap-6">
+    <div className="border-border flex justify-center gap-6 border-b">
       {tabs.map((tab) => (
         <button
           type="button"
           key={tab.value}
           onClick={() => onTabChange(tab.value)}
-          className={`pb-3 text-xs sm:text-sm font-bold tracking-wider uppercase flex items-center gap-1.5 border-b-2 transition-all cursor-pointer ${
+          className={`flex cursor-pointer items-center gap-1.5 border-b-2 pb-3 text-xs font-bold tracking-wider uppercase transition-all sm:text-sm ${
             activeTab === tab.value
               ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
+              : "text-muted-foreground hover:text-foreground border-transparent"
           }`}
         >
           {tab.icon} {tab.label}
@@ -1327,18 +1327,18 @@ function PlayerProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-4xl px-4 py-8 space-y-6 animate-pulse">
-        <div className="flex items-center gap-6 pb-6 border-b border-border/50">
-          <div className="size-20 sm:size-24 rounded-full bg-muted" />
-          <div className="space-y-3 flex-1">
-            <div className="h-6 w-48 bg-muted rounded" />
-            <div className="h-4 w-32 bg-muted rounded" />
+      <div className="mx-auto max-w-4xl animate-pulse space-y-6 px-4 py-8">
+        <div className="border-border/50 flex items-center gap-6 border-b pb-6">
+          <div className="bg-muted size-20 rounded-full sm:size-24" />
+          <div className="flex-1 space-y-3">
+            <div className="bg-muted h-6 w-48 rounded" />
+            <div className="bg-muted h-4 w-32 rounded" />
           </div>
         </div>
         <div className="grid gap-6 md:grid-cols-3">
-          <div className="h-28 bg-muted rounded-xl" />
-          <div className="h-28 bg-muted rounded-xl" />
-          <div className="h-28 bg-muted rounded-xl" />
+          <div className="bg-muted h-28 rounded-xl" />
+          <div className="bg-muted h-28 rounded-xl" />
+          <div className="bg-muted h-28 rounded-xl" />
         </div>
       </div>
     );
@@ -1346,16 +1346,16 @@ function PlayerProfilePage() {
 
   if (queryError || !data?.player) {
     return (
-      <div className="mx-auto max-w-4xl px-4 py-12 text-center space-y-4">
-        <h2 className="text-2xl font-bold text-destructive">
+      <div className="mx-auto max-w-4xl space-y-4 px-4 py-12 text-center">
+        <h2 className="text-destructive text-2xl font-bold">
           Profile not found
         </h2>
         <p className="text-muted-foreground text-sm">
-          The player username "@{username}" does not exist or has not completed
-          onboarding.
+          The player username &quot;@{username}&quot; does not exist or has not
+          completed onboarding.
         </p>
         <Link to="/players">
-          <Button variant="outline" className="rounded-lg text-xs mt-4">
+          <Button variant="outline" className="mt-4 rounded-lg text-xs">
             Back to Players
           </Button>
         </Link>
@@ -1438,20 +1438,20 @@ function PlayerProfilePage() {
   const tabItems = getFeedItemsForTab(activeTab, allFeedItems);
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-6 space-y-8 animate-in fade-in duration-300">
+    <div className="animate-in fade-in mx-auto max-w-4xl space-y-8 px-4 py-6 duration-300">
       {"onboardingStatus" in player &&
         player.onboardingStatus === "pending" && (
-          <div className="bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 rounded-xl p-4 text-sm flex items-center gap-3 animate-in slide-in-from-top-4 duration-300">
-            <div className="bg-amber-500/20 rounded-full p-1.5 text-amber-600 dark:text-amber-400">
+          <div className="animate-in slide-in-from-top-4 flex items-center gap-3 rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-800 duration-300 dark:text-amber-300">
+            <div className="rounded-full bg-amber-500/20 p-1.5 text-amber-600 dark:text-amber-400">
               <Info className="size-4" />
             </div>
             <div>
-              <p className="font-semibold text-xs sm:text-sm">
+              <p className="text-xs font-semibold sm:text-sm">
                 Onboarding Setup Pending
               </p>
-              <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">
-                This player hasn't completed their onboarding yet. Some stats or
-                records might not be fully configured.
+              <p className="text-muted-foreground mt-0.5 text-[10px] sm:text-xs">
+                This player hasn&apos;t completed their onboarding yet. Some
+                stats or records might not be fully configured.
               </p>
             </div>
           </div>
@@ -1506,7 +1506,7 @@ function PlayerProfilePage() {
           </span>{" "}
           <span className="text-muted-foreground">matches</span>
         </p>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">
+        <span className="bg-primary/10 text-primary inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold">
           <Trophy className="size-3.5" />
           {profileStats.wins ?? 0}-{profileStats.losses ?? 0}
         </span>
@@ -1565,16 +1565,16 @@ interface ProfileGridProps {
 
 function ProfileGrid({ items, onItemClick }: ProfileGridProps) {
   return (
-    <div className="grid grid-cols-3 gap-1 md:gap-3 animate-in fade-in duration-300">
+    <div className="animate-in fade-in grid grid-cols-3 gap-1 duration-300 md:gap-3">
       {items.map((item, index) => (
         <button
           key={item.id}
           type="button"
           onClick={() => onItemClick(item, index)}
-          className="relative aspect-square rounded-lg overflow-hidden border border-border/40 group/photo cursor-pointer shadow-sm bg-muted w-full h-full p-0 text-left border-none"
+          className="border-border/40 group/photo bg-muted relative aspect-square h-full w-full cursor-pointer overflow-hidden rounded-lg border border-none p-0 text-left shadow-sm"
         >
           <GridItemContent item={item} />
-          <div className="absolute inset-0 bg-black/0 group-hover/photo:bg-black/50 flex items-center justify-center gap-2 sm:gap-6 opacity-0 group-hover/photo:opacity-100 transition-all text-white font-bold text-xs sm:text-sm">
+          <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/0 text-xs font-bold text-white opacity-0 transition-all group-hover/photo:bg-black/50 group-hover/photo:opacity-100 sm:gap-6 sm:text-sm">
             <GridItemOverlay item={item} />
           </div>
         </button>
@@ -1605,8 +1605,8 @@ function GridItemContent({ item }: { item: FeedItem }) {
         );
       }
       return (
-        <div className="size-full bg-muted flex items-center justify-center">
-          <Video className="size-8 text-muted-foreground" />
+        <div className="bg-muted flex size-full items-center justify-center">
+          <Video className="text-muted-foreground size-8" />
         </div>
       );
     }
@@ -1624,23 +1624,23 @@ function GridItemContent({ item }: { item: FeedItem }) {
       const challenge = item.data as Challenge;
       if (challenge.videoUrl) {
         return (
-          <div className="size-full bg-muted flex items-center justify-center">
-            <Video className="size-8 text-muted-foreground" />
+          <div className="bg-muted flex size-full items-center justify-center">
+            <Video className="text-muted-foreground size-8" />
           </div>
         );
       }
       return (
-        <div className="size-full bg-muted flex flex-col items-center justify-center p-2">
-          <div className="flex items-center gap-2 mb-1">
-            <div className="size-6 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold">
+        <div className="bg-muted flex size-full flex-col items-center justify-center p-2">
+          <div className="mb-1 flex items-center gap-2">
+            <div className="bg-primary/20 flex size-6 items-center justify-center rounded-full text-[10px] font-bold">
               {challenge.challenger[0]}
             </div>
-            <span className="text-[10px] text-muted-foreground">vs</span>
-            <div className="size-6 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold">
+            <span className="text-muted-foreground text-[10px]">vs</span>
+            <div className="bg-primary/20 flex size-6 items-center justify-center rounded-full text-[10px] font-bold">
               {challenge.challenged[0]}
             </div>
           </div>
-          <span className="text-[9px] text-muted-foreground truncate w-full text-center">
+          <span className="text-muted-foreground w-full truncate text-center text-[9px]">
             {challenge.venue}
           </span>
         </div>
@@ -1649,9 +1649,9 @@ function GridItemContent({ item }: { item: FeedItem }) {
     case "post": {
       const post = item.data as SocialPost;
       return (
-        <div className="size-full bg-muted flex flex-col items-center justify-center p-3">
-          <MessageSquare className="size-6 text-muted-foreground mb-1" />
-          <p className="text-[9px] text-muted-foreground line-clamp-2 text-center">
+        <div className="bg-muted flex size-full flex-col items-center justify-center p-3">
+          <MessageSquare className="text-muted-foreground mb-1 size-6" />
+          <p className="text-muted-foreground line-clamp-2 text-center text-[9px]">
             {post.content}
           </p>
         </div>
@@ -1746,13 +1746,13 @@ function FeedDetailModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm duration-200">
       {/* Navigation Arrows */}
       {hasPrevious && (
         <button
           type="button"
           onClick={handlePrevious}
-          className="absolute left-4 top-1/2 -translate-y-1/2 z-20 text-white bg-black/60 hover:bg-black/80 p-2 rounded-full cursor-pointer transition-colors"
+          className="absolute top-1/2 left-4 z-20 -translate-y-1/2 cursor-pointer rounded-full bg-black/60 p-2 text-white transition-colors hover:bg-black/80"
           aria-label="Previous item"
         >
           <ChevronLeft className="size-6" />
@@ -1762,7 +1762,7 @@ function FeedDetailModal({
         <button
           type="button"
           onClick={handleNext}
-          className="absolute right-4 top-1/2 -translate-y-1/2 z-20 text-white bg-black/60 hover:bg-black/80 p-2 rounded-full cursor-pointer transition-colors"
+          className="absolute top-1/2 right-4 z-20 -translate-y-1/2 cursor-pointer rounded-full bg-black/60 p-2 text-white transition-colors hover:bg-black/80"
           aria-label="Next item"
         >
           <ChevronRight className="size-6" />
@@ -1773,7 +1773,7 @@ function FeedDetailModal({
       <button
         type="button"
         onClick={onClose}
-        className="absolute top-4 right-4 z-20 text-white bg-black/60 hover:bg-black/80 p-2 rounded-full cursor-pointer transition-colors"
+        className="absolute top-4 right-4 z-20 cursor-pointer rounded-full bg-black/60 p-2 text-white transition-colors hover:bg-black/80"
         aria-label="Close"
       >
         <XCircle className="size-6" />
@@ -1783,24 +1783,24 @@ function FeedDetailModal({
       <button
         type="button"
         onClick={onClose}
-        className="absolute top-4 left-4 z-20 text-white bg-black/60 hover:bg-black/80 p-2 rounded-full cursor-pointer transition-colors flex items-center gap-2"
+        className="absolute top-4 left-4 z-20 flex cursor-pointer items-center gap-2 rounded-full bg-black/60 p-2 text-white transition-colors hover:bg-black/80"
       >
         <ArrowLeft className="size-5" />
         <span className="text-xs font-semibold">Back to Grid</span>
       </button>
 
       {/* Content */}
-      <div className="w-full max-w-4xl h-[90vh] bg-card border border-border rounded-xl overflow-hidden flex flex-col md:grid md:grid-cols-2 animate-in scale-in duration-300">
+      <div className="bg-card border-border animate-in scale-in flex h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl border duration-300 md:grid md:grid-cols-2">
         {/* Left: Content */}
-        <div className="relative flex-1 bg-black flex items-center justify-center overflow-hidden border-b md:border-b-0 md:border-r border-border/40">
+        <div className="border-border/40 relative flex flex-1 items-center justify-center overflow-hidden border-b bg-black md:border-r md:border-b-0">
           <FeedDetailContent item={item} />
         </div>
 
         {/* Right: Details */}
-        <div className="flex-1 flex flex-col h-full bg-card min-h-0 overflow-hidden">
+        <div className="bg-card flex h-full min-h-0 flex-1 flex-col overflow-hidden">
           {/* Header */}
-          <div className="p-4 border-b border-border/40 flex items-center gap-3 shrink-0 bg-card">
-            <div className="size-9 rounded-full border border-primary/20 bg-muted overflow-hidden flex items-center justify-center font-bold text-sm shrink-0">
+          <div className="border-border/40 bg-card flex shrink-0 items-center gap-3 border-b p-4">
+            <div className="border-primary/20 bg-muted flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full border text-sm font-bold">
               {player.image ? (
                 <img
                   src={player.image}
@@ -1812,29 +1812,29 @@ function FeedDetailModal({
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <h4 className="font-extrabold text-sm text-foreground truncate">
+              <h4 className="text-foreground truncate text-sm font-extrabold">
                 {player.name || `@${player.username || player.displayUsername}`}
               </h4>
-              <p className="text-[10px] text-muted-foreground truncate">
+              <p className="text-muted-foreground truncate text-[10px]">
                 @{player.username || "player"}
               </p>
             </div>
           </div>
 
           {/* Scrollable Content */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
+          <div className="flex-1 space-y-4 overflow-y-auto p-4 text-xs">
             <FeedDetailInfo item={item} />
           </div>
 
           {/* Footer: Navigation dots */}
-          <div className="p-3 border-t border-border/40 shrink-0 bg-card">
+          <div className="border-border/40 bg-card shrink-0 border-t p-3">
             <div className="flex items-center justify-center gap-1.5">
               {items.map((_, index) => (
                 <button
                   type="button"
                   key={index}
                   onClick={() => onNavigate(index)}
-                  className={`size-2 rounded-full transition-all cursor-pointer ${
+                  className={`size-2 cursor-pointer rounded-full transition-all ${
                     index === currentIndex
                       ? "bg-primary w-4"
                       : "bg-muted-foreground/30 hover:bg-muted-foreground/50"
@@ -1843,7 +1843,7 @@ function FeedDetailModal({
                 />
               ))}
             </div>
-            <p className="text-center text-[10px] text-muted-foreground mt-2">
+            <p className="text-muted-foreground mt-2 text-center text-[10px]">
               {currentIndex + 1} of {items.length}
             </p>
           </div>
@@ -1857,8 +1857,8 @@ function FeedDetailContent({ item }: { item: FeedItem }) {
   switch (item.type) {
     case "video": {
       return (
-        <div className="size-full flex items-center justify-center">
-          <Video className="size-16 text-muted-foreground" />
+        <div className="flex size-full items-center justify-center">
+          <Video className="text-muted-foreground size-16" />
         </div>
       );
     }
@@ -1876,30 +1876,30 @@ function FeedDetailContent({ item }: { item: FeedItem }) {
       const challenge = item.data as Challenge;
       if (challenge.videoUrl) {
         return (
-          <div className="size-full flex items-center justify-center">
-            <Video className="size-16 text-muted-foreground" />
+          <div className="flex size-full items-center justify-center">
+            <Video className="text-muted-foreground size-16" />
           </div>
         );
       }
       return (
-        <div className="size-full flex flex-col items-center justify-center p-6 text-white">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="size-16 rounded-full bg-primary/30 flex items-center justify-center text-2xl font-bold border-2 border-primary">
+        <div className="flex size-full flex-col items-center justify-center p-6 text-white">
+          <div className="mb-4 flex items-center gap-4">
+            <div className="bg-primary/30 border-primary flex size-16 items-center justify-center rounded-full border-2 text-2xl font-bold">
               {challenge.challenger[0]}
             </div>
-            <span className="text-xl font-bold text-muted-foreground">vs</span>
-            <div className="size-16 rounded-full bg-primary/30 flex items-center justify-center text-2xl font-bold border-2 border-primary">
+            <span className="text-muted-foreground text-xl font-bold">vs</span>
+            <div className="bg-primary/30 border-primary flex size-16 items-center justify-center rounded-full border-2 text-2xl font-bold">
               {challenge.challenged[0]}
             </div>
           </div>
-          <h3 className="text-lg font-bold text-center">
+          <h3 className="text-center text-lg font-bold">
             {challenge.challenger} vs {challenge.challenged}
           </h3>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-muted-foreground mt-1 text-sm">
             {challenge.mode} at {challenge.venue}
           </p>
           <span
-            className={`mt-3 px-3 py-1 rounded-full text-xs font-bold capitalize ${getChallengeBadgeClass(challenge.status, challenge.result)}`}
+            className={`mt-3 rounded-full px-3 py-1 text-xs font-bold capitalize ${getChallengeBadgeClass(challenge.status, challenge.result)}`}
           >
             {getChallengeBadgeText(challenge.status, challenge.result)}
           </span>
@@ -1909,9 +1909,9 @@ function FeedDetailContent({ item }: { item: FeedItem }) {
     case "post": {
       const post = item.data as SocialPost;
       return (
-        <div className="size-full flex flex-col items-center justify-center p-6 text-white">
-          <MessageSquare className="size-12 text-muted-foreground mb-3" />
-          <p className="text-sm text-center max-w-md">{post.content}</p>
+        <div className="flex size-full flex-col items-center justify-center p-6 text-white">
+          <MessageSquare className="text-muted-foreground mb-3 size-12" />
+          <p className="max-w-md text-center text-sm">{post.content}</p>
         </div>
       );
     }
@@ -1927,7 +1927,7 @@ function FeedDetailInfo({ item }: { item: FeedItem }) {
       const video = item.data as VideoCardData;
       return (
         <div className="space-y-3">
-          <h3 className="font-bold text-sm">{video.title}</h3>
+          <h3 className="text-sm font-bold">{video.title}</h3>
           <p className="text-muted-foreground">Video content details...</p>
         </div>
       );
@@ -1941,20 +1941,20 @@ function FeedDetailInfo({ item }: { item: FeedItem }) {
             <span className="flex items-center gap-1.5 text-red-500">
               <Heart className="size-4 fill-current" /> {photo.likes} Likes
             </span>
-            <span className="flex items-center gap-1.5 text-muted-foreground">
+            <span className="text-muted-foreground flex items-center gap-1.5">
               <MessageSquare className="size-4" /> {photo.comments.length}{" "}
               Comments
             </span>
           </div>
           {photo.comments.length > 0 && (
-            <div className="space-y-2 pt-2 border-t border-border/20">
+            <div className="border-border/20 space-y-2 border-t pt-2">
               {photo.comments.map((comment, index) => (
                 <div key={index} className="flex gap-2">
-                  <div className="size-6 rounded-full bg-primary/25 flex items-center justify-center text-[10px] font-bold shrink-0">
+                  <div className="bg-primary/25 flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold">
                     {comment.author[0]}
                   </div>
                   <div>
-                    <span className="font-bold text-[11px]">
+                    <span className="text-[11px] font-bold">
                       {comment.author}
                     </span>
                     <p className="text-muted-foreground">{comment.text}</p>
@@ -1971,40 +1971,40 @@ function FeedDetailInfo({ item }: { item: FeedItem }) {
       return (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] bg-primary/10 text-primary font-bold px-2 py-0.5 rounded uppercase tracking-wider">
+            <span className="bg-primary/10 text-primary rounded px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase">
               {challenge.mode}
             </span>
             <span
-              className={`font-bold px-2 py-0.5 rounded capitalize text-xs ${getChallengeBadgeClass(challenge.status, challenge.result)}`}
+              className={`rounded px-2 py-0.5 text-xs font-bold capitalize ${getChallengeBadgeClass(challenge.status, challenge.result)}`}
             >
               {getChallengeBadgeText(challenge.status, challenge.result)}
             </span>
           </div>
 
-          <h4 className="font-extrabold text-sm">
+          <h4 className="text-sm font-extrabold">
             {challenge.challenger} challenged {challenge.challenged}
           </h4>
 
-          <div className="grid grid-cols-2 gap-3 text-muted-foreground">
+          <div className="text-muted-foreground grid grid-cols-2 gap-3">
             <div className="flex items-center gap-1.5">
-              <Calendar className="size-3.5 text-primary" /> {challenge.date}
+              <Calendar className="text-primary size-3.5" /> {challenge.date}
             </div>
             <div className="flex items-center gap-1.5">
-              <Clock className="size-3.5 text-primary" /> {challenge.time}
+              <Clock className="text-primary size-3.5" /> {challenge.time}
             </div>
-            <div className="flex items-center gap-1.5 col-span-2">
-              <MapPin className="size-3.5 text-primary" /> {challenge.venue}
+            <div className="col-span-2 flex items-center gap-1.5">
+              <MapPin className="text-primary size-3.5" /> {challenge.venue}
             </div>
           </div>
 
           {challenge.message && (
-            <div className="bg-muted/40 p-2.5 rounded-lg text-[11px] text-foreground leading-normal border border-border/30">
-              "{challenge.message}"
+            <div className="bg-muted/40 text-foreground border-border/30 rounded-lg border p-2.5 text-[11px] leading-normal">
+              &quot;{challenge.message}&quot;
             </div>
           )}
 
           {challenge.casted && (
-            <div className="p-2.5 rounded-lg border border-red-500/20 bg-red-500/5 text-red-400 text-[11px] flex justify-between items-center font-medium">
+            <div className="flex items-center justify-between rounded-lg border border-red-500/20 bg-red-500/5 p-2.5 text-[11px] font-medium text-red-400">
               <span className="flex items-center gap-1">
                 <Video className="size-3.5" /> Recording Requested
               </span>
@@ -2015,13 +2015,13 @@ function FeedDetailInfo({ item }: { item: FeedItem }) {
           {challenge.result === "won" && (
             <div className="flex items-center gap-2 text-green-400">
               <Trophy className="size-4" />
-              <span className="font-bold text-xs">Victory</span>
+              <span className="text-xs font-bold">Victory</span>
             </div>
           )}
           {challenge.result === "lost" && (
             <div className="flex items-center gap-2 text-red-400">
               <XCircle className="size-4" />
-              <span className="font-bold text-xs">Defeat</span>
+              <span className="text-xs font-bold">Defeat</span>
             </div>
           )}
         </div>
@@ -2033,19 +2033,19 @@ function FeedDetailInfo({ item }: { item: FeedItem }) {
         <div className="space-y-3">
           <p className="text-foreground leading-relaxed">{post.content}</p>
           <div className="flex items-center gap-4 text-xs font-bold">
-            <span className="flex items-center gap-1.5 text-primary">
+            <span className="text-primary flex items-center gap-1.5">
               <ThumbsUp className="size-4 fill-current" /> {post.likes} Likes
             </span>
           </div>
           {post.comments.length > 0 && (
-            <div className="space-y-2 pt-2 border-t border-border/20">
+            <div className="border-border/20 space-y-2 border-t pt-2">
               {post.comments.map((comment, index) => (
                 <div key={index} className="flex gap-2">
-                  <div className="size-6 rounded-full bg-primary/25 flex items-center justify-center text-[10px] font-bold shrink-0">
+                  <div className="bg-primary/25 flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold">
                     {comment.author[0]}
                   </div>
                   <div>
-                    <span className="font-bold text-[11px]">
+                    <span className="text-[11px] font-bold">
                       {comment.author}
                     </span>
                     <p className="text-muted-foreground">{comment.text}</p>

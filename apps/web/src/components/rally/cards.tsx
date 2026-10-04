@@ -173,12 +173,12 @@ export function EmptyState({
   return (
     <Card className="rounded-lg border-dashed">
       <CardContent className="flex min-h-48 flex-col items-center justify-center gap-3 text-center">
-        <div className="grid size-12 place-items-center rounded-full bg-primary/10 text-primary">
+        <div className="bg-primary/10 text-primary grid size-12 place-items-center rounded-full">
           {icon ?? <Video className="size-5" />}
         </div>
         <div>
           <h3 className="font-semibold">{title}</h3>
-          <p className="mt-1 max-w-md text-sm text-muted-foreground">
+          <p className="text-muted-foreground mt-1 max-w-md text-sm">
             {message}
           </p>
         </div>
@@ -203,11 +203,11 @@ export function StatCard({
     <Card className="rounded-lg">
       <CardContent className="flex items-start justify-between">
         <div>
-          <p className="text-sm text-muted-foreground">{label}</p>
+          <p className="text-muted-foreground text-sm">{label}</p>
           <p className="mt-2 text-2xl font-bold">{value}</p>
-          {trend ? <p className="mt-3 text-xs text-primary">{trend}</p> : null}
+          {trend ? <p className="text-primary mt-3 text-xs">{trend}</p> : null}
         </div>
-        <div className="grid size-12 place-items-center rounded-full bg-primary/15 text-primary">
+        <div className="bg-primary/15 text-primary grid size-12 place-items-center rounded-full">
           {icon}
         </div>
       </CardContent>
@@ -271,25 +271,25 @@ function VideoThumbnail({
     <Link
       to="/videos/$id"
       params={{ id: getVideoSlug(video) }}
-      className="relative aspect-video overflow-hidden rounded-xl border border-border bg-muted cursor-pointer block"
+      className="border-border bg-muted relative block aspect-video cursor-pointer overflow-hidden rounded-xl border"
     >
       {imageUrl ? (
         <img
           alt={video.title}
-          className="size-full object-cover group-hover:scale-102 transition-transform duration-300"
+          className="size-full object-cover transition-transform duration-300 group-hover:scale-102"
           src={imageUrl}
         />
       ) : (
         <div className="flex size-full items-center justify-center bg-[linear-gradient(135deg,hsl(142_100%_18%/.35),hsl(78_100%_60%/.12))]">
-          <Video className="size-8 text-primary" />
+          <Video className="text-primary size-8" />
         </div>
       )}
       <div className="absolute inset-0 grid place-items-center bg-black/0 transition-colors group-hover:bg-black/25">
-        <div className="grid size-10 place-items-center rounded-full bg-background/90 text-primary opacity-0 transition-opacity group-hover:opacity-100 shadow-md">
-          <Play className="size-4 fill-current ml-0.5" />
+        <div className="bg-background/90 text-primary grid size-10 place-items-center rounded-full opacity-0 shadow-md transition-opacity group-hover:opacity-100">
+          <Play className="ml-0.5 size-4 fill-current" />
         </div>
       </div>
-      <span className="absolute right-2 bottom-2 rounded bg-black/85 px-1.5 py-0.5 text-[10px] text-white font-semibold tracking-wide">
+      <span className="absolute right-2 bottom-2 rounded bg-black/85 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white">
         {formatDuration(video.durationSeconds)}
       </span>
     </Link>
@@ -302,9 +302,9 @@ function VideoAvatar({ owner }: { owner: VideoCardData["owner"] }) {
     <Link
       to="/players/$username"
       params={{ username }}
-      className="shrink-0 cursor-pointer block"
+      className="block shrink-0 cursor-pointer"
     >
-      <div className="size-9 rounded-full bg-primary/10 text-primary flex items-center justify-center overflow-hidden font-bold border border-border hover:opacity-85 transition-opacity">
+      <div className="bg-primary/10 text-primary border-border flex size-9 items-center justify-center overflow-hidden rounded-full border font-bold transition-opacity hover:opacity-85">
         {owner?.image ? (
           <img
             src={owner.image}
@@ -342,7 +342,7 @@ export function VideoCard({ video }: { video: VideoCardData }) {
     video.owner?.username ?? video.owner?.displayUsername ?? "player";
 
   return (
-    <div className="group flex flex-col min-w-0 w-full animate-in fade-in duration-300 relative">
+    <div className="group animate-in fade-in relative flex w-full min-w-0 flex-col duration-300">
       {/* Thumbnail */}
       <VideoThumbnail imageUrl={imageUrl} video={video} />
 
@@ -352,20 +352,20 @@ export function VideoCard({ video }: { video: VideoCardData }) {
         <VideoAvatar owner={video.owner} />
 
         {/* Info Details */}
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0 flex-1">
           <Link
             to="/videos/$id"
             params={{ id: getVideoSlug(video) }}
-            className="block text-sm font-semibold line-clamp-2 leading-snug group-hover:text-primary transition-colors hover:no-underline cursor-pointer"
+            className="group-hover:text-primary line-clamp-2 block cursor-pointer text-sm leading-snug font-semibold transition-colors hover:no-underline"
           >
             {video.title}
           </Link>
 
-          <div className="mt-1 text-xs text-muted-foreground flex flex-wrap items-center gap-1">
+          <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-1 text-xs">
             <Link
               to="/players/$username"
               params={{ username: ownerUsername }}
-              className="hover:text-primary transition-colors hover:underline truncate font-medium"
+              className="hover:text-primary truncate font-medium transition-colors hover:underline"
             >
               {video.owner?.name ?? "Anonymous Player"}
             </Link>
@@ -396,7 +396,7 @@ export function PlayerCard({ player }: { player: PlayerCardData }) {
           }}
           className="group/link block"
         >
-          <div className="grid size-16 place-items-center rounded-full border-4 border-card bg-muted text-lg overflow-hidden group-hover/link:border-primary/50 transition-all">
+          <div className="border-card bg-muted group-hover/link:border-primary/50 grid size-16 place-items-center overflow-hidden rounded-full border-4 text-lg transition-all">
             {player.image ? (
               <img
                 alt=""
@@ -407,15 +407,15 @@ export function PlayerCard({ player }: { player: PlayerCardData }) {
               player.name.at(0)
             )}
           </div>
-          <h3 className="mt-4 text-lg font-bold group-hover/link:text-primary transition-colors">
+          <h3 className="group-hover/link:text-primary mt-4 text-lg font-bold transition-colors">
             {player.name}
           </h3>
         </Link>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           @{player.username ?? player.displayUsername ?? "player"}
         </p>
-        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1 text-brand-yellow">
+        <div className="text-muted-foreground mt-3 flex flex-wrap items-center gap-3 text-xs">
+          <span className="text-brand-yellow inline-flex items-center gap-1">
             <Star className="size-3 fill-current" />
             {player.skillLevel ?? "open play"}
           </span>
@@ -427,7 +427,7 @@ export function PlayerCard({ player }: { player: PlayerCardData }) {
           ) : null}
         </div>
         {player.bio ? (
-          <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">
+          <p className="text-muted-foreground mt-3 line-clamp-2 text-sm">
             {player.bio}
           </p>
         ) : null}
@@ -454,7 +454,7 @@ export function VenueCard({ venue }: { venue: VenueCardData }) {
             </Link>
           </CardTitle>
           {venue.isHomeCourt ? (
-            <span className="inline-flex items-center gap-1 rounded bg-[#bcdf21]/15 px-2 py-0.5 text-[10px] font-bold text-[#bcdf21] shrink-0 border border-[#bcdf21]/30">
+            <span className="inline-flex shrink-0 items-center gap-1 rounded border border-[#bcdf21]/30 bg-[#bcdf21]/15 px-2 py-0.5 text-[10px] font-bold text-[#bcdf21]">
               <Star className="size-3 fill-[#bcdf21]" />
               Home Court
             </span>
@@ -464,17 +464,17 @@ export function VenueCard({ venue }: { venue: VenueCardData }) {
       </CardHeader>
       <CardContent className="space-y-4">
         <Link to="/venues/$id" params={{ id: venueParam }} className="block">
-          <div className="h-24 rounded-lg bg-[linear-gradient(135deg,hsl(142_100%_18%/.32),hsl(78_100%_60%/.18))] overflow-hidden hover:opacity-90 transition-opacity" />
+          <div className="h-24 overflow-hidden rounded-lg bg-[linear-gradient(135deg,hsl(142_100%_18%/.32),hsl(78_100%_60%/.18))] transition-opacity hover:opacity-90" />
         </Link>
-        <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+        <div className="text-muted-foreground flex flex-wrap gap-4 text-sm">
           {location ? (
             <span className="inline-flex items-center gap-1">
-              <MapPin className="size-4 text-primary" />
+              <MapPin className="text-primary size-4" />
               {location}
             </span>
           ) : null}
           <span className="inline-flex items-center gap-1">
-            <Users className="size-4 text-primary" />
+            <Users className="text-primary size-4" />
             {venue.courtCount ?? 0} courts
           </span>
         </div>
@@ -531,33 +531,33 @@ export function ParkHeatCard({ venue }: { venue: VenueCardData }) {
   );
 
   return (
-    <article className="w-72 shrink-0 overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm transition-all duration-200 hover:border-primary/40 hover:shadow-md">
+    <article className="border-border/60 bg-card hover:border-primary/40 w-72 shrink-0 overflow-hidden rounded-xl border shadow-sm transition-all duration-200 hover:shadow-md">
       {cardLink}
       <div className="space-y-3 p-4">
         <div>
           <div className="flex items-center justify-between gap-1">
-            <h3 className="line-clamp-1 font-semibold text-sm">{titleLink}</h3>
+            <h3 className="line-clamp-1 text-sm font-semibold">{titleLink}</h3>
             {venue.isHomeCourt ? (
-              <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-[#bcdf21] shrink-0">
+              <span className="inline-flex shrink-0 items-center gap-0.5 text-[10px] font-bold text-[#bcdf21]">
                 <Star className="size-3 fill-[#bcdf21]" />
                 Home
               </span>
             ) : null}
           </div>
-          <p className="mt-1 text-xs text-muted-foreground truncate">
+          <p className="text-muted-foreground mt-1 truncate text-xs">
             {location || venue.venueType || "Nearby park"}
           </p>
         </div>
         <div className="grid grid-cols-3 gap-2 text-xs">
-          <span className="rounded-md bg-muted/60 px-2 py-1 text-center font-medium text-[11px]">
+          <span className="bg-muted/60 rounded-md px-2 py-1 text-center text-[11px] font-medium">
             {statusLabel}
           </span>
-          <span className="rounded-md bg-muted/60 px-2 py-1 text-center font-medium text-[11px]">
+          <span className="bg-muted/60 rounded-md px-2 py-1 text-center text-[11px] font-medium">
             {isGoogleDiscovery
               ? ratingLabel
               : `${venue.courtCount ?? 0} courts`}
           </span>
-          <span className="rounded-md bg-muted/60 px-2 py-1 text-center font-medium text-[11px]">
+          <span className="bg-muted/60 rounded-md px-2 py-1 text-center text-[11px] font-medium">
             {distanceLabel}
           </span>
         </div>
@@ -594,7 +594,7 @@ function ParkHeatHeader({
 }) {
   const isHot = heatScore > 0;
   return (
-    <div className="relative h-32 overflow-hidden bg-slate-950 hover:opacity-95 transition-opacity">
+    <div className="relative h-32 overflow-hidden bg-slate-950 transition-opacity hover:opacity-95">
       {photoUrl ? (
         <img
           src={photoUrl}
@@ -602,10 +602,10 @@ function ParkHeatHeader({
           className="absolute inset-0 size-full object-cover opacity-80"
         />
       ) : (
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-950 via-slate-900 to-teal-950 flex items-center justify-center">
+        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-emerald-950 via-slate-900 to-teal-950">
           {/* Stylized court line markings */}
           <svg
-            className="w-full h-full text-emerald-400/20"
+            className="h-full w-full text-emerald-400/20"
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 320 120"
             preserveAspectRatio="none"
@@ -668,7 +668,7 @@ function ParkHeatHeader({
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
 
       {isHomeCourt && (
-        <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-1 rounded-full bg-black/80 px-2 py-0.5 text-[11px] font-bold text-[#bcdf21] border border-[#bcdf21]/50 backdrop-blur-xs shadow-xs">
+        <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-1 rounded-full border border-[#bcdf21]/50 bg-black/80 px-2 py-0.5 text-[11px] font-bold text-[#bcdf21] shadow-xs backdrop-blur-xs">
           <Star className="size-3 fill-[#bcdf21]" />
           <span>Home Court</span>
         </div>
@@ -687,7 +687,7 @@ function ParkHeatHeader({
         <div className="mt-1.5 flex items-center justify-between text-[11px]">
           <span
             className={cn(
-              "font-semibold flex items-center gap-1",
+              "flex items-center gap-1 font-semibold",
               isHot ? "text-[#bcdf21]" : "text-white/70"
             )}
           >
@@ -721,31 +721,31 @@ export function RallyClipCard({ video }: { video: VideoCardData }) {
     video.owner?.username ?? video.owner?.displayUsername ?? "player";
 
   return (
-    <article className="group relative flex flex-col w-48 sm:w-56 shrink-0 snap-start overflow-hidden rounded-2xl border border-border/60 bg-card shadow-xs transition-all duration-300 hover:border-primary/50 hover:shadow-md cursor-pointer">
+    <article className="group border-border/60 bg-card hover:border-primary/50 relative flex w-48 shrink-0 cursor-pointer snap-start flex-col overflow-hidden rounded-2xl border shadow-xs transition-all duration-300 hover:shadow-md sm:w-56">
       <Link
         to="/videos/$id"
         params={{ id: getVideoSlug(video) }}
-        className="relative aspect-[9/16] w-full overflow-hidden bg-slate-950 block"
+        className="relative block aspect-[9/16] w-full overflow-hidden bg-slate-950"
       >
         {imageUrl ? (
           <img
             src={imageUrl}
             alt={video.title}
-            className="size-full object-cover group-hover:scale-105 transition-transform duration-500"
+            className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
           <div className="flex size-full flex-col items-center justify-center bg-gradient-to-b from-emerald-950 via-slate-900 to-black p-4 text-center">
-            <div className="size-12 rounded-full bg-primary/20 flex items-center justify-center text-primary mb-3">
-              <Play className="size-6 fill-primary ml-0.5" />
+            <div className="bg-primary/20 text-primary mb-3 flex size-12 items-center justify-center rounded-full">
+              <Play className="fill-primary ml-0.5 size-6" />
             </div>
-            <p className="text-xs font-semibold text-white/80 line-clamp-2">
+            <p className="line-clamp-2 text-xs font-semibold text-white/80">
               {video.title}
             </p>
           </div>
         )}
 
-        <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between pointer-events-none">
-          <span className="inline-flex items-center gap-1 rounded-full bg-black/75 px-2 py-0.5 text-[10px] font-bold text-[#bcdf21] border border-[#bcdf21]/30 backdrop-blur-xs">
+        <div className="pointer-events-none absolute top-2.5 right-2.5 left-2.5 flex items-center justify-between">
+          <span className="inline-flex items-center gap-1 rounded-full border border-[#bcdf21]/30 bg-black/75 px-2 py-0.5 text-[10px] font-bold text-[#bcdf21] backdrop-blur-xs">
             <Flame className="size-2.5 fill-[#bcdf21]" />
             Rally Clip
           </span>
@@ -755,13 +755,13 @@ export function RallyClipCard({ video }: { video: VideoCardData }) {
         </div>
 
         <div className="absolute inset-0 grid place-items-center bg-black/0 transition-colors group-hover:bg-black/30">
-          <div className="grid size-12 place-items-center rounded-full bg-primary text-primary-foreground opacity-0 transition-all duration-200 group-hover:opacity-100 group-hover:scale-105 shadow-lg">
-            <Play className="size-5 fill-current ml-0.5" />
+          <div className="bg-primary text-primary-foreground grid size-12 place-items-center rounded-full opacity-0 shadow-lg transition-all duration-200 group-hover:scale-105 group-hover:opacity-100">
+            <Play className="ml-0.5 size-5 fill-current" />
           </div>
         </div>
 
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent p-3 pt-10">
-          <h4 className="line-clamp-2 text-xs sm:text-sm font-bold text-white drop-shadow-xs leading-snug group-hover:text-primary transition-colors">
+          <h4 className="group-hover:text-primary line-clamp-2 text-xs leading-snug font-bold text-white drop-shadow-xs transition-colors sm:text-sm">
             {video.title}
           </h4>
           <div className="mt-2 flex items-center justify-between text-[11px] text-white/70">
@@ -771,13 +771,13 @@ export function RallyClipCard({ video }: { video: VideoCardData }) {
         </div>
       </Link>
 
-      <div className="p-2.5 bg-card/90 border-t border-border/40 flex items-center gap-2">
+      <div className="bg-card/90 border-border/40 flex items-center gap-2 border-t p-2.5">
         <Link
           to="/players/$username"
           params={{ username: ownerUsername }}
-          className="shrink-0 cursor-pointer block"
+          className="block shrink-0 cursor-pointer"
         >
-          <div className="size-6 rounded-full bg-primary/10 text-primary flex items-center justify-center overflow-hidden font-bold border border-border text-[10px]">
+          <div className="bg-primary/10 text-primary border-border flex size-6 items-center justify-center overflow-hidden rounded-full border text-[10px] font-bold">
             {video.owner?.image ? (
               <img
                 src={video.owner.image}
@@ -792,7 +792,7 @@ export function RallyClipCard({ video }: { video: VideoCardData }) {
         <Link
           to="/players/$username"
           params={{ username: ownerUsername }}
-          className="text-[11px] font-medium text-foreground hover:text-primary transition-colors truncate"
+          className="text-foreground hover:text-primary truncate text-[11px] font-medium transition-colors"
         >
           {video.owner?.name ?? `@${ownerUsername}`}
         </Link>
@@ -803,21 +803,21 @@ export function RallyClipCard({ video }: { video: VideoCardData }) {
 
 export function CasterCard({ caster }: { caster: CasterCardData }) {
   return (
-    <Card className="rounded-xl border border-border/60 bg-card hover:border-primary/40 transition-colors shadow-xs">
+    <Card className="border-border/60 bg-card hover:border-primary/40 rounded-xl border shadow-xs transition-colors">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="text-base">
             <Link
               to="/casters/$id"
               params={{ id: caster.userId }}
-              className="hover:text-primary transition-colors inline-flex items-center gap-1.5"
+              className="hover:text-primary inline-flex items-center gap-1.5 transition-colors"
             >
               <span>{caster.displayName ?? "RallyCasts Caster"}</span>
               <ShieldCheck className="size-4 text-emerald-500" />
             </Link>
           </CardTitle>
           <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-500">
-            <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
             On Duty
           </span>
         </div>
@@ -826,12 +826,12 @@ export function CasterCard({ caster }: { caster: CasterCardData }) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3.5">
-        <p className="line-clamp-2 text-xs text-muted-foreground leading-relaxed">
+        <p className="text-muted-foreground line-clamp-2 text-xs leading-relaxed">
           {caster.bio ??
             "Certified on-court caster. Arrives with 4K stabilized camera and court audio to record and livestream your match."}
         </p>
-        <div className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2 text-xs">
-          <span className="font-semibold text-foreground">
+        <div className="bg-muted/40 flex items-center justify-between rounded-lg px-3 py-2 text-xs">
+          <span className="text-foreground font-semibold">
             $25 / hr standard rate
           </span>
           <span className="text-muted-foreground">
@@ -840,7 +840,7 @@ export function CasterCard({ caster }: { caster: CasterCardData }) {
         </div>
         <div className="flex gap-2 pt-1">
           <Link to="/u/casts/new" className="flex-1">
-            <Button className="w-full rounded-lg text-xs font-semibold cursor-pointer">
+            <Button className="w-full cursor-pointer rounded-lg text-xs font-semibold">
               Request to Court
             </Button>
           </Link>
@@ -851,7 +851,7 @@ export function CasterCard({ caster }: { caster: CasterCardData }) {
           >
             <Button
               variant="outline"
-              className="w-full rounded-lg text-xs cursor-pointer"
+              className="w-full cursor-pointer rounded-lg text-xs"
             >
               Caster Info
             </Button>
@@ -897,74 +897,74 @@ export function EventCard({ event }: { event: EventCardData }) {
   };
 
   return (
-    <Card className="rounded-xl overflow-hidden border border-border/50 bg-card hover:border-primary/45 transition-all duration-200 active:scale-[0.98] shadow-sm flex flex-col h-full group">
+    <Card className="border-border/50 bg-card hover:border-primary/45 group flex h-full flex-col overflow-hidden rounded-xl border shadow-sm transition-all duration-200 active:scale-[0.98]">
       {/* Banner image wrapper */}
       <Link
         to="/events/$id"
         params={{ id: event.id || "upcoming" }}
-        className="block relative aspect-video w-full overflow-hidden shrink-0 border-b border-border/30 cursor-pointer"
+        className="border-border/30 relative block aspect-video w-full shrink-0 cursor-pointer overflow-hidden border-b"
         style={{ background: itemDetails.banner }}
       >
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
 
         {/* Event type overlay */}
-        <div className="absolute inset-x-0 bottom-0 h-10 border-t border-dashed border-white/20 flex items-center justify-center">
-          <span className="text-[10px] text-white/45 font-bold uppercase tracking-widest bg-black/40 px-2 py-0.5 rounded backdrop-blur-[2px]">
+        <div className="absolute inset-x-0 bottom-0 flex h-10 items-center justify-center border-t border-dashed border-white/20">
+          <span className="rounded bg-black/40 px-2 py-0.5 text-[10px] font-bold tracking-widest text-white/45 uppercase backdrop-blur-[2px]">
             {event.eventType ?? "open play"}
           </span>
         </div>
 
         {/* Dynamic center icon or "?" mark from mockup */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="size-8 rounded bg-sky-950/80 border border-sky-400/30 flex items-center justify-center text-xs text-sky-400 font-extrabold shadow shadow-black/50">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="flex size-8 items-center justify-center rounded border border-sky-400/30 bg-sky-950/80 text-xs font-extrabold text-sky-400 shadow shadow-black/50">
             ?
           </div>
         </div>
 
         {/* Title text embedded in overlay bottom left */}
-        <div className="absolute left-4 bottom-3 right-4 z-10 space-y-2">
+        <div className="absolute right-4 bottom-3 left-4 z-10 space-y-2">
           {isRallyCastsHosted ? (
-            <span className="inline-flex w-fit items-center rounded-md bg-[#bcdf21] px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-black shadow">
+            <span className="inline-flex w-fit items-center rounded-md bg-[#bcdf21] px-2.5 py-0.5 text-[10px] font-extrabold tracking-wide text-black uppercase shadow">
               RallyCasts Hosted
             </span>
           ) : null}
-          <h3 className="text-base font-extrabold tracking-tight text-white drop-shadow group-hover:text-primary transition-colors">
+          <h3 className="group-hover:text-primary text-base font-extrabold tracking-tight text-white drop-shadow transition-colors">
             {event.name}
           </h3>
         </div>
       </Link>
 
       {/* Card details body */}
-      <CardContent className="p-4 space-y-3.5 flex-1 flex flex-col justify-between">
-        <div className="space-y-2 text-xs text-muted-foreground">
+      <CardContent className="flex flex-1 flex-col justify-between space-y-3.5 p-4">
+        <div className="text-muted-foreground space-y-2 text-xs">
           <div className="flex items-center gap-2">
-            <Calendar className="size-4 text-primary shrink-0" />
-            <span className="font-medium text-foreground/90">
+            <Calendar className="text-primary size-4 shrink-0" />
+            <span className="text-foreground/90 font-medium">
               {formatDateRange(startsAtDate, endsAtDate)}
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <MapPin className="size-4 text-primary shrink-0" />
+            <MapPin className="text-primary size-4 shrink-0" />
             <span>{itemDetails.location}</span>
           </div>
           <div className="flex items-center gap-2">
-            <Users className="size-4 text-primary shrink-0" />
+            <Users className="text-primary size-4 shrink-0" />
             <span>{event.capacity ?? "Open"} players</span>
           </div>
           {event.hostLabel ? (
             <div className="flex items-center gap-2">
-              <Trophy className="size-4 text-primary shrink-0" />
+              <Trophy className="text-primary size-4 shrink-0" />
               <span>{event.hostLabel}</span>
             </div>
           ) : null}
         </div>
 
         {/* Tags Row */}
-        <div className="flex flex-wrap gap-1.5 pt-2 border-t border-border/20">
+        <div className="border-border/20 flex flex-wrap gap-1.5 border-t pt-2">
           {itemDetails.tags.map((tag) => (
             <span
               key={tag}
-              className="text-[10px] bg-muted hover:bg-muted/70 text-muted-foreground font-semibold px-2.5 py-0.5 rounded-md capitalize"
+              className="bg-muted hover:bg-muted/70 text-muted-foreground rounded-md px-2.5 py-0.5 text-[10px] font-semibold capitalize"
             >
               {tag}
             </span>
@@ -1021,12 +1021,12 @@ export function RequestCard({ job }: { job: CastingJobCardData }) {
       <CardContent className="grid gap-4 md:grid-cols-[1fr_auto_auto] md:items-center">
         <div>
           <h3 className="font-semibold">{job.notes ?? "Recording request"}</h3>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="text-muted-foreground mt-2 text-sm">
             {formatDate(job.startsAt)}
           </p>
         </div>
-        <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-          <DollarSign className="size-4 text-primary" />
+        <div className="text-muted-foreground inline-flex items-center gap-2 text-sm">
+          <DollarSign className="text-primary size-4" />
           {formatMoney(job.priceCents)}
         </div>
         <span

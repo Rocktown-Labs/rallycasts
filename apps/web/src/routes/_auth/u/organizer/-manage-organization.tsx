@@ -34,7 +34,7 @@ export const ManageOrganizationPage = ({ slug }: { slug: string }) => {
   });
 
   if (!data?.organization) {
-    return <div className="h-64 animate-pulse rounded-xl bg-muted" />;
+    return <div className="bg-muted h-64 animate-pulse rounded-xl" />;
   }
 
   return <ManageOrganizationEditor data={data} slug={slug} />;
@@ -235,7 +235,7 @@ const ManageOrganizationEditor = ({
     <main className="mx-auto max-w-7xl space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">
+          <p className="text-primary text-xs font-bold tracking-[0.2em] uppercase">
             Host tools
           </p>
           <h1 className="text-3xl font-black">Manage {organization.name}</h1>
@@ -246,9 +246,9 @@ const ManageOrganizationEditor = ({
       </header>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <section className="rounded-2xl border bg-card p-6">
+        <section className="bg-card rounded-2xl border p-6">
           <h2 className="flex items-center gap-2 font-bold">
-            <Settings className="size-4 text-primary" /> Profile
+            <Settings className="text-primary size-4" /> Profile
           </h2>
           <div className="mt-4 space-y-3">
             <Input
@@ -283,7 +283,7 @@ const ManageOrganizationEditor = ({
             />
             <textarea
               aria-label="Organization bio"
-              className="min-h-28 w-full rounded-lg border bg-background p-3 text-sm"
+              className="bg-background min-h-28 w-full rounded-lg border p-3 text-sm"
               onChange={(event) => setBio(event.target.value)}
               placeholder="Organization bio"
               value={bio}
@@ -294,10 +294,10 @@ const ManageOrganizationEditor = ({
           </div>
         </section>
 
-        <section className="rounded-2xl border bg-card p-6">
+        <section className="bg-card rounded-2xl border p-6">
           <div className="flex items-center justify-between gap-4">
             <h2 className="flex items-center gap-2 font-bold">
-              <Users className="size-4 text-primary" /> Team
+              <Users className="text-primary size-4" /> Team
             </h2>
             <Link params={{ slug }} to="/u/organizer/organizations/$slug/team">
               <Button className="rounded-lg" variant="outline">
@@ -306,7 +306,7 @@ const ManageOrganizationEditor = ({
               </Button>
             </Link>
           </div>
-          <p className="mt-4 text-sm text-muted-foreground">
+          <p className="text-muted-foreground mt-4 text-sm">
             {data.members.length} member
             {data.members.length === 1 ? "" : "s"}, including{" "}
             {data.members
@@ -318,9 +318,9 @@ const ManageOrganizationEditor = ({
         </section>
       </div>
 
-      <section className="rounded-2xl border bg-card p-6">
+      <section className="bg-card rounded-2xl border p-6">
         <h2 className="flex items-center gap-2 text-xl font-bold">
-          <Calendar className="size-5 text-primary" /> Create tournament
+          <Calendar className="text-primary size-5" /> Create tournament
         </h2>
         <form
           className="mt-5 grid gap-4 md:grid-cols-2"
@@ -380,16 +380,16 @@ const ManageOrganizationEditor = ({
             onChange={(event) => setCourts(event.target.value)}
             value={courts}
           />
-          <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer text-foreground md:col-span-2">
+          <label className="text-foreground flex cursor-pointer items-center gap-2 text-xs font-semibold md:col-span-2">
             <input
               aria-label="Seed with demo players and bracket"
               checked={seedWithDemo}
-              className="size-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
+              className="border-border text-primary focus:ring-primary size-4 cursor-pointer rounded"
               onChange={(event) => setSeedWithDemo(event.target.checked)}
               type="checkbox"
             />
             <span className="flex items-center gap-1.5">
-              <Sparkles className="size-4 text-primary" />
+              <Sparkles className="text-primary size-4" />
               Seed with 8 demo players & live bracket (instant bracket
               verification)
             </span>
@@ -404,13 +404,13 @@ const ManageOrganizationEditor = ({
         </form>
       </section>
 
-      <section className="rounded-2xl border bg-card p-6">
+      <section className="bg-card rounded-2xl border p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h2 className="flex items-center gap-2 text-xl font-bold">
-              <Calendar className="size-5 text-primary" /> Tournaments
+              <Calendar className="text-primary size-5" /> Tournaments
             </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="text-muted-foreground mt-1 text-sm">
               Review the events attached to this organization and jump into the
               operational views.
             </p>
@@ -422,11 +422,11 @@ const ManageOrganizationEditor = ({
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div>
                   <h3 className="font-bold">{item.name}</h3>
-                  <p className="mt-1 text-xs text-muted-foreground">
+                  <p className="text-muted-foreground mt-1 text-xs">
                     {new Date(item.startsAt).toLocaleString()} ·{" "}
                     {item.eventType.replaceAll("_", " ")} · {item.status}
                   </p>
-                  <p className="mt-2 text-sm text-muted-foreground">
+                  <p className="text-muted-foreground mt-2 text-sm">
                     {item.capacity ?? "Open"} capacity ·{" "}
                     {item.entryFeeCents > 0
                       ? `$${(item.entryFeeCents / 100).toFixed(2)} entry`
@@ -455,7 +455,7 @@ const ManageOrganizationEditor = ({
                     </Button>
                   </Link>
                   <Button
-                    className="rounded-md gap-1 text-primary border-primary/40 hover:bg-primary/10 cursor-pointer"
+                    className="text-primary border-primary/40 hover:bg-primary/10 cursor-pointer gap-1 rounded-md"
                     disabled={seedDemo.isPending}
                     onClick={() => seedDemo.mutate(item.id)}
                     size="sm"
@@ -470,7 +470,7 @@ const ManageOrganizationEditor = ({
             </div>
           ))}
           {data.events.length === 0 ? (
-            <p className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
+            <p className="text-muted-foreground rounded-lg border border-dashed p-6 text-sm">
               No tournaments are attached to this organization yet.
             </p>
           ) : null}
@@ -478,13 +478,13 @@ const ManageOrganizationEditor = ({
       </section>
 
       <section className="grid gap-5 md:grid-cols-2">
-        <div className="rounded-2xl border bg-card p-6">
+        <div className="bg-card rounded-2xl border p-6">
           <h2 className="flex items-center gap-2 font-bold">
-            <FileVideo className="size-4 text-primary" /> Organization content
+            <FileVideo className="text-primary size-4" /> Organization content
           </h2>
           <textarea
             aria-label="Organization post"
-            className="mt-4 min-h-24 w-full rounded-lg border bg-background p-3 text-sm"
+            className="bg-background mt-4 min-h-24 w-full rounded-lg border p-3 text-sm"
             onChange={(event) => setOrganizationPost(event.target.value)}
             placeholder={`Post an update as ${organization.name}`}
             value={organizationPost}
@@ -516,11 +516,11 @@ const ManageOrganizationEditor = ({
             ))}
           </div>
         </div>
-        <div className="rounded-2xl border bg-card p-6">
+        <div className="bg-card rounded-2xl border p-6">
           <h2 className="flex items-center gap-2 font-bold">
-            <CreditCard className="size-4 text-primary" /> Payments
+            <CreditCard className="text-primary size-4" /> Payments
           </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="text-muted-foreground mt-2 text-sm">
             Stripe-hosted onboarding enables paid registration and organizer
             payouts. RallyCasts retains 5%.
           </p>

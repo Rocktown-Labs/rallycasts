@@ -1,7 +1,7 @@
 import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import z from "zod";
+import { z } from "zod";
 
 import ForgotPasswordForm from "@/components/forgot-password-form";
 import SignInForm from "@/components/sign-in-form";

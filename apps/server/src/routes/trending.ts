@@ -365,6 +365,7 @@ const fetchNearbyTrendingVenues = async (
           if (c.env.RADAR_SECRET_KEY) {
             for (const v of toCache) {
               try {
+                // oxlint-disable-next-line eslint/no-await-in-loop -- external API sync, sequential to respect rate limits
                 await syncVenueGeofence(c.env.RADAR_SECRET_KEY, {
                   courtCount: 0,
                   id: v.id,
@@ -380,6 +381,7 @@ const fetchNearbyTrendingVenues = async (
 
           for (const v of toCache) {
             try {
+              // oxlint-disable-next-line eslint/no-await-in-loop -- external API sync, sequential to respect rate limits
               await syncVenueSearchDocument(
                 () => c.executionCtx,
                 db,
@@ -415,10 +417,10 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
   const venuePageParam = c.req.query("venuePage");
   const venuePageSizeParam = c.req.query("venuePageSize");
 
-  const lat = latParam ? Number.parseFloat(latParam) : undefined;
-  const lng = lngParam ? Number.parseFloat(lngParam) : undefined;
+  const lat = latParam ? Number(latParam) : undefined;
+  const lng = lngParam ? Number(lngParam) : undefined;
   const parsedVenueRadius = radiusParam
-    ? Number.parseFloat(radiusParam)
+    ? Number(radiusParam)
     : DEFAULT_VENUE_RADIUS;
   const venueRadius = Math.min(
     Math.max(
@@ -430,7 +432,7 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
     MAX_VENUE_RADIUS
   );
   const parsedVenueLimit = venueLimitParam
-    ? Number.parseInt(venueLimitParam, 10)
+    ? Math.trunc(Number(venueLimitParam))
     : TRENDING_VENUE_LIMIT;
   const requestedVenueLimit = Math.min(
     Math.max(
@@ -442,14 +444,14 @@ export const trendingRouter = new Hono<AppEnv>().get("/", async (c) => {
     TRENDING_VENUE_VIEW_ALL_LIMIT
   );
   const parsedVenuePage = venuePageParam
-    ? Number.parseInt(venuePageParam, 10)
+    ? Math.trunc(Number(venuePageParam))
     : 1;
   const venuePage = Math.max(
     Number.isFinite(parsedVenuePage) ? parsedVenuePage : 1,
     1
   );
   const parsedVenuePageSize = venuePageSizeParam
-    ? Number.parseInt(venuePageSizeParam, 10)
+    ? Math.trunc(Number(venuePageSizeParam))
     : requestedVenueLimit;
   const venuePageSize = Math.min(
     Math.max(

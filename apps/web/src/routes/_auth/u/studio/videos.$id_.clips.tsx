@@ -138,7 +138,7 @@ const VideoClipperPage = () => {
   });
 
   if (!source) {
-    return <div className="h-96 animate-pulse rounded-2xl bg-muted" />;
+    return <div className="bg-muted h-96 animate-pulse rounded-2xl" />;
   }
 
   const effectiveMin = getEffectiveMinSeconds(duration);
@@ -175,7 +175,7 @@ const VideoClipperPage = () => {
           <ArrowLeft className="size-4" />
         </Button>
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
+          <p className="text-primary text-xs font-semibold tracking-[0.22em] uppercase">
             RallyCasts Studio
           </p>
           <h1 className="text-3xl font-bold">Create a RallyClip</h1>
@@ -204,7 +204,7 @@ const VideoClipperPage = () => {
           <Play className="size-4" />
           Preview selection
         </Button>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-muted-foreground text-xs">
           The player loops your selection while you trim.
         </p>
       </div>
@@ -219,7 +219,7 @@ const VideoClipperPage = () => {
       />
 
       <form
-        className="rounded-2xl border bg-card p-5"
+        className="bg-card rounded-2xl border p-5"
         onSubmit={(event) => submit(event)}
       >
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
@@ -237,7 +237,7 @@ const VideoClipperPage = () => {
             />
           </label>
           <Button
-            className={cn("rounded-lg gap-1.5")}
+            className={cn("gap-1.5 rounded-lg")}
             disabled={!isValid || createClip.isPending}
             onClick={submit}
             type="button"
@@ -250,7 +250,7 @@ const VideoClipperPage = () => {
             {createClip.isPending ? "Creating clip…" : "Post clip"}
           </Button>
         </div>
-        <p className="mt-3 text-xs text-muted-foreground">
+        <p className="text-muted-foreground mt-3 text-xs">
           Clips run {effectiveMin} to {CLIP_MAX_SECONDS} seconds. Mux creates a
           standalone, shareable video asset.
           {duration > 0 && duration < effectiveMin
@@ -258,7 +258,7 @@ const VideoClipperPage = () => {
             : ""}
         </p>
         {createClip.isError ? (
-          <p className="mt-2 text-xs text-destructive">
+          <p className="text-destructive mt-2 text-xs">
             {createClip.error instanceof Error
               ? createClip.error.message
               : "Could not create the clip."}
@@ -303,7 +303,7 @@ function ClipperPreview({
     return (
       <div className="grid aspect-video place-items-center text-sm text-white/70">
         <span className="flex items-center gap-2">
-          <LoaderCircle className="size-5 animate-spin text-primary" />
+          <LoaderCircle className="text-primary size-5 animate-spin" />
           Preparing secure playback…
         </span>
       </div>

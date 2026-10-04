@@ -149,6 +149,7 @@ export const fetchCollections = async (): Promise<FwCollection[]> => {
   let page = 0;
   let hasNextPage = true;
   while (hasNextPage) {
+    // oxlint-disable-next-line eslint/no-await-in-loop -- pagination: each page's existence depends on the previous response
     const data = await request<FwPage<FwCollection>>(
       `/collections?page=${page}&size=${PAGE_SIZE}`
     );
@@ -174,6 +175,7 @@ export const fetchAllProducts = async (): Promise<FwOffer[]> => {
   let page = 0;
   let hasNextPage = true;
   while (hasNextPage) {
+    // oxlint-disable-next-line eslint/no-await-in-loop -- pagination: each page's existence depends on the previous response
     const data = await fetchCollectionProducts("all", page);
     offers.push(...data.results);
     ({ hasNextPage } = data.paging);

@@ -142,7 +142,7 @@ export function SponsoredPlayer({
           const manager = loaded.getAdsManager(null);
           managerRef.current = manager;
           const adsManager = manager as ImaAdsManager & {
-            addEventListener(type: string, handler: () => void): void;
+            addEventListener: (type: string, handler: () => void) => void;
           };
           adsManager.addEventListener(
             sdk.AdEvent.Type.CONTENT_PAUSE_REQUESTED,
@@ -161,7 +161,7 @@ export function SponsoredPlayer({
         }
       );
       const errorLoader = loader as unknown as {
-        addEventListener(type: string, handler: () => void): void;
+        addEventListener: (type: string, handler: () => void) => void;
       };
       errorLoader.addEventListener(sdk.AdErrorEvent.Type.AD_ERROR, endAd);
       const request = new sdk.AdsRequest();
@@ -176,7 +176,7 @@ export function SponsoredPlayer({
 
   return (
     <div
-      className="relative aspect-video w-full overflow-hidden rounded-xl border border-border bg-black shadow-lg"
+      className="border-border relative aspect-video w-full overflow-hidden rounded-xl border bg-black shadow-lg"
       ref={containerRef}
     >
       <div className={phase === "ad" ? "invisible" : "visible"}>
@@ -233,7 +233,7 @@ export function SponsoredPlayer({
               <VideoIcon className="size-12 text-[#bcdf21]" />
             </span>
           )}
-          <span className="relative flex size-16 items-center justify-center rounded-full bg-primary/95 text-primary-foreground shadow-xl transition-transform duration-200 hover:scale-110">
+          <span className="bg-primary/95 text-primary-foreground relative flex size-16 items-center justify-center rounded-full shadow-xl transition-transform duration-200 hover:scale-110">
             <Play className="ml-1 size-8 fill-current" />
           </span>
         </button>

@@ -46,37 +46,37 @@ export interface OnboardingBioInput {
 
 const toFourDigitYear = (value: string) => {
   if (value.length === 2) {
-    const year = Number.parseInt(value, 10);
+    const year = Math.trunc(Number(value));
     return year > MAX_TWO_DIGIT_BIRTH_YEAR ? MIN_FULL_YEAR + year : 2000 + year;
   }
 
-  return Number.parseInt(value, 10);
+  return Math.trunc(Number(value));
 };
 
 const getDateParts = (input: string, clean: string): DateParts | null => {
   if (clean.length === 6) {
     return {
-      day: Number.parseInt(clean.slice(2, 4), 10),
-      month: Number.parseInt(clean.slice(0, 2), 10),
+      day: Math.trunc(Number(clean.slice(2, 4))),
+      month: Math.trunc(Number(clean.slice(0, 2))),
       year: toFourDigitYear(clean.slice(4, 6)),
     };
   }
 
   if (clean.length === 8) {
-    const possibleYear = Number.parseInt(clean.slice(0, 4), 10);
+    const possibleYear = Math.trunc(Number(clean.slice(0, 4)));
 
     if (possibleYear >= MIN_FULL_YEAR && possibleYear <= MAX_FULL_YEAR) {
       return {
-        day: Number.parseInt(clean.slice(6, 8), 10),
-        month: Number.parseInt(clean.slice(4, 6), 10),
+        day: Math.trunc(Number(clean.slice(6, 8))),
+        month: Math.trunc(Number(clean.slice(4, 6))),
         year: possibleYear,
       };
     }
 
     return {
-      day: Number.parseInt(clean.slice(2, 4), 10),
-      month: Number.parseInt(clean.slice(0, 2), 10),
-      year: Number.parseInt(clean.slice(4, 8), 10),
+      day: Math.trunc(Number(clean.slice(2, 4))),
+      month: Math.trunc(Number(clean.slice(0, 2))),
+      year: Math.trunc(Number(clean.slice(4, 8))),
     };
   }
 
@@ -90,11 +90,11 @@ const getDateParts = (input: string, clean: string): DateParts | null => {
     return null;
   }
 
-  const firstValue = Number.parseInt(firstPart, 10);
+  const firstValue = Math.trunc(Number(firstPart));
   if (firstValue >= MIN_FULL_YEAR && firstValue <= MAX_FULL_YEAR) {
     return {
-      day: Number.parseInt(yearPart, 10),
-      month: Number.parseInt(secondPart, 10),
+      day: Math.trunc(Number(yearPart)),
+      month: Math.trunc(Number(secondPart)),
       year: firstValue,
     };
   }
@@ -104,12 +104,12 @@ const getDateParts = (input: string, clean: string): DateParts | null => {
   }
 
   return {
-    day: Number.parseInt(secondPart, 10),
-    month: Number.parseInt(firstPart, 10),
+    day: Math.trunc(Number(secondPart)),
+    month: Math.trunc(Number(firstPart)),
     year:
       yearPart.length === 2
         ? toFourDigitYear(yearPart)
-        : Number.parseInt(yearPart, 10),
+        : Math.trunc(Number(yearPart)),
   };
 };
 

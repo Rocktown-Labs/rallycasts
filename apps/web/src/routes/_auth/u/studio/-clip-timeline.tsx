@@ -263,9 +263,9 @@ export function ClipTrimTimeline({
   const clipSeconds = Math.max(0, end - start);
 
   return (
-    <div className="space-y-2 select-none touch-none">
+    <div className="touch-none space-y-2 select-none">
       <div
-        className="relative h-20 overflow-hidden rounded-lg bg-muted"
+        className="bg-muted relative h-20 overflow-hidden rounded-lg"
         data-testid="clip-trim-timeline"
         ref={trackRef}
       >
@@ -314,7 +314,7 @@ export function ClipTrimTimeline({
           aria-valuemax={Math.round(duration)}
           aria-valuemin={0}
           aria-valuenow={Math.round(start)}
-          className="absolute inset-y-0 z-20 -ml-1.5 flex w-3 cursor-ew-resize items-center justify-center rounded-sm bg-[#bcdf21] outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="focus-visible:ring-ring absolute inset-y-0 z-20 -ml-1.5 flex w-3 cursor-ew-resize items-center justify-center rounded-sm bg-[#bcdf21] outline-none focus-visible:ring-2"
           onKeyDown={(event) => handleKeyboard(event, "start")}
           onPointerDown={(event) => beginDrag(event, "start")}
           onPointerMove={handlePointerMove}
@@ -332,7 +332,7 @@ export function ClipTrimTimeline({
           aria-valuemax={Math.round(duration)}
           aria-valuemin={0}
           aria-valuenow={Math.round(end)}
-          className="absolute inset-y-0 z-20 -mr-1.5 flex w-3 cursor-ew-resize items-center justify-center rounded-sm bg-[#bcdf21] outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="focus-visible:ring-ring absolute inset-y-0 z-20 -mr-1.5 flex w-3 cursor-ew-resize items-center justify-center rounded-sm bg-[#bcdf21] outline-none focus-visible:ring-2"
           onKeyDown={(event) => handleKeyboard(event, "end")}
           onPointerDown={(event) => beginDrag(event, "end")}
           onPointerMove={handlePointerMove}
@@ -343,7 +343,7 @@ export function ClipTrimTimeline({
         </button>
       </div>
 
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
+      <div className="text-muted-foreground flex items-center justify-between text-xs">
         <span
           className={cn(
             "font-semibold tabular-nums",

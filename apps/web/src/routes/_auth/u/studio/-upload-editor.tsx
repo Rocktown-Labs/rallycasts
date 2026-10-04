@@ -336,7 +336,9 @@ export function UploadTrimEditor({
       return;
     }
     setSegments((current) =>
-      [...current, candidate].sort((left, right) => left.start - right.start)
+      [...current, candidate].toSorted(
+        (left, right) => left.start - right.start
+      )
     );
   }, [segments, selection]);
 
@@ -365,9 +367,9 @@ export function UploadTrimEditor({
 
   if (probe === "loading") {
     return (
-      <div className="h-64 animate-pulse rounded-2xl border bg-card p-5">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Scissors className="size-4 text-primary" />
+      <div className="bg-card h-64 animate-pulse rounded-2xl border p-5">
+        <div className="text-muted-foreground flex items-center gap-2 text-sm">
+          <Scissors className="text-primary size-4" />
           Reading your video on this device…
         </div>
       </div>
@@ -376,12 +378,12 @@ export function UploadTrimEditor({
 
   if (probe !== "ready") {
     return (
-      <div className="rounded-2xl border bg-card p-5">
-        <div className="flex items-start gap-2 text-sm text-muted-foreground">
-          <Scissors className="mt-0.5 size-4 shrink-0 text-primary" />
+      <div className="bg-card rounded-2xl border p-5">
+        <div className="text-muted-foreground flex items-start gap-2 text-sm">
+          <Scissors className="text-primary mt-0.5 size-4 shrink-0" />
           <span>
-            In-browser trimming isn't available for this video in this browser.
-            Your original will be uploaded as-is.
+            In-browser trimming isn&apos;t available for this video in this
+            browser. Your original will be uploaded as-is.
           </span>
         </div>
       </div>
@@ -400,14 +402,14 @@ export function UploadTrimEditor({
   const statusCopy = getStatusCopy();
 
   return (
-    <div className="space-y-4 rounded-2xl border bg-card p-5">
+    <div className="bg-card space-y-4 rounded-2xl border p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="flex items-center gap-2 text-lg font-bold">
-            <Scissors className="size-5 text-primary" />
+            <Scissors className="text-primary size-5" />
             Trim before upload
           </h2>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="text-muted-foreground mt-1 text-xs">
             Runs entirely on this device. Only the edited result uploads.
           </p>
         </div>
@@ -482,7 +484,7 @@ export function UploadTrimEditor({
           Add this range to the video
         </Button>
         {segments.length > 0 ? (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-muted-foreground text-xs">
             {segments.length} range{segments.length === 1 ? "" : "s"} stitched
             together · {formatClipTime(keptSeconds)} kept
           </p>
@@ -493,7 +495,7 @@ export function UploadTrimEditor({
         <ul className="flex flex-wrap gap-2">
           {stitched.map((segment, index) => (
             <li
-              className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary"
+              className="bg-primary/10 text-primary inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold"
               key={`${segment.start}-${segment.end}`}
             >
               <span>
@@ -503,7 +505,7 @@ export function UploadTrimEditor({
               </span>
               <button
                 aria-label={`Remove range ${index + 1}`}
-                className="rounded-full transition-colors hover:text-foreground"
+                className="hover:text-foreground rounded-full transition-colors"
                 onClick={() => removeSegment(index)}
                 type="button"
               >
@@ -514,7 +516,7 @@ export function UploadTrimEditor({
         </ul>
       ) : null}
 
-      <p className="text-xs text-muted-foreground">{statusCopy}</p>
+      <p className="text-muted-foreground text-xs">{statusCopy}</p>
     </div>
   );
 }

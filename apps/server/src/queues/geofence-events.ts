@@ -21,6 +21,7 @@ export default {
   async queue(batch: MessageBatch<RadarWebhookEvent>, env: Env): Promise<void> {
     for (const message of batch.messages) {
       try {
+        // oxlint-disable-next-line eslint/no-await-in-loop -- queue consumer: ack each message only after it processes
         await processGeofenceEvent(message.body, env);
         message.ack();
       } catch (error) {

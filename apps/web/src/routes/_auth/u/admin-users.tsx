@@ -98,7 +98,7 @@ function PageHeader({
     <div className="flex flex-wrap items-center justify-between gap-4">
       <div>
         <Link
-          className="text-sm text-muted-foreground hover:text-primary"
+          className="text-muted-foreground hover:text-primary text-sm"
           to="/u/admin"
         >
           <span className="inline-flex items-center gap-1">
@@ -106,9 +106,9 @@ function PageHeader({
           </span>
         </Link>
         <h1 className="mt-2 flex items-center gap-2 text-2xl font-black">
-          <ShieldCheck className="size-6 text-primary" /> Manage users
+          <ShieldCheck className="text-primary size-6" /> Manage users
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="text-muted-foreground mt-1 text-sm">
           Search by email, assign the admin role, or ban abusive accounts.
           Admins are also granted automatically from the ADMIN_EMAILS list.
         </p>
@@ -136,7 +136,7 @@ function UserTable({ users }: { users: AdminUserRecord[] }) {
   return (
     <div className="overflow-x-auto rounded-lg border">
       <table className="w-full text-left text-sm">
-        <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
+        <thead className="bg-muted/50 text-muted-foreground text-xs uppercase">
           <tr>
             <th className="px-4 py-3">User</th>
             <th className="px-4 py-3">Role</th>
@@ -194,12 +194,12 @@ function UserRow({ record }: { record: AdminUserRecord }) {
     <tr className="border-t">
       <td className="px-4 py-3">
         <p className="font-semibold">{record.name}</p>
-        <p className="text-xs text-muted-foreground">{record.email}</p>
+        <p className="text-muted-foreground text-xs">{record.email}</p>
       </td>
       <td className="px-4 py-3">
         <select
           aria-label={`Role for ${record.email}`}
-          className="rounded-md border bg-background px-2 py-1 text-sm"
+          className="bg-background rounded-md border px-2 py-1 text-sm"
           disabled={pending}
           onChange={(event) =>
             handleRoleChange(event.target.value === "admin" ? "admin" : "user")
@@ -212,16 +212,16 @@ function UserRow({ record }: { record: AdminUserRecord }) {
       </td>
       <td className="px-4 py-3">
         {record.banned ? (
-          <span className="rounded-full bg-destructive/15 px-2 py-0.5 text-xs font-semibold text-destructive">
+          <span className="bg-destructive/15 text-destructive rounded-full px-2 py-0.5 text-xs font-semibold">
             Banned{record.banReason ? `: ${record.banReason}` : ""}
           </span>
         ) : (
-          <span className="rounded-full bg-primary/15 px-2 py-0.5 text-xs font-semibold text-primary">
+          <span className="bg-primary/15 text-primary rounded-full px-2 py-0.5 text-xs font-semibold">
             Active
           </span>
         )}
       </td>
-      <td className="px-4 py-3 text-muted-foreground">
+      <td className="text-muted-foreground px-4 py-3">
         {new Intl.DateTimeFormat("en", {
           day: "numeric",
           month: "short",

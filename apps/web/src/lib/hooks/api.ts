@@ -7,10 +7,10 @@ interface ResponseLike {
 
 type ExtractSuccessPayload<R> = R extends {
   status: 200 | 201 | 202 | 203 | 204 | 206;
-  json(): Promise<infer T>;
+  json: () => Promise<infer T>;
 }
   ? T
-  : R extends { ok: true; json(): Promise<infer T> }
+  : R extends { json: () => Promise<infer T>; ok: true }
     ? T
     : never;
 

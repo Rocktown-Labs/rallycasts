@@ -51,80 +51,96 @@ export const backfillSearchDocuments = async ({
     scheduleSearchDocumentIndex(getExecutionContext, db, env, record);
   };
 
-  for (const record of videos) {
-    await queueDocument({
-      content: [record.title, record.description].filter(Boolean).join("\n"),
-      entityId: record.id,
-      entityType: "video",
-      metadata: {
-        mediaType: record.mediaType,
-        ownerUserId: record.ownerUserId,
-        venueId: record.venueId,
-      },
-      title: record.title,
-    });
-  }
+  // Each document upsert is independent; run the batches concurrently.
+  await Promise.all(
+    videos.map((record) =>
+      queueDocument({
+        content: [record.title, record.description].filter(Boolean).join("\n"),
+        entityId: record.id,
+        entityType: "video",
+        metadata: {
+          mediaType: record.mediaType,
+          ownerUserId: record.ownerUserId,
+          venueId: record.venueId,
+        },
+        title: record.title,
+      })
+    )
+  );
 
-  for (const record of posts) {
-    await queueDocument({
-      content: record.post.content,
-      entityId: record.post.id,
-      entityType: "post",
-      metadata: { authorUserId: record.post.userId },
-      title: `${record.authorName}'s rally note`,
-    });
-  }
+  await Promise.all(
+    posts.map((record) =>
+      queueDocument({
+        content: record.post.content,
+        entityId: record.post.id,
+        entityType: "post",
+        metadata: { authorUserId: record.post.userId },
+        title: `${record.authorName}'s rally note`,
+      })
+    )
+  );
 
-  for (const record of events) {
-    await queueDocument({
-      content: [record.description, record.eventType, record.hostLabel]
-        .filter(Boolean)
-        .join(". "),
-      entityId: record.id,
-      entityType: "event",
-      metadata: {
-        organizationId: record.organizationId,
-        venueId: record.venueId,
-      },
-      title: record.name,
-    });
-  }
+  await Promise.all(
+    events.map((record) =>
+      queueDocument({
+        content: [record.description, record.eventType, record.hostLabel]
+          .filter(Boolean)
+          .join(". "),
+        entityId: record.id,
+        entityType: "event",
+        metadata: {
+          organizationId: record.organizationId,
+          venueId: record.venueId,
+        },
+        title: record.name,
+      })
+    )
+  );
 
-  for (const record of venues) {
-    await queueDocument({
-      content: [record.description, record.venueType, record.city, record.state]
-        .filter(Boolean)
-        .join(". "),
-      entityId: record.id,
-      entityType: "venue",
-      metadata: { city: record.city, state: record.state },
-      title: record.name,
-    });
-  }
+  await Promise.all(
+    venues.map((record) =>
+      queueDocument({
+        content: [
+          record.description,
+          record.venueType,
+          record.city,
+          record.state,
+        ]
+          .filter(Boolean)
+          .join(". "),
+        entityId: record.id,
+        entityType: "venue",
+        metadata: { city: record.city, state: record.state },
+        title: record.name,
+      })
+    )
+  );
 
-  for (const record of profiles) {
-    await queueDocument({
-      content: [
-        record.profile.bio,
-        record.profile.skillLevel
-          ? `${record.profile.skillLevel} pickleball player`
-          : null,
-        record.profile.homeCourtName,
-        record.profile.homeCity,
-        record.profile.homeState,
-      ]
-        .filter(Boolean)
-        .join(". "),
-      entityId: record.user.id,
-      entityType: "profile",
-      metadata: {
-        homeCity: record.profile.homeCity,
-        homeState: record.profile.homeState,
-        skillLevel: record.profile.skillLevel,
-      },
-      title: record.user.name,
-    });
-  }
+  await Promise.all(
+    profiles.map((record) =>
+      queueDocument({
+        content: [
+          record.profile.bio,
+          record.profile.skillLevel
+            ? `${record.profile.skillLevel} pickleball player`
+            : null,
+          record.profile.homeCourtName,
+          record.profile.homeCity,
+          record.profile.homeState,
+        ]
+          .filter(Boolean)
+          .join(". "),
+        entityId: record.user.id,
+        entityType: "profile",
+        metadata: {
+          homeCity: record.profile.homeCity,
+          homeState: record.profile.homeState,
+          skillLevel: record.profile.skillLevel,
+        },
+        title: record.user.name,
+      })
+    )
+  );
 
   return {
     events: events.length,

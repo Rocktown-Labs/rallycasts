@@ -13,29 +13,29 @@ function EventLocationsTab() {
   const hasVenue = Boolean(event.venueId);
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
+    <div className="animate-in fade-in space-y-6 duration-300">
       <div>
         <h2 className="flex items-center gap-2 text-xl font-bold">
-          <MapPin className="size-5 text-primary" /> Venue & Court Layout
+          <MapPin className="text-primary size-5" /> Venue & Court Layout
         </h2>
-        <p className="mt-1 text-xs text-muted-foreground">
+        <p className="text-muted-foreground mt-1 text-xs">
           Location and court details published by the event organizer.
         </p>
       </div>
 
-      <Card className="overflow-hidden rounded-xl border border-border/50 bg-card shadow-sm">
+      <Card className="border-border/50 bg-card overflow-hidden rounded-xl border shadow-sm">
         <CardContent className="p-6">
           <div className="flex items-start gap-3">
-            <MapPin className="mt-0.5 size-5 shrink-0 text-primary" />
+            <MapPin className="text-primary mt-0.5 size-5 shrink-0" />
             <div className="space-y-2">
-              <h3 className="font-bold text-sm">Event location</h3>
-              <p className="text-sm text-muted-foreground">
+              <h3 className="text-sm font-bold">Event location</h3>
+              <p className="text-muted-foreground text-sm">
                 {hasVenue
                   ? "The validated venue location is available on this event."
                   : "The organizer has not published a venue location yet."}
               </p>
               {event.courtLabelsJson ? (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                   Courts: {event.courtLabelsJson}
                 </p>
               ) : null}
@@ -44,12 +44,12 @@ function EventLocationsTab() {
         </CardContent>
       </Card>
 
-      <Card className="rounded-xl border border-border/50 bg-card p-5 shadow-sm">
-        <h3 className="flex items-center gap-1.5 border-b border-border/50 pb-2 text-sm font-bold">
-          <Info className="size-4 text-primary" /> Event guidance
+      <Card className="border-border/50 bg-card rounded-xl border p-5 shadow-sm">
+        <h3 className="border-border/50 flex items-center gap-1.5 border-b pb-2 text-sm font-bold">
+          <Info className="text-primary size-4" /> Event guidance
         </h3>
         <div className="mt-4 flex items-start gap-2.5 text-xs">
-          <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
+          <ShieldCheck className="text-primary mt-0.5 size-4 shrink-0" />
           <p className="text-muted-foreground">
             Check-in and court assignment instructions will appear here when the
             organizer publishes them.

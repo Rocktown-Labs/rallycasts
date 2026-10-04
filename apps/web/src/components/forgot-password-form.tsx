@@ -12,7 +12,7 @@ import { Label } from "@rallycaststv/ui/components/label";
 import { useForm } from "@tanstack/react-form";
 import { useState } from "react";
 import { toast } from "sonner";
-import z from "zod";
+import { z } from "zod";
 
 import { authClient } from "@/lib/auth-client";
 import { getAuthErrorMessage } from "@/lib/auth-errors";
@@ -64,25 +64,25 @@ const ForgotPasswordForm = ({
 
   if (sent) {
     return (
-      <div className="mx-auto w-full mt-16 max-w-md p-4 flex flex-col justify-center min-h-[70vh]">
-        <Card className="border border-border bg-card/60 backdrop-blur-md shadow-xl rounded-xl p-2">
-          <CardHeader className="text-center pb-4">
-            <CardTitle className="text-2xl font-bold tracking-tight text-foreground mt-2">
+      <div className="mx-auto mt-16 flex min-h-[70vh] w-full max-w-md flex-col justify-center p-4">
+        <Card className="border-border bg-card/60 rounded-xl border p-2 shadow-xl backdrop-blur-md">
+          <CardHeader className="pb-4 text-center">
+            <CardTitle className="text-foreground mt-2 text-2xl font-bold tracking-tight">
               Check Your Email
             </CardTitle>
-            <CardDescription className="text-xs text-muted-foreground">
+            <CardDescription className="text-muted-foreground text-xs">
               We have sent a password reset link to your email address
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground text-center">
+            <p className="text-muted-foreground text-center text-sm">
               If you do not see it, check your spam folder. The link expires in
               1 hour.
             </p>
             <Button
               onClick={onSwitchToSignIn}
               variant="outline"
-              className="w-full h-9 text-xs font-semibold rounded-md"
+              className="h-9 w-full rounded-md text-xs font-semibold"
             >
               Back to Sign In
             </Button>
@@ -93,16 +93,16 @@ const ForgotPasswordForm = ({
   }
 
   return (
-    <div className="mx-auto w-full mt-16 max-w-md p-4 flex flex-col justify-center min-h-[70vh]">
-      <Card className="border border-border bg-card/60 backdrop-blur-md shadow-xl rounded-xl p-2">
-        <CardHeader className="text-center pb-4">
-          <div className="mx-auto mb-2 flex h-8 w-28 items-center justify-center rounded-full bg-primary text-brand-yellow font-logo text-sm lowercase">
+    <div className="mx-auto mt-16 flex min-h-[70vh] w-full max-w-md flex-col justify-center p-4">
+      <Card className="border-border bg-card/60 rounded-xl border p-2 shadow-xl backdrop-blur-md">
+        <CardHeader className="pb-4 text-center">
+          <div className="bg-primary text-brand-yellow font-logo mx-auto mb-2 flex h-8 w-28 items-center justify-center rounded-full text-sm lowercase">
             rallycasts
           </div>
-          <CardTitle className="text-2xl font-bold tracking-tight text-foreground mt-2">
+          <CardTitle className="text-foreground mt-2 text-2xl font-bold tracking-tight">
             Forgot Password?
           </CardTitle>
-          <CardDescription className="text-xs text-muted-foreground">
+          <CardDescription className="text-muted-foreground text-xs">
             Enter your email and we will send you a reset link
           </CardDescription>
         </CardHeader>
@@ -133,12 +133,12 @@ const ForgotPasswordForm = ({
                       value={field.state.value}
                       onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
-                      className="h-9 text-xs rounded-md bg-background/50 border-muted focus-visible:ring-primary focus-visible:border-primary"
+                      className="bg-background/50 border-muted focus-visible:ring-primary focus-visible:border-primary h-9 rounded-md text-xs"
                     />
                     {field.state.meta.errors.map((error) => (
                       <p
                         key={error?.message}
-                        className="text-[10px] text-destructive font-medium"
+                        className="text-destructive text-[10px] font-medium"
                       >
                         {error?.message}
                       </p>
@@ -157,7 +157,7 @@ const ForgotPasswordForm = ({
               {({ canSubmit, isSubmitting }) => (
                 <Button
                   type="submit"
-                  className="w-full h-9 mt-2 text-xs font-semibold rounded-md bg-primary text-brand-yellow hover:bg-primary/95 transition-all shadow-md"
+                  className="bg-primary text-brand-yellow hover:bg-primary/95 mt-2 h-9 w-full rounded-md text-xs font-semibold shadow-md transition-all"
                   disabled={
                     !canSubmit || isSubmitting || requestPasswordReset.isPending
                   }
@@ -177,7 +177,7 @@ const ForgotPasswordForm = ({
             <Button
               variant="link"
               onClick={onSwitchToSignIn}
-              className="text-primary dark:text-brand-yellow font-semibold hover:underline p-0 h-auto text-xs cursor-pointer"
+              className="text-primary dark:text-brand-yellow h-auto cursor-pointer p-0 text-xs font-semibold hover:underline"
             >
               Sign In
             </Button>

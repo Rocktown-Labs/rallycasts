@@ -29,14 +29,14 @@ export const Route = createFileRoute("/_auth/u/organizer/")({
 function OrganizerSetupPrompt() {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <section className="rounded-lg border border-border bg-card p-6">
+      <section className="border-border bg-card rounded-lg border p-6">
         <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
           <div className="space-y-2">
-            <p className="text-sm font-semibold text-primary">Host tools</p>
+            <p className="text-primary text-sm font-semibold">Host tools</p>
             <h1 className="text-3xl font-extrabold tracking-tight">
               Turn on host tools
             </h1>
-            <p className="max-w-2xl text-sm text-muted-foreground">
+            <p className="text-muted-foreground max-w-2xl text-sm">
               Host mode adds event publishing, bracket management, player lists,
               and tournament operations to your RallyCasts dashboard.
             </p>
@@ -61,7 +61,7 @@ function OrganizerEventPreview({
   isLoading: boolean;
 }) {
   if (isLoading) {
-    return <div className="h-72 animate-pulse rounded-lg bg-muted" />;
+    return <div className="bg-muted h-72 animate-pulse rounded-lg" />;
   }
 
   if (events.length === 0) {
@@ -153,7 +153,7 @@ function QuickActions({ firstOrgSlug }: { firstOrgSlug?: string }) {
     >
       {quickActionTiles.map(({ chip, icon: Icon, label, resolveTo }) => (
         <Link
-          className="group flex min-w-32 flex-col items-center gap-2.5 rounded-xl border border-border/80 bg-card/60 p-4 transition-[background-color,border-color,transform] duration-150 hover:border-primary/50 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.98] cursor-pointer"
+          className="group border-border/80 bg-card/60 hover:border-primary/50 hover:bg-card focus-visible:ring-ring/50 flex min-w-32 cursor-pointer flex-col items-center gap-2.5 rounded-xl border p-4 transition-[background-color,border-color,transform] duration-150 focus-visible:ring-2 focus-visible:outline-none active:scale-[0.98]"
           key={label}
           {...resolveTo(firstOrgSlug)}
         >
@@ -162,7 +162,7 @@ function QuickActions({ firstOrgSlug }: { firstOrgSlug?: string }) {
           >
             <Icon className="size-5" />
           </span>
-          <span className="text-xs font-semibold text-foreground">{label}</span>
+          <span className="text-foreground text-xs font-semibold">{label}</span>
         </Link>
       ))}
     </section>
@@ -196,12 +196,12 @@ function OrganizerDashboardPage() {
   return (
     <div className="mx-auto max-w-7xl space-y-8">
       <section className="grid gap-4 lg:grid-cols-[1.25fr_.75fr]">
-        <div className="rounded-lg border border-border bg-card p-6">
-          <p className="text-sm font-semibold text-primary">Host tools</p>
+        <div className="border-border bg-card rounded-lg border p-6">
+          <p className="text-primary text-sm font-semibold">Host tools</p>
           <h1 className="mt-2 text-3xl font-extrabold tracking-tight md:text-4xl">
             Run your pickleball operations from here.
           </h1>
-          <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
+          <p className="text-muted-foreground mt-3 max-w-2xl text-sm">
             Publish tournaments, manage registrations and brackets, keep your
             organizations and team together, and track the player data
             RallyCasts collects for your events.
@@ -238,14 +238,14 @@ function OrganizerDashboardPage() {
             <CardTitle className="text-lg">Host profile</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
-            <div className="flex items-center justify-between gap-4 border-b border-border pb-3">
+            <div className="border-border flex items-center justify-between gap-4 border-b pb-3">
               <span className="text-muted-foreground">Home court</span>
               <span className="max-w-48 truncate font-medium">
                 {(profile as { homeCourtName?: string | null }).homeCourtName ??
                   "Not set"}
               </span>
             </div>
-            <div className="flex items-center justify-between gap-4 border-b border-border pb-3">
+            <div className="border-border flex items-center justify-between gap-4 border-b pb-3">
               <span className="text-muted-foreground">Location</span>
               <span className="font-medium">
                 {[
@@ -314,7 +314,7 @@ function OrganizerDashboardPage() {
                 variant="outline"
               >
                 <span className="inline-flex items-center gap-2">
-                  <Building2 className="size-4 text-primary" />
+                  <Building2 className="text-primary size-4" />
                   Manage organizations
                 </span>
                 <ArrowRight className="size-4" />
@@ -330,7 +330,7 @@ function OrganizerDashboardPage() {
                   variant="outline"
                 >
                   <span className="inline-flex items-center gap-2">
-                    <UserPlus className="size-4 text-primary" />
+                    <UserPlus className="text-primary size-4" />
                     Invite a teammate
                   </span>
                   <ArrowRight className="size-4" />
@@ -343,7 +343,7 @@ function OrganizerDashboardPage() {
                 variant="outline"
               >
                 <span className="inline-flex items-center gap-2">
-                  <Plus className="size-4 text-primary" />
+                  <Plus className="text-primary size-4" />
                   New organization
                 </span>
                 <ArrowRight className="size-4" />
@@ -355,7 +355,7 @@ function OrganizerDashboardPage() {
                 variant="outline"
               >
                 <span className="inline-flex items-center gap-2">
-                  <MapPin className="size-4 text-primary" />
+                  <MapPin className="text-primary size-4" />
                   Review nearby parks
                 </span>
                 <ArrowRight className="size-4" />

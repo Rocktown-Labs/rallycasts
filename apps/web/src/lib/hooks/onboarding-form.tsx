@@ -55,7 +55,7 @@ function FormInput({
   return (
     <div className="space-y-1.5">
       <Label
-        className="text-sm font-medium flex items-center justify-between"
+        className="flex items-center justify-between text-sm font-medium"
         htmlFor={field.name}
       >
         <span>
@@ -63,22 +63,22 @@ function FormInput({
           {required && (
             <span
               aria-hidden="true"
-              className="ml-1 font-bold text-destructive"
+              className="text-destructive ml-1 font-bold"
             >
               *
             </span>
           )}
         </span>
         {maxLength ? (
-          <span className="text-[10px] text-muted-foreground font-mono">
+          <span className="text-muted-foreground font-mono text-[10px]">
             {field.state.value?.length ?? 0}/{maxLength}
           </span>
         ) : null}
       </Label>
-      {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
+      {hint && <p className="text-muted-foreground text-[11px]">{hint}</p>}
       <div className="relative">
         {Icon && (
-          <Icon className="absolute left-3 top-2.5 size-4 text-muted-foreground pointer-events-none" />
+          <Icon className="text-muted-foreground pointer-events-none absolute top-2.5 left-3 size-4" />
         )}
         <Input
           aria-invalid={Boolean(displayError)}
@@ -96,7 +96,7 @@ function FormInput({
         />
       </div>
       {displayError && (
-        <p className="text-xs text-destructive">{displayError}</p>
+        <p className="text-destructive text-xs">{displayError}</p>
       )}
     </div>
   );
@@ -108,7 +108,7 @@ function SubmitButton({ children }: { children: React.ReactNode }) {
     <form.Subscribe selector={(state) => state.isSubmitting}>
       {(isSubmitting) => (
         <button
-          className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-9 items-center justify-center rounded-md px-4 text-sm font-medium transition-colors disabled:opacity-50"
           disabled={isSubmitting}
           type="submit"
         >

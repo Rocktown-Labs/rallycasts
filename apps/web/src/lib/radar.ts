@@ -1,6 +1,6 @@
 import { createAutocompletePlugin } from "@radarlabs/plugin-autocomplete";
 import { env } from "@rallycaststv/env/web";
-import Radar from "radar-sdk-js";
+import { Radar } from "radar-sdk-js";
 
 export function initializeRadar() {
   if (typeof window === "undefined") {
@@ -14,4 +14,4 @@ export function initializeRadar() {
   }
 }
 
-export { Radar };
+export { Radar } from "radar-sdk-js";

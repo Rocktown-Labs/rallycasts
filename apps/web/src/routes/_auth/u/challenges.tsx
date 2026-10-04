@@ -62,59 +62,59 @@ function ChallengesPage() {
   return (
     <main className="mx-auto max-w-5xl space-y-7">
       <header>
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">
+        <p className="text-primary text-xs font-bold tracking-[0.2em] uppercase">
           Head-to-head play
         </p>
         <h1 className="text-3xl font-black">Match challenges</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
+        <p className="text-muted-foreground mt-2 text-sm">
           Set the park, court, time, coverage, cost split, and caster tip before
           anyone commits.
         </p>
       </header>
       {isLoading ? (
-        <div className="h-48 animate-pulse rounded-xl bg-muted" />
+        <div className="bg-muted h-48 animate-pulse rounded-xl" />
       ) : null}
       <div className="space-y-4">
         {challenges.map(({ challenge, venue }) => {
           const incoming = challenge.challengedUserId === session?.user?.id;
           return (
             <article
-              className="rounded-2xl border bg-card p-5"
+              className="bg-card rounded-2xl border p-5"
               key={challenge.id}
             >
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p className="flex items-center gap-2 font-bold capitalize">
-                    <Swords className="size-4 text-primary" />{" "}
+                    <Swords className="text-primary size-4" />{" "}
                     {challenge.matchMode ?? "singles"} challenge
                   </p>
-                  <p className="mt-2 flex items-center gap-1 text-sm text-muted-foreground">
+                  <p className="text-muted-foreground mt-2 flex items-center gap-1 text-sm">
                     <MapPin className="size-4" />{" "}
                     {challenge.venueLabel ?? venue?.name ?? "Park TBD"} ·{" "}
                     {challenge.courtLabel ?? "Court TBD"}
                   </p>
-                  <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
+                  <p className="text-muted-foreground mt-1 flex items-center gap-1 text-sm">
                     <Calendar className="size-4" />{" "}
                     {challenge.scheduledAt
                       ? new Date(challenge.scheduledAt).toLocaleString()
                       : "Time TBD"}
                   </p>
                   {challenge.isCasted ? (
-                    <p className="mt-2 flex items-center gap-1 text-xs font-semibold text-primary">
+                    <p className="text-primary mt-2 flex items-center gap-1 text-xs font-semibold">
                       <Video className="size-4" /> Caster requested ·{" "}
                       {challenge.castingSplitMode?.replaceAll("_", " ")} · $
                       {(challenge.casterTipCents / 100).toFixed(2)} tip
                     </p>
                   ) : null}
                 </div>
-                <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold capitalize text-primary">
+                <span className="bg-primary/10 text-primary rounded-full px-3 py-1 text-xs font-bold capitalize">
                   {challenge.result
                     ? `${challenge.status} · ${challenge.result}`
                     : challenge.status}
                 </span>
               </div>
               {challenge.message ? (
-                <p className="mt-4 rounded-lg bg-muted p-3 text-sm">
+                <p className="bg-muted mt-4 rounded-lg p-3 text-sm">
                   “{challenge.message}”
                 </p>
               ) : null}
@@ -150,7 +150,7 @@ function ChallengesPage() {
               ) : null}
               {challenge.status === "accepted" ? (
                 <div className="mt-4 flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-semibold text-muted-foreground">
+                  <span className="text-muted-foreground text-xs font-semibold">
                     Report result:
                   </span>
                   <Button
@@ -196,9 +196,9 @@ function ChallengesPage() {
         })}
         {challenges.length === 0 ? (
           <div className="rounded-2xl border border-dashed p-10 text-center">
-            <Swords className="mx-auto size-8 text-primary" />
+            <Swords className="text-primary mx-auto size-8" />
             <p className="mt-3 font-bold">No challenges yet</p>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="text-muted-foreground mt-1 text-sm">
               Open a player profile to issue your first challenge.
             </p>
             <Link to="/players">

@@ -351,11 +351,11 @@ function SetupGuidePill({
   return (
     <button
       aria-label="Reopen setup guide"
-      className="fixed bottom-20 right-4 z-50 flex items-center gap-2 rounded-full border border-border/80 bg-card/95 px-3.5 py-2 shadow-2xl text-xs font-bold text-foreground hover:border-primary/50 transition-all backdrop-blur-md cursor-pointer hover:shadow-primary/10 active:scale-95"
+      className="border-border/80 bg-card/95 text-foreground hover:border-primary/50 hover:shadow-primary/10 fixed right-4 bottom-20 z-50 flex cursor-pointer items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-bold shadow-2xl backdrop-blur-md transition-all active:scale-95"
       onClick={onReopen}
       type="button"
     >
-      <Sparkles className="size-4 text-primary animate-pulse" />
+      <Sparkles className="text-primary size-4 animate-pulse" />
       <span>
         Setup Guide ({completedCount}/{totalCount})
       </span>
@@ -375,10 +375,10 @@ function SetupGuideMinimized({
   progressPercent: number;
 }) {
   return (
-    <div className="fixed bottom-20 right-4 z-50 w-80 sm:w-88 rounded-2xl border border-border/80 bg-card/95 backdrop-blur-md shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
-      <div className="h-1 w-full bg-muted overflow-hidden">
+    <div className="border-border/80 bg-card/95 animate-in fade-in slide-in-from-bottom-2 fixed right-4 bottom-20 z-50 w-80 overflow-hidden rounded-2xl border shadow-2xl backdrop-blur-md duration-200 sm:w-88">
+      <div className="bg-muted h-1 w-full overflow-hidden">
         <div
-          className="h-full bg-primary transition-all duration-500"
+          className="bg-primary h-full transition-all duration-500"
           style={{ width: `${progressPercent}%` }}
         />
       </div>
@@ -386,37 +386,37 @@ function SetupGuideMinimized({
       <div className="flex items-center justify-between gap-2 p-3.5">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-extrabold text-foreground">
+            <span className="text-foreground text-xs font-extrabold">
               Setup guide
             </span>
-            <span className="rounded-full bg-primary/10 px-2 py-0.2 text-[10px] font-bold text-primary">
+            <span className="bg-primary/10 py-0.2 text-primary rounded-full px-2 text-[10px] font-bold">
               {progressPercent}%
             </span>
           </div>
           {nextPendingItem ? (
             <Link
-              className="text-[11px] text-primary hover:underline font-semibold block truncate mt-0.5"
+              className="text-primary mt-0.5 block truncate text-[11px] font-semibold hover:underline"
               to={nextPendingItem.to}
             >
               Next: {nextPendingItem.title}
             </Link>
           ) : (
-            <p className="text-[11px] text-emerald-500 font-bold mt-0.5">
+            <p className="mt-0.5 text-[11px] font-bold text-emerald-500">
               All setup completed! 🎉
             </p>
           )}
         </div>
 
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex shrink-0 items-center gap-1">
           <Link
-            className="text-[11px] text-muted-foreground hover:text-foreground font-medium px-1.5 py-1"
+            className="text-muted-foreground hover:text-foreground px-1.5 py-1 text-[11px] font-medium"
             to="/u/settings"
           >
             Edit
           </Link>
           <button
             aria-label="Expand setup guide"
-            className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer transition-colors"
+            className="text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer rounded-md p-1.5 transition-colors"
             onClick={onToggleMinimize}
             type="button"
           >
@@ -424,7 +424,7 @@ function SetupGuideMinimized({
           </button>
           <button
             aria-label="Close setup guide"
-            className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer transition-colors"
+            className="text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer rounded-md p-1.5 transition-colors"
             onClick={onDismiss}
             type="button"
           >
@@ -458,41 +458,41 @@ function SetupGuideExpanded({
   totalCount: number;
 }) {
   return (
-    <div className="fixed bottom-20 right-4 z-50 w-88 sm:w-96 rounded-2xl border border-border/80 bg-card/95 backdrop-blur-md shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-200">
-      <div className="h-1 w-full bg-muted overflow-hidden">
+    <div className="border-border/80 bg-card/95 animate-in fade-in slide-in-from-bottom-3 fixed right-4 bottom-20 z-50 w-88 overflow-hidden rounded-2xl border shadow-2xl backdrop-blur-md duration-200 sm:w-96">
+      <div className="bg-muted h-1 w-full overflow-hidden">
         <div
-          className="h-full bg-primary transition-all duration-500"
+          className="bg-primary h-full transition-all duration-500"
           style={{ width: `${progressPercent}%` }}
         />
       </div>
 
-      <div className="flex items-center justify-between border-b border-border/60 p-4 pb-3">
+      <div className="border-border/60 flex items-center justify-between border-b p-4 pb-3">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-extrabold text-foreground">
+            <h3 className="text-foreground text-sm font-extrabold">
               Setup guide
             </h3>
-            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+            <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-[10px] font-bold">
               {completedCount}/{totalCount} complete
             </span>
           </div>
-          <p className="text-[11px] text-muted-foreground mt-0.5 truncate max-w-[220px]">
+          <p className="text-muted-foreground mt-0.5 max-w-[220px] truncate text-[11px]">
             {nextPendingItem
               ? `Next: ${nextPendingItem.title}`
               : "Everything is set up and ready to go!"}
           </p>
         </div>
 
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex shrink-0 items-center gap-1">
           <Link
-            className="text-xs text-primary font-semibold hover:underline px-1.5 py-1"
+            className="text-primary px-1.5 py-1 text-xs font-semibold hover:underline"
             to="/u/settings"
           >
             Edit
           </Link>
           <button
             aria-label="Minimize setup guide"
-            className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer transition-colors"
+            className="text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer rounded-md p-1.5 transition-colors"
             onClick={onToggleMinimize}
             type="button"
           >
@@ -500,7 +500,7 @@ function SetupGuideExpanded({
           </button>
           <button
             aria-label="Close setup guide"
-            className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer transition-colors"
+            className="text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer rounded-md p-1.5 transition-colors"
             onClick={onDismiss}
             type="button"
           >
@@ -509,7 +509,7 @@ function SetupGuideExpanded({
         </div>
       </div>
 
-      <div className="max-h-96 divide-y divide-border/40 overflow-y-auto p-2">
+      <div className="divide-border/40 max-h-96 divide-y overflow-y-auto p-2">
         {categories.map((category) => (
           <SetupCategoryAccordion
             category={category}
@@ -523,7 +523,7 @@ function SetupGuideExpanded({
         ))}
       </div>
 
-      <div className="flex items-center justify-between border-t border-border/60 bg-muted/20 px-4 py-2.5 text-[11px]">
+      <div className="border-border/60 bg-muted/20 flex items-center justify-between border-t px-4 py-2.5 text-[11px]">
         <Link
           className="text-muted-foreground hover:text-foreground font-medium"
           to="/u/settings"
@@ -531,7 +531,7 @@ function SetupGuideExpanded({
           Manage Roles & Profile
         </Link>
         <button
-          className="text-muted-foreground hover:text-foreground font-medium cursor-pointer"
+          className="text-muted-foreground hover:text-foreground cursor-pointer font-medium"
           onClick={onDismiss}
           type="button"
         >
@@ -557,64 +557,64 @@ function SetupCategoryAccordion({
   const isCategoryComplete = catCompleted === catTotal;
 
   return (
-    <div className="py-2 px-1">
+    <div className="px-1 py-2">
       <button
-        className="w-full flex items-center justify-between gap-2 text-left cursor-pointer group"
+        className="group flex w-full cursor-pointer items-center justify-between gap-2 text-left"
         onClick={onToggle}
         type="button"
       >
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="rounded-lg bg-primary/10 p-1.5 text-primary shrink-0">
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="bg-primary/10 text-primary shrink-0 rounded-lg p-1.5">
             <CategoryIcon className="size-3.5" />
           </div>
           <div>
-            <p className="text-xs font-bold text-foreground group-hover:text-primary transition-colors">
+            <p className="text-foreground group-hover:text-primary text-xs font-bold transition-colors">
               {category.title}
             </p>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-muted-foreground text-[10px]">
               {catCompleted}/{catTotal} completed
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex shrink-0 items-center gap-1.5">
           {isCategoryComplete && (
             <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-bold text-emerald-500">
               Ready
             </span>
           )}
           {isExpanded ? (
-            <ChevronUp className="size-3.5 text-muted-foreground" />
+            <ChevronUp className="text-muted-foreground size-3.5" />
           ) : (
-            <ChevronDown className="size-3.5 text-muted-foreground" />
+            <ChevronDown className="text-muted-foreground size-3.5" />
           )}
         </div>
       </button>
 
       {isExpanded && (
-        <div className="mt-2 space-y-1.5 pl-3 border-l-2 border-primary/20 ml-3">
+        <div className="border-primary/20 mt-2 ml-3 space-y-1.5 border-l-2 pl-3">
           {category.items.map((item) => (
             <div
               className="flex items-center justify-between gap-2 py-1.5"
               key={item.id}
             >
-              <div className="flex items-start gap-2 min-w-0">
+              <div className="flex min-w-0 items-start gap-2">
                 {item.isComplete ? (
-                  <CheckCircle2 className="size-4 text-primary fill-primary/20 shrink-0 mt-0.5" />
+                  <CheckCircle2 className="text-primary fill-primary/20 mt-0.5 size-4 shrink-0" />
                 ) : (
-                  <Circle className="size-4 text-muted-foreground/50 shrink-0 mt-0.5" />
+                  <Circle className="text-muted-foreground/50 mt-0.5 size-4 shrink-0" />
                 )}
                 <div className="min-w-0">
                   <p
-                    className={`text-xs font-semibold truncate ${
+                    className={`truncate text-xs font-semibold ${
                       item.isComplete
-                        ? "text-muted-foreground line-through decoration-muted-foreground/40"
+                        ? "text-muted-foreground decoration-muted-foreground/40 line-through"
                         : "text-foreground"
                     }`}
                   >
                     {item.title}
                   </p>
-                  <p className="text-[10px] text-muted-foreground line-clamp-1">
+                  <p className="text-muted-foreground line-clamp-1 text-[10px]">
                     {item.description}
                   </p>
                 </div>
@@ -623,7 +623,7 @@ function SetupCategoryAccordion({
               {!item.isComplete && (
                 <Link className="shrink-0" to={item.to}>
                   <Button
-                    className="h-6 rounded-md text-[10px] px-2 font-bold cursor-pointer"
+                    className="h-6 cursor-pointer rounded-md px-2 text-[10px] font-bold"
                     size="xs"
                     variant="outline"
                   >

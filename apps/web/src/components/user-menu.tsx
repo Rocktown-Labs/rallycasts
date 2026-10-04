@@ -34,13 +34,13 @@ const UserMenu = ({ collapsed = false }: { collapsed?: boolean }) => {
             variant="ghost"
             className={
               collapsed
-                ? "size-9 p-0 rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground border-0 justify-center flex"
-                : "w-full h-11 justify-start gap-3 px-2 rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground border-0 text-left flex items-center"
+                ? "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex size-9 justify-center rounded-md border-0 p-0"
+                : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex h-11 w-full items-center justify-start gap-3 rounded-md border-0 px-2 text-left"
             }
           />
         }
       >
-        <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary text-xs font-semibold overflow-hidden">
+        <div className="bg-primary/15 text-primary flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full text-xs font-semibold">
           {session.user.image ? (
             <img
               src={session.user.image}
@@ -53,18 +53,18 @@ const UserMenu = ({ collapsed = false }: { collapsed?: boolean }) => {
         </div>
         {!collapsed && (
           <>
-            <div className="flex flex-1 flex-col text-left text-xs leading-tight min-w-0">
-              <span className="truncate font-semibold text-sidebar-foreground">
+            <div className="flex min-w-0 flex-1 flex-col text-left text-xs leading-tight">
+              <span className="text-sidebar-foreground truncate font-semibold">
                 {session.user.name}
               </span>
-              <span className="truncate text-[10px] text-muted-foreground">
+              <span className="text-muted-foreground truncate text-[10px]">
                 @
                 {session.user.username ??
                   session.user.displayUsername ??
                   "player"}
               </span>
             </div>
-            <ChevronsUpDown className="ml-auto size-3.5 text-muted-foreground" />
+            <ChevronsUpDown className="text-muted-foreground ml-auto size-3.5" />
           </>
         )}
       </DropdownMenuTrigger>
@@ -75,36 +75,36 @@ const UserMenu = ({ collapsed = false }: { collapsed?: boolean }) => {
         sideOffset={8}
       >
         <DropdownMenuGroup>
-          <DropdownMenuLabel className="font-semibold text-xs py-1.5 px-2">
+          <DropdownMenuLabel className="px-2 py-1.5 text-xs font-semibold">
             My Account
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <div className="px-2 py-1.5 text-xs text-muted-foreground truncate">
+          <div className="text-muted-foreground truncate px-2 py-1.5 text-xs">
             {session.user.email}
           </div>
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            className="flex items-center gap-2 cursor-pointer py-1.5 px-2"
+            className="flex cursor-pointer items-center gap-2 px-2 py-1.5"
             onClick={() => {
               navigate({ to: "/u/casts/new" });
             }}
           >
-            <Video className="size-3.5 text-primary" />
-            <span className="font-medium text-xs">Order a Caster ($20/hr)</span>
+            <Video className="text-primary size-3.5" />
+            <span className="text-xs font-medium">Order a Caster ($20/hr)</span>
           </DropdownMenuItem>
           <DropdownMenuItem
-            className="flex items-center gap-2 cursor-pointer py-1.5 px-2"
+            className="flex cursor-pointer items-center gap-2 px-2 py-1.5"
             onClick={() => {
               navigate({ to: "/u/casts/all" });
             }}
           >
-            <Calendar className="size-3.5 text-muted-foreground" />
+            <Calendar className="text-muted-foreground size-3.5" />
             <span className="text-xs">Casting Requests</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             variant="destructive"
-            className="flex items-center gap-2 cursor-pointer py-1.5 px-2"
+            className="flex cursor-pointer items-center gap-2 px-2 py-1.5"
             onClick={() => {
               authClient.signOut({
                 fetchOptions: {

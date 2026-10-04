@@ -84,7 +84,7 @@ export default function SearchForm() {
   return (
     <div className="relative mx-auto w-full max-w-2xl">
       <form
-        className="flex h-10 items-center rounded-md border border-border bg-background/80 px-1 shadow-sm"
+        className="border-border bg-background/80 flex h-10 items-center rounded-md border px-1 shadow-sm"
         onSubmit={(event) => event.preventDefault()}
       >
         <label className="sr-only" htmlFor="global-search">
@@ -92,7 +92,7 @@ export default function SearchForm() {
         </label>
         <select
           aria-label="Search filter"
-          className="hidden h-8 rounded-md border border-border bg-muted px-2 text-sm text-foreground outline-none md:block"
+          className="border-border bg-muted text-foreground hidden h-8 rounded-md border px-2 text-sm outline-none md:block"
           value={filter}
           onChange={(event) => setFilter(event.target.value as SearchEntity)}
         >
@@ -106,7 +106,7 @@ export default function SearchForm() {
             </option>
           ))}
         </select>
-        <Search className="mx-1 md:mx-2 size-4 text-muted-foreground shrink-0" />
+        <Search className="text-muted-foreground mx-1 size-4 shrink-0 md:mx-2" />
         <Input
           id="global-search"
           className="h-8 flex-1 border-0 bg-transparent px-1 shadow-none focus-visible:ring-0"
@@ -116,7 +116,7 @@ export default function SearchForm() {
         />
       </form>
       {query.trim().length > 1 ? (
-        <div className="absolute right-0 left-0 top-12 z-50 rounded-md border border-border bg-popover p-2 shadow-xl">
+        <div className="border-border bg-popover absolute top-12 right-0 left-0 z-50 rounded-md border p-2 shadow-xl">
           {hasResults ? (
             <div className="grid gap-1">
               {data.videos.slice(0, 3).map((video) => (
@@ -124,10 +124,10 @@ export default function SearchForm() {
                   key={video.id}
                   params={{ id: getVideoSlug(video) }}
                   to="/videos/$id"
-                  className="rounded-md px-3 py-2 text-sm hover:bg-muted"
+                  className="hover:bg-muted rounded-md px-3 py-2 text-sm"
                 >
                   <span className="font-medium">{video.title}</span>
-                  <span className="ml-2 text-muted-foreground">video</span>
+                  <span className="text-muted-foreground ml-2">video</span>
                 </Link>
               ))}
               {isSignedIn
@@ -136,10 +136,10 @@ export default function SearchForm() {
                       key={player.id}
                       params={{ username: player.username ?? player.id }}
                       to="/players/$username"
-                      className="rounded-md px-3 py-2 text-sm hover:bg-muted"
+                      className="hover:bg-muted rounded-md px-3 py-2 text-sm"
                     >
                       <span className="font-medium">{player.name}</span>
-                      <span className="ml-2 text-muted-foreground">player</span>
+                      <span className="text-muted-foreground ml-2">player</span>
                     </Link>
                   ))
                 : null}
@@ -147,12 +147,12 @@ export default function SearchForm() {
                 <Link
                   key={post.id}
                   to="/"
-                  className="rounded-md px-3 py-2 text-sm hover:bg-muted"
+                  className="hover:bg-muted rounded-md px-3 py-2 text-sm"
                 >
-                  <span className="font-medium line-clamp-1">
+                  <span className="line-clamp-1 font-medium">
                     {post.content}
                   </span>
-                  <span className="ml-2 text-muted-foreground">
+                  <span className="text-muted-foreground ml-2">
                     post by {author.name}
                   </span>
                 </Link>
@@ -162,10 +162,10 @@ export default function SearchForm() {
                   key={event.id}
                   params={{ id: event.id }}
                   to="/events/$id"
-                  className="rounded-md px-3 py-2 text-sm hover:bg-muted"
+                  className="hover:bg-muted rounded-md px-3 py-2 text-sm"
                 >
                   <span className="font-medium">{event.name}</span>
-                  <span className="ml-2 text-muted-foreground">event</span>
+                  <span className="text-muted-foreground ml-2">event</span>
                 </Link>
               ))}
               {data.venues.slice(0, 3).map((venue) => (
@@ -173,17 +173,17 @@ export default function SearchForm() {
                   key={venue.id}
                   params={{ id: venue.id }}
                   to="/venues/$id"
-                  className="rounded-md px-3 py-2 text-sm hover:bg-muted"
+                  className="hover:bg-muted rounded-md px-3 py-2 text-sm"
                 >
                   <span className="font-medium">{venue.name}</span>
-                  <span className="ml-2 text-muted-foreground">park</span>
+                  <span className="text-muted-foreground ml-2">park</span>
                 </Link>
               ))}
             </div>
           ) : (
             <div
               className={cn(
-                "px-3 py-6 text-center text-sm text-muted-foreground"
+                "text-muted-foreground px-3 py-6 text-center text-sm"
               )}
             >
               No RallyCasts results yet.

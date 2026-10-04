@@ -91,7 +91,7 @@ const StepRolesForm = (props: React.ComponentProps<typeof StepRoles>) => {
               <h2 className="text-xl font-bold tracking-tight">
                 How do you participate in RallyCasts?
               </h2>
-              <p className="text-xs sm:text-sm text-muted-foreground">
+              <p className="text-muted-foreground text-xs sm:text-sm">
                 Select your roles on the platform. You can be a player, host, or
                 caster, and update these anytime in your account settings.
               </p>
@@ -112,7 +112,7 @@ const StepRolesForm = (props: React.ComponentProps<typeof StepRoles>) => {
 
                   return (
                     <button
-                      className={`w-full flex items-start gap-3.5 rounded-xl border p-4 text-left transition-all cursor-pointer ${roleCardClass}`}
+                      className={`flex w-full cursor-pointer items-start gap-3.5 rounded-xl border p-4 text-left transition-all ${roleCardClass}`}
                       key={role.key}
                       onClick={() =>
                         form.setFieldValue(`roles.${role.key}`, !role.value)
@@ -120,7 +120,7 @@ const StepRolesForm = (props: React.ComponentProps<typeof StepRoles>) => {
                       type="button"
                     >
                       <div
-                        className={`mt-0.5 size-5 rounded-md border flex items-center justify-center shrink-0 transition-colors ${
+                        className={`mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md border transition-colors ${
                           role.value
                             ? "bg-primary border-primary text-primary-foreground"
                             : "border-input bg-background/50"
@@ -140,7 +140,7 @@ const StepRolesForm = (props: React.ComponentProps<typeof StepRoles>) => {
                                   : "text-muted-foreground"
                               }`}
                             />
-                            <span className="text-sm font-bold text-foreground">
+                            <span className="text-foreground text-sm font-bold">
                               {role.label}
                             </span>
                           </div>
@@ -150,7 +150,7 @@ const StepRolesForm = (props: React.ComponentProps<typeof StepRoles>) => {
                             {role.badge}
                           </span>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                        <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
                           {role.description}
                         </p>
                       </div>
@@ -162,29 +162,29 @@ const StepRolesForm = (props: React.ComponentProps<typeof StepRoles>) => {
 
             {/* Caster $50 Express Fee Callout when isCaster is selected */}
             {isCaster ? (
-              <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-3 shadow-xs">
+              <div className="space-y-3 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 shadow-xs">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5">
                     <div className="rounded-lg bg-amber-500/10 p-1.5 text-amber-400">
                       <Mic className="size-4" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <h4 className="text-foreground flex items-center gap-1.5 text-xs font-bold">
                         <span>Caster Express Verification</span>
-                        <span className="rounded-full bg-amber-500/20 border border-amber-500/40 px-2 py-0.5 text-[10px] font-extrabold text-amber-300">
+                        <span className="rounded-full border border-amber-500/40 bg-amber-500/20 px-2 py-0.5 text-[10px] font-extrabold text-amber-300">
                           $50 One-Time Fee
                         </span>
                       </h4>
-                      <p className="text-[11px] text-muted-foreground">
+                      <p className="text-muted-foreground text-[11px]">
                         Fast-track your broadcaster certification and unlock
                         live stream controls.
                       </p>
                     </div>
                   </div>
                 </div>
-                <div className="grid gap-2 sm:grid-cols-2 text-xs text-muted-foreground pt-1">
+                <div className="text-muted-foreground grid gap-2 pt-1 text-xs sm:grid-cols-2">
                   <div className="flex items-start gap-2">
-                    <Check className="size-3.5 text-amber-400 shrink-0 mt-0.5 stroke-[2.5]" />
+                    <Check className="mt-0.5 size-3.5 shrink-0 stroke-[2.5] text-amber-400" />
                     <span>
                       <strong className="text-foreground">
                         Verified Caster Badge
@@ -193,7 +193,7 @@ const StepRolesForm = (props: React.ComponentProps<typeof StepRoles>) => {
                     </span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <Check className="size-3.5 text-amber-400 shrink-0 mt-0.5 stroke-[2.5]" />
+                    <Check className="mt-0.5 size-3.5 shrink-0 stroke-[2.5] text-amber-400" />
                     <span>
                       <strong className="text-foreground">
                         24-Hour Express Queue
@@ -202,7 +202,7 @@ const StepRolesForm = (props: React.ComponentProps<typeof StepRoles>) => {
                     </span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <Check className="size-3.5 text-amber-400 shrink-0 mt-0.5 stroke-[2.5]" />
+                    <Check className="mt-0.5 size-3.5 shrink-0 stroke-[2.5] text-amber-400" />
                     <span>
                       <strong className="text-foreground">
                         RTMP Stream Ingest
@@ -211,7 +211,7 @@ const StepRolesForm = (props: React.ComponentProps<typeof StepRoles>) => {
                     </span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <Check className="size-3.5 text-amber-400 shrink-0 mt-0.5 stroke-[2.5]" />
+                    <Check className="mt-0.5 size-3.5 shrink-0 stroke-[2.5] text-amber-400" />
                     <span>
                       <strong className="text-foreground">
                         Priority Match Coverage
@@ -220,7 +220,7 @@ const StepRolesForm = (props: React.ComponentProps<typeof StepRoles>) => {
                     </span>
                   </div>
                 </div>
-                <p className="text-[11px] text-muted-foreground/80 border-t border-amber-500/20 pt-2 italic">
+                <p className="text-muted-foreground/80 border-t border-amber-500/20 pt-2 text-[11px] italic">
                   💡 No charge today during setup. The $50 express fee is
                   processed when you complete your stream test in Studio.
                 </p>
@@ -231,18 +231,18 @@ const StepRolesForm = (props: React.ComponentProps<typeof StepRoles>) => {
             <div className="space-y-3 pt-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <span className="text-sm font-bold text-foreground">
+                  <span className="text-foreground text-sm font-bold">
                     Choose your RallyCasts plan
                   </span>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-muted-foreground text-xs">
                     Start free or unlock the full power of RallyCasts Pro
                   </p>
                 </div>
 
                 {/* Monthly vs Annual Toggle */}
-                <div className="inline-flex rounded-xl border border-border/80 bg-background/60 p-1 text-xs">
+                <div className="border-border/80 bg-background/60 inline-flex rounded-xl border p-1 text-xs">
                   <button
-                    className={`px-3 py-1 rounded-lg font-semibold transition-all cursor-pointer ${
+                    className={`cursor-pointer rounded-lg px-3 py-1 font-semibold transition-all ${
                       billingInterval === "monthly"
                         ? "bg-primary text-primary-foreground shadow-xs"
                         : "text-muted-foreground hover:text-foreground"
@@ -253,7 +253,7 @@ const StepRolesForm = (props: React.ComponentProps<typeof StepRoles>) => {
                     Monthly
                   </button>
                   <button
-                    className={`px-3 py-1 rounded-lg font-semibold transition-all cursor-pointer flex items-center gap-1 ${
+                    className={`flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1 font-semibold transition-all ${
                       billingInterval === "annual"
                         ? "bg-primary text-primary-foreground shadow-xs"
                         : "text-muted-foreground hover:text-foreground"
@@ -262,7 +262,7 @@ const StepRolesForm = (props: React.ComponentProps<typeof StepRoles>) => {
                     type="button"
                   >
                     <span>Annual</span>
-                    <span className="rounded-md bg-brand-yellow/20 text-brand-yellow px-1 py-0.2 text-[9px] font-bold uppercase">
+                    <span className="bg-brand-yellow/20 text-brand-yellow py-0.2 rounded-md px-1 text-[9px] font-bold uppercase">
                       Save 17%
                     </span>
                   </button>
@@ -272,9 +272,9 @@ const StepRolesForm = (props: React.ComponentProps<typeof StepRoles>) => {
               <div className="grid gap-3.5 sm:grid-cols-2">
                 {/* Free Court Pass Plan */}
                 <button
-                  className={`relative flex flex-col justify-between rounded-xl border p-4 text-left transition-all cursor-pointer ${
+                  className={`relative flex cursor-pointer flex-col justify-between rounded-xl border p-4 text-left transition-all ${
                     accountTier === "free"
-                      ? "border-primary bg-primary/10 shadow-xs ring-2 ring-primary/40"
+                      ? "border-primary bg-primary/10 ring-primary/40 shadow-xs ring-2"
                       : "border-border/70 bg-card/60 hover:border-primary/50 hover:bg-muted/30"
                   }`}
                   onClick={() =>
@@ -283,60 +283,60 @@ const StepRolesForm = (props: React.ComponentProps<typeof StepRoles>) => {
                   type="button"
                 >
                   <div>
-                    <div className="flex items-center justify-between mb-1.5">
+                    <div className="mb-1.5 flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
-                        <Shield className="size-4 text-muted-foreground" />
-                        <span className="text-sm font-bold text-foreground">
+                        <Shield className="text-muted-foreground size-4" />
+                        <span className="text-foreground text-sm font-bold">
                           Court Pass
                         </span>
                       </div>
-                      <span className="rounded-full bg-muted border border-border/80 px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
+                      <span className="bg-muted border-border/80 text-muted-foreground rounded-full border px-2 py-0.5 text-[10px] font-bold">
                         Free Forever
                       </span>
                     </div>
 
-                    <div className="flex items-baseline gap-1 my-2">
-                      <span className="text-2xl font-extrabold text-foreground">
+                    <div className="my-2 flex items-baseline gap-1">
+                      <span className="text-foreground text-2xl font-extrabold">
                         $0
                       </span>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-muted-foreground text-xs">
                         / month
                       </span>
                     </div>
 
-                    <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+                    <p className="text-muted-foreground mb-3 text-xs leading-relaxed">
                       Everything you need to play, track your rating, and follow
                       local matches.
                     </p>
 
-                    <div className="space-y-1.5 border-t border-border/40 pt-2.5 text-xs text-muted-foreground">
+                    <div className="border-border/40 text-muted-foreground space-y-1.5 border-t pt-2.5 text-xs">
                       <div className="flex items-center gap-2">
-                        <Check className="size-3.5 text-primary shrink-0 stroke-[2.5]" />
+                        <Check className="text-primary size-3.5 shrink-0 stroke-[2.5]" />
                         <span>Player profile & verified DUPR rating</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Check className="size-3.5 text-primary shrink-0 stroke-[2.5]" />
+                        <Check className="text-primary size-3.5 shrink-0 stroke-[2.5]" />
                         <span>Discover local courts & open play</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Check className="size-3.5 text-primary shrink-0 stroke-[2.5]" />
+                        <Check className="text-primary size-3.5 shrink-0 stroke-[2.5]" />
                         <span>Standard video highlights & feeds</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Check className="size-3.5 text-primary shrink-0 stroke-[2.5]" />
+                        <Check className="text-primary size-3.5 shrink-0 stroke-[2.5]" />
                         <span>Post match scores & community brackets</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="mt-4 flex items-center justify-between text-xs pt-2 border-t border-border/40">
-                    <span className="font-semibold text-foreground">
+                  <div className="border-border/40 mt-4 flex items-center justify-between border-t pt-2 text-xs">
+                    <span className="text-foreground font-semibold">
                       {accountTier === "free"
                         ? "Selected Plan"
                         : "Select Court Pass"}
                     </span>
                     {accountTier === "free" && (
-                      <span className="rounded-full bg-primary text-primary-foreground p-0.5">
+                      <span className="bg-primary text-primary-foreground rounded-full p-0.5">
                         <Check className="size-3 stroke-[3]" />
                       </span>
                     )}
@@ -345,9 +345,9 @@ const StepRolesForm = (props: React.ComponentProps<typeof StepRoles>) => {
 
                 {/* RallyCasts Pro / Premium Upsell Plan */}
                 <button
-                  className={`relative flex flex-col justify-between rounded-xl border p-4 text-left transition-all cursor-pointer ${
+                  className={`relative flex cursor-pointer flex-col justify-between rounded-xl border p-4 text-left transition-all ${
                     accountTier === "premium"
-                      ? "border-primary bg-primary/10 shadow-md ring-2 ring-primary/60 scale-[1.01]"
+                      ? "border-primary bg-primary/10 ring-primary/60 scale-[1.01] shadow-md ring-2"
                       : "border-primary/40 bg-card/80 hover:border-primary hover:bg-muted/40 shadow-xs"
                   }`}
                   onClick={() =>
@@ -356,46 +356,46 @@ const StepRolesForm = (props: React.ComponentProps<typeof StepRoles>) => {
                   type="button"
                 >
                   {/* Top banner tag */}
-                  <div className="absolute -top-2.5 right-4 rounded-full bg-linear-to-r from-primary to-brand-yellow px-2.5 py-0.5 text-[9px] font-extrabold text-primary-foreground uppercase tracking-wider shadow-xs flex items-center gap-1">
+                  <div className="from-primary to-brand-yellow text-primary-foreground absolute -top-2.5 right-4 flex items-center gap-1 rounded-full bg-linear-to-r px-2.5 py-0.5 text-[9px] font-extrabold tracking-wider uppercase shadow-xs">
                     <Flame className="size-2.5" />
                     <span>Most Popular • 7-Day Trial</span>
                   </div>
 
                   <div>
-                    <div className="flex items-center justify-between mb-1.5">
+                    <div className="mb-1.5 flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
-                        <Sparkles className="size-4 text-brand-yellow" />
-                        <span className="text-sm font-bold text-foreground">
+                        <Sparkles className="text-brand-yellow size-4" />
+                        <span className="text-foreground text-sm font-bold">
                           RallyCasts Pro
                         </span>
                       </div>
-                      <span className="rounded-full bg-brand-yellow/15 border border-brand-yellow/30 px-2 py-0.5 text-[10px] font-bold text-brand-yellow">
+                      <span className="bg-brand-yellow/15 border-brand-yellow/30 text-brand-yellow rounded-full border px-2 py-0.5 text-[10px] font-bold">
                         Pro Tier
                       </span>
                     </div>
 
-                    <div className="flex items-baseline gap-1 my-2">
-                      <span className="text-2xl font-extrabold text-foreground">
+                    <div className="my-2 flex items-baseline gap-1">
+                      <span className="text-foreground text-2xl font-extrabold">
                         {billingInterval === "annual" ? "$8.25" : "$9.99"}
                       </span>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-muted-foreground text-xs">
                         / month
                       </span>
                       {billingInterval === "annual" && (
-                        <span className="text-[11px] text-primary font-medium ml-1">
+                        <span className="text-primary ml-1 text-[11px] font-medium">
                           ($99 billed annually)
                         </span>
                       )}
                     </div>
 
-                    <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+                    <p className="text-muted-foreground mb-3 text-xs leading-relaxed">
                       The ultimate toolkit for serious pickleballers, coaches,
                       and creators.
                     </p>
 
-                    <div className="space-y-1.5 border-t border-border/40 pt-2.5 text-xs text-muted-foreground">
+                    <div className="border-border/40 text-muted-foreground space-y-1.5 border-t pt-2.5 text-xs">
                       <div className="flex items-center gap-2">
-                        <Zap className="size-3.5 text-brand-yellow shrink-0 stroke-[2.5]" />
+                        <Zap className="text-brand-yellow size-3.5 shrink-0 stroke-[2.5]" />
                         <span>
                           <strong className="text-foreground">
                             Unlimited 4K match uploads
@@ -404,7 +404,7 @@ const StepRolesForm = (props: React.ComponentProps<typeof StepRoles>) => {
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Zap className="size-3.5 text-brand-yellow shrink-0 stroke-[2.5]" />
+                        <Zap className="text-brand-yellow size-3.5 shrink-0 stroke-[2.5]" />
                         <span>
                           <strong className="text-foreground">
                             AI Highlight Reel Generator
@@ -413,7 +413,7 @@ const StepRolesForm = (props: React.ComponentProps<typeof StepRoles>) => {
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Zap className="size-3.5 text-brand-yellow shrink-0 stroke-[2.5]" />
+                        <Zap className="text-brand-yellow size-3.5 shrink-0 stroke-[2.5]" />
                         <span>
                           <strong className="text-foreground">
                             Advanced shot analytics
@@ -422,7 +422,7 @@ const StepRolesForm = (props: React.ComponentProps<typeof StepRoles>) => {
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Zap className="size-3.5 text-brand-yellow shrink-0 stroke-[2.5]" />
+                        <Zap className="text-brand-yellow size-3.5 shrink-0 stroke-[2.5]" />
                         <span>
                           <strong className="text-foreground">
                             Priority casting coverage
@@ -431,7 +431,7 @@ const StepRolesForm = (props: React.ComponentProps<typeof StepRoles>) => {
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Zap className="size-3.5 text-brand-yellow shrink-0 stroke-[2.5]" />
+                        <Zap className="text-brand-yellow size-3.5 shrink-0 stroke-[2.5]" />
                         <span>
                           <strong className="text-foreground">
                             Gold Court Badge
@@ -442,21 +442,21 @@ const StepRolesForm = (props: React.ComponentProps<typeof StepRoles>) => {
                     </div>
                   </div>
 
-                  <div className="mt-4 pt-2 border-t border-border/40 space-y-1">
+                  <div className="border-border/40 mt-4 space-y-1 border-t pt-2">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-primary flex items-center gap-1">
+                      <span className="text-primary flex items-center gap-1 font-bold">
                         <Sparkles className="size-3" />
                         {accountTier === "premium"
                           ? "Pro Selected (7-Day Trial)"
                           : "Upgrade to Pro"}
                       </span>
                       {accountTier === "premium" && (
-                        <span className="rounded-full bg-primary text-primary-foreground p-0.5">
+                        <span className="bg-primary text-primary-foreground rounded-full p-0.5">
                           <Check className="size-3 stroke-[3]" />
                         </span>
                       )}
                     </div>
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-muted-foreground text-[10px]">
                       🎉 $0 due today. Cancel anytime within 7 days.
                     </p>
                   </div>
@@ -467,7 +467,7 @@ const StepRolesForm = (props: React.ComponentProps<typeof StepRoles>) => {
             {/* Navigation buttons */}
             <div className="flex items-center justify-between pt-3">
               <button
-                className="inline-flex h-10 items-center justify-center rounded-xl border border-input bg-background/50 px-5 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground cursor-pointer"
+                className="border-input bg-background/50 hover:bg-accent hover:text-accent-foreground inline-flex h-10 cursor-pointer items-center justify-center rounded-xl border px-5 text-sm font-medium transition-colors"
                 onClick={() => setStep(2)}
                 type="button"
               >
@@ -475,7 +475,7 @@ const StepRolesForm = (props: React.ComponentProps<typeof StepRoles>) => {
               </button>
               <form.AppForm>
                 <button
-                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-primary px-7 text-sm font-bold text-primary-foreground shadow-xs transition-all hover:bg-primary/90 hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl px-7 text-sm font-bold shadow-xs transition-all hover:scale-[1.01] active:scale-[0.99]"
                   type="submit"
                 >
                   {accountTier === "premium" ? (

@@ -31,7 +31,7 @@ export const PlaceSearchPicker = ({
     <div className="space-y-2">
       <label
         htmlFor={id}
-        className="text-xs font-semibold text-muted-foreground"
+        className="text-muted-foreground text-xs font-semibold"
       >
         {label}
       </label>
@@ -44,23 +44,23 @@ export const PlaceSearchPicker = ({
           onPlaceChange(null);
         }}
         required
-        className="text-xs rounded-md"
+        className="rounded-md text-xs"
       />
       {selectedPlace ? (
-        <p className="rounded-md border border-primary/30 bg-primary/5 p-2 text-xs">
+        <p className="border-primary/30 bg-primary/5 rounded-md border p-2 text-xs">
           {selectedPlace.name} · {selectedPlace.address}
         </p>
       ) : null}
       {showResults ? (
-        <div className="max-h-44 overflow-y-auto rounded-md border bg-card">
+        <div className="bg-card max-h-44 overflow-y-auto rounded-md border">
           {isFetching ? (
-            <p className="p-3 text-xs text-muted-foreground">
+            <p className="text-muted-foreground p-3 text-xs">
               Validating locations...
             </p>
           ) : null}
           {places.slice(0, 5).map((place) => (
             <button
-              className="block w-full border-b p-3 text-left text-xs transition-colors last:border-b-0 hover:bg-muted"
+              className="hover:bg-muted block w-full border-b p-3 text-left text-xs transition-colors last:border-b-0"
               key={place.placeId}
               onClick={() => {
                 onPlaceChange({
@@ -73,13 +73,13 @@ export const PlaceSearchPicker = ({
               type="button"
             >
               <span className="font-semibold">{place.name}</span>
-              <span className="mt-1 block text-muted-foreground">
+              <span className="text-muted-foreground mt-1 block">
                 {place.address}
               </span>
             </button>
           ))}
           {!isFetching && places.length === 0 ? (
-            <p className="p-3 text-xs text-muted-foreground">
+            <p className="text-muted-foreground p-3 text-xs">
               No validated places found.
             </p>
           ) : null}

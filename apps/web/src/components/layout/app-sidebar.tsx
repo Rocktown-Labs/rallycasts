@@ -33,7 +33,7 @@ const NavSection = ({
     {collapsed ? (
       <p className="sr-only">{label}</p>
     ) : (
-      <p className="px-2 text-xs font-semibold text-primary">{label}</p>
+      <p className="text-primary px-2 text-xs font-semibold">{label}</p>
     )}
     <div className="space-y-1">
       {items.map(({ icon: Icon, label: itemLabel, to }) => (
@@ -43,7 +43,7 @@ const NavSection = ({
           title={collapsed ? itemLabel : undefined}
           activeOptions={{ exact: exactActivePaths.has(to) }}
           className={cn(
-            "flex h-9 items-center gap-2 rounded-md px-2 text-sm text-sidebar-foreground/86 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+            "text-sidebar-foreground/86 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex h-9 items-center gap-2 rounded-md px-2 text-sm transition-colors",
             collapsed && "justify-center px-0"
           )}
           activeProps={{
@@ -51,7 +51,7 @@ const NavSection = ({
               "bg-sidebar-accent text-sidebar-accent-foreground [&_svg]:text-sidebar-accent-foreground",
           }}
         >
-          <Icon className="size-4 text-primary" />
+          <Icon className="text-primary size-4" />
           {collapsed ? null : <span className="truncate">{itemLabel}</span>}
         </Link>
       ))}
@@ -74,7 +74,7 @@ const SidebarAuthButtons = ({ collapsed }: { collapsed: boolean }) => (
     >
       <Button
         className={cn(
-          "bg-primary text-brand-yellow font-semibold hover:bg-primary/95 transition-all shadow-sm rounded-md w-full",
+          "bg-primary text-brand-yellow hover:bg-primary/95 w-full rounded-md font-semibold shadow-sm transition-all",
           collapsed ? "size-8 p-0" : "h-8"
         )}
         variant="default"
@@ -90,7 +90,7 @@ const SidebarAuthButtons = ({ collapsed }: { collapsed: boolean }) => (
     >
       <Button
         className={cn(
-          "border-sidebar-border hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md w-full",
+          "border-sidebar-border hover:bg-sidebar-accent hover:text-sidebar-accent-foreground w-full rounded-md",
           collapsed ? "size-8 p-0" : "h-8"
         )}
         variant="outline"
@@ -117,13 +117,13 @@ export default function AppSidebar({
   return (
     <aside
       className={cn(
-        "sticky top-0 hidden h-svh shrink-0 self-start border-r border-sidebar-border bg-sidebar transition-[width] duration-200 md:flex md:flex-col",
+        "border-sidebar-border bg-sidebar sticky top-0 hidden h-svh shrink-0 self-start border-r transition-[width] duration-200 md:flex md:flex-col",
         collapsed ? "w-16" : "w-56"
       )}
     >
       <div
         className={cn(
-          "flex h-(--header-height) items-center border-b border-sidebar-border",
+          "border-sidebar-border flex h-(--header-height) items-center border-b",
           collapsed ? "justify-center px-0" : "gap-2 px-3"
         )}
       >
@@ -178,7 +178,7 @@ export default function AppSidebar({
           />
         )}
       </div>
-      <div className="border-t border-sidebar-border p-2">
+      <div className="border-sidebar-border border-t p-2">
         {session ? (
           <UserMenu collapsed={collapsed} />
         ) : (

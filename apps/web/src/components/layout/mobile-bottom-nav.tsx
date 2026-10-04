@@ -10,7 +10,7 @@ export default function MobileBottomNav() {
   const items = isAccountRoute ? mobileAccountItems : mobileDiscoverItems;
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] backdrop-blur md:hidden">
+    <nav className="border-border bg-background/95 fixed inset-x-0 bottom-0 z-40 border-t px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] backdrop-blur md:hidden">
       <div className="grid grid-cols-5 gap-1">
         {items.map(({ icon: Icon, label, to }) => (
           <Link
@@ -18,14 +18,14 @@ export default function MobileBottomNav() {
             to={to}
             activeOptions={{ exact: to === "/" || to === "/u/me" }}
             className={cn(
-              "flex min-h-12 flex-col items-center justify-center gap-1 rounded-md text-[0.68rem] text-muted-foreground"
+              "text-muted-foreground flex min-h-12 flex-col items-center justify-center gap-1 rounded-md text-[0.68rem]"
             )}
             activeProps={{
               className:
                 "bg-primary text-brand-yellow [&_svg]:text-brand-yellow",
             }}
           >
-            <Icon className="size-4 text-primary animate-in fade-in zoom-in duration-200" />
+            <Icon className="text-primary animate-in fade-in zoom-in size-4 duration-200" />
             <span>{label}</span>
           </Link>
         ))}

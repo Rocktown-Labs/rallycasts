@@ -35,7 +35,7 @@ function AnalyticsPage() {
           trend="Last 30 days"
         />
       </div>
-      <div className="rounded-lg border border-border p-6">
+      <div className="border-border rounded-lg border p-6">
         <h2 className="text-xl font-bold">Audience momentum</h2>
         <div className="mt-6 h-72 rounded-lg bg-[linear-gradient(180deg,hsl(78_100%_60%/.16),transparent)]" />
       </div>

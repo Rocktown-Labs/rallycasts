@@ -379,7 +379,7 @@ export const demoVideos: VideoCardData[] = [
 
 export const getDemoVideoPage = (cursor?: string, limit = 12) => {
   const offset = cursor?.startsWith("demo:")
-    ? Number.parseInt(cursor.slice("demo:".length), 10)
+    ? Math.trunc(Number(cursor.slice("demo:".length)))
     : 0;
   const safeOffset = Number.isFinite(offset) && offset >= 0 ? offset : 0;
   const videos = demoVideos.slice(safeOffset, safeOffset + limit);
@@ -404,7 +404,7 @@ export const getDemoVideoDetail = (id: string) => {
     taggedUsers: video.taggedUsers ?? [],
     venue:
       demoVenues[
-        Number.parseInt(id.split("-").at(-1) ?? "1", 10) % demoVenues.length
+        Math.trunc(Number(id.split("-").at(-1) ?? "1")) % demoVenues.length
       ] ??
       demoVenues[0] ??
       null,
