@@ -92,6 +92,7 @@ function RegistrationModal({
         <div className="p-5 border-b border-border flex justify-between items-center">
           <h2 className="text-base font-bold">Event Registration</h2>
           <button
+            type="button"
             onClick={onClose}
             className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           >
@@ -106,6 +107,7 @@ function RegistrationModal({
             </span>
             <div className="grid grid-cols-2 gap-2">
               <button
+                type="button"
                 onClick={() => {
                   setRegMode("singles");
                   setSelectedPartner(null);
@@ -120,6 +122,7 @@ function RegistrationModal({
                 Singles
               </button>
               <button
+                type="button"
                 onClick={() => setRegMode("doubles")}
                 className={`p-3 rounded-lg border text-xs font-semibold flex flex-col items-center gap-1.5 transition-all cursor-pointer ${
                   regMode === "doubles"
@@ -152,6 +155,7 @@ function RegistrationModal({
                     </div>
                   </div>
                   <button
+                    type="button"
                     onClick={() => setSelectedPartner(null)}
                     className="text-red-400 hover:text-red-500 font-semibold cursor-pointer"
                   >

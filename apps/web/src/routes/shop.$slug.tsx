@@ -2,6 +2,7 @@ import { buttonVariants } from "@rallycaststv/ui/components/button";
 import { Skeleton } from "@rallycaststv/ui/components/skeleton";
 import { cn } from "@rallycaststv/ui/lib/utils";
 import { Link, createFileRoute } from "@tanstack/react-router";
+import DOMPurify from "dompurify";
 import { Check, ChevronLeft, Package, Ruler, ShoppingBag } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -157,10 +158,14 @@ function ProductGallery({
     [offer, variantId]
   );
   const [activeIndex, setActiveIndex] = useState(0);
-
-  useEffect(() => {
+  // New variant means a new gallery: reset the index. Adjusting state
+  // during render is the sanctioned React pattern: no stale frame, no
+  // extra effect.
+  const [previousImages, setPreviousImages] = useState(images);
+  if (previousImages !== images) {
+    setPreviousImages(images);
     setActiveIndex(0);
-  }, [images]);
+  }
 
   const activeImage = images[activeIndex] ?? images[0];
   const activeImageUrl = imageUrlFor(activeImage);
@@ -379,6 +384,18 @@ function BundleContents({ offers }: { offers: FwProduct[] }) {
   );
 }
 
+/**
+ * Fourthwall product descriptions are merchant-authored HTML. Sanitize
+ * before injecting; the section renders client-side only, so DOMPurify's
+ * browser DOM is always available here.
+ */
+const sanitizeMerchantHtml = (html: string | null | undefined): string => {
+  if (!html || typeof window === "undefined") {
+    return "";
+  }
+  return DOMPurify.sanitize(html);
+};
+
 function ProductDetailsSections({ offer }: { offer: FwOffer }) {
   return (
     <>
@@ -387,10 +404,13 @@ function ProductDetailsSections({ offer }: { offer: FwOffer }) {
           {offer.additionalInformation.map((section) => (
             <div key={`${section.type}-${section.title}`}>
               <h2 className="text-sm font-black">{section.title}</h2>
-              {/* Merchant-authored HTML from Fourthwall product details. */}
+              {/* Merchant-authored HTML from Fourthwall product details,
+                  sanitized client-side before injection. */}
               <div
                 className="mt-2 text-sm leading-6 text-muted-foreground [&_a]:text-primary [&_a]:underline"
-                dangerouslySetInnerHTML={{ __html: section.bodyHtml }}
+                dangerouslySetInnerHTML={{
+                  __html: sanitizeMerchantHtml(section.bodyHtml),
+                }}
               />
             </div>
           ))}
