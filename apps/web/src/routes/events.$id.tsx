@@ -101,25 +101,59 @@ function EventLayout() {
     queryKey: ["event", id],
   });
 
+  const eventData = data?.event;
+
+  // Every hook must run before the loading/error early returns below, or
+  // React throws "rendered more hooks than during the previous render"
+  // the moment data arrives.
+  const details = useMemo(
+    () => ({
+      imageUrl:
+        "linear-gradient(135deg, hsl(142 100% 18% / 0.6), hsl(78 100% 60% / 0.15))",
+      location: eventData?.venueId
+        ? "Venue details available below"
+        : "Location to be announced",
+      tags: [eventData?.eventType ?? "", "pickleball"],
+    }),
+    [eventData?.eventType, eventData?.venueId]
+  );
+  const manageableOrganizationIds = new Set(
+    (organizationsData?.organizations ?? []).map(
+      ({ organization }) => organization.id
+    )
+  );
+  const canManageEvent = eventData
+    ? canUserManageEvent({
+        eventData,
+        organizationIds: manageableOrganizationIds,
+        userId: sessionData?.user?.id,
+      })
+    : false;
+
+  const eventContextValue = useMemo<EventContextType | null>(
+    () => (eventData ? { canManageEvent, details, event: eventData } : null),
+    [canManageEvent, details, eventData]
+  );
+
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-8 space-y-6 animate-pulse">
-        <div className="h-6 w-24 bg-muted rounded" />
-        <div className="h-10 w-96 bg-muted rounded" />
-        <div className="h-64 bg-muted rounded-2xl" />
+      <div className="mx-auto max-w-7xl animate-pulse space-y-6 px-4 py-8">
+        <div className="bg-muted h-6 w-24 rounded" />
+        <div className="bg-muted h-10 w-96 rounded" />
+        <div className="bg-muted h-64 rounded-2xl" />
       </div>
     );
   }
 
-  if (error || !data?.event) {
+  if (error || !eventData) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-12 text-center space-y-4">
-        <h2 className="text-2xl font-bold text-destructive">Event not found</h2>
+      <div className="mx-auto max-w-7xl space-y-4 px-4 py-12 text-center">
+        <h2 className="text-destructive text-2xl font-bold">Event not found</h2>
         <p className="text-muted-foreground text-sm">
           The event you are looking for does not exist or has been deleted.
         </p>
         <Link to="/events">
-          <Button variant="outline" className="rounded-lg text-xs mt-4">
+          <Button variant="outline" className="mt-4 rounded-lg text-xs">
             Back to Events
           </Button>
         </Link>
@@ -127,7 +161,6 @@ function EventLayout() {
     );
   }
 
-  const { event: eventData } = data;
   const startsAtDate = new Date(eventData.startsAt);
   const formattedDate = startsAtDate.toLocaleDateString("en-US", {
     day: "numeric",
@@ -136,44 +169,17 @@ function EventLayout() {
     year: "numeric",
   });
 
-  const details = useMemo(
-    () => ({
-      imageUrl:
-        "linear-gradient(135deg, hsl(142 100% 18% / 0.6), hsl(78 100% 60% / 0.15))",
-      location: eventData.venueId
-        ? "Venue details available below"
-        : "Location to be announced",
-      tags: [eventData.eventType, "pickleball"],
-    }),
-    [eventData.eventType, eventData.venueId]
-  );
-  const manageableOrganizationIds = new Set(
-    (organizationsData?.organizations ?? []).map(
-      ({ organization }) => organization.id
-    )
-  );
-  const canManageEvent = canUserManageEvent({
-    eventData,
-    organizationIds: manageableOrganizationIds,
-    userId: sessionData?.user?.id,
-  });
-
-  const eventContextValue = useMemo(
-    () => ({ canManageEvent, details, event: eventData }),
-    [canManageEvent, details, eventData]
-  );
-
   const activeLinkClass = "border-primary text-primary font-bold";
   const inactiveLinkClass =
     "border-transparent text-muted-foreground hover:text-foreground";
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 space-y-6 animate-in fade-in duration-300">
+    <div className="animate-in fade-in mx-auto max-w-7xl space-y-6 px-4 py-6 duration-300">
       {/* Back button */}
       <div>
         <Link
           to={canManageEvent ? "/u/organizer/organizations" : "/events"}
-          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mb-4"
+          className="text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1.5 text-xs"
         >
           <ChevronLeft className="size-3.5" />{" "}
           {canManageEvent ? "Back to Organizer Events" : "Back to Events"}
@@ -182,39 +188,39 @@ function EventLayout() {
 
       {/* Hero Banner */}
       <div
-        className="relative h-64 md:h-80 w-full overflow-hidden rounded-2xl border border-border/50 flex flex-col justify-end p-6 md:p-8"
+        className="border-border/50 relative flex h-64 w-full flex-col justify-end overflow-hidden rounded-2xl border p-6 md:h-80 md:p-8"
         style={{ background: details.imageUrl }}
       >
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 
         <div className="relative z-10 space-y-3">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] bg-primary text-primary-foreground font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+            <span className="bg-primary text-primary-foreground rounded-full px-2.5 py-0.5 text-[10px] font-extrabold tracking-wider uppercase">
               {eventData.eventType.replace("_", " ")}
             </span>
-            <span className="text-[10px] bg-yellow-500/20 text-yellow-400 font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+            <span className="rounded-full bg-yellow-500/20 px-2.5 py-0.5 text-[10px] font-extrabold tracking-wider text-yellow-400 uppercase">
               {eventData.status}
             </span>
             {canManageEvent ? (
-              <span className="text-[10px] bg-black/40 text-white font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+              <span className="rounded-full bg-black/40 px-2.5 py-0.5 text-[10px] font-extrabold tracking-wider text-white uppercase">
                 Organizer view
               </span>
             ) : null}
           </div>
 
-          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white max-w-4xl">
+          <h1 className="max-w-4xl text-3xl font-extrabold tracking-tight text-white md:text-4xl">
             {eventData.name}
           </h1>
 
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs md:text-sm text-gray-300">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-gray-300 md:text-sm">
             <span className="inline-flex items-center gap-1.5">
-              <Calendar className="size-4 text-primary" /> {formattedDate}
+              <Calendar className="text-primary size-4" /> {formattedDate}
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <MapPin className="size-4 text-primary" /> {details.location}
+              <MapPin className="text-primary size-4" /> {details.location}
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <Users className="size-4 text-primary" />{" "}
+              <Users className="text-primary size-4" />{" "}
               {eventData.capacity ? `${eventData.capacity} Cap` : "Open Entry"}
             </span>
           </div>
@@ -241,14 +247,14 @@ function EventLayout() {
       </div>
 
       {/* Tabs Navigation */}
-      <div className="border-b border-border flex flex-wrap gap-x-6 gap-y-2 justify-center sm:justify-start">
+      <div className="border-border flex flex-wrap justify-center gap-x-6 gap-y-2 border-b sm:justify-start">
         <Link
           to="/events/$id"
           params={{ id: eventData.id }}
           activeProps={{ className: activeLinkClass }}
           inactiveProps={{ className: inactiveLinkClass }}
           activeOptions={{ exact: true }}
-          className="pb-3 text-xs sm:text-sm font-bold tracking-wider uppercase flex items-center gap-1.5 border-b-2 transition-all"
+          className="flex items-center gap-1.5 border-b-2 pb-3 text-xs font-bold tracking-wider uppercase transition-all sm:text-sm"
         >
           <Info className="size-4" /> Overview
         </Link>
@@ -257,7 +263,7 @@ function EventLayout() {
           params={{ id: eventData.id }}
           activeProps={{ className: activeLinkClass }}
           inactiveProps={{ className: inactiveLinkClass }}
-          className="pb-3 text-xs sm:text-sm font-bold tracking-wider uppercase flex items-center gap-1.5 border-b-2 transition-all"
+          className="flex items-center gap-1.5 border-b-2 pb-3 text-xs font-bold tracking-wider uppercase transition-all sm:text-sm"
         >
           <Trophy className="size-4" /> Bracket
         </Link>
@@ -266,7 +272,7 @@ function EventLayout() {
           params={{ id: eventData.id }}
           activeProps={{ className: activeLinkClass }}
           inactiveProps={{ className: inactiveLinkClass }}
-          className="pb-3 text-xs sm:text-sm font-bold tracking-wider uppercase flex items-center gap-1.5 border-b-2 transition-all"
+          className="flex items-center gap-1.5 border-b-2 pb-3 text-xs font-bold tracking-wider uppercase transition-all sm:text-sm"
         >
           <Users className="size-4" /> Players
         </Link>
@@ -275,7 +281,7 @@ function EventLayout() {
           params={{ id: eventData.id }}
           activeProps={{ className: activeLinkClass }}
           inactiveProps={{ className: inactiveLinkClass }}
-          className="pb-3 text-xs sm:text-sm font-bold tracking-wider uppercase flex items-center gap-1.5 border-b-2 transition-all"
+          className="flex items-center gap-1.5 border-b-2 pb-3 text-xs font-bold tracking-wider uppercase transition-all sm:text-sm"
         >
           <Swords className="size-4" /> Matches
         </Link>
@@ -284,7 +290,7 @@ function EventLayout() {
           params={{ id: eventData.id }}
           activeProps={{ className: activeLinkClass }}
           inactiveProps={{ className: inactiveLinkClass }}
-          className="pb-3 text-xs sm:text-sm font-bold tracking-wider uppercase flex items-center gap-1.5 border-b-2 transition-all"
+          className="flex items-center gap-1.5 border-b-2 pb-3 text-xs font-bold tracking-wider uppercase transition-all sm:text-sm"
         >
           <MapPin className="size-4" /> Locations
         </Link>
