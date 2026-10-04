@@ -95,6 +95,7 @@ import { Route as AuthUOrganizerOrganizationsSlugRouteImport } from './routes/_a
 import { Route as AuthUStudioVideosIdRouteImport } from './routes/_auth/u/studio/videos.$id'
 import { Route as AuthUOrganizerOrganizationsSlugTeamRouteImport } from './routes/_auth/u/organizer/organizations_.$slug_.team'
 import { Route as AuthUStudioVideosIdClipsRouteImport } from './routes/_auth/u/studio/videos.$id_.clips'
+import { Route as AuthUStudioVideosIdClipsClipIdRouteImport } from './routes/_auth/u/studio/videos.$id_.clips_.$clipId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -533,6 +534,12 @@ const AuthUStudioVideosIdClipsRoute =
     path: '/studio/videos/$id/clips',
     getParentRoute: () => AuthURoute,
   } as any)
+const AuthUStudioVideosIdClipsClipIdRoute =
+  AuthUStudioVideosIdClipsClipIdRouteImport.update({
+    id: '/studio/videos/$id_/clips_/$clipId',
+    path: '/studio/videos/$id/clips/$clipId',
+    getParentRoute: () => AuthURoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -620,6 +627,7 @@ export interface FileRoutesByFullPath {
   '/u/studio/videos/$id': typeof AuthUStudioVideosIdRoute
   '/u/organizer/organizations/$slug/team': typeof AuthUOrganizerOrganizationsSlugTeamRoute
   '/u/studio/videos/$id/clips': typeof AuthUStudioVideosIdClipsRoute
+  '/u/studio/videos/$id/clips/$clipId': typeof AuthUStudioVideosIdClipsClipIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -697,6 +705,7 @@ export interface FileRoutesByTo {
   '/u/studio/videos/$id': typeof AuthUStudioVideosIdRoute
   '/u/organizer/organizations/$slug/team': typeof AuthUOrganizerOrganizationsSlugTeamRoute
   '/u/studio/videos/$id/clips': typeof AuthUStudioVideosIdClipsRoute
+  '/u/studio/videos/$id/clips/$clipId': typeof AuthUStudioVideosIdClipsClipIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -786,6 +795,7 @@ export interface FileRoutesById {
   '/_auth/u/studio/videos/$id': typeof AuthUStudioVideosIdRoute
   '/_auth/u/organizer/organizations_/$slug_/team': typeof AuthUOrganizerOrganizationsSlugTeamRoute
   '/_auth/u/studio/videos/$id_/clips': typeof AuthUStudioVideosIdClipsRoute
+  '/_auth/u/studio/videos/$id_/clips_/$clipId': typeof AuthUStudioVideosIdClipsClipIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -875,6 +885,7 @@ export interface FileRouteTypes {
     | '/u/studio/videos/$id'
     | '/u/organizer/organizations/$slug/team'
     | '/u/studio/videos/$id/clips'
+    | '/u/studio/videos/$id/clips/$clipId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -952,6 +963,7 @@ export interface FileRouteTypes {
     | '/u/studio/videos/$id'
     | '/u/organizer/organizations/$slug/team'
     | '/u/studio/videos/$id/clips'
+    | '/u/studio/videos/$id/clips/$clipId'
   id:
     | '__root__'
     | '/'
@@ -1040,6 +1052,7 @@ export interface FileRouteTypes {
     | '/_auth/u/studio/videos/$id'
     | '/_auth/u/organizer/organizations_/$slug_/team'
     | '/_auth/u/studio/videos/$id_/clips'
+    | '/_auth/u/studio/videos/$id_/clips_/$clipId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1666,6 +1679,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthUStudioVideosIdClipsRouteImport
       parentRoute: typeof AuthURoute
     }
+    '/_auth/u/studio/videos/$id_/clips_/$clipId': {
+      id: '/_auth/u/studio/videos/$id_/clips_/$clipId'
+      path: '/studio/videos/$id/clips/$clipId'
+      fullPath: '/u/studio/videos/$id/clips/$clipId'
+      preLoaderRoute: typeof AuthUStudioVideosIdClipsClipIdRouteImport
+      parentRoute: typeof AuthURoute
+    }
   }
 }
 
@@ -1772,6 +1792,7 @@ interface AuthURouteChildren {
   AuthUStudioIndexRoute: typeof AuthUStudioIndexRoute
   AuthUStudioVideosIdRoute: typeof AuthUStudioVideosIdRoute
   AuthUStudioVideosIdClipsRoute: typeof AuthUStudioVideosIdClipsRoute
+  AuthUStudioVideosIdClipsClipIdRoute: typeof AuthUStudioVideosIdClipsClipIdRoute
 }
 
 const AuthURouteChildren: AuthURouteChildren = {
@@ -1798,6 +1819,7 @@ const AuthURouteChildren: AuthURouteChildren = {
   AuthUStudioIndexRoute: AuthUStudioIndexRoute,
   AuthUStudioVideosIdRoute: AuthUStudioVideosIdRoute,
   AuthUStudioVideosIdClipsRoute: AuthUStudioVideosIdClipsRoute,
+  AuthUStudioVideosIdClipsClipIdRoute: AuthUStudioVideosIdClipsClipIdRoute,
 }
 
 const AuthURouteWithChildren = AuthURoute._addFileChildren(AuthURouteChildren)

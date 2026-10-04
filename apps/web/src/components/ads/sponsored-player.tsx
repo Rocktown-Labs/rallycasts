@@ -23,6 +23,12 @@ interface SponsoredPlayerProps {
   poster?: string;
   playbackId: string;
   title: string;
+  /**
+   * Vertical (9:16) stage for shorts: renders a centered, height-capped
+   * stage so clip pages feel native-vertical. Landscape videos keep the
+   * default 16:9 stage.
+   */
+  vertical?: boolean;
   videoId: string;
   viewerId?: string;
 }
@@ -41,6 +47,7 @@ export function SponsoredPlayer({
   poster,
   playbackId,
   title,
+  vertical = false,
   videoId,
   viewerId,
 }: SponsoredPlayerProps) {
@@ -176,7 +183,11 @@ export function SponsoredPlayer({
 
   return (
     <div
-      className="border-border relative aspect-video w-full overflow-hidden rounded-xl border bg-black shadow-lg"
+      className={
+        vertical
+          ? "border-border relative mx-auto aspect-[9/16] max-h-[78vh] w-full max-w-sm overflow-hidden rounded-xl border bg-black shadow-lg"
+          : "border-border relative aspect-video w-full overflow-hidden rounded-xl border bg-black shadow-lg"
+      }
       ref={containerRef}
     >
       <div className={phase === "ad" ? "invisible" : "visible"}>
@@ -193,7 +204,11 @@ export function SponsoredPlayer({
           ref={(element) => {
             playerRef.current = element as unknown as Playable | null;
           }}
-          style={{ aspectRatio: "16 / 9", width: "100%" }}
+          style={{
+            aspectRatio: vertical ? "9 / 16" : "16 / 9",
+            height: "100%",
+            width: "100%",
+          }}
         />
       </div>
 

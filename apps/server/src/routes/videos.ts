@@ -1059,9 +1059,23 @@ export const videosRouter = new Hono<AppEnv>()
         r2Key: _r2Key,
         status: _status,
         taggedUserIds,
-        thumbnailUrl: _thumbnailUrl,
+        thumbnailUrl,
         ...rest
       } = data;
+      // Custom thumbnails must come from our own media storage: the client
+      // uploads through POST /upload/image, which validates and stores the
+      // file in R2. Arbitrary external URLs are rejected.
+      if (thumbnailUrl) {
+        const allowedPrefix = `${c.env.R2_PUBLIC_URL}/images/`;
+        if (!thumbnailUrl.startsWith(allowedPrefix)) {
+          return c.json(
+            {
+              message: "Custom thumbnails must be uploaded through RallyCasts",
+            },
+            HttpStatusCodes.BAD_REQUEST
+          );
+        }
+      }
       const effectiveVisibility = data.visibility ?? currentVideo.visibility;
       const desiredPlaybackPolicy =
         effectiveVisibility === "public" ? "public" : "signed";
@@ -1091,18 +1105,32 @@ export const videosRouter = new Hono<AppEnv>()
           );
         }
       }
+      // Resolve the thumbnail: a poster frame pick or a non-public
+      // visibility clears a custom upload (the poster is recomputed
+      // from the playback ID and picked time on read, and private
+      // videos never expose one); otherwise a provided custom URL
+      // wins. When the patch carries no thumbnail keys at all, the
+      // current value is left untouched.
+      const patchThumbnail = (): { thumbnailUrl?: null | string } => {
+        if ("thumbnailTimeSeconds" in data) {
+          return { thumbnailUrl: null };
+        }
+        if (data.visibility !== undefined && data.visibility !== "public") {
+          return { thumbnailUrl: null };
+        }
+        if (thumbnailUrl === undefined) {
+          return {};
+        }
+        return { thumbnailUrl };
+      };
+
       await db
         .update(video)
         .set({
           ...rest,
           ...(publish === true ? { publishedAt: new Date() } : {}),
           ...(publish === false ? { publishedAt: null } : {}),
-          ...(data.visibility && data.visibility !== "public"
-            ? { thumbnailUrl: null }
-            : {}),
-          // A poster frame pick replaces the derived thumbnail URL; it is
-          // recomputed from the playback ID and picked time on read.
-          ...("thumbnailTimeSeconds" in data ? { thumbnailUrl: null } : {}),
+          ...patchThumbnail(),
           muxPlaybackId: replacementPlaybackId,
           muxPlaybackPolicy:
             currentVideo.muxPlaybackPolicy === desiredPlaybackPolicy

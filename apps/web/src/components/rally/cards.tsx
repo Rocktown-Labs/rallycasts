@@ -328,15 +328,6 @@ export function VideoCard({ video }: { video: VideoCardData }) {
       ? `https://image.mux.com/${encodeURIComponent(video.muxPlaybackId)}/thumbnail.webp?time=1`
       : null);
 
-  const viewsCount =
-    video.viewsCount ??
-    (Math.abs(
-      [...video.id].reduce((acc, char) => acc + (char.codePointAt(0) ?? 0), 0)
-    ) %
-      880) +
-      120;
-
-  const viewsText = formatViews(viewsCount);
   const timeAgoText = getTimeAgo(video);
   const ownerUsername =
     video.owner?.username ?? video.owner?.displayUsername ?? "player";
@@ -369,8 +360,12 @@ export function VideoCard({ video }: { video: VideoCardData }) {
             >
               {video.owner?.name ?? "Anonymous Player"}
             </Link>
-            <span className="text-muted-foreground/60">•</span>
-            <span>{viewsText}</span>
+            {video.viewsCount ? (
+              <>
+                <span className="text-muted-foreground/60">•</span>
+                <span>{formatViews(video.viewsCount)}</span>
+              </>
+            ) : null}
             <span className="text-muted-foreground/60">•</span>
             <span>{timeAgoText}</span>
           </div>
@@ -707,15 +702,6 @@ export function RallyClipCard({ video }: { video: VideoCardData }) {
       ? `https://image.mux.com/${encodeURIComponent(video.muxPlaybackId)}/thumbnail.webp?time=1&aspect_ratio=9:16&fit_mode=smartcrop`
       : null);
 
-  const viewsCount =
-    video.viewsCount ??
-    (Math.abs(
-      [...video.id].reduce((acc, char) => acc + (char.codePointAt(0) ?? 0), 0)
-    ) %
-      1200) +
-      240;
-
-  const viewsText = formatViews(viewsCount);
   const timeAgoText = getTimeAgo(video);
   const ownerUsername =
     video.owner?.username ?? video.owner?.displayUsername ?? "player";
@@ -744,11 +730,7 @@ export function RallyClipCard({ video }: { video: VideoCardData }) {
           </div>
         )}
 
-        <div className="pointer-events-none absolute top-2.5 right-2.5 left-2.5 flex items-center justify-between">
-          <span className="inline-flex items-center gap-1 rounded-full border border-[#bcdf21]/30 bg-black/75 px-2 py-0.5 text-[10px] font-bold text-[#bcdf21] backdrop-blur-xs">
-            <Flame className="size-2.5 fill-[#bcdf21]" />
-            Rally Clip
-          </span>
+        <div className="pointer-events-none absolute top-2.5 right-2.5">
           <span className="rounded-full bg-black/75 px-2 py-0.5 text-[10px] font-semibold text-white/90 backdrop-blur-xs">
             {formatDuration(video.durationSeconds)}
           </span>
@@ -765,7 +747,9 @@ export function RallyClipCard({ video }: { video: VideoCardData }) {
             {video.title}
           </h4>
           <div className="mt-2 flex items-center justify-between text-[11px] text-white/70">
-            <span>{viewsText}</span>
+            {video.viewsCount ? (
+              <span>{formatViews(video.viewsCount)}</span>
+            ) : null}
             <span>{timeAgoText}</span>
           </div>
         </div>
