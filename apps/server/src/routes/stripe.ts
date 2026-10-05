@@ -1,6 +1,8 @@
 import { zValidator } from "@hono/zod-validator";
 import { createDb } from "@rallycaststv/db";
 import {
+  casterProfile,
+  castingJob,
   event,
   eventPayment,
   eventRegistration,
@@ -31,7 +33,12 @@ import { requireAuth } from "../middleware/auth";
 import { requireVerifiedAuth } from "../middleware/security";
 
 const STRIPE_API_VERSION = "2026-07-29.dahlia";
-const APPLICATION_FEE_BASIS_POINTS = 500;
+/**
+ * Unified platform take rate on money flows (event entry fees and casting
+ * payouts): 10%. Stripe's own processing (~2.9% + 30c) comes out of the
+ * recipient's side; this fee is the RallyCasts cut.
+ */
+const APPLICATION_FEE_BASIS_POINTS = 1000;
 const STRIPE_REQUEST_TIMEOUT_MS = 10_000;
 
 const getRecord = (
@@ -183,7 +190,23 @@ const processCheckoutCompleted = async (
   session: Record<string, unknown>,
   stripeSecret?: string
 ) => {
+  // Casting payouts: mark the job paid when a request covers it.
   const metadata = getRecord(session, "metadata");
+  const castingJobId = metadata ? getString(metadata, "casting_job_id") : null;
+  if (castingJobId) {
+    const paymentIntentId = getString(session, "payment_intent");
+    if (paymentIntentId) {
+      await db
+        .update(castingJob)
+        .set({
+          paidAt: new Date(),
+          paymentStatus: "paid",
+          stripePaymentIntentId: paymentIntentId,
+        })
+        .where(eq(castingJob.id, castingJobId));
+    }
+    return;
+  }
   const registrationId = metadata
     ? getString(metadata, "registration_id")
     : null;
@@ -935,6 +958,205 @@ export const stripeRouter = new Hono<AppEnv>()
     }
     return c.json({ url: portalUrl }, HttpStatusCodes.OK);
   })
+  .post(
+    "/casting-jobs/:jobId/pay",
+    requireAuth,
+    requireVerifiedAuth,
+    async (c) => {
+      const secret = c.env.STRIPE_SECRET_KEY;
+      const db = createDb(c.env.DB);
+      const { user: authUser } = c.var.authSession;
+      const jobId = c.req.param("jobId");
+      if (!secret) {
+        return c.json(
+          { message: "Stripe is not configured" },
+          HttpStatusCodes.SERVICE_UNAVAILABLE
+        );
+      }
+
+      const [job] = await db
+        .select()
+        .from(castingJob)
+        .where(eq(castingJob.id, jobId))
+        .limit(1);
+      if (!job || job.requesterUserId !== authUser.id) {
+        return c.json(
+          { message: "Casting job not found" },
+          HttpStatusCodes.NOT_FOUND
+        );
+      }
+      // Money moves only once both sides committed: the requester accepted a
+      // caster's offer and the caster is assigned.
+      if (job.status !== "accepted" || !job.casterUserId) {
+        return c.json(
+          {
+            message:
+              "Accept a caster's offer before paying. Payment unlocks then.",
+          },
+          HttpStatusCodes.CONFLICT
+        );
+      }
+      if (job.priceCents <= 0) {
+        return c.json(
+          { message: "This job has nothing to pay" },
+          HttpStatusCodes.CONFLICT
+        );
+      }
+      if (job.paymentStatus === "paid") {
+        return c.json({ alreadyPaid: true }, HttpStatusCodes.CONFLICT);
+      }
+
+      const [caster] = await db
+        .select({
+          displayName: casterProfile.displayName,
+          stripeConnectAccountId: casterProfile.stripeConnectAccountId,
+        })
+        .from(casterProfile)
+        .where(eq(casterProfile.userId, job.casterUserId))
+        .limit(1);
+      if (!caster?.stripeConnectAccountId) {
+        return c.json(
+          {
+            message:
+              "This caster has not set up payouts yet. They need to connect a payout account first.",
+          },
+          HttpStatusCodes.CONFLICT
+        );
+      }
+
+      const applicationFeeCents = Math.round(
+        (job.priceCents * APPLICATION_FEE_BASIS_POINTS) / 10_000
+      );
+      const appUrl =
+        c.env.CORS_ORIGIN?.split(",")[0] ?? "http://localhost:3001";
+      const session = await stripeForm<Record<string, unknown>>(
+        "/v1/checkout/sessions",
+        secret,
+        {
+          cancel_url: `${appUrl}/u/casts?checkout=cast_cancel`,
+          client_reference_id: job.id,
+          customer_email: authUser.email,
+          "line_items[0][price_data][currency]": job.currency,
+          "line_items[0][price_data][product_data][name]":
+            "RallyCasts casting request",
+          "line_items[0][price_data][unit_amount]": String(job.priceCents),
+          "line_items[0][quantity]": "1",
+          "metadata[casting_job_id]": job.id,
+          mode: "payment",
+          "payment_intent_data[application_fee_amount]":
+            String(applicationFeeCents),
+          "payment_intent_data[transfer_data][destination]":
+            caster.stripeConnectAccountId,
+          submit_type: "book",
+          success_url: `${appUrl}/u/casts?checkout=cast_success`,
+        }
+      );
+      const checkoutUrl = getString(session, "url");
+      if (!checkoutUrl) {
+        return c.json(
+          { message: "Stripe returned an invalid checkout session" },
+          HttpStatusCodes.BAD_GATEWAY
+        );
+      }
+      return c.json({ url: checkoutUrl }, HttpStatusCodes.OK);
+    }
+  )
+  .post(
+    "/caster/payouts/setup",
+    requireAuth,
+    requireVerifiedAuth,
+    async (c) => {
+      const secret = c.env.STRIPE_SECRET_KEY;
+      const db = createDb(c.env.DB);
+      const { user: authUser } = c.var.authSession;
+      if (!secret) {
+        return c.json(
+          { message: "Stripe is not configured" },
+          HttpStatusCodes.SERVICE_UNAVAILABLE
+        );
+      }
+
+      const [caster] = await db
+        .select({
+          displayName: casterProfile.displayName,
+          stripeConnectAccountId: casterProfile.stripeConnectAccountId,
+        })
+        .from(casterProfile)
+        .where(eq(casterProfile.userId, authUser.id))
+        .limit(1);
+      if (!caster) {
+        return c.json(
+          { message: "Only casters can set up payouts" },
+          HttpStatusCodes.FORBIDDEN
+        );
+      }
+
+      let accountId = caster.stripeConnectAccountId;
+      if (!accountId) {
+        const account = await stripeJson<Record<string, unknown>>(
+          "/v2/core/accounts",
+          secret,
+          {
+            configuration: {
+              recipient: {
+                capabilities: {
+                  stripe_balance: { stripe_transfers: { requested: true } },
+                },
+              },
+            },
+            contact_email: authUser.email,
+            dashboard: "express",
+            defaults: {
+              responsibilities: {
+                fees_collector: "application",
+                losses_collector: "application",
+              },
+            },
+            display_name: caster.displayName ?? authUser.name,
+          }
+        );
+        const createdAccountId = getString(account, "id");
+        if (!createdAccountId) {
+          return c.json(
+            { message: "Stripe returned an invalid account" },
+            HttpStatusCodes.BAD_GATEWAY
+          );
+        }
+        accountId = createdAccountId;
+        await db
+          .update(casterProfile)
+          .set({ stripeConnectAccountId: accountId })
+          .where(eq(casterProfile.userId, authUser.id));
+      }
+
+      const appUrl =
+        c.env.CORS_ORIGIN?.split(",")[0] ?? "http://localhost:3001";
+      const link = await stripeJson<Record<string, unknown>>(
+        "/v2/core/account_links",
+        secret,
+        {
+          account: accountId,
+          use_case: {
+            account_onboarding: {
+              collection_options: { fields: "eventually_due" },
+              configurations: ["recipient"],
+              refresh_url: `${appUrl}/u/casts?stripe=refresh`,
+              return_url: `${appUrl}/u/casts?stripe=return`,
+            },
+            type: "account_onboarding",
+          },
+        }
+      );
+      const linkUrl = getString(link, "url");
+      if (!linkUrl) {
+        return c.json(
+          { message: "Stripe returned an invalid onboarding link" },
+          HttpStatusCodes.BAD_GATEWAY
+        );
+      }
+      return c.json({ url: linkUrl }, HttpStatusCodes.OK);
+    }
+  )
   .post("/webhook", async (c) => {
     const secret = c.env.STRIPE_WEBHOOK_SECRET;
     const payload = await readJsonPayload(c.req.raw);

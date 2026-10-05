@@ -11,6 +11,7 @@ export interface CastingJobRecord {
   endsAt?: string | null;
   id: string;
   notes?: string | null;
+  paymentStatus?: "paid" | "refunded" | "unpaid" | null;
   priceCents?: number | null;
   requestedHours: number;
   startsAt: string;
