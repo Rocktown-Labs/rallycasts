@@ -103,6 +103,9 @@ export const useMyVideos = () =>
     queryKey: ["videos", "me"],
   });
 
+const fetchVideoDetail = (id: string) =>
+  readApiJson(apiClient.api.v1.videos[":id"].$get({ param: { id } }));
+
 export const useVideo = (id: string) =>
   useQuery({
     enabled: id.length > 0,
@@ -112,9 +115,7 @@ export const useVideo = (id: string) =>
         return demoVideo;
       }
 
-      return await readApiJson(
-        apiClient.api.v1.videos[":id"].$get({ param: { id } })
-      );
+      return await fetchVideoDetail(id);
     },
     queryKey: ["videos", id],
   });

@@ -771,4 +771,52 @@ describe("videos API", () => {
     );
     expect(missingResponse.status).toBe(404);
   });
+
+  it("sets custom thumbnails only from RallyCasts storage", async () => {
+    const owner = await signUp("Custom Thumbnail Owner");
+    const created = await jsonRequest("/api/v1/videos", owner.cookie, {
+      title: "Thumbnail target",
+      visibility: "public",
+    });
+    const { video: createdVideo } = (await created.json()) as {
+      video: { id: string };
+    };
+
+    // Arbitrary external URLs are rejected.
+    const rejected = await jsonRequest(
+      `/api/v1/videos/${createdVideo.id}`,
+      owner.cookie,
+      { thumbnailUrl: "https://evil.example.com/images/pixel.png" },
+      "PATCH"
+    );
+    expect(rejected.status).toBe(400);
+
+    // Uploads from our own media storage stick and are served as the poster.
+    const accepted = await jsonRequest(
+      `/api/v1/videos/${createdVideo.id}`,
+      owner.cookie,
+      { thumbnailUrl: "https://media.example.com/images/abc123.png" },
+      "PATCH"
+    );
+    expect(accepted.status).toBe(200);
+    const acceptedBody = (await accepted.json()) as {
+      video?: { thumbnailUrl?: string };
+    };
+    expect(acceptedBody.video?.thumbnailUrl).toBe(
+      "https://media.example.com/images/abc123.png"
+    );
+
+    // Picking a poster frame replaces the custom thumbnail.
+    const framePick = await jsonRequest(
+      `/api/v1/videos/${createdVideo.id}`,
+      owner.cookie,
+      { thumbnailTimeSeconds: 4 },
+      "PATCH"
+    );
+    expect(framePick.status).toBe(200);
+    const frameBody = (await framePick.json()) as {
+      video?: { thumbnailUrl?: string | null };
+    };
+    expect(frameBody.video?.thumbnailUrl ?? null).toBeNull();
+  });
 });

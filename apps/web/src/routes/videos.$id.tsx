@@ -1237,6 +1237,7 @@ function VideoDetailPage() {
                 poster={posterUrl}
                 playbackId={video.muxPlaybackId}
                 title={video.title}
+                vertical={video.mediaType === "short"}
                 videoId={video.id}
                 viewerId={currentUser?.id}
               />

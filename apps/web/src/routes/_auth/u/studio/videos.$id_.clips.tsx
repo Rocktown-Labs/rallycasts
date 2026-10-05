@@ -129,10 +129,9 @@ const VideoClipperPage = () => {
         })
       ),
     onSuccess: async (result) => {
-      toast.success("Clip created. Mux is processing it now.");
       await navigate({
-        params: { id: result.video.id },
-        to: "/u/studio/videos/$id",
+        params: { clipId: result.video.id, id },
+        to: "/u/studio/videos/$id/clips/$clipId",
       });
     },
   });

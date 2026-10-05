@@ -10,6 +10,7 @@ import {
   Copy,
   ExternalLink,
   Film,
+  ImageUp,
   LoaderCircle,
   Lock,
   MapPin,
@@ -20,12 +21,12 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { apiClient } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
-import { getVideoSlug } from "@/lib/hooks";
+import { getVideoSlug, useImageUpload } from "@/lib/hooks";
 import { readApiJson } from "@/lib/hooks/api";
 import { useVideoUploadState } from "@/lib/video-upload-manager";
 
@@ -211,6 +212,52 @@ function VideoStudioPage() {
       toast.success("Thumbnail updated");
     },
   });
+
+  const uploadImage = useImageUpload();
+  const saveCustomThumbnail = useMutation({
+    mutationFn: (thumbnailUrl: string) =>
+      readApiJson(
+        apiClient.api.v1.videos[":id"].$patch({
+          json: { thumbnailUrl },
+          param: { id },
+        })
+      ),
+    onError: (error) => {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Could not set the custom thumbnail."
+      );
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["video-studio", id] });
+      toast.success("Custom thumbnail updated");
+    },
+  });
+  const thumbnailUploadPending =
+    uploadImage.isPending || saveCustomThumbnail.isPending;
+
+  const handleThumbnailUpload = (file: File | undefined) => {
+    if (!file) {
+      return;
+    }
+    if (!ALLOWED_THUMBNAIL_TYPES.has(file.type)) {
+      toast.error("Only AVIF, JPEG, PNG, and WebP images are supported");
+      return;
+    }
+    if (file.size > MAX_THUMBNAIL_BYTES) {
+      toast.error("Image must be 5MB or smaller");
+      return;
+    }
+    uploadImage.mutate(file, {
+      onError: () => toast.error("Could not upload the image"),
+      onSuccess: (result) => {
+        if (result.url) {
+          saveCustomThumbnail.mutate(result.url);
+        }
+      },
+    });
+  };
 
   const deleteVideo = useMutation({
     mutationFn: () =>
@@ -561,10 +608,13 @@ function VideoStudioPage() {
               video.visibility === "public" &&
               (video.durationSeconds ?? 0) > 0
             }
+            customThumbnailUrl={video.thumbnailUrl}
             durationSeconds={video.durationSeconds ?? 0}
             isSaving={saveThumbnailTime.isPending}
+            isUploading={thumbnailUploadPending}
             muxPlaybackId={video.muxPlaybackId ?? ""}
             onPick={(time) => saveThumbnailTime.mutate(time)}
+            onUpload={handleThumbnailUpload}
             selectedTimeSeconds={
               video.thumbnailTimeSeconds ??
               DEFAULT_STUDIO_THUMBNAIL_TIME_SECONDS
@@ -820,6 +870,13 @@ function VideoStudioPage() {
 }
 
 const DEFAULT_STUDIO_THUMBNAIL_TIME_SECONDS = 1;
+const MAX_THUMBNAIL_BYTES = 5 * 1024 * 1024;
+const ALLOWED_THUMBNAIL_TYPES = new Set([
+  "image/avif",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
 const THUMBNAIL_CANDIDATE_FRACTIONS = [
   0.04, 0.2, 0.35, 0.5, 0.65, 0.85,
 ] as const;
@@ -833,19 +890,26 @@ const formatStudioTime = (seconds: number) => {
 
 function ThumbnailPickerCard({
   canPick,
+  customThumbnailUrl,
   durationSeconds,
   isSaving,
+  isUploading,
   muxPlaybackId,
   onPick,
+  onUpload,
   selectedTimeSeconds,
 }: {
   canPick: boolean;
+  customThumbnailUrl?: null | string;
   durationSeconds: number;
   isSaving: boolean;
+  isUploading: boolean;
   muxPlaybackId: string;
   onPick: (timeSeconds: number) => void;
+  onUpload: (file: File) => void;
   selectedTimeSeconds: number;
 }) {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const candidateTimes = THUMBNAIL_CANDIDATE_FRACTIONS.map(
     (fraction) => Math.round(durationSeconds * fraction * 10) / 10
   );
@@ -854,12 +918,66 @@ function ThumbnailPickerCard({
     <div className="bg-card rounded-2xl border p-5 sm:p-6">
       <h2 className="font-bold">Thumbnail</h2>
       <p className="text-muted-foreground mt-1 text-sm">
-        Pick the frame people see before they press play.
+        Pick the frame people see before they press play, or upload your own
+        image.
       </p>
+
+      <input
+        accept="image/avif,image/jpeg,image/png,image/webp"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          event.target.value = "";
+          if (file) {
+            onUpload(file);
+          }
+        }}
+        ref={fileInputRef}
+        type="file"
+      />
+
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <Button
+          className="rounded-lg"
+          disabled={isUploading || !canPick}
+          onClick={() => fileInputRef.current?.click()}
+          type="button"
+          variant="outline"
+        >
+          {isUploading ? (
+            <LoaderCircle className="size-4 animate-spin" />
+          ) : (
+            <ImageUp className="size-4" />
+          )}
+          Upload custom thumbnail
+        </Button>
+        <p className="text-muted-foreground text-xs">
+          AVIF, JPEG, PNG, or WebP up to 5MB.
+        </p>
+      </div>
+
+      {customThumbnailUrl ? (
+        <div className="border-primary/40 bg-primary/5 mt-4 flex items-center gap-3 rounded-lg border p-3">
+          <img
+            alt="Custom thumbnail"
+            className="border-border/60 aspect-video h-16 rounded-lg border object-cover"
+            src={customThumbnailUrl}
+          />
+          <div>
+            <p className="text-sm font-semibold">Custom thumbnail in use</p>
+            <p className="text-muted-foreground text-xs">
+              Picking a frame below replaces it.
+            </p>
+          </div>
+        </div>
+      ) : null}
+
       {canPick ? (
         <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-6">
           {candidateTimes.map((time) => {
-            const isSelected = Math.abs(time - selectedTimeSeconds) < 0.05;
+            const isSelected =
+              !customThumbnailUrl &&
+              Math.abs(time - selectedTimeSeconds) < 0.05;
             return (
               <button
                 aria-pressed={isSelected}
