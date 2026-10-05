@@ -187,7 +187,7 @@ describe("Onboarding Wizard Steps & Validation", () => {
       // Toggle billing interval
       const monthlyBtn = screen.getByText("Monthly");
       fireEvent.click(monthlyBtn);
-      expect(screen.getByText("$9.99")).toBeTruthy();
+      expect(screen.getByText("$14.99")).toBeTruthy();
     });
   });
 });

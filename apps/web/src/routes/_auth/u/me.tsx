@@ -1,10 +1,12 @@
 import { Button, buttonVariants } from "@rallycaststv/ui/components/button";
 import { cn } from "@rallycaststv/ui/lib/utils";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import {
   Activity,
   ArrowRight,
   Award,
+  BadgeCheck,
   Building2,
   Calendar,
   Compass,
@@ -19,17 +21,19 @@ import {
   RotateCcw,
   Search,
   ShieldCheck,
+  Sparkles,
   Trophy,
   UploadCloud,
   UserPlus,
   Users,
   Video,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { ParkHeatCard } from "@/components/rally/cards";
 import type { VenueCardData } from "@/components/rally/cards";
+import { apiClient } from "@/lib/api-client";
 import type { CourtSuggestion } from "@/lib/google-places";
 import { mapGooglePlaceToCourtSuggestion } from "@/lib/google-places";
 import {
@@ -43,6 +47,7 @@ import {
   useSendFriendRequest,
   useTrending,
 } from "@/lib/hooks";
+import { readApiJson } from "@/lib/hooks/api";
 import type { GeoLocation } from "@/lib/hooks/use-geolocation";
 
 export const Route = createFileRoute("/_auth/u/me")({
@@ -489,6 +494,8 @@ function DashboardPage() {
 
       <ActionStrip />
 
+      <RallyCastsProCard />
+
       <ParksAroundYouSection
         effectiveLocationLabel={effectiveLocationLabel}
         homeCourtName={homeCourtName}
@@ -904,6 +911,161 @@ const actionTiles = [
     to: "/players",
   },
 ] as const;
+
+type ProSubscription = {
+  cancelAtPeriodEnd: boolean;
+  currentPeriodEnd: string | null;
+  entitled: boolean;
+  interval: "month" | "year";
+  status: string;
+  trialEndsAt: string | null;
+} | null;
+
+const proCardCopy = (subscription: ProSubscription): string => {
+  if (!subscription?.entitled) {
+    return "Ad-free everywhere, unlimited 4K uploads, and the AI highlight reel.";
+  }
+  if (subscription.status === "trialing") {
+    return "Trial active. Ads are off and Pro features are unlocked.";
+  }
+  return "Active. Ads are off and Pro features are unlocked.";
+};
+
+function RallyCastsProCard() {
+  const { data: proData, isLoading } = useQuery({
+    queryFn: async () => {
+      const response = await readApiJson(
+        apiClient.api.v1.stripe.pro.subscription.$get()
+      );
+      return (response as { subscription: ProSubscription }).subscription;
+    },
+    queryKey: ["pro-subscription"],
+  });
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("checkout") === "pro_success") {
+      toast.success("RallyCasts Pro activated. Ads are off.");
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+    if (params.get("checkout") === "pro_cancel") {
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
+
+  const startCheckout = useMutation({
+    mutationFn: async (interval: "month" | "year") => {
+      const response = await readApiJson(
+        apiClient.api.v1.stripe.pro.checkout.$post({ json: { interval } })
+      );
+      return (response as { url?: string }).url;
+    },
+    onError: () => {
+      toast.error("Could not start checkout. Please try again.");
+    },
+    onSuccess: (url) => {
+      if (url) {
+        window.location.href = url;
+      }
+    },
+  });
+
+  const openPortal = useMutation({
+    mutationFn: async () => {
+      const response = await readApiJson(
+        apiClient.api.v1.stripe.pro.portal.$post({})
+      );
+      return (response as { url?: string }).url;
+    },
+    onError: () => {
+      toast.error("Could not open billing settings.");
+    },
+    onSuccess: (url) => {
+      if (url) {
+        window.location.href = url;
+      }
+    },
+  });
+
+  const subscription = proData ?? null;
+  const busy = startCheckout.isPending || openPortal.isPending;
+
+  let proActions = (
+    <Button className="rounded-lg" disabled variant="outline">
+      <Loader2 className="size-4 animate-spin" />
+    </Button>
+  );
+  if (!isLoading && subscription?.entitled) {
+    proActions = (
+      <Button
+        className="rounded-lg"
+        disabled={busy}
+        onClick={() => openPortal.mutate()}
+        type="button"
+        variant="outline"
+      >
+        <BadgeCheck className="size-4" />
+        {subscription.status === "trialing" ? "Manage trial" : "Manage billing"}
+      </Button>
+    );
+  } else if (!isLoading) {
+    proActions = (
+      <div className="flex flex-wrap gap-2">
+        <Button
+          className="rounded-lg"
+          disabled={busy}
+          onClick={() => startCheckout.mutate("month")}
+          type="button"
+          variant="outline"
+        >
+          {busy ? <Loader2 className="size-4 animate-spin" /> : null}
+          $14.99/mo
+        </Button>
+        <Button
+          className="rounded-lg"
+          disabled={busy}
+          onClick={() => startCheckout.mutate("year")}
+          type="button"
+        >
+          $119.99/yr
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <section
+      aria-label="RallyCasts Pro"
+      className="border-border bg-card rounded-2xl border p-5 sm:p-6"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <span className="bg-primary text-primary-foreground grid size-11 place-items-center rounded-lg">
+            <Sparkles className="size-5" />
+          </span>
+          <div>
+            <h2 className="text-base font-bold">RallyCasts Pro</h2>
+            <p className="text-muted-foreground text-xs">
+              {proCardCopy(subscription)}
+            </p>
+          </div>
+        </div>
+
+        {proActions}
+      </div>
+
+      {subscription?.entitled && subscription.currentPeriodEnd ? (
+        <p className="text-muted-foreground mt-3 text-xs">
+          {subscription.cancelAtPeriodEnd
+            ? `Ends ${new Date(subscription.currentPeriodEnd).toLocaleDateString()} (cancels at period end)`
+            : `Renews ${new Date(subscription.currentPeriodEnd).toLocaleDateString()} (${
+                subscription.interval === "year" ? "annual" : "monthly"
+              })`}
+        </p>
+      ) : null}
+    </section>
+  );
+}
 
 function ActionStrip() {
   return (

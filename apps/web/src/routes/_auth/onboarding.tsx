@@ -20,8 +20,10 @@ import { StepGame } from "@/components/onboarding/step-game";
 import { StepLocation } from "@/components/onboarding/step-location";
 import { StepProfile } from "@/components/onboarding/step-profile";
 import { StepRoles } from "@/components/onboarding/step-roles";
+import { apiClient } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
 import { useOnboarding } from "@/lib/hooks";
+import { readApiJson } from "@/lib/hooks/api";
 import { useAppForm } from "@/lib/hooks/onboarding-form";
 import { LOCATION_STORAGE_KEY } from "@/lib/hooks/use-geolocation";
 import { parseDateOfBirth } from "@/lib/onboarding-profile";
@@ -124,6 +126,26 @@ function OnboardingPage() {
         // Brief pause to allow the background geocache & embeddings to spin up
         await sleep(1500);
         toast.success("Welcome to RallyCasts! Your feed is ready.");
+
+        if (v.roles.accountTier === "premium") {
+          // Pro was selected: start the real subscription checkout with
+          // the trial. Annual is the default interval shown in the flow.
+          try {
+            const checkout = await readApiJson(
+              apiClient.api.v1.stripe.pro.checkout.$post({
+                json: { interval: "year" },
+              })
+            );
+            const checkoutUrl = (checkout as { url?: string }).url;
+            if (checkoutUrl) {
+              window.location.href = checkoutUrl;
+              return;
+            }
+          } catch {
+            // Checkout could not start; land on the dashboard where the
+            // RallyCasts Pro card offers another path.
+          }
+        }
         navigate({ to: "/u/me" });
       } catch (error) {
         setIsFinalizing(false);

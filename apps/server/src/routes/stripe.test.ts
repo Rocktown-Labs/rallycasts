@@ -148,3 +148,192 @@ describe("Stripe tournament payments", () => {
     });
   });
 });
+
+describe("RallyCasts Pro subscriptions", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("starts a Pro checkout and activates entitlement via the webhook", async () => {
+    const player = await signUp();
+    await env.DB.prepare("update user set email_verified = 1 where id = ?")
+      .bind(player.id)
+      .run();
+
+    const stripeFetch = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation((input) => {
+        const url = String(input);
+        if (url === "https://api.stripe.com/v1/products?limit=100") {
+          return Response.json({ data: [] });
+        }
+        if (url === "https://api.stripe.com/v1/products") {
+          return Response.json({ id: "prod_rallycasts_pro" });
+        }
+        if (url.startsWith("https://api.stripe.com/v1/prices?")) {
+          return Response.json({ data: [] });
+        }
+        if (url === "https://api.stripe.com/v1/prices") {
+          return Response.json({ id: "price_pro_monthly_v1" });
+        }
+        if (url.startsWith("https://api.stripe.com/v1/subscriptions/")) {
+          return Response.json({
+            cancel_at_period_end: false,
+            current_period_end: Math.floor(Date.now() / 1000) + 2_592_000,
+            customer: "cus_pro_1",
+            id: "sub_pro_1",
+            items: { data: [{ price: { id: "price_pro_monthly_v1" } }] },
+            metadata: { userId: player.id },
+            status: "trialing",
+            trial_end: Math.floor(Date.now() / 1000) + 604_800,
+          });
+        }
+        if (url === "https://api.stripe.com/v1/prices/price_pro_monthly_v1") {
+          return Response.json({ recurring: { interval: "month" } });
+        }
+        if (url === "https://api.stripe.com/v1/checkout/sessions") {
+          return Response.json({
+            id: "cs_pro_1",
+            url: "https://checkout.stripe.test/pro",
+          });
+        }
+        return Response.json({});
+      });
+
+    const checkoutResponse = await app.request(
+      "/api/v1/stripe/pro/checkout",
+      {
+        body: JSON.stringify({ interval: "month" }),
+        headers: { "Content-Type": "application/json", Cookie: player.cookie },
+        method: "POST",
+      },
+      { ...env, STRIPE_SECRET_KEY: "sk_test_value" }
+    );
+    expect(checkoutResponse.status).toBe(200);
+    const checkout = (await checkoutResponse.json()) as { url?: string };
+    expect(checkout.url).toBe("https://checkout.stripe.test/pro");
+
+    const payload = JSON.stringify({
+      data: {
+        object: {
+          id: "cs_pro_1",
+          mode: "subscription",
+          subscription: "sub_pro_1",
+        },
+      },
+      id: `evt_${crypto.randomUUID()}`,
+      type: "checkout.session.completed",
+    });
+    const timestamp = Math.floor(Date.now() / 1000).toString();
+    const signature = await signPayload(payload, timestamp);
+    const webhookResponse = await app.request(
+      "/api/v1/stripe/webhook",
+      {
+        body: payload,
+        headers: {
+          "Content-Type": "application/json",
+          "Stripe-Signature": `t=${timestamp},v1=${signature}`,
+        },
+        method: "POST",
+      },
+      {
+        ...env,
+        STRIPE_SECRET_KEY: "sk_test_value",
+        STRIPE_WEBHOOK_SECRET: "stripe-webhook-secret",
+      }
+    );
+    expect(webhookResponse.status).toBe(202);
+
+    const statusResponse = await app.request(
+      "/api/v1/stripe/pro/subscription",
+      { headers: { Cookie: player.cookie } },
+      env
+    );
+    expect(statusResponse.status).toBe(200);
+    const status = (await statusResponse.json()) as {
+      subscription?: {
+        entitled?: boolean;
+        interval?: string;
+        status?: string;
+      };
+    };
+    expect(status.subscription?.entitled).toBe(true);
+    expect(status.subscription?.status).toBe("trialing");
+    expect(status.subscription?.interval).toBe("month");
+
+    const profile = await env.DB.prepare(
+      "select account_tier from user_profile where user_id = ?"
+    )
+      .bind(player.id)
+      .first<{ account_tier: string }>();
+    expect(profile?.account_tier).toBe("premium");
+
+    // Cancellation downgrades entitlement through the same sync.
+    const cancelPayload = JSON.stringify({
+      data: {
+        object: {
+          cancel_at_period_end: false,
+          current_period_end: Math.floor(Date.now() / 1000),
+          customer: "cus_pro_1",
+          id: "sub_pro_1",
+          items: { data: [{ price: { id: "price_pro_monthly_v1" } }] },
+          metadata: { userId: player.id },
+          status: "canceled",
+        },
+      },
+      id: `evt_${crypto.randomUUID()}`,
+      type: "customer.subscription.updated",
+    });
+    const cancelTimestamp = Math.floor(Date.now() / 1000).toString();
+    const cancelSignature = await signPayload(cancelPayload, cancelTimestamp);
+    const cancelWebhook = await app.request(
+      "/api/v1/stripe/webhook",
+      {
+        body: cancelPayload,
+        headers: {
+          "Content-Type": "application/json",
+          "Stripe-Signature": `t=${cancelTimestamp},v1=${cancelSignature}`,
+        },
+        method: "POST",
+      },
+      {
+        ...env,
+        STRIPE_SECRET_KEY: "sk_test_value",
+        STRIPE_WEBHOOK_SECRET: "stripe-webhook-secret",
+      }
+    );
+    expect(cancelWebhook.status).toBe(202);
+
+    const downgraded = await app.request(
+      "/api/v1/stripe/pro/subscription",
+      { headers: { Cookie: player.cookie } },
+      env
+    );
+    const downgradedStatus = (await downgraded.json()) as {
+      subscription?: { entitled?: boolean };
+    };
+    expect(downgradedStatus.subscription?.entitled).toBe(false);
+    const downgradedProfile = await env.DB.prepare(
+      "select account_tier from user_profile where user_id = ?"
+    )
+      .bind(player.id)
+      .first<{ account_tier: string }>();
+    expect(downgradedProfile?.account_tier).toBe("free");
+    expect(stripeFetch).toHaveBeenCalled();
+  });
+
+  it("refuses Pro checkout when Stripe is not configured", async () => {
+    const player = await signUp();
+    await env.DB.prepare("update user set email_verified = 1 where id = ?")
+      .bind(player.id)
+      .run();
+    const response = await app.request(
+      "/api/v1/stripe/pro/checkout",
+      {
+        body: JSON.stringify({ interval: "year" }),
+        headers: { "Content-Type": "application/json", Cookie: player.cookie },
+        method: "POST",
+      },
+      env
+    );
+    expect(response.status).toBe(503);
+  });
+});

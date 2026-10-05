@@ -376,14 +376,14 @@ const StepRolesForm = (props: React.ComponentProps<typeof StepRoles>) => {
 
                     <div className="my-2 flex items-baseline gap-1">
                       <span className="text-foreground text-2xl font-extrabold">
-                        {billingInterval === "annual" ? "$8.25" : "$9.99"}
+                        {billingInterval === "annual" ? "$10.00" : "$14.99"}
                       </span>
                       <span className="text-muted-foreground text-xs">
                         / month
                       </span>
                       {billingInterval === "annual" && (
                         <span className="text-primary ml-1 text-[11px] font-medium">
-                          ($99 billed annually)
+                          ($119.99 billed annually)
                         </span>
                       )}
                     </div>
@@ -394,6 +394,15 @@ const StepRolesForm = (props: React.ComponentProps<typeof StepRoles>) => {
                     </p>
 
                     <div className="border-border/40 text-muted-foreground space-y-1.5 border-t pt-2.5 text-xs">
+                      <div className="flex items-center gap-2">
+                        <Zap className="text-brand-yellow size-3.5 shrink-0 stroke-[2.5]" />
+                        <span>
+                          <strong className="text-foreground">
+                            Ad-free everywhere
+                          </strong>{" "}
+                          on RallyCasts
+                        </span>
+                      </div>
                       <div className="flex items-center gap-2">
                         <Zap className="text-brand-yellow size-3.5 shrink-0 stroke-[2.5]" />
                         <span>

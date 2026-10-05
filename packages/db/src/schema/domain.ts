@@ -732,6 +732,39 @@ export const searchDocument = sqliteTable(
   ]
 );
 
+export const userSubscription = sqliteTable(
+  "user_subscription",
+  {
+    cancelAtPeriodEnd: integer("cancel_at_period_end", {
+      mode: "boolean",
+    })
+      .default(false)
+      .notNull(),
+    createdAt: timestamp("created_at"),
+    currentPeriodEnd: nullableTimestamp("current_period_end"),
+    id: text("id").primaryKey(),
+    interval: text("interval", { enum: ["month", "year"] }).notNull(),
+    priceId: text("price_id").notNull(),
+    status: text("status", {
+      enum: ["active", "canceled", "incomplete", "past_due", "trialing"],
+    }).notNull(),
+    stripeCustomerId: text("stripe_customer_id").notNull(),
+    stripeSubscriptionId: text("stripe_subscription_id").notNull(),
+    trialEndsAt: nullableTimestamp("trial_ends_at"),
+    updatedAt: timestamp("updated_at").$onUpdate(() => new Date()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    index("user_subscription_user_idx").on(table.userId),
+    uniqueIndex("user_subscription_user_id_unique").on(table.userId),
+    uniqueIndex("user_subscription_subscription_idx").on(
+      table.stripeSubscriptionId
+    ),
+  ]
+);
+
 export const casterProfile = sqliteTable(
   "caster_profile",
   {
