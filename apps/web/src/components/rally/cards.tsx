@@ -206,6 +206,7 @@ export interface EventCardData {
 export interface CastingJobCardData {
   id: string;
   notes?: string | null;
+  paymentStatus?: "paid" | "refunded" | "unpaid" | null;
   priceCents?: number;
   requestedHours?: number;
   startsAt: Date | string;
@@ -1080,8 +1081,15 @@ const getJobStatusBadge = (status?: string | null) => {
   };
 };
 
-export function RequestCard({ job }: { job: CastingJobCardData }) {
+export function RequestCard({
+  job,
+  action,
+}: {
+  action?: ReactNode;
+  job: CastingJobCardData;
+}) {
   const badge = getJobStatusBadge(job.status);
+  const paymentBadge = getPaymentBadge(job.paymentStatus);
 
   return (
     <Card className="rounded-lg">
@@ -1092,22 +1100,52 @@ export function RequestCard({ job }: { job: CastingJobCardData }) {
             {formatDate(job.startsAt)}
           </p>
         </div>
-        <div className="text-muted-foreground inline-flex items-center gap-2 text-sm">
-          <DollarSign className="text-primary size-4" />
-          {formatMoney(job.priceCents)}
+        <div className="inline-flex items-center gap-3">
+          <div className="text-muted-foreground inline-flex items-center gap-2 text-sm">
+            <DollarSign className="text-primary size-4" />
+            {formatMoney(job.priceCents)}
+          </div>
+          {paymentBadge ? (
+            <span
+              className={cn(
+                "rounded-full px-2.5 py-1 text-[11px] font-semibold",
+                paymentBadge.className
+              )}
+            >
+              {paymentBadge.label}
+            </span>
+          ) : null}
         </div>
-        <span
-          className={cn(
-            "w-fit rounded-full px-3 py-1 text-xs font-semibold",
-            badge.className
-          )}
-        >
-          {badge.label}
-        </span>
+        <div className="flex items-center gap-2">
+          {action}
+          <span
+            className={cn(
+              "w-fit rounded-full px-3 py-1 text-xs font-semibold",
+              badge.className
+            )}
+          >
+            {badge.label}
+          </span>
+        </div>
       </CardContent>
     </Card>
   );
 }
+
+const getPaymentBadge = (
+  status: CastingJobCardData["paymentStatus"]
+): null | { className: string; label: string } => {
+  if (status === "paid") {
+    return { className: "bg-primary/10 text-primary", label: "Paid" };
+  }
+  if (status === "refunded") {
+    return {
+      className: "bg-muted text-muted-foreground",
+      label: "Refunded",
+    };
+  }
+  return null;
+};
 
 export const studioStats = [
   {

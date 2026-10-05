@@ -1,15 +1,18 @@
 import { Button } from "@rallycaststv/ui/components/button";
 import { Input } from "@rallycaststv/ui/components/input";
 import { cn } from "@rallycaststv/ui/lib/utils";
+import { useMutation } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   CalendarClock,
   CreditCard,
   HeartHandshake,
+  LoaderCircle,
   MapPin,
   PlusCircle,
   ShieldCheck,
   Users,
+  Wallet,
   XCircle,
 } from "lucide-react";
 import type { FormEvent } from "react";
@@ -17,8 +20,10 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { EmptyState, RequestCard } from "@/components/rally/cards";
+import { apiClient } from "@/lib/api-client";
 import { castingJobsCollection, useLiveQuery } from "@/lib/collections";
 import type { CastingJobRecord } from "@/lib/collections";
+import { readApiJson } from "@/lib/hooks/api";
 
 type RequestRouteStatus = "all" | "approved" | "completed" | "new" | "pending";
 
@@ -497,12 +502,15 @@ export function CastingRequestsPage({
             ))}
           </nav>
         </div>
-        <Link to="/u/casts/new">
-          <Button className="rounded-lg text-xs">
-            <PlusCircle />
-            New Request
-          </Button>
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <CasterPayoutsButton />
+          <Link to="/u/casts/new">
+            <Button className="rounded-lg text-xs">
+              <PlusCircle />
+              New Request
+            </Button>
+          </Link>
+        </div>
       </div>
       {isCreating ? (
         <NewCastingRequestForm
@@ -523,6 +531,14 @@ export function CastingRequestsPage({
           <div className="grid gap-4">
             {jobs.map((job) => (
               <RequestCard
+                action={
+                  job.status === "accepted" &&
+                  job.paymentStatus !== "paid" &&
+                  job.paymentStatus !== "refunded" &&
+                  (job.priceCents ?? 0) > 0 ? (
+                    <PayJobButton jobId={job.id} />
+                  ) : undefined
+                }
                 key={job.id}
                 job={{ ...job, priceCents: job.priceCents ?? undefined }}
               />
@@ -536,5 +552,82 @@ export function CastingRequestsPage({
         )}
       </div>
     </div>
+  );
+}
+
+const useStripeRedirect = () =>
+  useMutation({
+    mutationFn: async (url: string | Promise<string | undefined>) => {
+      const resolved = await url;
+      if (!resolved) {
+        throw new Error("Stripe did not return a redirect");
+      }
+      return resolved;
+    },
+    onError: (error) => {
+      toast.error(
+        error instanceof Error &&
+          error.message !== "Stripe did not return a redirect"
+          ? error.message
+          : "Could not open Stripe. Please try again."
+      );
+    },
+    onSuccess: (url) => {
+      window.location.href = url;
+    },
+  });
+
+function PayJobButton({ jobId }: { jobId: string }) {
+  const pay = useStripeRedirect();
+  const start = async () => {
+    const response = await readApiJson(
+      apiClient.api.v1.stripe["casting-jobs"][":jobId"].pay.$post({
+        param: { jobId },
+      })
+    );
+    return (response as { url?: string }).url;
+  };
+  return (
+    <Button
+      className="rounded-lg"
+      disabled={pay.isPending}
+      onClick={() => pay.mutate(start())}
+      size="sm"
+      type="button"
+    >
+      {pay.isPending ? (
+        <LoaderCircle className="size-3.5 animate-spin" />
+      ) : (
+        <CreditCard className="size-3.5" />
+      )}
+      Pay for job
+    </Button>
+  );
+}
+
+const startCasterPayoutsSetup = async () => {
+  const response = await readApiJson(
+    apiClient.api.v1.stripe.caster.payouts.setup.$post({})
+  );
+  return (response as { url?: string }).url;
+};
+
+function CasterPayoutsButton() {
+  const setup = useStripeRedirect();
+  return (
+    <Button
+      className="rounded-lg text-xs"
+      disabled={setup.isPending}
+      onClick={() => setup.mutate(startCasterPayoutsSetup())}
+      type="button"
+      variant="outline"
+    >
+      {setup.isPending ? (
+        <LoaderCircle className="size-3.5 animate-spin" />
+      ) : (
+        <Wallet className="size-3.5" />
+      )}
+      Caster payouts
+    </Button>
   );
 }

@@ -9,6 +9,7 @@ import { z } from "zod";
 import { createId } from "../lib/ids";
 import type { AppEnv } from "../lib/types";
 import { requireAuth } from "../middleware/auth";
+import { stripeForm } from "../routes/stripe";
 
 const castingJobSchema = z
   .object({
@@ -151,8 +152,10 @@ export const castingJobsRouter = new Hono<AppEnv>()
     const [job] = await db
       .select({
         casterUserId: castingJob.casterUserId,
+        paymentStatus: castingJob.paymentStatus,
         requesterUserId: castingJob.requesterUserId,
         status: castingJob.status,
+        stripePaymentIntentId: castingJob.stripePaymentIntentId,
       })
       .from(castingJob)
       .where(
@@ -187,6 +190,39 @@ export const castingJobsRouter = new Hono<AppEnv>()
         { message: "This status change is not allowed" },
         HttpStatusCodes.FORBIDDEN
       );
+    }
+
+    // A cancelled job that already paid out gets its money back before the
+    // status flips, so a failed refund can never strand a payment.
+    if (
+      status === "cancelled" &&
+      job.paymentStatus === "paid" &&
+      job.stripePaymentIntentId
+    ) {
+      const secret = c.env.STRIPE_SECRET_KEY;
+      if (!secret) {
+        return c.json(
+          { message: "Stripe is not configured for refunds" },
+          HttpStatusCodes.SERVICE_UNAVAILABLE
+        );
+      }
+      try {
+        await stripeForm<Record<string, unknown>>("/v1/refunds", secret, {
+          payment_intent: job.stripePaymentIntentId,
+        });
+      } catch {
+        return c.json(
+          { message: "Refund failed; the job was not cancelled" },
+          HttpStatusCodes.BAD_GATEWAY
+        );
+      }
+      await db
+        .update(castingJob)
+        .set({
+          paymentStatus: "refunded",
+          refundedAt: new Date(),
+        })
+        .where(eq(castingJob.id, id));
     }
 
     await db

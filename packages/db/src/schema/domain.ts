@@ -821,6 +821,7 @@ export const casterAvailability = sqliteTable(
 export const castingJob = sqliteTable(
   "casting_job",
   {
+    applicationFeeCents: integer("application_fee_cents").default(0).notNull(),
     casterUserId: text("caster_user_id").references(
       () => casterProfile.userId,
       {
@@ -835,7 +836,14 @@ export const castingJob = sqliteTable(
     endsAt: integer("ends_at", { mode: "timestamp_ms" }),
     id: text("id").primaryKey(),
     notes: text("notes"),
+    paidAt: nullableTimestamp("paid_at"),
+    paymentStatus: text("payment_status", {
+      enum: ["refunded", "unpaid", "paid"],
+    })
+      .default("unpaid")
+      .notNull(),
     priceCents: integer("price_cents").default(0).notNull(),
+    refundedAt: nullableTimestamp("refunded_at"),
     requestedHours: real("requested_hours").notNull(),
     requesterUserId: text("requester_user_id")
       .notNull()
