@@ -22,9 +22,86 @@ import {
   Users,
   Video,
 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 import { getVideoSlug } from "@/lib/hooks";
+
+const HOVER_PREVIEW_DELAY_MS = 500;
+
+/**
+ * YouTube-style card hover preview: after a short dwell, the thumbnail is
+ * overlaid with Mux's animated preview of the video (image.mux.com
+ * animated.webp), so the card comes alive without loading the player.
+ *
+ * Only devices with a real hover pointer get the preview, and it respects
+ * prefers-reduced-motion. The spread `handlers` go on the card link; the
+ * returned `preview` renders inside it, above the static thumbnail.
+ */
+const useHoverPreview = (muxPlaybackId: null | string | undefined) => {
+  const [previewing, setPreviewing] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [enabled, setEnabled] = useState(false);
+  const timerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const hoverQuery = window.matchMedia("(hover: hover)");
+    const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => {
+      setEnabled(hoverQuery.matches && !motionQuery.matches);
+    };
+    update();
+    hoverQuery.addEventListener("change", update);
+    motionQuery.addEventListener("change", update);
+    return () => {
+      hoverQuery.removeEventListener("change", update);
+      motionQuery.removeEventListener("change", update);
+    };
+  }, []);
+
+  const clearTimer = useCallback(() => {
+    if (timerRef.current !== null) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => clearTimer, [clearTimer]);
+
+  const handlers = useMemo(
+    () => ({
+      onPointerEnter: () => {
+        if (!enabled || !muxPlaybackId) {
+          return;
+        }
+        clearTimer();
+        timerRef.current = window.setTimeout(() => {
+          setPreviewing(true);
+        }, HOVER_PREVIEW_DELAY_MS);
+      },
+      onPointerLeave: () => {
+        clearTimer();
+        setPreviewing(false);
+      },
+    }),
+    [clearTimer, enabled, muxPlaybackId]
+  );
+
+  const preview =
+    previewing && muxPlaybackId && !failed ? (
+      <img
+        alt=""
+        aria-hidden="true"
+        className="animate-in fade-in pointer-events-none absolute inset-0 size-full object-cover duration-200"
+        onError={() => setFailed(true)}
+        src={`https://image.mux.com/${encodeURIComponent(
+          muxPlaybackId
+        )}/animated.webp?width=640&fps=12`}
+      />
+    ) : null;
+
+  return { handlers, preview };
+};
 
 export interface VideoCardData {
   description?: string | null;
@@ -267,11 +344,13 @@ function VideoThumbnail({
   video: VideoCardData;
   imageUrl: string | null;
 }) {
+  const hoverPreview = useHoverPreview(video.muxPlaybackId);
   return (
     <Link
       to="/videos/$id"
       params={{ id: getVideoSlug(video) }}
       className="border-border bg-muted relative block aspect-video cursor-pointer overflow-hidden rounded-xl border"
+      {...hoverPreview.handlers}
     >
       {imageUrl ? (
         <img
@@ -284,6 +363,7 @@ function VideoThumbnail({
           <Video className="text-primary size-8" />
         </div>
       )}
+      {hoverPreview.preview}
       <div className="absolute inset-0 grid place-items-center bg-black/0 transition-colors group-hover:bg-black/25">
         <div className="bg-background/90 text-primary grid size-10 place-items-center rounded-full opacity-0 shadow-md transition-opacity group-hover:opacity-100">
           <Play className="ml-0.5 size-4 fill-current" />
@@ -696,6 +776,7 @@ function ParkHeatHeader({
 }
 
 export function RallyClipCard({ video }: { video: VideoCardData }) {
+  const hoverPreview = useHoverPreview(video.muxPlaybackId);
   const imageUrl =
     video.thumbnailUrl ??
     (video.muxPlaybackId
@@ -712,6 +793,7 @@ export function RallyClipCard({ video }: { video: VideoCardData }) {
         to="/videos/$id"
         params={{ id: getVideoSlug(video) }}
         className="relative block aspect-[9/16] w-full overflow-hidden bg-slate-950"
+        {...hoverPreview.handlers}
       >
         {imageUrl ? (
           <img
@@ -729,6 +811,7 @@ export function RallyClipCard({ video }: { video: VideoCardData }) {
             </p>
           </div>
         )}
+        {hoverPreview.preview}
 
         <div className="pointer-events-none absolute top-2.5 right-2.5">
           <span className="rounded-full bg-black/75 px-2 py-0.5 text-[10px] font-semibold text-white/90 backdrop-blur-xs">
