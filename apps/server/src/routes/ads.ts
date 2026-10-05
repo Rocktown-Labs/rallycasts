@@ -1,4 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
+import { createAuth } from "@rallycaststv/auth";
 import { createDb } from "@rallycaststv/db";
 import {
   adCampaign,
@@ -39,6 +40,7 @@ import {
   isAllowedVastMediaUrl,
 } from "../lib/ads-vast";
 import { createId } from "../lib/ids";
+import { userProEntitled } from "../lib/subscriptions";
 import type { AppEnv } from "../lib/types";
 import { requireAuth } from "../middleware/auth";
 import { requireVerifiedAuth } from "../middleware/security";
@@ -166,6 +168,20 @@ export const adsRouter = new Hono<AppEnv>()
     const [decided] = await decideAds(db, context);
     if (!decided || !c.env.BETTER_AUTH_SECRET) {
       return vastXml(c, buildEmptyVast());
+    }
+
+    // RallyCasts Pro is ad-free: entitled viewers never receive a preroll.
+    if (c.env.BETTER_AUTH_SECRET) {
+      const auth = createAuth(c.env.DB);
+      const session = await auth.api.getSession({
+        headers: c.req.raw.headers,
+      });
+      if (session?.user?.id) {
+        const entitled = await userProEntitled(db, session.user.id);
+        if (entitled) {
+          return vastXml(c, buildEmptyVast());
+        }
+      }
     }
 
     const playbackId = await resolvePrerollPlaybackId(db, decided.creative);

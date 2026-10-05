@@ -468,3 +468,76 @@ describe("ads campaigns", () => {
     expect(funded[0]?.fundedCents).toBe(2500);
   });
 });
+
+describe("RallyCasts Pro ad-free entitlement", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("serves no preroll to entitled Pro subscribers", async () => {
+    const owner = await signUp("owner");
+    const orgId = await makeOrg(owner.id);
+    const eventId = await makeEvent(orgId, owner.id);
+    const clipId = await makeClip(owner.id);
+    const admin = await signUp("admin");
+    await env.DB.prepare(
+      "insert into user_profile (user_id, platform_role) values (?, 'admin') on conflict(user_id) do update set platform_role = 'admin'"
+    )
+      .bind(admin.id)
+      .run();
+
+    const { body } = await createCampaign(owner.cookie, {
+      creatives: [{ kind: "preroll", title: "Clip", videoId: clipId }],
+      dailyBudgetCents: 100,
+      eventId,
+      name: "Pro gate push",
+      organizationId: orgId,
+      placements: "preroll",
+      totalBudgetCents: 100,
+    });
+    const campaignId = body.campaign?.id ?? "";
+    const submit = await app.request(
+      `/api/v1/ads/campaigns/${campaignId}`,
+      {
+        body: JSON.stringify({ action: "submit" }),
+        headers: { "Content-Type": "application/json", Cookie: owner.cookie },
+        method: "PATCH",
+      },
+      env
+    );
+    expect(submit.status).toBe(200);
+    await fundCampaign(campaignId, 100);
+    const approve = await app.request(
+      `/api/v1/ads/campaigns/${campaignId}/review`,
+      {
+        body: JSON.stringify({ approve: true }),
+        headers: { "Content-Type": "application/json", Cookie: admin.cookie },
+        method: "POST",
+      },
+      env
+    );
+    expect(approve.status).toBe(200);
+
+    const subscriber = await signUp("subscriber");
+    await env.DB.prepare(
+      "insert into user_subscription (id, user_id, status, stripe_customer_id, stripe_subscription_id, interval, price_id, cancel_at_period_end) values (?, ?, 'active', 'cus_pro', 'sub_pro', 'month', 'price_pro', 0)"
+    )
+      .bind(`sub-${crypto.randomUUID()}`, subscriber.id)
+      .run();
+
+    const anonymousVast = await app.request(
+      `/api/v1/ads/vast?placement=preroll&videoId=${clipId}`,
+      { method: "GET" },
+      env
+    );
+    const anonymousXml = await anonymousVast.text();
+    expect(countVastAds(anonymousXml)).toBeGreaterThan(0);
+
+    const proVast = await app.request(
+      `/api/v1/ads/vast?placement=preroll&videoId=${clipId}`,
+      { headers: { Cookie: subscriber.cookie }, method: "GET" },
+      env
+    );
+    expect(proVast.status).toBe(200);
+    const proXml = await proVast.text();
+    expect(countVastAds(proXml)).toBe(0);
+  });
+});

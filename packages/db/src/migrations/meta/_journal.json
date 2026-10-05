@@ -162,6 +162,20 @@
       "when": 1790966781169,
       "tag": "0022_true_the_stranger",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1791229978661,
+      "tag": "0023_military_fat_cobra",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1791230994665,
+      "tag": "0024_thin_lightspeed",
+      "breakpoints": true
     }
   ]
 }

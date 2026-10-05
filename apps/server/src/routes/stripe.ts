@@ -1,3 +1,4 @@
+import { zValidator } from "@hono/zod-validator";
 import { createDb } from "@rallycaststv/db";
 import {
   event,
@@ -5,16 +6,26 @@ import {
   eventRegistration,
   organization,
   organizationMember,
+  userSubscription,
   webhookEvent,
 } from "@rallycaststv/db/schema/domain";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
+import { z } from "zod";
 
 import { processAdBudgetCompleted } from "../lib/ads";
 import { createId } from "../lib/ids";
 import { readJsonPayload } from "../lib/json";
 import { createNotification } from "../lib/notifications";
+import {
+  PRO_TRIAL_DAYS,
+  ensureProPriceId,
+  fetchStripeSubscription,
+  proEntitled,
+  stripeGetJson,
+  syncSubscriptionFromStripe,
+} from "../lib/subscriptions";
 import type { AppEnv } from "../lib/types";
 import { requireAuth } from "../middleware/auth";
 import { requireVerifiedAuth } from "../middleware/security";
@@ -351,6 +362,53 @@ const processCheckoutCompleted = async (
     type: "event",
     userId: registration.userId,
   });
+};
+
+/**
+ * RallyCasts Pro webhook handling: subscription-mode checkouts and the
+ * subscription lifecycle. Returns true when the event belongs to Pro so
+ * the caller can skip the tournament and ad payment paths.
+ */
+const processProSubscriptionEvent = async (
+  db: ReturnType<typeof createDb>,
+  secret: string | undefined,
+  eventType: string | null,
+  object: Record<string, unknown> | null
+): Promise<boolean> => {
+  if (!secret || !eventType) {
+    return false;
+  }
+  const isCheckout = [
+    "checkout.session.completed",
+    "checkout.session.async_payment_succeeded",
+  ].includes(eventType);
+  const isSubscriptionEvent = [
+    "customer.subscription.created",
+    "customer.subscription.updated",
+    "customer.subscription.deleted",
+  ].includes(eventType);
+
+  if (isSubscriptionEvent && object) {
+    // Portal cancellations, upgrades, and payment retries all land here;
+    // each sync rewrites the entitlement flag.
+    await syncSubscriptionFromStripe(db, secret, object);
+    return true;
+  }
+  if (!isCheckout || !object) {
+    return false;
+  }
+  if (getString(object, "mode") !== "subscription") {
+    return false;
+  }
+  const subscriptionId = getString(object, "subscription");
+  if (!subscriptionId) {
+    return true;
+  }
+  const subscription = await fetchStripeSubscription(secret, subscriptionId);
+  if (subscription) {
+    await syncSubscriptionFromStripe(db, secret, subscription);
+  }
+  return true;
 };
 
 export const stripeRouter = new Hono<AppEnv>()
@@ -731,6 +789,152 @@ export const stripeRouter = new Hono<AppEnv>()
       return c.json({ refunded: true }, HttpStatusCodes.OK);
     }
   )
+  .post(
+    "/pro/checkout",
+    requireAuth,
+    requireVerifiedAuth,
+    zValidator("json", z.object({ interval: z.enum(["month", "year"]) })),
+    async (c) => {
+      const secret = c.env.STRIPE_SECRET_KEY;
+      const db = createDb(c.env.DB);
+      const { user: authUser } = c.var.authSession;
+      const { interval } = c.req.valid("json");
+      if (!secret) {
+        return c.json(
+          { message: "Stripe is not configured" },
+          HttpStatusCodes.SERVICE_UNAVAILABLE
+        );
+      }
+
+      // An active Pro subscription manages itself through the billing
+      // portal rather than a second checkout.
+      const [existing] = await db
+        .select({ status: userSubscription.status })
+        .from(userSubscription)
+        .where(eq(userSubscription.userId, authUser.id))
+        .limit(1);
+      if (existing && proEntitled(existing.status)) {
+        return c.json(
+          { alreadySubscribed: true, message: "Pro is already active" },
+          HttpStatusCodes.CONFLICT
+        );
+      }
+
+      const priceId = await ensureProPriceId(secret, interval);
+      const appUrl =
+        c.env.CORS_ORIGIN?.split(",")[0] ?? "http://localhost:3001";
+      const session = await stripeForm<Record<string, unknown>>(
+        "/v1/checkout/sessions",
+        secret,
+        {
+          cancel_url: `${appUrl}/u?checkout=pro_cancel`,
+          client_reference_id: authUser.id,
+          customer_email: authUser.email,
+          "line_items[0][price]": priceId,
+          "line_items[0][quantity]": "1",
+          "metadata[interval]": interval,
+          "metadata[plan]": "rallycasts_pro",
+          "metadata[userId]": authUser.id,
+          mode: "subscription",
+          "subscription_data[metadata][plan]": "rallycasts_pro",
+          "subscription_data[metadata][userId]": authUser.id,
+          "subscription_data[trial_period_days]": String(PRO_TRIAL_DAYS),
+          success_url: `${appUrl}/u?checkout=pro_success`,
+        }
+      );
+      const checkoutUrl = getString(session, "url");
+      if (!checkoutUrl) {
+        return c.json(
+          { message: "Stripe returned an invalid checkout session" },
+          HttpStatusCodes.BAD_GATEWAY
+        );
+      }
+      return c.json({ url: checkoutUrl }, HttpStatusCodes.OK);
+    }
+  )
+  .get("/pro/subscription", requireAuth, async (c) => {
+    const db = createDb(c.env.DB);
+    const { user: authUser } = c.var.authSession;
+    const [existing] = await db
+      .select({
+        cancelAtPeriodEnd: userSubscription.cancelAtPeriodEnd,
+        currentPeriodEnd: userSubscription.currentPeriodEnd,
+        interval: userSubscription.interval,
+        status: userSubscription.status,
+        trialEndsAt: userSubscription.trialEndsAt,
+      })
+      .from(userSubscription)
+      .where(eq(userSubscription.userId, authUser.id))
+      .limit(1);
+    return c.json(
+      {
+        subscription: existing
+          ? {
+              ...existing,
+              entitled: proEntitled(existing.status),
+            }
+          : null,
+      },
+      HttpStatusCodes.OK
+    );
+  })
+  .post("/pro/portal", requireAuth, requireVerifiedAuth, async (c) => {
+    const secret = c.env.STRIPE_SECRET_KEY;
+    const db = createDb(c.env.DB);
+    const { user: authUser } = c.var.authSession;
+    if (!secret) {
+      return c.json(
+        { message: "Stripe is not configured" },
+        HttpStatusCodes.SERVICE_UNAVAILABLE
+      );
+    }
+    const [existing] = await db
+      .select({ stripeCustomerId: userSubscription.stripeCustomerId })
+      .from(userSubscription)
+      .where(eq(userSubscription.userId, authUser.id))
+      .limit(1);
+    if (!existing) {
+      return c.json(
+        { message: "No Pro subscription found" },
+        HttpStatusCodes.NOT_FOUND
+      );
+    }
+
+    // The portal needs a configuration; create the default one on first
+    // use so launch does not depend on dashboard setup.
+    const configurations = await stripeGetJson<Record<string, unknown>>(
+      "/v1/billing_portal/configurations",
+      secret,
+      { limit: "1" }
+    ).catch(() => null);
+    const hasConfiguration =
+      Array.isArray(configurations?.data) &&
+      (configurations.data as unknown[]).length > 0;
+    if (!hasConfiguration) {
+      await stripeForm("/v1/billing_portal/configurations", secret, {
+        "business_profile[name]": "RallyCasts",
+        default: "true",
+      }).catch(() => null);
+    }
+
+    const appUrl = c.env.CORS_ORIGIN?.split(",")[0] ?? "http://localhost:3001";
+    const portal = await stripeForm<Record<string, unknown>>(
+      "/v1/billing_portal/sessions",
+      secret,
+      {
+        customer: existing.stripeCustomerId,
+        return_url: `${appUrl}/u`,
+      }
+    );
+    const portalUrl = getString(portal, "url");
+    if (!portalUrl) {
+      return c.json(
+        { message: "Stripe returned an invalid portal session" },
+        HttpStatusCodes.BAD_GATEWAY
+      );
+    }
+    return c.json({ url: portalUrl }, HttpStatusCodes.OK);
+  })
   .post("/webhook", async (c) => {
     const secret = c.env.STRIPE_WEBHOOK_SECRET;
     const payload = await readJsonPayload(c.req.raw);
@@ -800,15 +1004,19 @@ export const stripeRouter = new Hono<AppEnv>()
     try {
       const data = getRecord(payload.value, "data");
       const object = data ? getRecord(data, "object") : null;
-      if (
-        [
-          "checkout.session.completed",
-          "checkout.session.async_payment_succeeded",
-        ].includes(eventType) &&
+      // RallyCasts Pro lifecycle first; it reports whether it handled the
+      // event so tournament and ad payments keep their existing paths.
+      const handledByPro = await processProSubscriptionEvent(
+        db,
+        c.env.STRIPE_SECRET_KEY,
+        eventType,
         object
-      ) {
-        const handledByAds = await processAdBudgetCompleted(db, object);
-        if (!handledByAds) {
+      );
+      if (!handledByPro) {
+        const handledByAds = object
+          ? await processAdBudgetCompleted(db, object)
+          : false;
+        if (!handledByAds && object) {
           await processCheckoutCompleted(db, object, c.env.STRIPE_SECRET_KEY);
         }
       }

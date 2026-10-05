@@ -110,7 +110,7 @@ export function SponsoredPlayer({
 
     let vast: string | null = null;
     try {
-      const response = await fetch(adTagUrl, { credentials: "omit" });
+      const response = await fetch(adTagUrl, { credentials: "include" });
       vast = await response.text();
     } catch {
       vast = null;
