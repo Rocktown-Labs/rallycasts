@@ -27,6 +27,7 @@ import {
   proEntitled,
   stripeGetJson,
   syncSubscriptionFromStripe,
+  userProEntitled,
 } from "../lib/subscriptions";
 import type { AppEnv } from "../lib/types";
 import { requireAuth } from "../middleware/auth";
@@ -34,11 +35,14 @@ import { requireVerifiedAuth } from "../middleware/security";
 
 const STRIPE_API_VERSION = "2026-07-29.dahlia";
 /**
- * Unified platform take rate on money flows (event entry fees and casting
- * payouts): 10%. Stripe's own processing (~2.9% + 30c) comes out of the
- * recipient's side; this fee is the RallyCasts cut.
+ * Unified platform take rate on money flows: 10% on event entry fees and
+ * casting payouts. RallyCasts Pro members pay half the casting fee.
+ * Stripe's own processing (~2.9% + 30c) comes out of the recipient's
+ * side; this fee is the RallyCasts cut.
  */
 const APPLICATION_FEE_BASIS_POINTS = 1000;
+/** RallyCasts Pro members pay this much less on casting requests. */
+const PRO_CASTING_DISCOUNT_BASIS_POINTS = 500;
 const STRIPE_REQUEST_TIMEOUT_MS = 10_000;
 
 const getRecord = (
@@ -985,13 +989,14 @@ export const stripeRouter = new Hono<AppEnv>()
           HttpStatusCodes.NOT_FOUND
         );
       }
-      // Money moves only once both sides committed: the requester accepted a
-      // caster's offer and the caster is assigned.
-      if (job.status !== "accepted" || !job.casterUserId) {
+      // Pay up front, Uber style: the money is charged to the platform and
+      // held in escrow. The caster is paid out only when the job completes,
+      // and the dispatch pool only sees paid jobs.
+      if (job.status !== "requested") {
         return c.json(
           {
             message:
-              "Accept a caster's offer before paying. Payment unlocks then.",
+              "Pay when you submit the request; the job is then dispatched to casters.",
           },
           HttpStatusCodes.CONFLICT
         );
@@ -1002,31 +1007,31 @@ export const stripeRouter = new Hono<AppEnv>()
           HttpStatusCodes.CONFLICT
         );
       }
-      if (job.paymentStatus === "paid") {
+      if (job.paymentStatus !== "unpaid") {
         return c.json({ alreadyPaid: true }, HttpStatusCodes.CONFLICT);
       }
 
-      const [caster] = await db
-        .select({
-          displayName: casterProfile.displayName,
-          stripeConnectAccountId: casterProfile.stripeConnectAccountId,
+      // The platform fee is computed at payment time and stored on the job:
+      // the caster's payout is always 90% of the quoted price. RallyCasts
+      // Pro members pay 5% less up front, so the platform's cut halves.
+      const proRequester = await userProEntitled(db, authUser.id);
+      const casterPayoutCents =
+        job.priceCents -
+        Math.round((job.priceCents * APPLICATION_FEE_BASIS_POINTS) / 10_000);
+      const proDiscountCents = proRequester
+        ? Math.round(
+            (job.priceCents * PRO_CASTING_DISCOUNT_BASIS_POINTS) / 10_000
+          )
+        : 0;
+      const chargedCents = job.priceCents - proDiscountCents;
+      await db
+        .update(castingJob)
+        .set({
+          applicationFeeCents: chargedCents - casterPayoutCents,
+          chargedCents,
         })
-        .from(casterProfile)
-        .where(eq(casterProfile.userId, job.casterUserId))
-        .limit(1);
-      if (!caster?.stripeConnectAccountId) {
-        return c.json(
-          {
-            message:
-              "This caster has not set up payouts yet. They need to connect a payout account first.",
-          },
-          HttpStatusCodes.CONFLICT
-        );
-      }
+        .where(eq(castingJob.id, job.id));
 
-      const applicationFeeCents = Math.round(
-        (job.priceCents * APPLICATION_FEE_BASIS_POINTS) / 10_000
-      );
       const appUrl =
         c.env.CORS_ORIGIN?.split(",")[0] ?? "http://localhost:3001";
       const session = await stripeForm<Record<string, unknown>>(
@@ -1039,14 +1044,10 @@ export const stripeRouter = new Hono<AppEnv>()
           "line_items[0][price_data][currency]": job.currency,
           "line_items[0][price_data][product_data][name]":
             "RallyCasts casting request",
-          "line_items[0][price_data][unit_amount]": String(job.priceCents),
+          "line_items[0][price_data][unit_amount]": String(chargedCents),
           "line_items[0][quantity]": "1",
           "metadata[casting_job_id]": job.id,
           mode: "payment",
-          "payment_intent_data[application_fee_amount]":
-            String(applicationFeeCents),
-          "payment_intent_data[transfer_data][destination]":
-            caster.stripeConnectAccountId,
           submit_type: "book",
           success_url: `${appUrl}/u/casts?checkout=cast_success`,
         }

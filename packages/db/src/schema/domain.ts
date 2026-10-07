@@ -831,12 +831,14 @@ export const castingJob = sqliteTable(
     challengeId: text("challenge_id").references(() => challenge.id, {
       onDelete: "set null",
     }),
+    chargedCents: integer("charged_cents").default(0).notNull(),
     createdAt: timestamp("created_at"),
     currency: text("currency").default("usd").notNull(),
     endsAt: integer("ends_at", { mode: "timestamp_ms" }),
     id: text("id").primaryKey(),
     notes: text("notes"),
     paidAt: nullableTimestamp("paid_at"),
+    paidOutAt: nullableTimestamp("paid_out_at"),
     paymentStatus: text("payment_status", {
       enum: ["refunded", "unpaid", "paid"],
     })
@@ -867,6 +869,7 @@ export const castingJob = sqliteTable(
       .default("requested")
       .notNull(),
     stripePaymentIntentId: text("stripe_payment_intent_id"),
+    stripeTransferId: text("stripe_transfer_id"),
     updatedAt: timestamp("updated_at").$onUpdate(() => new Date()),
     venueId: text("venue_id").references(() => venue.id, {
       onDelete: "set null",

@@ -789,11 +789,11 @@ export function RallyClipCard({ video }: { video: VideoCardData }) {
     video.owner?.username ?? video.owner?.displayUsername ?? "player";
 
   return (
-    <article className="group border-border/60 bg-card hover:border-primary/50 relative flex w-48 shrink-0 cursor-pointer snap-start flex-col overflow-hidden rounded-2xl border shadow-xs transition-all duration-300 hover:shadow-md sm:w-56">
+    <article className="group relative flex w-48 shrink-0 cursor-pointer snap-start flex-col sm:w-56">
       <Link
         to="/videos/$id"
         params={{ id: getVideoSlug(video) }}
-        className="relative block aspect-[9/16] w-full overflow-hidden bg-slate-950"
+        className="relative block aspect-[9/16] w-full overflow-hidden rounded-xl bg-slate-950"
         {...hoverPreview.handlers}
       >
         {imageUrl ? (
@@ -839,7 +839,7 @@ export function RallyClipCard({ video }: { video: VideoCardData }) {
         </div>
       </Link>
 
-      <div className="bg-card/90 border-border/40 flex items-center gap-2 border-t p-2.5">
+      <div className="mt-1.5 flex items-center gap-2 px-0.5 pb-1">
         <Link
           to="/players/$username"
           params={{ username: ownerUsername }}

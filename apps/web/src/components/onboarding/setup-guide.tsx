@@ -264,7 +264,12 @@ export function SetupGuide() {
     [allItems]
   );
 
-  if (!user || currentPath === "/onboarding" || totalCount === 0) {
+  if (
+    !user ||
+    !currentPath.startsWith("/u") ||
+    currentPath === "/onboarding" ||
+    totalCount === 0
+  ) {
     return null;
   }
 
