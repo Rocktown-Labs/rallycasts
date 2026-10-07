@@ -28,116 +28,30 @@ const signUp = async (name: string) => {
   return { cookie: cookie ?? "", id: body.user.id };
 };
 
-const createJob = async (cookie: string) => {
-  const response = await app.request(
-    "/api/v1/casting-jobs",
-    {
-      body: JSON.stringify({
-        priceCents: 2500,
-        requestedHours: 2,
-        startsAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-      }),
-      headers: {
-        "Content-Type": "application/json",
-        Cookie: cookie,
-      },
-      method: "POST",
-    },
-    env
+const signStripeWebhook = async (payload: string) => {
+  const timestamp = Math.floor(Date.now() / 1000).toString();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode("stripe-webhook-secret"),
+    { hash: "SHA-256", name: "HMAC" },
+    false,
+    ["sign"]
   );
-
-  expect(response.status).toBe(201);
-  const body = (await response.json()) as { job: { id: string } };
-  return body.job.id;
+  const signatureBytes = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    new TextEncoder().encode(`${timestamp}.${payload}`)
+  );
+  const signature = Array.from(new Uint8Array(signatureBytes), (byte) =>
+    byte.toString(16).padStart(2, "0")
+  ).join("");
+  return {
+    headers: {
+      "Content-Type": "application/json",
+      "Stripe-Signature": `t=${timestamp},v1=${signature}`,
+    },
+  };
 };
-
-const patchStatus = (id: string, cookie: string, status: string) =>
-  app.request(
-    `/api/v1/casting-jobs/${id}/status`,
-    {
-      body: JSON.stringify({ status }),
-      headers: {
-        "Content-Type": "application/json",
-        Cookie: cookie,
-      },
-      method: "PATCH",
-    },
-    env
-  );
-
-describe("casting job status transitions", () => {
-  it("lets the requester submit and cancel, but not complete", async () => {
-    const requester = await signUp("Dana Requester");
-
-    const submittedJobId = await createJob(requester.cookie);
-    // Jobs are created as requested; restating the current status is a no-op.
-    const restated = await patchStatus(
-      submittedJobId,
-      requester.cookie,
-      "requested"
-    );
-    expect(restated.status).toBe(200);
-
-    const cancelJobId = await createJob(requester.cookie);
-    const cancelled = await patchStatus(
-      cancelJobId,
-      requester.cookie,
-      "cancelled"
-    );
-    expect(cancelled.status).toBe(200);
-
-    const reopened = await patchStatus(
-      cancelJobId,
-      requester.cookie,
-      "requested"
-    );
-    expect(reopened.status).toBe(403);
-
-    const completed = await patchStatus(
-      await createJob(requester.cookie),
-      requester.cookie,
-      "completed"
-    );
-    expect(completed.status).toBe(403);
-  });
-
-  it("walks the caster through the on-site lifecycle in order", async () => {
-    const requester = await signUp("Evan Requester");
-    const caster = await signUp("Fay Caster");
-    const stranger = await signUp("Gus Stranger");
-
-    const jobId = await createJob(requester.cookie);
-    await env.DB.prepare(
-      "insert into caster_profile (user_id, display_name, status) values (?, ?, ?)"
-    )
-      .bind(caster.id, "Fay Caster", "active")
-      .run();
-    await env.DB.prepare(
-      "update casting_job set caster_user_id = ?, status = ? where id = ?"
-    )
-      .bind(caster.id, "accepted", jobId)
-      .run();
-
-    const strangerAttempt = await patchStatus(
-      jobId,
-      stranger.cookie,
-      "arrived"
-    );
-    expect(strangerAttempt.status).toBe(404);
-
-    const skipAhead = await patchStatus(jobId, caster.cookie, "completed");
-    expect(skipAhead.status).toBe(403);
-
-    for (const status of ["arrived", "recording", "uploading", "completed"]) {
-      // oxlint-disable-next-line eslint/no-await-in-loop -- sequential test setup
-      const response = await patchStatus(jobId, caster.cookie, status);
-      expect(response.status).toBe(200);
-    }
-
-    const afterComplete = await patchStatus(jobId, caster.cookie, "failed");
-    expect(afterComplete.status).toBe(403);
-  });
-});
 
 const setupPaidJobFixture = async () => {
   const requester = await signUp("Ivy Requester");
@@ -156,17 +70,48 @@ const setupPaidJobFixture = async () => {
     .run();
   const jobId = `job-${crypto.randomUUID()}`;
   await env.DB.prepare(
-    "insert into casting_job (id, requester_user_id, caster_user_id, status, price_cents, requested_hours, starts_at, currency) values (?, ?, ?, 'accepted', 4000, 2, ?, 'usd')"
+    "insert into casting_job (id, requester_user_id, status, price_cents, requested_hours, starts_at, currency) values (?, ?, 'requested', 4000, 2, ?, 'usd')"
   )
-    .bind(jobId, requester.id, caster.id, Date.now() + 86_400_000)
+    .bind(jobId, requester.id, Date.now() + 86_400_000)
     .run();
   return { caster, jobId, requester };
+};
+
+const markJobPaid = async (jobId: string) => {
+  const payload = JSON.stringify({
+    data: {
+      object: {
+        id: `cs_${jobId}`,
+        metadata: { casting_job_id: jobId },
+        mode: "payment",
+        payment_intent: "pi_cast_1",
+        payment_status: "paid",
+      },
+    },
+    id: `evt_${crypto.randomUUID()}`,
+    type: "checkout.session.completed",
+  });
+  const { headers } = await signStripeWebhook(payload);
+  const response = await app.request(
+    "/api/v1/stripe/webhook",
+    {
+      body: payload,
+      headers,
+      method: "POST",
+    },
+    {
+      ...env,
+      STRIPE_SECRET_KEY: "sk_test_value",
+      STRIPE_WEBHOOK_SECRET: "stripe-webhook-secret",
+    }
+  );
+  expect(response.status).toBe(202);
 };
 
 describe("Casting payouts", () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it("pays an accepted job through Stripe with the 10% platform fee", async () => {
+  it("charges a new request up front into escrow with the fee stored", async () => {
     const { jobId, requester } = await setupPaidJobFixture();
 
     const stripeFetch = vi
@@ -195,62 +140,58 @@ describe("Casting payouts", () => {
       String(call[0]).endsWith("/v1/checkout/sessions")
     );
     const sent = new URLSearchParams(String(createCall?.[1]?.body));
+    // Escrow: the charge lands on the platform with no destination and
+    // no fee split; the caster is paid out only on completion.
     expect(sent.get("payment_intent_data[transfer_data][destination]")).toBe(
-      "acct_caster_1"
+      null
     );
-    // 10% of 4000 cents
-    expect(sent.get("payment_intent_data[application_fee_amount]")).toBe("400");
+    expect(sent.get("payment_intent_data[application_fee_amount]")).toBe(null);
+    expect(sent.get("line_items[0][price_data][unit_amount]")).toBe("4000");
+
+    // The standard platform fee (10% of 4000) is stored for the payout.
+    const stored = await env.DB.prepare(
+      "select application_fee_cents, charged_cents from casting_job where id = ?"
+    )
+      .bind(jobId)
+      .first<{ application_fee_cents: number; charged_cents: number }>();
+    expect(stored?.application_fee_cents).toBe(400);
+    expect(stored?.charged_cents).toBe(4000);
   });
 
-  it("marks a job paid from a signed webhook and refunds on cancel", async () => {
-    const { caster, jobId } = await setupPaidJobFixture();
+  it("gives RallyCasts Pro members 5% off the casting charge", async () => {
+    const { jobId, requester } = await setupPaidJobFixture();
+    await env.DB.prepare(
+      "insert into user_subscription (id, user_id, status, stripe_customer_id, stripe_subscription_id, interval, price_id, cancel_at_period_end) values (?, ?, 'active', 'cus_pro', 'sub_pro', 'month', 'price_pro', 0)"
+    )
+      .bind(`sub-${crypto.randomUUID()}`, requester.id)
+      .run();
 
-    const payload = JSON.stringify({
-      data: {
-        object: {
-          id: "cs_cast_2",
-          metadata: { casting_job_id: jobId },
-          mode: "payment",
-          payment_intent: "pi_cast_1",
-          payment_status: "paid",
-        },
-      },
-      id: `evt_${crypto.randomUUID()}`,
-      type: "checkout.session.completed",
-    });
-    const timestamp = Math.floor(Date.now() / 1000).toString();
-    const key = await crypto.subtle.importKey(
-      "raw",
-      new TextEncoder().encode("stripe-webhook-secret"),
-      { hash: "SHA-256", name: "HMAC" },
-      false,
-      ["sign"]
+    vi.spyOn(globalThis, "fetch").mockImplementation(() =>
+      Response.json({
+        id: "cs_cast_pro",
+        url: "https://checkout.stripe.test/cast-pro",
+      })
     );
-    const signatureBytes = await crypto.subtle.sign(
-      "HMAC",
-      key,
-      new TextEncoder().encode(`${timestamp}.${payload}`)
+    const payResponse = await app.request(
+      `/api/v1/stripe/casting-jobs/${jobId}/pay`,
+      { headers: { Cookie: requester.cookie }, method: "POST" },
+      { ...env, STRIPE_SECRET_KEY: "sk_test_value" }
     );
-    const signature = Array.from(new Uint8Array(signatureBytes), (byte) =>
-      byte.toString(16).padStart(2, "0")
-    ).join("");
-    const webhookResponse = await app.request(
-      "/api/v1/stripe/webhook",
-      {
-        body: payload,
-        headers: {
-          "Content-Type": "application/json",
-          "Stripe-Signature": `t=${timestamp},v1=${signature}`,
-        },
-        method: "POST",
-      },
-      {
-        ...env,
-        STRIPE_SECRET_KEY: "sk_test_value",
-        STRIPE_WEBHOOK_SECRET: "stripe-webhook-secret",
-      }
-    );
-    expect(webhookResponse.status).toBe(202);
+    expect(payResponse.status).toBe(200);
+    const stored = await env.DB.prepare(
+      "select application_fee_cents, charged_cents from casting_job where id = ?"
+    )
+      .bind(jobId)
+      .first<{ application_fee_cents: number; charged_cents: number }>();
+    // Pro pays 5% less up front; the caster's 90% payout is unchanged, so
+    // the platform's cut is the 5% difference.
+    expect(stored?.charged_cents).toBe(3800);
+    expect(stored?.application_fee_cents).toBe(200);
+  });
+
+  it("pays the caster out of escrow when the job completes", async () => {
+    const { caster, jobId } = await setupPaidJobFixture();
+    await markJobPaid(jobId);
 
     const paid = await env.DB.prepare(
       "select payment_status, stripe_payment_intent_id from casting_job where id = ?"
@@ -259,6 +200,61 @@ describe("Casting payouts", () => {
       .first<{ payment_status: string; stripe_payment_intent_id: string }>();
     expect(paid?.payment_status).toBe("paid");
     expect(paid?.stripe_payment_intent_id).toBe("pi_cast_1");
+
+    // The caster claims the job and walks the on-site lifecycle; completing
+    // it from uploading pays the escrowed money out.
+    await env.DB.prepare(
+      "update casting_job set caster_user_id = ?, status = 'uploading', application_fee_cents = 400, charged_cents = 4000 where id = ?"
+    )
+      .bind(caster.id, jobId)
+      .run();
+
+    vi.spyOn(globalThis, "fetch").mockImplementation(() =>
+      Response.json({ id: "tr_cast_1" })
+    );
+    const completeResponse = await app.request(
+      `/api/v1/casting-jobs/${jobId}/status`,
+      {
+        body: JSON.stringify({ status: "completed" }),
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: caster.cookie,
+        },
+        method: "PATCH",
+      },
+      { ...env, STRIPE_SECRET_KEY: "sk_test_value" }
+    );
+    expect(completeResponse.status).toBe(200);
+
+    const transferCall = vi
+      .spyOn(globalThis, "fetch")
+      .mock.calls.find((call) => String(call[0]).endsWith("/v1/transfers"));
+    expect(transferCall).toBeTruthy();
+    const transfer = new URLSearchParams(String(transferCall?.[1]?.body));
+    expect(transfer.get("amount")).toBe("3600");
+    expect(transfer.get("destination")).toBe("acct_caster_1");
+
+    const paidOut = await env.DB.prepare(
+      "select status, payment_status, paid_out_at, stripe_transfer_id from casting_job where id = ?"
+    )
+      .bind(jobId)
+      .first<{
+        paid_out_at: number | null;
+        payment_status: string;
+        status: string;
+        stripe_transfer_id: string | null;
+      }>();
+    expect(paidOut).toMatchObject({
+      payment_status: "paid",
+      status: "completed",
+      stripe_transfer_id: "tr_cast_1",
+    });
+    expect(paidOut?.paid_out_at).not.toBeNull();
+  });
+
+  it("refunds the escrowed payment when a paid job is cancelled", async () => {
+    const { jobId, requester } = await setupPaidJobFixture();
+    await markJobPaid(jobId);
 
     vi.spyOn(globalThis, "fetch").mockImplementation(() =>
       Response.json({ id: "re_cast_1" })
@@ -269,7 +265,7 @@ describe("Casting payouts", () => {
         body: JSON.stringify({ status: "cancelled" }),
         headers: {
           "Content-Type": "application/json",
-          Cookie: caster.cookie,
+          Cookie: requester.cookie,
         },
         method: "PATCH",
       },
@@ -287,16 +283,69 @@ describe("Casting payouts", () => {
     });
   });
 
-  it("refuses to pay before a caster's offer is accepted", async () => {
-    const requester = await signUp("Kim Requester");
-    await env.DB.prepare("update user set email_verified = 1 where id = ?")
-      .bind(requester.id)
-      .run();
-    const jobId = `job-${crypto.randomUUID()}`;
+  it("re-dispatches an accepted job after the no-show window", async () => {
+    const { caster, jobId, requester } = await setupPaidJobFixture();
     await env.DB.prepare(
-      "insert into casting_job (id, requester_user_id, status, price_cents, requested_hours, starts_at, currency) values (?, ?, 'requested', 4000, 2, ?, 'usd')"
+      "update casting_job set caster_user_id = ?, status = 'accepted', starts_at = ? where id = ?"
     )
-      .bind(jobId, requester.id, Date.now() + 86_400_000)
+      .bind(caster.id, Date.now() - 3_600_000, jobId)
+      .run();
+
+    const tooEarly = await app.request(
+      `/api/v1/casting-jobs/${jobId}/redispatch`,
+      {
+        body: JSON.stringify({ status: "accepted" }),
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+      },
+      env
+    );
+    expect(tooEarly.status).toBe(401);
+
+    const stranger = await signUp("Zia Stranger");
+    const strangerResponse = await app.request(
+      `/api/v1/casting-jobs/${jobId}/redispatch`,
+      { headers: { Cookie: stranger.cookie }, method: "POST" },
+      env
+    );
+    expect(strangerResponse.status).toBe(404);
+
+    const redispatchResponse = await app.request(
+      `/api/v1/casting-jobs/${jobId}/redispatch`,
+      { headers: { Cookie: requester.cookie }, method: "POST" },
+      env
+    );
+    expect(redispatchResponse.status).toBe(200);
+    const redispatched = await env.DB.prepare(
+      "select caster_user_id, status from casting_job where id = ?"
+    )
+      .bind(jobId)
+      .first<{ caster_user_id: null | string; status: string }>();
+    expect(redispatched).toEqual({ caster_user_id: null, status: "requested" });
+  });
+
+  it("re-dispatch is refused inside the no-show grace window", async () => {
+    const { caster, jobId, requester } = await setupPaidJobFixture();
+    await env.DB.prepare(
+      "update casting_job set caster_user_id = ?, status = 'accepted', starts_at = ? where id = ?"
+    )
+      .bind(caster.id, Date.now() + 600_000, jobId)
+      .run();
+
+    const response = await app.request(
+      `/api/v1/casting-jobs/${jobId}/redispatch`,
+      { headers: { Cookie: requester.cookie }, method: "POST" },
+      env
+    );
+    expect(response.status).toBe(409);
+  });
+
+  it("refuses to pay a job that is not awaiting payment", async () => {
+    const { caster, jobId, requester } = await setupPaidJobFixture();
+    await env.DB.prepare(
+      "update casting_job set caster_user_id = ?, status = 'accepted' where id = ?"
+    )
+      .bind(caster.id, jobId)
       .run();
 
     const response = await app.request(

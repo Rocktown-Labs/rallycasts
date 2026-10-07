@@ -1,7 +1,7 @@
 import { Button } from "@rallycaststv/ui/components/button";
 import { Input } from "@rallycaststv/ui/components/input";
 import { cn } from "@rallycaststv/ui/lib/utils";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   CalendarClock,
@@ -12,10 +12,11 @@ import {
   PlusCircle,
   ShieldCheck,
   Users,
+  UserX,
   Wallet,
   XCircle,
 } from "lucide-react";
-import type { FormEvent } from "react";
+import type { FormEvent, ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -123,15 +124,34 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
       status: "requested",
     };
 
-    try {
-      castingJobsCollection.insert(newJob);
-      toast.success(
-        `Payment confirmed ($${totalPrice.toFixed(2)}). Your caster request for ${hours} hr${hours === 1 ? "" : "s"} has been dispatched!`
-      );
+    // Pay up front, Uber style: the job is created, then the requester
+    // pays immediately so the dispatch pool only ever sees paid work.
+    void (async () => {
+      try {
+        await castingJobsCollection.insert(newJob);
+        const response = await readApiJson(
+          apiClient.api.v1.stripe["casting-jobs"][":jobId"].pay.$post({
+            param: { jobId: newJob.id },
+          })
+        );
+        const checkoutUrl = (response as { url?: string }).url;
+        if (checkoutUrl) {
+          toast.info("Request created. Complete payment to dispatch it.");
+          window.location.href = checkoutUrl;
+        } else {
+          toast.error(
+            "Could not start payment. Use Pay to dispatch on the job."
+          );
+        }
+      } catch (error) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Could not dispatch casting request. Use Pay to dispatch on the job."
+        );
+      }
       onClose();
-    } catch {
-      toast.error("Could not dispatch casting request.");
-    }
+    })();
   };
 
   return (
@@ -442,6 +462,10 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
               ${totalPrice.toFixed(2)}
             </span>
           </div>
+          <p className="text-muted-foreground text-[11px]">
+            Paid up front and held until the job completes; the caster is paid
+            out then. RallyCasts Pro members pay 5% less.
+          </p>
         </div>
 
         <div className="flex items-center justify-end gap-3 pt-2 md:col-span-2">
@@ -465,6 +489,24 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
     </section>
   );
 }
+
+/**
+ * The money action for a job card: pay up front to dispatch a fresh
+ * request, or re-dispatch an accepted job when the caster did not show.
+ */
+const castingJobAction = (job: CastingJobRecord): ReactNode => {
+  if ((job.priceCents ?? 0) <= 0) {
+    return undefined;
+  }
+  if (job.status === "accepted") {
+    return <RedispatchJobButton jobId={job.id} />;
+  }
+  const awaitingPayment =
+    (job.status === "requested" || job.status === "offered") &&
+    job.paymentStatus !== "paid" &&
+    job.paymentStatus !== "refunded";
+  return awaitingPayment ? <PayJobButton jobId={job.id} /> : undefined;
+};
 
 export function CastingRequestsPage({
   status,
@@ -531,14 +573,7 @@ export function CastingRequestsPage({
           <div className="grid gap-4">
             {jobs.map((job) => (
               <RequestCard
-                action={
-                  job.status === "accepted" &&
-                  job.paymentStatus !== "paid" &&
-                  job.paymentStatus !== "refunded" &&
-                  (job.priceCents ?? 0) > 0 ? (
-                    <PayJobButton jobId={job.id} />
-                  ) : undefined
-                }
+                action={castingJobAction(job)}
                 key={job.id}
                 job={{ ...job, priceCents: job.priceCents ?? undefined }}
               />
@@ -600,7 +635,7 @@ function PayJobButton({ jobId }: { jobId: string }) {
       ) : (
         <CreditCard className="size-3.5" />
       )}
-      Pay for job
+      Pay to dispatch
     </Button>
   );
 }
@@ -611,6 +646,44 @@ const startCasterPayoutsSetup = async () => {
   );
   return (response as { url?: string }).url;
 };
+
+const redispatchCastingJob = (jobId: string) =>
+  readApiJson(
+    apiClient.api.v1["casting-jobs"][":id"].redispatch.$post({
+      param: { id: jobId },
+    })
+  );
+
+function RedispatchJobButton({ jobId }: { jobId: string }) {
+  const queryClient = useQueryClient();
+  const redispatch = useMutation({
+    mutationFn: () => redispatchCastingJob(jobId),
+    onError: (error) => {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Could not re-dispatch this job."
+      );
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["casting-jobs"] });
+      toast.info("Caster removed. The job is back in the dispatch pool.");
+    },
+  });
+  return (
+    <Button
+      className="rounded-lg"
+      disabled={redispatch.isPending}
+      onClick={() => redispatch.mutate()}
+      size="sm"
+      type="button"
+      variant="outline"
+    >
+      <UserX className="size-3.5" />
+      No-show? Re-dispatch
+    </Button>
+  );
+}
 
 function CasterPayoutsButton() {
   const setup = useStripeRedirect();
