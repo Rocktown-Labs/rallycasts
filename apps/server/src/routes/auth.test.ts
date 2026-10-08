@@ -196,4 +196,76 @@ describe("Better Auth configuration", () => {
     const body = (await response.json()) as { error: string };
     expect(body.error).toBe("account_not_linked");
   });
+
+  it("authenticates agent API keys across the API", async () => {
+    const signUp = await app.request(
+      "/api/auth/sign-up/email",
+      {
+        body: JSON.stringify({
+          email: `agent${crypto.randomUUID().slice(0, 8)}@example.com`,
+          name: "Agent Owner",
+          password: "password-12345678",
+          username: `agent${crypto.randomUUID().slice(0, 8)}`,
+        }),
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+      },
+      env
+    );
+    const body = (await signUp.json()) as {
+      user: { email: string; id: string } | null;
+    };
+    expect(body.user?.id).toBeTruthy();
+
+    // Create an agent key server-side on the owner's behalf, the way the
+    // settings UI does through the auth endpoints.
+    const auth = createAuth(env.DB);
+    const key = await auth.api.createApiKey({
+      body: { name: "Test agent", userId: body.user?.id ?? "" },
+    });
+    expect(key.key?.startsWith("rak_")).toBe(true);
+
+    // The key authenticates any session-protected route: x-api-key header.
+    const viaHeader = await app.request(
+      "/api/v1/casting-jobs",
+      { headers: { "x-api-key": key.key ?? "" } },
+      env
+    );
+    expect(viaHeader.status).toBe(200);
+
+    // And the Authorization Bearer form agents prefer.
+    const viaBearer = await app.request(
+      "/api/v1/casting-jobs",
+      { headers: { Authorization: `Bearer ${key.key}` } },
+      env
+    );
+    expect(viaBearer.status).toBe(200);
+
+    // Revoked keys stop working. Deletion happens through the owner's
+    // session, the same path the settings UI uses.
+    const signInResponse = await app.request(
+      "/api/auth/sign-in/email",
+      {
+        body: JSON.stringify({
+          email: body.user?.email ?? "",
+          password: "password-12345678",
+        }),
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+      },
+      env
+    );
+    expect(signInResponse.status).toBe(200);
+    const cookie = signInResponse.headers.get("set-cookie") ?? "";
+    await auth.api.deleteApiKey({
+      body: { keyId: key.id },
+      headers: { cookie },
+    });
+    const revoked = await app.request(
+      "/api/v1/casting-jobs",
+      { headers: { "x-api-key": key.key ?? "" } },
+      env
+    );
+    expect(revoked.status).toBe(401);
+  });
 });

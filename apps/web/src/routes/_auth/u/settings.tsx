@@ -1,4 +1,4 @@
-/* eslint-disable complexity */
+/* eslint-disable complexity -- the profile editor form predates the limit; split pending */
 import { Button } from "@rallycaststv/ui/components/button";
 import {
   Card,
@@ -11,22 +11,32 @@ import { Checkbox } from "@rallycaststv/ui/components/checkbox";
 import { Input } from "@rallycaststv/ui/components/input";
 import { Label } from "@rallycaststv/ui/components/label";
 import { debounce } from "@tanstack/pacer";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import {
+  Bot,
+  Check,
   CheckCircle,
+  Copy,
+  LoaderCircle,
   MapPin,
+  Plus,
   Save,
   Search,
   Settings,
   Sparkles,
+  Trash2,
   User,
+  X,
 } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { toast } from "sonner";
 
 import LinkedAccounts from "@/components/auth/linked-accounts";
 import { ProfilePreview } from "@/components/profile/profile-preview";
 import { apiClient } from "@/lib/api-client";
+import { authClient } from "@/lib/auth-client";
 import { mapGooglePlaceToCourtSuggestion } from "@/lib/google-places";
 import type { CourtSuggestion } from "@/lib/google-places";
 import { usePlaceSearch, useProfile, useUpdateProfile } from "@/lib/hooks";
@@ -676,7 +686,205 @@ export function ProfileEditorPage({
           </Button>
         </div>
       </form>
+
+      <AgentKeysCard />
     </div>
+  );
+}
+
+interface AgentApiKey {
+  createdAt?: Date | string | null;
+  enabled?: boolean;
+  id: string;
+  name?: string | null;
+  start?: string | null;
+}
+
+function AgentKeysCard() {
+  const [keyName, setKeyName] = useState("");
+  const [createdKey, setCreatedKey] = useState<string | null>(null);
+  const [hasCopied, setHasCopied] = useState(false);
+  const queryClient = useQueryClient();
+
+  const { data: keysData, isLoading } = useQuery({
+    queryFn: async () => {
+      const response = await authClient.apiKey.list();
+      return (response.data ?? []) as AgentApiKey[];
+    },
+    queryKey: ["agent-api-keys"],
+  });
+
+  const createKey = useMutation({
+    mutationFn: async (name: string) => {
+      const response = await authClient.apiKey.create({
+        expiresIn: null,
+        name,
+      });
+      const key = response.data?.key ?? null;
+      if (!key) {
+        throw new Error("Could not create the key");
+      }
+      return key;
+    },
+    onError: (error) => {
+      toast.error(
+        error instanceof Error ? error.message : "Could not create the key."
+      );
+    },
+    onSuccess: (key) => {
+      setCreatedKey(key);
+      setKeyName("");
+      void queryClient.invalidateQueries({ queryKey: ["agent-api-keys"] });
+    },
+  });
+
+  const revokeKey = useMutation({
+    mutationFn: async (keyId: string) => {
+      await authClient.apiKey.delete({ keyId });
+    },
+    onError: () => {
+      toast.error("Could not revoke the key.");
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["agent-api-keys"] });
+      toast.success("Key revoked.");
+    },
+  });
+
+  const copyKey = async () => {
+    if (!createdKey) {
+      return;
+    }
+    await navigator.clipboard.writeText(createdKey);
+    setHasCopied(true);
+    setTimeout(() => setHasCopied(false), 2500);
+  };
+
+  let keysList: ReactNode = (
+    <p className="text-muted-foreground text-xs">Loading keys...</p>
+  );
+  if (!isLoading) {
+    keysList =
+      (keysData ?? []).length === 0 ? (
+        <p className="text-muted-foreground text-xs">
+          No agent keys yet. Create one to give your AI agent access.
+        </p>
+      ) : (
+        <ul className="divide-border divide-y">
+          {(keysData ?? []).map((key) => (
+            <li
+              className="flex items-center justify-between gap-3 py-2.5"
+              key={key.id}
+            >
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium">
+                  {key.name ?? "Unnamed key"}
+                </p>
+                <p className="text-muted-foreground text-[11px]">
+                  {key.start ? `${key.start}...` : ""}{" "}
+                  {key.createdAt
+                    ? `created ${new Date(key.createdAt).toLocaleDateString()}`
+                    : ""}
+                  {key.enabled === false ? " (disabled)" : ""}
+                </p>
+              </div>
+              <Button
+                className="rounded-lg"
+                disabled={revokeKey.isPending}
+                onClick={() => revokeKey.mutate(key.id)}
+                size="sm"
+                type="button"
+                variant="outline"
+              >
+                <Trash2 className="size-3.5" />
+                Revoke
+              </Button>
+            </li>
+          ))}
+        </ul>
+      );
+  }
+
+  return (
+    <Card className="border-border bg-card/40 overflow-hidden rounded-xl border shadow-sm backdrop-blur-sm">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-lg font-bold">
+          <Bot className="text-primary size-5" /> Agent keys
+        </CardTitle>
+        <CardDescription className="text-xs">
+          Hand a key to your AI agent so it can upload videos and clips on your
+          behalf. A key can do anything your account can do: keep it private and
+          revoke it when you stop using it.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {createdKey ? (
+          <div className="border-primary/40 bg-primary/5 flex flex-wrap items-center gap-3 rounded-lg border p-3">
+            <p className="min-w-0 flex-1 truncate font-mono text-xs">
+              {createdKey}
+            </p>
+            <Button
+              className="rounded-lg"
+              onClick={() => void copyKey()}
+              size="sm"
+              type="button"
+            >
+              {hasCopied ? (
+                <Check className="size-3.5" />
+              ) : (
+                <Copy className="size-3.5" />
+              )}
+              {hasCopied ? "Copied" : "Copy"}
+            </Button>
+            <Button
+              className="rounded-lg"
+              onClick={() => setCreatedKey(null)}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              <X className="size-3.5" />
+              Done
+            </Button>
+            <p className="text-muted-foreground w-full text-[11px]">
+              Shown once. Store it now; RallyCasts only keeps a hash.
+            </p>
+          </div>
+        ) : null}
+
+        <div className="flex flex-wrap items-end gap-2">
+          <label
+            className="flex-1 text-xs font-semibold"
+            htmlFor="agent-key-name"
+          >
+            Key name
+            <Input
+              className="mt-1.5 h-10 w-full rounded-lg font-normal"
+              id="agent-key-name"
+              maxLength={60}
+              onChange={(event) => setKeyName(event.target.value)}
+              placeholder="My upload agent"
+              value={keyName}
+            />
+          </label>
+          <Button
+            className="rounded-lg"
+            disabled={keyName.trim().length < 2 || createKey.isPending}
+            onClick={() => createKey.mutate(keyName.trim())}
+            type="button"
+          >
+            {createKey.isPending ? (
+              <LoaderCircle className="size-4 animate-spin" />
+            ) : (
+              <Plus className="size-4" />
+            )}
+            Create key
+          </Button>
+        </div>
+
+        {keysList}
+      </CardContent>
+    </Card>
   );
 }
 

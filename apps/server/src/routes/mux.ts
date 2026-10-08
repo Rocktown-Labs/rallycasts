@@ -83,6 +83,50 @@ const getAssetVideoStatus = (eventType: string) => {
   return "processing" as const;
 };
 
+/**
+ * The orientation of the uploaded footage, read from the asset's video
+ * track dimensions. Mux reports widest stored dimensions per track.
+ */
+const getAssetOrientation = (
+  data: Record<string, unknown> | null
+): null | "landscape" | "portrait" => {
+  const tracks = data?.tracks;
+  if (!Array.isArray(tracks)) {
+    const aspectRatio =
+      typeof data?.aspect_ratio === "string" ? data.aspect_ratio : null;
+    if (aspectRatio) {
+      const [widthPart, heightPart] = aspectRatio.split(":");
+      const width = Number(widthPart);
+      const height = Number(heightPart);
+      if (Number.isFinite(width) && Number.isFinite(height)) {
+        if (width === height) {
+          return null;
+        }
+        return width > height ? "landscape" : "portrait";
+      }
+    }
+    return null;
+  }
+  for (const track of tracks) {
+    if (!track || typeof track !== "object") {
+      continue;
+    }
+    const record = track as Record<string, unknown>;
+    if (record.type !== "video") {
+      continue;
+    }
+    const width = record.max_width ?? record.width;
+    const height = record.max_height ?? record.height;
+    if (typeof width === "number" && typeof height === "number") {
+      if (width === height) {
+        return null;
+      }
+      return width > height ? "landscape" : "portrait";
+    }
+  }
+  return null;
+};
+
 interface MuxVideoUpdate {
   duration: number | null;
   eventType: string;
@@ -90,6 +134,7 @@ interface MuxVideoUpdate {
   muxPlaybackId: string | null;
   muxStatus: string | null;
   muxUploadId: string | null;
+  orientation: null | "landscape" | "portrait";
 }
 
 // oxlint-disable-next-line complexity -- Mux lifecycle events intentionally converge here.
@@ -105,6 +150,7 @@ const applyMuxVideoUpdate = async (
     muxPlaybackId,
     muxStatus,
     muxUploadId,
+    orientation,
   } = update;
 
   if (muxUploadId && eventType === "video.upload.asset_created") {
@@ -142,6 +188,7 @@ const applyMuxVideoUpdate = async (
     : eq(video.muxAssetId, muxAssetId);
   const [existingVideo] = await db
     .select({
+      mediaType: video.mediaType,
       muxPlaybackId: video.muxPlaybackId,
       muxPlaybackPolicy: video.muxPlaybackPolicy,
       visibility: video.visibility,
@@ -174,10 +221,26 @@ const applyMuxVideoUpdate = async (
     muxPlaybackPolicy =
       existingVideo.visibility === "public" ? "public" : "signed";
   }
+  // Keep the content model honest: shorts are vertical and regular videos
+  // are horizontal. When the uploaded footage disagrees with the declared
+  // media type, the asset wins: the media type is corrected at ready so
+  // clips land on the vertical shelf and matches stay on the feed.
+  let reclassify: "short" | "video" | undefined;
+  if (status === "ready" && orientation) {
+    reclassify = orientation === "portrait" ? "short" : "video";
+  } else {
+    reclassify =
+      existingVideo?.mediaType === "short" ||
+      existingVideo?.mediaType === "video"
+        ? existingVideo.mediaType
+        : undefined;
+  }
+
   const [updated] = await db
     .update(video)
     .set({
       durationSeconds: duration === null ? undefined : Math.round(duration),
+      ...(reclassify ? { mediaType: reclassify } : {}),
       muxAssetId,
       muxPlaybackId: persistedPlaybackId ?? undefined,
       muxPlaybackPolicy,
@@ -293,6 +356,7 @@ export const muxRouter = new Hono<AppEnv>()
       : null;
     const muxStatus = data ? getStringProperty(data, "status") : null;
     const duration = data ? getNumberProperty(data, "duration") : null;
+    const orientation = getAssetOrientation(data);
 
     const [insertedEvent] = await db
       .insert(webhookEvent)
@@ -342,6 +406,7 @@ export const muxRouter = new Hono<AppEnv>()
         muxPlaybackId,
         muxStatus,
         muxUploadId,
+        orientation,
       });
     } catch (error) {
       await db

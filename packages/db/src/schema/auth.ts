@@ -85,6 +85,48 @@ export const account = sqliteTable(
   (table) => [index("account_userId_idx").on(table.userId)]
 );
 
+export const apikey = sqliteTable(
+  "apikey",
+  {
+    configId: text("config_id")
+      .default(sql`'default'`)
+      .notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+    enabled: integer("enabled", { mode: "boolean" }).default(true).notNull(),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }),
+    id: text("id").primaryKey(),
+    key: text("key").notNull(),
+    lastRefillAt: integer("last_refill_at", { mode: "timestamp_ms" }),
+    lastRequest: integer("last_request", { mode: "timestamp_ms" }),
+    metadata: text("metadata"),
+    name: text("name"),
+    permissions: text("permissions"),
+    prefix: text("prefix"),
+    rateLimitEnabled: integer("rate_limit_enabled", { mode: "boolean" })
+      .default(true)
+      .notNull(),
+    rateLimitMax: integer("rate_limit_max"),
+    rateLimitTimeWindow: integer("rate_limit_time_window"),
+    referenceId: text("reference_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    refillAmount: integer("refill_amount"),
+    refillInterval: integer("refill_interval"),
+    remaining: integer("remaining"),
+    requestCount: integer("request_count"),
+    start: text("start"),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index("apikey_config_id_idx").on(table.configId),
+    index("apikey_reference_id_idx").on(table.referenceId),
+  ]
+);
+
 export const verification = sqliteTable(
   "verification",
   {

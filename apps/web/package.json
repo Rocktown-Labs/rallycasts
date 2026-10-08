@@ -12,6 +12,7 @@
   "dependencies": {
     "@better-auth-ui/core": "1.7.26",
     "@better-auth-ui/react": "1.7.26",
+    "@better-auth/api-key": "^1.7.7",
     "@mediabunny/server": "1.61.0",
     "@mux/cli": "^2.1.0",
     "@mux/mux-player-react": "^3.13.4",

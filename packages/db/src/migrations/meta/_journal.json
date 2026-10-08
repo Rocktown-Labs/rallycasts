@@ -197,6 +197,13 @@
       "when": 1791382215111,
       "tag": "0027_workable_vivisector",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "6",
+      "when": 1791472364422,
+      "tag": "0028_woozy_texas_twister",
+      "breakpoints": true
     }
   ]
 }
