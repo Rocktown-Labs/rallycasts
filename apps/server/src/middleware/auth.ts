@@ -5,9 +5,18 @@ import * as HttpStatusCodes from "stoker/http-status-codes";
 import type { AppEnv } from "../lib/types";
 
 export const requireAuth = createMiddleware<AppEnv>(async (c, next) => {
-  const authSession = await createAuth(c.env.DB).api.getSession({
-    headers: c.req.raw.headers,
-  });
+  // An invalid or revoked agent key makes getSession throw rather than
+  // return null; that is still just "unauthenticated."
+  let authSession: Awaited<
+    ReturnType<ReturnType<typeof createAuth>["api"]["getSession"]>
+  > = null;
+  try {
+    authSession = await createAuth(c.env.DB).api.getSession({
+      headers: c.req.raw.headers,
+    });
+  } catch {
+    authSession = null;
+  }
 
   if (!authSession) {
     return c.json({ message: "Unauthorized" }, HttpStatusCodes.UNAUTHORIZED);

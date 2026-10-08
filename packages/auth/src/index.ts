@@ -1,3 +1,4 @@
+import { apiKey } from "@better-auth/api-key";
 import { expo } from "@better-auth/expo";
 import { createDb } from "@rallycaststv/db";
 import * as schema from "@rallycaststv/db/schema/auth";
@@ -186,6 +187,38 @@ export const createAuth = (
       errorURL: `${getWebBaseUrl()}/error`,
     },
     plugins: [
+      /**
+       * Agent keys: RallyCasts users hand a key to their AI agent, which
+       * then acts as them over the API (upload videos and clips, read
+       * their library, and so on). Keys carry the rak_ prefix and are
+       * accepted via x-api-key or `Authorization: Bearer rak_...`. With
+       * enableSessionForAPIKeys, the existing requireAuth middleware
+       * resolves key-bearing requests to the owner's session, so every
+       * authenticated route works without changes.
+       */
+      apiKey({
+        customAPIKeyGetter: (ctx) => {
+          const headers = ctx.headers ?? ctx.request?.headers;
+          const header = headers?.get("x-api-key");
+          if (header?.startsWith("rak_")) {
+            return header;
+          }
+          const authorization = headers?.get("authorization");
+          if (authorization?.startsWith("Bearer rak_")) {
+            return authorization.slice("Bearer ".length);
+          }
+          return null;
+        },
+        defaultPrefix: "rak_",
+        enableMetadata: true,
+        enableSessionForAPIKeys: true,
+        rateLimit: {
+          enabled: true,
+          maxRequests: 100,
+          timeWindow: 60_000,
+        },
+        requireName: true,
+      }),
       admin({
         adminRoles: ["admin"],
         defaultRole: "user",
