@@ -13,7 +13,7 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@better-auth/api-key": "1.6.33",
+    "@better-auth/api-key": "1.7.7",
     "@better-auth/expo": "catalog:",
     "@rallycaststv/db": "workspace:*",
     "@rallycaststv/env": "workspace:*",
