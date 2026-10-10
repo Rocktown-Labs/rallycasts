@@ -709,7 +709,10 @@ function AgentKeysCard() {
   const { data: keysData, isLoading } = useQuery({
     queryFn: async () => {
       const response = await authClient.apiKey.list();
-      return (response.data ?? []) as AgentApiKey[];
+      // The plugin returns a paginated { apiKeys, total } shape, not a bare
+      // array; treating it as one crashed the settings page.
+      const list = response.data?.apiKeys ?? [];
+      return list as AgentApiKey[];
     },
     queryKey: ["agent-api-keys"],
   });
