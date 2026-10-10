@@ -27,6 +27,17 @@ const getErrorMessage = (error: Error | unknown): string => {
   return "";
 };
 
+/**
+ * Most runtime errors are developer noise (type errors, failed casts). The
+ * friendly headline always shows; the technical message only shows in dev
+ * so a player never reads a stack-shaped message like
+ * "(p ?? []).map is not a function".
+ */
+const isDeveloperBuild = (): boolean => import.meta.env.DEV === true;
+
+const getDisplayMessage = (error: Error | unknown): string =>
+  isDeveloperBuild() ? getErrorMessage(error) : "";
+
 /** Compact sibling of the CourtNotFound ball: a pickleball with its holes. */
 const PickleballMark = () => (
   <svg
@@ -53,6 +64,10 @@ export const CourtError = ({
   const [showDetails, setShowDetails] = useState(false);
 
   const rawMessage = getErrorMessage(error);
+  // Players should never read stack-shaped messages like
+  // "(p ?? []).map is not a function"; the technical detail only
+  // surfaces in developer builds.
+  const displayMessage = getDisplayMessage(error);
 
   const resolvedCode = (
     errorCode ||
@@ -60,7 +75,9 @@ export const CourtError = ({
   ).toLowerCase();
 
   const isAccountNotLinked = resolvedCode === "account_not_linked";
-  const hasDetails = Boolean(resolvedCode || errorDescription || rawMessage);
+  const hasDetails = Boolean(
+    resolvedCode || errorDescription || displayMessage
+  );
 
   const heading = isAccountNotLinked ? "Already on the roster." : "Rain delay.";
   const body = isAccountNotLinked
@@ -169,12 +186,12 @@ export const CourtError = ({
                     {errorDescription}
                   </p>
                 )}
-                {rawMessage && (
+                {displayMessage && (
                   <p className="mt-1">
                     <span className="text-foreground font-semibold">
                       Message:
                     </span>{" "}
-                    {rawMessage}
+                    {displayMessage}
                   </p>
                 )}
               </div>
