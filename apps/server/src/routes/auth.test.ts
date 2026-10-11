@@ -164,6 +164,118 @@ describe("Better Auth configuration", () => {
     }
   });
 
+  it("signs the user in automatically when the verification link is opened", async () => {
+    // createAuth reads BETTER_AUTH_URL from the Worker env binding at call
+    // time, so reproduce the prod config by mutating the binding itself.
+    const previousAuthUrl = env.BETTER_AUTH_URL;
+    env.BETTER_AUTH_URL = "https://api.rallycasts.com";
+
+    try {
+      // Capture the verification link the same way the email sender would,
+      // so the test can open the exact URL a real user receives.
+      let verificationUrl = "";
+      const auth = createAuth(env.DB, {
+        sendVerificationEmail: ({ url }) => {
+          verificationUrl = url;
+          return Promise.resolve();
+        },
+      });
+
+      const email = `verify-signin-${crypto.randomUUID()}@example.com`;
+      const signUpResponse = await auth.handler(
+        new Request("http://localhost:3000/api/auth/sign-up/email", {
+          body: JSON.stringify({
+            email,
+            name: "Verify Sign In",
+            password: "password-12345678",
+          }),
+          headers: { "Content-Type": "application/json" },
+          method: "POST",
+        })
+      );
+      expect(signUpResponse.status).toBe(200);
+      expect(verificationUrl).toContain("/verify-email?token=");
+
+      const token = new URL(verificationUrl).searchParams.get("token") ?? "";
+      expect(token).toBeTruthy();
+
+      // Opening the link must sign the user in: the response sets the
+      // session cookie scoped to the shared production domain.
+      const verifyResponse = await auth.handler(
+        new Request(
+          `http://localhost:3000/api/auth/verify-email?token=${token}`
+        )
+      );
+      expect(verifyResponse.status).toBe(200);
+      const cookie = verifyResponse.headers.get("set-cookie") ?? "";
+      expect(cookie).toContain("better-auth.session_token");
+      expect(cookie).toContain("Domain=.rallycasts.com");
+      expect(cookie).toContain("HttpOnly");
+      expect(cookie).toContain("SameSite=Lax");
+
+      // And that cookie authenticates the session endpoint.
+      const sessionResponse = await auth.handler(
+        new Request("http://localhost:3000/api/auth/get-session", {
+          headers: { Cookie: cookie.split(";")[0] },
+        })
+      );
+      expect(sessionResponse.status).toBe(200);
+      const session = (await sessionResponse.json()) as {
+        user: { email: string } | null;
+      };
+      expect(session.user?.email).toBe(email);
+    } finally {
+      env.BETTER_AUTH_URL = previousAuthUrl;
+    }
+  });
+
+  it("scopes the session cookie to the shared preview domain on preview hosts", async () => {
+    const previousAuthUrl = env.BETTER_AUTH_URL;
+    env.BETTER_AUTH_URL =
+      "https://rallycasts-server-pr-133.rocktown-labs.workers.dev";
+
+    try {
+      const email = `preview-cookie-${crypto.randomUUID()}@example.com`;
+      const signUpResponse = await app.request(
+        "/api/auth/sign-up/email",
+        {
+          body: JSON.stringify({
+            email,
+            name: "Preview Cookie",
+            password: "password-12345678",
+          }),
+          headers: { "Content-Type": "application/json" },
+          method: "POST",
+        },
+        env
+      );
+      expect(signUpResponse.status).toBe(200);
+      const signUp = (await signUpResponse.json()) as {
+        user: { id: string };
+      };
+
+      await env.DB.prepare("update user set email_verified = 1 where id = ?")
+        .bind(signUp.user.id)
+        .run();
+
+      const signInResponse = await app.request(
+        "/api/auth/sign-in/email",
+        {
+          body: JSON.stringify({ email, password: "password-12345678" }),
+          headers: { "Content-Type": "application/json" },
+          method: "POST",
+        },
+        env
+      );
+      expect(signInResponse.status).toBe(200);
+      const cookie = signInResponse.headers.get("set-cookie") ?? "";
+      expect(cookie).toContain("better-auth.session_token");
+      expect(cookie).toContain("Domain=.rocktown-labs.workers.dev");
+    } finally {
+      env.BETTER_AUTH_URL = previousAuthUrl;
+    }
+  });
+
   it("redirects browser error requests to the web app error page", async () => {
     const response = await app.request(
       "/api/auth/error?error=account_not_linked&error_description=Account+exists",

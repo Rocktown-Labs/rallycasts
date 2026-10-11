@@ -23,15 +23,26 @@ const getCookieDomain = (url: string) => {
     const { hostname } = new URL(url);
     // Only the known first-party hosts share the session cookie. A blanket
     // parent-domain cookie would also be sent to any other current or future
-    // subdomain (staging, previews), widening session theft on takeover.
+    // subdomain, widening session theft on takeover, so each scope below is
+    // a single registrable domain we control.
     if (hostname === "rallycasts.com" || hostname === "api.rallycasts.com") {
       return ".rallycasts.com";
+    }
+    // Preview workers (rallycasts-server-*, rallycasts-web-*) share the
+    // rocktown-labs.workers.dev registrable domain: workers.dev is a public
+    // suffix, so this is the narrowest scope under which the session cookie
+    // set by the auth worker is visible to the sibling web worker.
+    if (
+      hostname === "rocktown-labs.workers.dev" ||
+      hostname.endsWith(".rocktown-labs.workers.dev")
+    ) {
+      return ".rocktown-labs.workers.dev";
     }
   } catch {
     // Ignore invalid URL parsing errors.
   }
 
-  // Do not set a parent-domain cookie for preview or public-suffix hosts.
+  // Localhost and unknown hosts get a host-only cookie (no Domain attribute).
 };
 
 const getWebBaseUrl = () => {
@@ -128,7 +139,23 @@ export const createAuth = (
         secure: !isLocalUrl(env.BETTER_AUTH_URL),
       },
     },
-    baseURL: env.BETTER_AUTH_URL,
+    // Dynamic base URL: the auth worker is reachable under multiple hosts
+    // (api.rallycasts.com in production, rallycasts-server-<stage> on
+    // previews), so resolve the base URL from the request host instead of a
+    // single static value. Unknown hosts fall back to the configured URL
+    // rather than throwing, keeping unit tests and misconfigured requests
+    // functional.
+    baseURL: {
+      allowedHosts: [
+        "rallycasts.com",
+        "*.rallycasts.com",
+        "*.rocktown-labs.workers.dev",
+        // Dev hosts carry a port (host header is passed through verbatim).
+        "localhost:*",
+        "127.0.0.1:*",
+      ],
+      fallback: env.BETTER_AUTH_URL,
+    },
     database: drizzleAdapter(db, {
       provider: "sqlite",
       schema,
@@ -180,6 +207,10 @@ export const createAuth = (
     },
     emailVerification: {
       autoSendOnSignUp: true,
+      // Sign the user in when they open the verification link, so the
+      // response to GET /verify-email sets the session cookie instead of
+      // bouncing them to a login form.
+      autoSignInAfterVerification: true,
       sendOnSignIn: true,
       sendVerificationEmail: emailCallbacks?.sendVerificationEmail,
     },
