@@ -1,19 +1,31 @@
 import { Button, buttonVariants } from "@rallycaststv/ui/components/button";
 import { cn } from "@rallycaststv/ui/lib/utils";
 import { Link } from "@tanstack/react-router";
-import { Clock3, Radio, Scissors, Video } from "lucide-react";
+import { Clock3, Layers, Radio, Scissors, Video } from "lucide-react";
+import { useState } from "react";
 
 import { EmptyState } from "@/components/rally/cards";
 import { myVideosCollection, useLiveQuery } from "@/lib/collections";
+import type { VideoRecord } from "@/lib/collections";
 import { getVideoSlug } from "@/lib/hooks";
 
-type VideosSection = "clips" | "live" | "videos";
+type VideosSection = "all" | "clips" | "live" | "videos";
 
 const videoTabs = [
+  { icon: Layers, label: "All", section: "all", to: "/u/studio/all" },
   { icon: Video, label: "Videos", section: "videos", to: "/u/studio" },
   { icon: Scissors, label: "Clips", section: "clips", to: "/u/studio/clips" },
   { icon: Radio, label: "Live", section: "live", to: "/u/studio/live" },
 ] as const;
+
+type VideoSort = "newest" | "oldest";
+
+const sortVideos = (videos: VideoRecord[], sort: VideoSort): VideoRecord[] =>
+  [...videos].toSorted((a, b) => {
+    const left = new Date(a.createdAt).getTime();
+    const right = new Date(b.createdAt).getTime();
+    return sort === "oldest" ? left - right : right - left;
+  });
 
 const statusLabel = {
   deleted: "Deleted",
@@ -43,8 +55,17 @@ export function VideosLibrary({
   section?: VideosSection;
 }) {
   const { data: videos = [], isLoading } = useLiveQuery(myVideosCollection);
+  const [sort, setSort] = useState<VideoSort>("newest");
+  // Videos = long-form only. Clips live in their own tab; All shows both.
+  const longForm = videos.filter((video) => video.mediaType !== "short");
   const clips = videos.filter((video) => video.mediaType === "short");
-  const activeItems = section === "clips" ? clips : videos;
+  let sectionItems: VideoRecord[] = videos;
+  if (section === "clips") {
+    sectionItems = clips;
+  } else if (section === "videos") {
+    sectionItems = longForm;
+  }
+  const activeItems = sortVideos(sectionItems, sort);
   const activeTab = videoTabs.find((tab) => tab.section === section);
 
   return (
@@ -66,6 +87,26 @@ export function VideosLibrary({
           </Link>
         ))}
       </nav>
+
+      {!isLoading && section !== "live" ? (
+        <div className="flex items-center justify-end gap-2">
+          <label
+            className="text-muted-foreground text-xs font-semibold"
+            htmlFor="library-sort"
+          >
+            Sort
+          </label>
+          <select
+            className="border-input bg-background focus-visible:border-ring h-8 rounded-lg border px-2 text-xs outline-none"
+            id="library-sort"
+            onChange={(event) => setSort(event.target.value as VideoSort)}
+            value={sort}
+          >
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+          </select>
+        </div>
+      ) : null}
 
       {isLoading ? (
         <div className="flex flex-col gap-2">

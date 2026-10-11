@@ -91,7 +91,6 @@ function OnboardingPage() {
           homeLatitude: v.location.homeLatitude,
           homeLongitude: v.location.homeLongitude,
           homeState: v.location.homeState,
-          isCaster: v.roles.isCaster,
           isOrganizer: v.roles.isOrganizer,
           isPlayer: v.roles.isPlayer,
           onboardingStatus: "complete",

@@ -150,20 +150,15 @@ describe("Onboarding Wizard Steps & Validation", () => {
   });
 
   describe("StepRoles (Step 4)", () => {
-    it("displays the $50 express fee breakdown when Caster role is selected", () => {
+    it("offers player and host roles only; caster lives in the mobile app", () => {
       render(<StepRolesWrapper />);
 
-      // Verify Caster role card shows $50 Express Fee badge
-      expect(screen.getByText("$50 Express Fee")).toBeTruthy();
-
-      // Click Caster role toggle
-      const casterBtn = screen.getByText("Caster");
-      fireEvent.click(casterBtn);
-
-      // The Caster Express Verification callout should appear
-      expect(screen.getByText("Caster Express Verification")).toBeTruthy();
-      expect(screen.getByText("$50 One-Time Fee")).toBeTruthy();
-      expect(screen.getByText(/No charge today during setup/iu)).toBeTruthy();
+      // The web onboarding offers Player and Host only.
+      expect(screen.getByText("Player")).toBeTruthy();
+      expect(screen.getByText("Host")).toBeTruthy();
+      expect(screen.queryByText("Caster")).toBeNull();
+      expect(screen.queryByText("$50 Express Fee")).toBeNull();
+      expect(screen.queryByText("Caster Express Verification")).toBeNull();
     });
 
     it("allows switching between Monthly and Annual billing and selecting Pro tier", () => {

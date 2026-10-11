@@ -13,17 +13,19 @@ import {
   ShieldCheck,
   Users,
   UserX,
-  Wallet,
+  X,
   XCircle,
 } from "lucide-react";
 import type { FormEvent, ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { EmptyState, RequestCard } from "@/components/rally/cards";
 import { apiClient } from "@/lib/api-client";
 import { castingJobsCollection, useLiveQuery } from "@/lib/collections";
 import type { CastingJobRecord } from "@/lib/collections";
+import type { CourtSuggestion } from "@/lib/google-places";
+import { useSearch, usePlaceSearch } from "@/lib/hooks";
 import { readApiJson } from "@/lib/hooks/api";
 
 type RequestRouteStatus = "all" | "approved" | "completed" | "new" | "pending";
@@ -66,18 +68,37 @@ const statusMatchesRoute = (
 
 const STANDARD_HOURLY_RATE = 20;
 
+interface SelectedPlayer {
+  id: string;
+  name: string;
+  username: string | null;
+}
+
 function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
   const [place, setPlace] = useState("");
+  const [selectedPlace, setSelectedPlace] = useState<CourtSuggestion | null>(
+    null
+  );
   const [court, setCourt] = useState("");
-  const [participants, setParticipants] = useState("");
+  const [players, setPlayers] = useState<SelectedPlayer[]>([]);
+  const [playerQuery, setPlayerQuery] = useState("");
   const [startsAt, setStartsAt] = useState("");
-  const [endsAt, setEndsAt] = useState("");
   const [requestedHours, setRequestedHours] = useState("1");
   const [tipAmount, setTipAmount] = useState<number>(5);
   const [customTip, setCustomTip] = useState<string>("");
   const [isCustomTip, setIsCustomTip] = useState(false);
   const [paymentSplit, setPaymentSplit] = useState<"host" | "split">("host");
   const [notes, setNotes] = useState("");
+
+  // Park search hits the same place API the onboarding location step uses.
+  const { data: placeData } = usePlaceSearch(place);
+  const placeSuggestions =
+    (placeData as { results?: CourtSuggestion[] } | undefined)?.results ?? [];
+
+  // Player search goes through the entity search API and filters to players.
+  const { data: playerData } = useSearch(playerQuery, "players");
+  const playerResults =
+    (playerData as { players?: SelectedPlayer[] } | undefined)?.players ?? [];
 
   const hours = Number(requestedHours || 1);
   const basePrice = hours * STANDARD_HOURLY_RATE;
@@ -89,21 +110,24 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
   const submitRequest = (event: FormEvent) => {
     event.preventDefault();
     if (!startsAt) {
-      toast.error("Start time is required.");
+      toast.error("Pick when the match starts.");
       return;
     }
-    if (!place.trim()) {
-      toast.error("Tell us which park or court facility.");
+    if (!place.trim() || !selectedPlace) {
+      toast.error("Search and select a park or facility.");
       return;
     }
 
+    const playerNames = players
+      .map((player) => (player.username ? `@${player.username}` : player.name))
+      .join(", ");
     const requestDetails = [
-      `Place: ${place.trim()}`,
+      `Place: ${selectedPlace.addressLabel} (${selectedPlace.formattedAddress})`,
       court.trim() ? `Court: ${court.trim()}` : null,
-      participants.trim() ? `Players: ${participants.trim()}` : null,
+      playerNames ? `Players: ${playerNames}` : null,
       `Duration: ${hours} hour${hours === 1 ? "" : "s"} ($${basePrice.toFixed(2)} @ $${STANDARD_HOURLY_RATE}/hr)`,
       activeTip > 0 ? `Caster Tip: $${activeTip.toFixed(2)}` : null,
-      `Total Paid at Checkout: $${totalPrice.toFixed(2)}`,
+      `Total Paid at Checkout: $${totalPrice.toFixed(2)} (taxes calculated at checkout)`,
       `Payment: ${
         paymentSplit === "host"
           ? "Requester covers full casting fee"
@@ -114,8 +138,9 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
       .filter(Boolean)
       .join("\n");
 
+    const startMs = new Date(startsAt).getTime();
     const newJob: CastingJobRecord = {
-      endsAt: endsAt ? new Date(endsAt).toISOString() : null,
+      endsAt: new Date(startMs + hours * 3_600_000).toISOString(),
       id: crypto.randomUUID(),
       notes: requestDetails,
       priceCents: Math.round(totalPrice * 100),
@@ -192,71 +217,90 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
           </p>
         </div>
 
-        {/* Location & Court Number */}
-        <label
-          className="grid gap-1.5 text-sm font-semibold"
-          htmlFor="casting-place"
-        >
-          <span className="text-foreground flex items-center gap-2">
-            <MapPin className="text-primary size-4" />
-            Park or Facility
-          </span>
-          <Input
-            id="casting-place"
-            onChange={(event) => setPlace(event.target.value)}
-            placeholder="Berryhill Park, Searcy AR"
+        {/* Location: searchable, plus an optional court pick */}
+        <div className="grid gap-1.5">
+          <label className="text-sm font-semibold" htmlFor="casting-place">
+            <span className="text-foreground flex items-center gap-2">
+              <MapPin className="text-primary size-4" />
+              Park or Facility
+            </span>
+          </label>
+          <SearchablePlaceField
+            onSelect={(suggestion) => {
+              setPlace(suggestion.addressLabel);
+              setSelectedPlace(suggestion);
+            }}
+            onValueChange={(next) => {
+              setPlace(next);
+              setSelectedPlace(null);
+            }}
+            suggestions={placeSuggestions}
             value={place}
-            required
           />
-        </label>
+        </div>
 
-        <label
-          className="grid gap-1.5 text-sm font-semibold"
-          htmlFor="casting-court"
-        >
-          <span className="text-foreground flex items-center gap-2">
-            Court Number
-          </span>
-          <Input
-            id="casting-court"
-            onChange={(event) => setCourt(event.target.value)}
-            placeholder="Court 3, Championship Court, or TBD"
-            value={court}
-          />
-        </label>
+        <div className="grid gap-1.5">
+          <label
+            className="text-muted-foreground text-sm font-semibold"
+            htmlFor="casting-court"
+          >
+            Court (optional)
+          </label>
+          <div className="flex flex-wrap gap-1.5">
+            {["1", "2", "3", "4", "5", "6", "7", "8"].map((number) => (
+              <button
+                className={cn(
+                  "cursor-pointer rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all",
+                  court === `Court ${number}`
+                    ? "border-primary bg-primary text-primary-foreground shadow-2xs"
+                    : "border-border bg-muted/20 hover:border-primary/50 text-foreground"
+                )}
+                key={number}
+                onClick={() =>
+                  setCourt(court === `Court ${number}` ? "" : `Court ${number}`)
+                }
+                type="button"
+              >
+                {number}
+              </button>
+            ))}
+            <button
+              className={cn(
+                "cursor-pointer rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all",
+                court === "Not sure yet"
+                  ? "border-primary bg-primary text-primary-foreground shadow-2xs"
+                  : "border-border bg-muted/20 hover:border-primary/50 text-foreground"
+              )}
+              onClick={() =>
+                setCourt(court === "Not sure yet" ? "" : "Not sure yet")
+              }
+              type="button"
+            >
+              Not sure yet
+            </button>
+          </div>
+        </div>
 
-        {/* Start & End Times */}
-        <label
-          className="grid gap-1.5 text-sm font-semibold"
-          htmlFor="casting-start"
-        >
-          <span className="text-foreground flex items-center gap-2">
-            <CalendarClock className="text-primary size-4" />
-            Match Date & Start Time
-          </span>
-          <Input
+        {/* When: one date-time pick; duration below covers the length */}
+        <div className="grid gap-1.5 md:col-span-2">
+          <label className="text-sm font-semibold" htmlFor="casting-start">
+            <span className="text-foreground flex items-center gap-2">
+              <CalendarClock className="text-primary size-4" />
+              When does the match start?
+            </span>
+          </label>
+          <input
+            className={cn(
+              "border-input focus-visible:border-ring focus-visible:ring-ring/50 h-10 w-full rounded-lg border bg-transparent px-3 py-2 text-sm transition-colors outline-none focus-visible:ring-1",
+              "sm:max-w-xs [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+            )}
             id="casting-start"
             onChange={(event) => setStartsAt(event.target.value)}
+            required
             type="datetime-local"
             value={startsAt}
-            required
           />
-        </label>
-
-        <label
-          className="grid gap-1.5 text-sm font-semibold"
-          htmlFor="casting-end"
-        >
-          <span className="text-foreground flex items-center gap-2">
-            Estimated End Time (Optional)
-          </span>
-          <Input
-            id="casting-end"
-            onChange={(event) => setEndsAt(event.target.value)}
-            type="datetime-local"
-            value={endsAt}
-          />
-        </label>
+        </div>
 
         {/* Duration & Hours Selection */}
         <div className="grid gap-2 md:col-span-2">
@@ -365,22 +409,36 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
           </div>
         </div>
 
-        {/* Players */}
-        <label
-          className="grid gap-1.5 text-sm font-semibold md:col-span-2"
-          htmlFor="casting-participants"
-        >
-          <span className="text-foreground flex items-center gap-2">
-            <Users className="text-primary size-4" />
-            Who is playing?
-          </span>
-          <Input
-            id="casting-participants"
-            onChange={(event) => setParticipants(event.target.value)}
-            placeholder="You vs. @opponent, doubles pairs, or open pool"
-            value={participants}
+        {/* Players: searchable, pick from the platform */}
+        <div className="grid gap-1.5 md:col-span-2">
+          <label
+            className="text-sm font-semibold"
+            htmlFor="casting-participants"
+          >
+            <span className="text-foreground flex items-center gap-2">
+              <Users className="text-primary size-4" />
+              Who is playing? (optional)
+            </span>
+          </label>
+          <SearchablePlayerField
+            onAdd={(player) =>
+              setPlayers((current) =>
+                current.some((existing) => existing.id === player.id)
+                  ? current
+                  : [...current, player]
+              )
+            }
+            onQueryChange={setPlayerQuery}
+            onRemove={(playerId) =>
+              setPlayers((current) =>
+                current.filter((player) => player.id !== playerId)
+              )
+            }
+            players={players}
+            query={playerQuery}
+            searchResults={playerResults}
           />
-        </label>
+        </div>
 
         {/* Payment Split */}
         <div className="grid gap-2 md:col-span-2">
@@ -456,10 +514,14 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
             <span>Platform Processing & Delivery</span>
             <span className="font-semibold text-emerald-500">Included</span>
           </div>
+          <div className="text-muted-foreground flex items-center justify-between text-xs">
+            <span>Taxes</span>
+            <span>Calculated at checkout</span>
+          </div>
           <div className="border-border/60 text-foreground flex items-center justify-between border-t pt-2 text-sm font-bold">
-            <span>Total Due Now</span>
+            <span>Due at checkout</span>
             <span className="text-lg font-extrabold text-emerald-500">
-              ${totalPrice.toFixed(2)}
+              ${totalPrice.toFixed(2)}+
             </span>
           </div>
           <p className="text-muted-foreground text-[11px]">
@@ -482,7 +544,7 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
             type="submit"
           >
             <CreditCard className="size-4" />
-            Pay ${totalPrice.toFixed(2)} & Dispatch Caster
+            Pay ${totalPrice.toFixed(2)}
           </Button>
         </div>
       </form>
@@ -494,6 +556,184 @@ function NewCastingRequestForm({ onClose }: { onClose: () => void }) {
  * The money action for a job card: pay up front to dispatch a fresh
  * request, or re-dispatch an accepted job when the caster did not show.
  */
+/**
+ * Typeahead over the Google Places-backed park search. Raw typing clears the
+ * selection so a hand-edited name never looks like a picked venue.
+ */
+function SearchablePlaceField({
+  onSelect,
+  onValueChange,
+  suggestions,
+  value,
+}: {
+  onSelect: (suggestion: CourtSuggestion) => void;
+  onValueChange: (next: string) => void;
+  suggestions: CourtSuggestion[];
+  value: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const placeRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const onDocClick = (event: MouseEvent) => {
+      if (!placeRef.current?.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, []);
+
+  return (
+    <div className="relative" ref={placeRef}>
+      <input
+        aria-autocomplete="list"
+        autoComplete="off"
+        className="border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 h-10 w-full rounded-lg border bg-transparent px-3 py-2 text-sm transition-colors outline-none focus-visible:ring-1"
+        id="casting-place"
+        onChange={(event) => {
+          onValueChange(event.target.value);
+          setIsOpen(true);
+        }}
+        onFocus={() => setIsOpen(true)}
+        placeholder="Search: Berryhill Park, Searcy AR"
+        required
+        type="text"
+        value={value}
+      />
+      {isOpen && suggestions.length > 0 ? (
+        <ul
+          aria-label="Park or facility suggestions"
+          className="border-border bg-card absolute z-20 mt-1 w-full overflow-hidden rounded-lg border shadow-lg"
+        >
+          {suggestions.slice(0, 6).map((suggestion) => (
+            <li key={suggestion.placeId ?? suggestion.addressLabel}>
+              <button
+                className="hover:bg-muted focus-visible:bg-muted block w-full px-3 py-2 text-left text-xs focus-visible:outline-none"
+                onClick={() => {
+                  onSelect(suggestion);
+                  setIsOpen(false);
+                }}
+                type="button"
+              >
+                <span className="font-semibold">{suggestion.addressLabel}</span>
+                <span className="text-muted-foreground block text-[11px]">
+                  {suggestion.formattedAddress}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * Typeahead over platform player search. Selected players render as
+ * removable chips; the query clears itself after each pick.
+ */
+function SearchablePlayerField({
+  onAdd,
+  onQueryChange,
+  onRemove,
+  players,
+  query,
+  searchResults,
+}: {
+  onAdd: (player: SelectedPlayer) => void;
+  onQueryChange: (next: string) => void;
+  onRemove: (playerId: string) => void;
+  players: SelectedPlayer[];
+  query: string;
+  searchResults: SelectedPlayer[];
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const playerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const onDocClick = (event: MouseEvent) => {
+      if (!playerRef.current?.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, []);
+
+  const addable = searchResults.filter(
+    (result) => !players.some((player) => player.id === result.id)
+  );
+
+  return (
+    <div ref={playerRef}>
+      <div className="relative">
+        <input
+          aria-autocomplete="list"
+          autoComplete="off"
+          className="border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 h-10 w-full rounded-lg border bg-transparent px-3 py-2 text-sm transition-colors outline-none focus-visible:ring-1"
+          id="casting-participants"
+          onChange={(event) => {
+            onQueryChange(event.target.value);
+            setIsOpen(true);
+          }}
+          onFocus={() => setIsOpen(true)}
+          placeholder="Search players by name or @username"
+          type="text"
+          value={query}
+        />
+        {isOpen && addable.length > 0 ? (
+          <ul
+            aria-label="Player suggestions"
+            className="border-border bg-card absolute z-20 mt-1 w-full overflow-hidden rounded-lg border shadow-lg"
+          >
+            {addable.slice(0, 6).map((player) => (
+              <li key={player.id}>
+                <button
+                  className="hover:bg-muted focus-visible:bg-muted block w-full px-3 py-2 text-left text-xs focus-visible:outline-none"
+                  onClick={() => {
+                    onAdd(player);
+                    onQueryChange("");
+                    setIsOpen(false);
+                  }}
+                  type="button"
+                >
+                  <span className="font-semibold">{player.name}</span>
+                  {player.username ? (
+                    <span className="text-muted-foreground ml-1.5 text-[11px]">
+                      @{player.username}
+                    </span>
+                  ) : null}
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+      {players.length > 0 ? (
+        <div className="mt-1.5 flex flex-wrap gap-1.5">
+          {players.map((player) => (
+            <span
+              className="bg-muted text-foreground inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
+              key={player.id}
+            >
+              {player.name}
+              <button
+                aria-label={`Remove ${player.name}`}
+                className="hover:text-destructive cursor-pointer"
+                onClick={() => onRemove(player.id)}
+                type="button"
+              >
+                <X className="size-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 const castingJobAction = (job: CastingJobRecord): ReactNode => {
   if ((job.priceCents ?? 0) <= 0) {
     return undefined;
@@ -545,7 +785,6 @@ export function CastingRequestsPage({
           </nav>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <CasterPayoutsButton />
           <Link to="/u/casts/new">
             <Button className="rounded-lg text-xs">
               <PlusCircle />
@@ -612,41 +851,6 @@ const useStripeRedirect = () =>
     },
   });
 
-function PayJobButton({ jobId }: { jobId: string }) {
-  const pay = useStripeRedirect();
-  const start = async () => {
-    const response = await readApiJson(
-      apiClient.api.v1.stripe["casting-jobs"][":jobId"].pay.$post({
-        param: { jobId },
-      })
-    );
-    return (response as { url?: string }).url;
-  };
-  return (
-    <Button
-      className="rounded-lg"
-      disabled={pay.isPending}
-      onClick={() => pay.mutate(start())}
-      size="sm"
-      type="button"
-    >
-      {pay.isPending ? (
-        <LoaderCircle className="size-3.5 animate-spin" />
-      ) : (
-        <CreditCard className="size-3.5" />
-      )}
-      Pay to dispatch
-    </Button>
-  );
-}
-
-const startCasterPayoutsSetup = async () => {
-  const response = await readApiJson(
-    apiClient.api.v1.stripe.caster.payouts.setup.$post({})
-  );
-  return (response as { url?: string }).url;
-};
-
 const redispatchCastingJob = (jobId: string) =>
   readApiJson(
     apiClient.api.v1["casting-jobs"][":id"].redispatch.$post({
@@ -685,22 +889,30 @@ function RedispatchJobButton({ jobId }: { jobId: string }) {
   );
 }
 
-function CasterPayoutsButton() {
-  const setup = useStripeRedirect();
+function PayJobButton({ jobId }: { jobId: string }) {
+  const pay = useStripeRedirect();
+  const start = async () => {
+    const response = await readApiJson(
+      apiClient.api.v1.stripe["casting-jobs"][":jobId"].pay.$post({
+        param: { jobId },
+      })
+    );
+    return (response as { url?: string }).url;
+  };
   return (
     <Button
-      className="rounded-lg text-xs"
-      disabled={setup.isPending}
-      onClick={() => setup.mutate(startCasterPayoutsSetup())}
+      className="rounded-lg"
+      disabled={pay.isPending}
+      onClick={() => pay.mutate(start())}
+      size="sm"
       type="button"
-      variant="outline"
     >
-      {setup.isPending ? (
+      {pay.isPending ? (
         <LoaderCircle className="size-3.5 animate-spin" />
       ) : (
-        <Wallet className="size-3.5" />
+        <CreditCard className="size-3.5" />
       )}
-      Caster payouts
+      Pay to dispatch
     </Button>
   );
 }

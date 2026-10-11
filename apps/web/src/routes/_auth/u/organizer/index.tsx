@@ -268,6 +268,27 @@ function OrganizerDashboardPage() {
 
       <QuickActions firstOrgSlug={firstOrgSlug} />
 
+      {(profile.accountTier ?? "free") === "premium" ? null : (
+        <section
+          className="bg-primary text-primary-foreground flex flex-wrap items-center justify-between gap-3 rounded-xl px-5 py-4"
+          aria-label="RallyCasts Pro upsell"
+        >
+          <div>
+            <p className="text-sm font-bold">Do more with RallyCasts Pro</p>
+            <p className="text-xs opacity-85">
+              Ad-free everywhere, 5% off casting requests, priority tournament
+              coverage, and the AI highlight reel.
+            </p>
+          </div>
+          <Link
+            className="bg-background text-foreground hover:bg-background/90 inline-flex h-9 items-center rounded-lg px-4 text-sm font-semibold transition-colors"
+            to="/u/me"
+          >
+            Upgrade to Pro
+          </Link>
+        </section>
+      )}
+
       <div className="grid gap-4 md:grid-cols-3">
         <StatCard
           icon={<Trophy className="size-5" />}

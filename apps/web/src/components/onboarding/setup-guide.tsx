@@ -10,7 +10,6 @@ import {
   Minimize2,
   Sparkles,
   User,
-  Video,
   X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -18,7 +17,6 @@ import { useMemo, useState } from "react";
 import { useMyEvents } from "@/lib/hooks/use-events";
 import { useMyOrganizations } from "@/lib/hooks/use-organizations";
 import { useProfile } from "@/lib/hooks/use-profile";
-import { useMyVideos } from "@/lib/hooks/use-videos";
 
 interface SetupItem {
   actionLabel: string;
@@ -136,52 +134,23 @@ function buildHostCategory(
         title: "Host your first tournament",
         to: orgManageUrl,
       },
+      {
+        actionLabel: "Payouts",
+        description:
+          "Connect your club's bank account so entry fees reach you.",
+        id: "org_payouts",
+        // The member view never exposes Stripe ids; the payouts step stays
+        // open until the owner finishes Connect onboarding.
+        isComplete: false,
+        title: "Set up tournament payouts",
+        to: orgManageUrl,
+      },
     ],
     title: "Host & Organization",
   };
 }
 
-function buildCasterCategory(myVideos: unknown[]): SetupCategory {
-  const hasVideos = myVideos.length > 0;
-
-  return {
-    description: "Stream matches and broadcast with live commentary.",
-    icon: Video,
-    id: "caster",
-    items: [
-      {
-        actionLabel: "Open Studio",
-        description: "Access recording tools, stream keys, and clipper.",
-        id: "caster_studio",
-        isComplete: true,
-        title: "Open RallyCasts Studio",
-        to: "/u/studio",
-      },
-      {
-        actionLabel: "Studio Setup",
-        description: "Connect camera, OBS, or mobile court feed.",
-        id: "caster_camera",
-        isComplete: hasVideos,
-        title: "Configure stream key & camera",
-        to: "/u/studio",
-      },
-      {
-        actionLabel: "Upload / Stream",
-        description: "Upload match footage or broadcast a live match.",
-        id: "caster_match",
-        isComplete: hasVideos,
-        title: "Record or stream your first match",
-        to: "/u/studio",
-      },
-    ],
-    title: "Caster & Streaming",
-  };
-}
-
-function getIsRoleActive(
-  profile: unknown,
-  roleKey: "isOrganizer" | "isCaster"
-) {
+function getIsRoleActive(profile: unknown, roleKey: "isOrganizer") {
   if (!profile || typeof profile !== "object") {
     return false;
   }
@@ -198,7 +167,6 @@ export function SetupGuide() {
 
   const { data: orgsData } = useMyOrganizations(Boolean(user));
   const { data: eventsData } = useMyEvents();
-  const { data: videosData } = useMyVideos();
 
   const [isMinimized, setIsMinimized] = useState(() => {
     try {
@@ -227,23 +195,16 @@ export function SetupGuide() {
 
     const myOrgs = orgsData?.organizations ?? [];
     const myEvents = eventsData?.events ?? [];
-    const myVideos = videosData?.videos ?? [];
 
     const showHost =
       myOrgs.length > 0 || getIsRoleActive(profile, "isOrganizer");
-    const showCaster =
-      myVideos.length > 0 || getIsRoleActive(profile, "isCaster");
-
     const result: SetupCategory[] = [buildPlayerCategory(user, profile)];
     if (showHost) {
       result.push(buildHostCategory(myOrgs, myEvents));
     }
-    if (showCaster) {
-      result.push(buildCasterCategory(myVideos));
-    }
 
     return result;
-  }, [user, profile, orgsData, eventsData, videosData]);
+  }, [user, profile, orgsData, eventsData]);
 
   const allItems = useMemo(
     () => categories.flatMap((cat) => cat.items),
@@ -266,8 +227,9 @@ export function SetupGuide() {
 
   if (
     !user ||
-    !currentPath.startsWith("/u") ||
-    currentPath === "/onboarding" ||
+    // The guide only appears on the dashboard; studio, casting, and other
+    // /u surfaces stay clean.
+    (currentPath !== "/u" && currentPath !== "/u/me") ||
     totalCount === 0
   ) {
     return null;

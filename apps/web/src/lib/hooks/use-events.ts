@@ -220,13 +220,14 @@ export const useSubmitMatchScore = (eventId: string, matchId: string) => {
   });
 };
 
-export const useSeedDemoEvent = (id: string) => {
+export const useSeedDemoEvent = (id: string, playerCount = 8) => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: () =>
       readApiJson(
         apiClient.api.v1.events[":id"]["seed-demo"].$post({
+          json: { playerCount },
           param: { id },
         })
       ),

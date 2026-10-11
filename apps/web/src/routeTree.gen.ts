@@ -82,6 +82,7 @@ import { Route as AuthUProfileEarnRouteImport } from './routes/_auth/u/profile/e
 import { Route as AuthUProfileMeRouteImport } from './routes/_auth/u/profile/me'
 import { Route as AuthUProfileMyRallycastsRouteImport } from './routes/_auth/u/profile/my-rallycasts'
 import { Route as AuthUStudioIndexRouteImport } from './routes/_auth/u/studio/index'
+import { Route as AuthUStudioAllRouteImport } from './routes/_auth/u/studio/all'
 import { Route as AuthUStudioClipsRouteImport } from './routes/_auth/u/studio/clips'
 import { Route as AuthUStudioLiveRouteImport } from './routes/_auth/u/studio/live'
 import { Route as AuthUStudioUploadRouteImport } from './routes/_auth/u/studio/upload'
@@ -464,6 +465,11 @@ const AuthUStudioIndexRoute = AuthUStudioIndexRouteImport.update({
   path: '/studio/',
   getParentRoute: () => AuthURoute,
 } as any)
+const AuthUStudioAllRoute = AuthUStudioAllRouteImport.update({
+  id: '/studio/all',
+  path: '/studio/all',
+  getParentRoute: () => AuthURoute,
+} as any)
 const AuthUStudioClipsRoute = AuthUStudioClipsRouteImport.update({
   id: '/studio/clips',
   path: '/studio/clips',
@@ -609,6 +615,7 @@ export interface FileRoutesByFullPath {
   '/u/profile/earn': typeof AuthUProfileEarnRoute
   '/u/profile/me': typeof AuthUProfileMeRoute
   '/u/profile/my-rallycasts': typeof AuthUProfileMyRallycastsRoute
+  '/u/studio/all': typeof AuthUStudioAllRoute
   '/u/studio/clips': typeof AuthUStudioClipsRoute
   '/u/studio/live': typeof AuthUStudioLiveRoute
   '/u/studio/upload': typeof AuthUStudioUploadRoute
@@ -687,6 +694,7 @@ export interface FileRoutesByTo {
   '/u/profile/earn': typeof AuthUProfileEarnRoute
   '/u/profile/me': typeof AuthUProfileMeRoute
   '/u/profile/my-rallycasts': typeof AuthUProfileMyRallycastsRoute
+  '/u/studio/all': typeof AuthUStudioAllRoute
   '/u/studio/clips': typeof AuthUStudioClipsRoute
   '/u/studio/live': typeof AuthUStudioLiveRoute
   '/u/studio/upload': typeof AuthUStudioUploadRoute
@@ -777,6 +785,7 @@ export interface FileRoutesById {
   '/_auth/u/profile/earn': typeof AuthUProfileEarnRoute
   '/_auth/u/profile/me': typeof AuthUProfileMeRoute
   '/_auth/u/profile/my-rallycasts': typeof AuthUProfileMyRallycastsRoute
+  '/_auth/u/studio/all': typeof AuthUStudioAllRoute
   '/_auth/u/studio/clips': typeof AuthUStudioClipsRoute
   '/_auth/u/studio/live': typeof AuthUStudioLiveRoute
   '/_auth/u/studio/upload': typeof AuthUStudioUploadRoute
@@ -867,6 +876,7 @@ export interface FileRouteTypes {
     | '/u/profile/earn'
     | '/u/profile/me'
     | '/u/profile/my-rallycasts'
+    | '/u/studio/all'
     | '/u/studio/clips'
     | '/u/studio/live'
     | '/u/studio/upload'
@@ -945,6 +955,7 @@ export interface FileRouteTypes {
     | '/u/profile/earn'
     | '/u/profile/me'
     | '/u/profile/my-rallycasts'
+    | '/u/studio/all'
     | '/u/studio/clips'
     | '/u/studio/live'
     | '/u/studio/upload'
@@ -1034,6 +1045,7 @@ export interface FileRouteTypes {
     | '/_auth/u/profile/earn'
     | '/_auth/u/profile/me'
     | '/_auth/u/profile/my-rallycasts'
+    | '/_auth/u/studio/all'
     | '/_auth/u/studio/clips'
     | '/_auth/u/studio/live'
     | '/_auth/u/studio/upload'
@@ -1588,6 +1600,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthUStudioIndexRouteImport
       parentRoute: typeof AuthURoute
     }
+    '/_auth/u/studio/all': {
+      id: '/_auth/u/studio/all'
+      path: '/studio/all'
+      fullPath: '/u/studio/all'
+      preLoaderRoute: typeof AuthUStudioAllRouteImport
+      parentRoute: typeof AuthURoute
+    }
     '/_auth/u/studio/clips': {
       id: '/_auth/u/studio/clips'
       path: '/studio/clips'
@@ -1785,6 +1804,7 @@ interface AuthURouteChildren {
   AuthUProfileEarnRoute: typeof AuthUProfileEarnRoute
   AuthUProfileMeRoute: typeof AuthUProfileMeRoute
   AuthUProfileMyRallycastsRoute: typeof AuthUProfileMyRallycastsRoute
+  AuthUStudioAllRoute: typeof AuthUStudioAllRoute
   AuthUStudioClipsRoute: typeof AuthUStudioClipsRoute
   AuthUStudioLiveRoute: typeof AuthUStudioLiveRoute
   AuthUStudioUploadRoute: typeof AuthUStudioUploadRoute
@@ -1812,6 +1832,7 @@ const AuthURouteChildren: AuthURouteChildren = {
   AuthUProfileEarnRoute: AuthUProfileEarnRoute,
   AuthUProfileMeRoute: AuthUProfileMeRoute,
   AuthUProfileMyRallycastsRoute: AuthUProfileMyRallycastsRoute,
+  AuthUStudioAllRoute: AuthUStudioAllRoute,
   AuthUStudioClipsRoute: AuthUStudioClipsRoute,
   AuthUStudioLiveRoute: AuthUStudioLiveRoute,
   AuthUStudioUploadRoute: AuthUStudioUploadRoute,

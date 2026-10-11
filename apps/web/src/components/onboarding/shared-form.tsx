@@ -116,7 +116,6 @@ export const gameSchema = z.object({
 
 export const rolesSchema = z.object({
   accountTier: z.enum(["free", "premium"]),
-  isCaster: z.boolean(),
   isOrganizer: z.boolean(),
   isPlayer: z.boolean(),
 });
@@ -151,7 +150,6 @@ export const initialWizardValues: WizardValues = {
   },
   roles: {
     accountTier: "free",
-    isCaster: false,
     isOrganizer: false,
     isPlayer: true,
   },

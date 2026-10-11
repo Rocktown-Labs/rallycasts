@@ -368,6 +368,7 @@ const SEVEN_DEMO_USERS = [
 
 async function seedDemoUsers(
   db: ReturnType<typeof createDb>,
+  requestedCount: number,
   authUser?: {
     displayUsername?: string | null;
     email?: string | null;
@@ -414,15 +415,33 @@ async function seedDemoUsers(
     })
     .onConflictDoNothing();
 
+  const rosterCount = Math.max(0, requestedCount - 1);
+  const personas =
+    rosterCount <= SEVEN_DEMO_USERS.length
+      ? SEVEN_DEMO_USERS.slice(0, rosterCount)
+      : [
+          ...SEVEN_DEMO_USERS,
+          ...Array.from(
+            { length: rosterCount - SEVEN_DEMO_USERS.length },
+            (_, index) => {
+              const suffix = index + 8;
+              return {
+                name: `Demo Player ${suffix}`,
+                skillLevel: "intermediate" as const,
+                username: `demo_player_${suffix}`,
+              };
+            }
+          ),
+        ];
   const playerIds: string[] = [
     primaryUserId,
-    ...SEVEN_DEMO_USERS.map((demoUser) => `demo-${demoUser.username}`),
+    ...personas.map((persona) => `demo-${persona.username}`),
   ];
 
   await db
     .insert(userTable)
     .values(
-      SEVEN_DEMO_USERS.map((demoUser) => ({
+      personas.map((demoUser) => ({
         createdAt: new Date(),
         displayUsername: demoUser.name,
         email: `${demoUser.username}@rallycasts.demo`,
@@ -438,7 +457,7 @@ async function seedDemoUsers(
   await db
     .insert(userProfile)
     .values(
-      SEVEN_DEMO_USERS.map((demoUser) => ({
+      personas.map((demoUser) => ({
         accountTier: "free" as const,
         homeCity: "Searcy",
         homeState: "AR",
@@ -453,6 +472,12 @@ async function seedDemoUsers(
   return playerIds;
 }
 
+/**
+ * Single-elimination bracket for any player count. Round 1 pairs the
+ * players (byes where the count is not a power of two, matching seeds
+ * 1v-last style); later rounds are placeholders that fill in as winners
+ * are recorded. Returns the first-round-1 match id for notifications.
+ */
 function buildDemoBracketMatches(
   eventId: string,
   courtLabels: string[],
@@ -460,90 +485,62 @@ function buildDemoBracketMatches(
 ) {
   const matches: (typeof eventMatch.$inferInsert)[] = [];
   const qf1Id = createId();
+  const playerCount = playerIds.length;
+  if (playerCount < 2) {
+    return { matches, qf1Id };
+  }
 
-  // Quarterfinals (round 1)
-  matches.push(
-    {
-      courtLabel: courtLabels[0] ?? "Court 1",
-      createdAt: new Date(),
-      eventId,
-      id: qf1Id,
-      playerOneUserId: playerIds[0],
-      playerTwoUserId: playerIds[7],
-      round: 1,
-      scheduledAt: new Date(),
-      status: "scheduled",
-    },
-    {
-      courtLabel: courtLabels[1] ?? "Court 2",
-      createdAt: new Date(),
-      eventId,
-      id: createId(),
-      playerOneUserId: playerIds[3],
-      playerTwoUserId: playerIds[4],
-      round: 1,
-      scheduledAt: new Date(Date.now() + 600_000),
-      status: "scheduled",
-    },
-    {
-      courtLabel: courtLabels[2] ?? "Court 3",
-      createdAt: new Date(),
-      eventId,
-      id: createId(),
-      playerOneUserId: playerIds[1],
-      playerTwoUserId: playerIds[6],
-      round: 1,
-      scheduledAt: new Date(Date.now() + 1_200_000),
-      status: "scheduled",
-    },
-    {
-      courtLabel: courtLabels[3] ?? "Center Court",
-      createdAt: new Date(),
-      eventId,
-      id: createId(),
-      playerOneUserId: playerIds[2],
-      playerTwoUserId: playerIds[5],
-      round: 1,
-      scheduledAt: new Date(Date.now() + 1_800_000),
-      status: "scheduled",
-    },
-    // Semifinal 1 & 2 (round 2)
-    {
-      courtLabel: courtLabels[0] ?? "Court 1",
-      createdAt: new Date(),
-      eventId,
-      id: createId(),
-      round: 2,
-      scheduledAt: new Date(Date.now() + 3_600_000),
-      status: "scheduled",
-    },
-    {
-      courtLabel: courtLabels[1] ?? "Court 2",
-      createdAt: new Date(),
-      eventId,
-      id: createId(),
-      round: 2,
-      scheduledAt: new Date(Date.now() + 5_400_000),
-      status: "scheduled",
-    },
-    // Championship Final (round 3)
-    {
-      courtLabel: "Center Court",
-      createdAt: new Date(),
-      eventId,
-      id: createId(),
-      round: 3,
-      scheduledAt: new Date(Date.now() + 7_200_000),
-      status: "scheduled",
+  // Pad the seed order to the next power of two so byes come naturally:
+  // seed n faces seed (bracketSize + 1 - n), absent seeds are byes.
+  const bracketSize = 2 ** Math.ceil(Math.log2(playerCount));
+  const seedToPlayer = new Map<number, string>();
+  for (const [index, playerId] of playerIds.entries()) {
+    seedToPlayer.set(index + 1, playerId);
+  }
+
+  let firstRoundMatchCount = bracketSize / 2;
+  let round = 1;
+  const firstMatchId = qf1Id;
+  while (firstRoundMatchCount >= 1) {
+    for (let slot = 0; slot < firstRoundMatchCount; slot += 1) {
+      const seedOne = slot + 1;
+      const seedTwo = bracketSize + 1 - seedOne;
+      const isByeRoundOne = round === 1 && seedOne === seedTwo;
+      matches.push({
+        courtLabel:
+          courtLabels[slot % Math.max(courtLabels.length, 1)] ??
+          `Court ${slot + 1}`,
+        createdAt: new Date(),
+        eventId,
+        id: round === 1 && slot === 0 ? qf1Id : createId(),
+        // Later rounds have no known players yet; they fill in as
+        // winners are recorded.
+        ...(round === 1
+          ? {
+              playerOneUserId: seedToPlayer.get(seedOne) ?? null,
+              playerTwoUserId: isByeRoundOne
+                ? null
+                : (seedToPlayer.get(seedTwo) ?? null),
+            }
+          : {}),
+        round,
+        scheduledAt: new Date(
+          Date.now() + slot * 600_000 + (round - 1) * 1_800_000
+        ),
+        status: "scheduled" as const,
+      });
     }
-  );
+    firstRoundMatchCount /= 2;
+    round += 1;
+  }
 
-  return { matches, qf1Id };
+  return { firstMatchId, matches };
 }
 
 async function seedDemoTournamentData(
   db: ReturnType<typeof createDb>,
   eventId: string,
+  playerCount: number,
   authUser?: {
     displayUsername?: string | null;
     email?: string | null;
@@ -553,7 +550,7 @@ async function seedDemoTournamentData(
   },
   env?: { DB: D1Database; RESEND_API_KEY?: string }
 ) {
-  const playerIds = await seedDemoUsers(db, authUser);
+  const playerIds = await seedDemoUsers(db, playerCount, authUser);
 
   await db.delete(eventMatch).where(eq(eventMatch.eventId, eventId));
   await db
@@ -585,7 +582,7 @@ async function seedDemoTournamentData(
       ? parsedCourts
       : ["Court 1", "Court 2", "Court 3", "Center Court"];
 
-  const { matches, qf1Id } = buildDemoBracketMatches(
+  const { matches, firstMatchId } = buildDemoBracketMatches(
     eventId,
     courtLabels,
     playerIds
@@ -602,7 +599,7 @@ async function seedDemoTournamentData(
       db,
       env,
       eventId,
-      matchId: qf1Id,
+      matchId: firstMatchId,
       targetUserId: playerIds[0],
       type: "match_ready",
     });
@@ -1272,32 +1269,47 @@ export const eventsRouter = new Hono<AppEnv>()
       return c.json({ matches }, HttpStatusCodes.CREATED);
     }
   )
-  .post("/:id/seed-demo", requireAuth, async (c) => {
-    if (!c.env.ALLOW_DEMO_ENDPOINTS) {
-      return c.json({ message: "Not found" }, HttpStatusCodes.NOT_FOUND);
-    }
-    const db = createDb(c.env.DB);
-    const { user: authUser } = c.var.authSession;
-    const id = c.req.param("id");
-    const record = await getManageableEvent(db, id, authUser.id);
-    if (!record) {
+  .post(
+    "/:id/seed-demo",
+    requireAuth,
+    zValidator(
+      "json",
+      z.object({ playerCount: z.number().int().min(2).max(64).default(8) })
+    ),
+    async (c) => {
+      if (!c.env.ALLOW_DEMO_ENDPOINTS) {
+        return c.json({ message: "Not found" }, HttpStatusCodes.NOT_FOUND);
+      }
+      const db = createDb(c.env.DB);
+      const { user: authUser } = c.var.authSession;
+      const id = c.req.param("id");
+      const { playerCount } = c.req.valid("json");
+      const record = await getManageableEvent(db, id, authUser.id);
+      if (!record) {
+        return c.json(
+          { message: "Event not found or unauthorized" },
+          HttpStatusCodes.NOT_FOUND
+        );
+      }
+
+      const result = await seedDemoTournamentData(
+        db,
+        id,
+        playerCount,
+        authUser,
+        c.env
+      );
       return c.json(
-        { message: "Event not found or unauthorized" },
-        HttpStatusCodes.NOT_FOUND
+        {
+          matchesCount: result.matchesCount,
+          message: `Tournament seeded with ${result.playersCount} competitors including ${authUser.name || authUser.username || "you"} as Seed #1! Match assignment notification sent.`,
+          playersCount: result.playersCount,
+          success: true,
+        },
+        HttpStatusCodes.CREATED
       );
     }
-
-    const result = await seedDemoTournamentData(db, id, authUser, c.env);
-    return c.json(
-      {
-        matchesCount: result.matchesCount,
-        message: `Tournament seeded with 8 competitors including ${authUser.name || authUser.username || "you"} as Seed #1! Match assignment notification sent.`,
-        playersCount: result.playersCount,
-        success: true,
-      },
-      HttpStatusCodes.CREATED
-    );
-  })
+  )
   .post("/:id/test-notification", requireAuth, async (c) => {
     const db = createDb(c.env.DB);
     const { user: authUser } = c.var.authSession;
