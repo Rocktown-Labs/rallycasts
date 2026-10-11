@@ -2,11 +2,9 @@ import { useStore } from "@tanstack/react-form";
 import {
   Check,
   Flame,
-  Mic,
   Shield,
   Sparkles,
   Trophy,
-  Tv,
   Users,
   Zap,
 } from "lucide-react";
@@ -33,7 +31,6 @@ const StepRolesForm = (props: React.ComponentProps<typeof StepRoles>) => {
   const accountTier = rolesValues.accountTier || "free";
   const isPlayer = Boolean(rolesValues.isPlayer);
   const isOrganizer = Boolean(rolesValues.isOrganizer);
-  const isCaster = Boolean(rolesValues.isCaster);
 
   const [billingInterval, setBillingInterval] = useState<"monthly" | "annual">(
     "annual"
@@ -60,16 +57,6 @@ const StepRolesForm = (props: React.ComponentProps<typeof StepRoles>) => {
       label: "Host",
       value: isOrganizer,
     },
-    {
-      badge: "$50 Express Fee",
-      badgeColor: "text-amber-400 border-amber-500/30 bg-amber-500/10",
-      description:
-        "Stream matches live, record play-by-play commentary, and publish featured video highlights.",
-      icon: Tv,
-      key: "isCaster" as const,
-      label: "Caster",
-      value: isCaster,
-    },
   ];
 
   const handleFormSubmit = () => {
@@ -92,8 +79,9 @@ const StepRolesForm = (props: React.ComponentProps<typeof StepRoles>) => {
                 How do you participate in RallyCasts?
               </h2>
               <p className="text-muted-foreground text-xs sm:text-sm">
-                Select your roles on the platform. You can be a player, host, or
-                caster, and update these anytime in your account settings.
+                Select your roles on the platform. You can be a player, a host,
+                or both. caster, and update these anytime in your account
+                settings.
               </p>
             </div>
 
@@ -159,73 +147,6 @@ const StepRolesForm = (props: React.ComponentProps<typeof StepRoles>) => {
                 })}
               </div>
             </div>
-
-            {/* Caster $50 Express Fee Callout when isCaster is selected */}
-            {isCaster ? (
-              <div className="space-y-3 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 shadow-xs">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2.5">
-                    <div className="rounded-lg bg-amber-500/10 p-1.5 text-amber-400">
-                      <Mic className="size-4" />
-                    </div>
-                    <div>
-                      <h4 className="text-foreground flex items-center gap-1.5 text-xs font-bold">
-                        <span>Caster Express Verification</span>
-                        <span className="rounded-full border border-amber-500/40 bg-amber-500/20 px-2 py-0.5 text-[10px] font-extrabold text-amber-300">
-                          $50 One-Time Fee
-                        </span>
-                      </h4>
-                      <p className="text-muted-foreground text-[11px]">
-                        Fast-track your broadcaster certification and unlock
-                        live stream controls.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div className="text-muted-foreground grid gap-2 pt-1 text-xs sm:grid-cols-2">
-                  <div className="flex items-start gap-2">
-                    <Check className="mt-0.5 size-3.5 shrink-0 stroke-[2.5] text-amber-400" />
-                    <span>
-                      <strong className="text-foreground">
-                        Verified Caster Badge
-                      </strong>{" "}
-                      on your profile and live stream feeds
-                    </span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Check className="mt-0.5 size-3.5 shrink-0 stroke-[2.5] text-amber-400" />
-                    <span>
-                      <strong className="text-foreground">
-                        24-Hour Express Queue
-                      </strong>{" "}
-                      reviewed directly by the RallyCasts team
-                    </span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Check className="mt-0.5 size-3.5 shrink-0 stroke-[2.5] text-amber-400" />
-                    <span>
-                      <strong className="text-foreground">
-                        RTMP Stream Ingest
-                      </strong>{" "}
-                      credentials for OBS, Prism, or mobile
-                    </span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Check className="mt-0.5 size-3.5 shrink-0 stroke-[2.5] text-amber-400" />
-                    <span>
-                      <strong className="text-foreground">
-                        Priority Match Coverage
-                      </strong>{" "}
-                      for sanctioned tournaments and brackets
-                    </span>
-                  </div>
-                </div>
-                <p className="text-muted-foreground/80 border-t border-amber-500/20 pt-2 text-[11px] italic">
-                  💡 No charge today during setup. The $50 express fee is
-                  processed when you complete your stream test in Studio.
-                </p>
-              </div>
-            ) : null}
 
             {/* Plan Selection & Subscription Upsell */}
             <div className="space-y-3 pt-2">

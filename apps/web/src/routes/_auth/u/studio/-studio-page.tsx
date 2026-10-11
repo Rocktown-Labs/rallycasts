@@ -5,7 +5,7 @@ import { BarChart3, Radio, Scissors, UploadCloud } from "lucide-react";
 
 import { VideosLibrary } from "./-videos-library";
 
-type VideosSection = "clips" | "live" | "videos";
+type VideosSection = "all" | "clips" | "live" | "videos";
 
 const studioActions = [
   {

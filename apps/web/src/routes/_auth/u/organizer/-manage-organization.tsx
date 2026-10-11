@@ -11,6 +11,7 @@ import {
   Settings,
   Sparkles,
   Users,
+  ImageUp,
 } from "lucide-react";
 import type { FormEvent } from "react";
 import { useState } from "react";
@@ -20,6 +21,7 @@ import { ManageAdsPanel } from "@/components/ads/manage-ads-panel";
 import { PlaceSearchPicker } from "@/components/places/place-search-picker";
 import type { SelectedPlace } from "@/components/places/place-search-picker";
 import { apiClient } from "@/lib/api-client";
+import { useProfile } from "@/lib/hooks";
 import { readApiJson } from "@/lib/hooks/api";
 
 const getOrganization = (slug: string) =>
@@ -48,6 +50,8 @@ const ManageOrganizationEditor = ({
   slug: string;
 }) => {
   const queryClient = useQueryClient();
+  const { data: myProfile } = useProfile();
+  const isPlatformAdmin = Boolean(myProfile?.isPlatformAdmin);
   const navigate = useNavigate();
   const { organization } = data;
   const [name, setName] = useState(organization.name);
@@ -57,7 +61,6 @@ const ManageOrganizationEditor = ({
   const [bio, setBio] = useState(organization.bio ?? "");
   const [eventName, setEventName] = useState("");
   const [startsAt, setStartsAt] = useState("");
-  const [registrationDeadline, setRegistrationDeadline] = useState("");
   const [capacity, setCapacity] = useState("16");
   const [entryFee, setEntryFee] = useState("0");
   const [courts, setCourts] = useState("Court 1, Court 2, Court 3, Court 4");
@@ -67,9 +70,36 @@ const ManageOrganizationEditor = ({
   );
   const [organizationPost, setOrganizationPost] = useState("");
   const [seedWithDemo, setSeedWithDemo] = useState(false);
+  const [seedPlayerCount, setSeedPlayerCount] = useState("8");
+  const [endsAt, setEndsAt] = useState("");
   const { data: myVideosData } = useQuery({
     queryFn: () => readApiJson(apiClient.api.v1.videos.me.$get()),
     queryKey: ["videos", "me"],
+  });
+
+  const uploadLogo = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await apiClient.api.v1.upload.image.$post({
+        form: formData,
+      });
+      if (!response.ok) {
+        throw new Error("Could not upload the image");
+      }
+      const body = (await response.json()) as { url?: string | null };
+      return body.url ?? null;
+    },
+    onError: (error) => {
+      toast.error(
+        error instanceof Error ? error.message : "Could not upload the logo."
+      );
+    },
+    onSuccess: (url) => {
+      if (url) {
+        setLogoUrl(url);
+      }
+    },
   });
 
   const updateOrganization = useMutation({
@@ -108,13 +138,16 @@ const ManageOrganizationEditor = ({
     mutationFn: (eventId: string) =>
       readApiJson(
         apiClient.api.v1.events[":id"]["seed-demo"].$post({
+          json: { playerCount: Number(seedPlayerCount) || 8 },
           param: { id: eventId },
         })
       ),
     onSuccess: async (_, eventId) => {
       await queryClient.invalidateQueries({ queryKey: ["organization", slug] });
       await queryClient.invalidateQueries({ queryKey: ["events"] });
-      toast.success("Tournament populated with 8 demo players & live bracket!");
+      toast.success(
+        `Tournament populated with ${seedPlayerCount} demo players & live bracket!`
+      );
       await navigate({
         params: { id: eventId },
         to: "/events/$id/bracket",
@@ -132,14 +165,12 @@ const ManageOrganizationEditor = ({
               .split(",")
               .map((court) => court.trim())
               .filter(Boolean),
+            endsAt: endsAt ? new Date(endsAt).toISOString() : undefined,
             entryFeeCents: Math.round(Number(entryFee) * 100),
             eventType: "tournament",
             googlePlaceId: selectedPlace?.placeId,
             name: eventName,
             organizationId: organization?.id,
-            registrationDeadline: registrationDeadline
-              ? new Date(registrationDeadline).toISOString()
-              : undefined,
             startsAt: new Date(startsAt).toISOString(),
             status: "published",
           },
@@ -156,11 +187,12 @@ const ManageOrganizationEditor = ({
         try {
           await readApiJson(
             apiClient.api.v1.events[":id"]["seed-demo"].$post({
+              json: { playerCount: Number(seedPlayerCount) || 8 },
               param: { id: result.event.id },
             })
           );
           toast.success(
-            "Tournament published and seeded with 8 demo competitors!"
+            `Tournament published and seeded with ${seedPlayerCount} demo competitors!`
           );
           await navigate({
             params: { id: result.event.id },
@@ -274,13 +306,49 @@ const ManageOrganizationEditor = ({
                 value={state}
               />
             </div>
-            <Input
-              className="rounded-lg"
-              aria-label="Organization logo URL"
-              onChange={(event) => setLogoUrl(event.target.value)}
-              placeholder="Logo URL"
-              value={logoUrl}
-            />
+            <div className="grid gap-2">
+              <div className="flex items-center gap-3">
+                {logoUrl.trim() ? (
+                  <img
+                    alt="Organization logo preview"
+                    className="border-border size-12 rounded-lg border object-contain"
+                    src={logoUrl.trim()}
+                  />
+                ) : null}
+                <label
+                  className="border-border bg-background hover:bg-muted text-foreground inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border px-4 text-sm font-medium"
+                  htmlFor="organization-logo-file"
+                >
+                  <ImageUp className="size-4" />
+                  Upload logo
+                  <input
+                    accept="image/avif,image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    id="organization-logo-file"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      event.target.value = "";
+                      if (file) {
+                        uploadLogo.mutate(file);
+                      }
+                    }}
+                    type="file"
+                  />
+                </label>
+                {uploadLogo.isPending ? (
+                  <span className="text-muted-foreground text-xs">
+                    Uploading...
+                  </span>
+                ) : null}
+              </div>
+              <Input
+                className="rounded-lg font-normal"
+                aria-label="Organization logo URL"
+                onChange={(event) => setLogoUrl(event.target.value)}
+                placeholder="or paste a logo URL"
+                value={logoUrl}
+              />
+            </div>
             <textarea
               aria-label="Organization bio"
               className="bg-background min-h-28 w-full rounded-lg border p-3 text-sm"
@@ -326,28 +394,20 @@ const ManageOrganizationEditor = ({
           className="mt-5 grid gap-4 md:grid-cols-2"
           onSubmit={submitTournament}
         >
-          <Input
-            className="rounded-lg"
-            aria-label="Tournament name"
-            onChange={(event) => setEventName(event.target.value)}
-            placeholder="Tournament name"
-            value={eventName}
-          />
-          <Input
-            className="rounded-lg"
-            aria-label="Tournament start time"
-            onChange={(event) => setStartsAt(event.target.value)}
-            type="datetime-local"
-            value={startsAt}
-          />
-          <Input
-            className="rounded-lg"
-            aria-label="Registration deadline"
-            onChange={(event) => setRegistrationDeadline(event.target.value)}
-            type="datetime-local"
-            value={registrationDeadline}
-          />
-          <div className="md:col-span-2">
+          <div className="grid gap-1.5 text-sm font-semibold">
+            <label className="text-foreground" htmlFor="tournament-name">
+              Tournament name
+            </label>
+            <Input
+              className="rounded-lg font-normal"
+              id="tournament-name"
+              onChange={(event) => setEventName(event.target.value)}
+              placeholder="Spring Classic 2026"
+              value={eventName}
+            />
+          </div>
+          <div className="grid gap-1.5 text-sm font-semibold">
+            <span className="text-foreground">Tournament location</span>
             <PlaceSearchPicker
               id="tournamentLocationInput"
               label="Tournament location"
@@ -357,43 +417,106 @@ const ManageOrganizationEditor = ({
               selectedPlace={selectedPlace}
             />
           </div>
-          <Input
-            className="rounded-lg"
-            aria-label="Capacity"
-            min="2"
-            onChange={(event) => setCapacity(event.target.value)}
-            type="number"
-            value={capacity}
-          />
-          <Input
-            className="rounded-lg"
-            aria-label="Entry fee in dollars"
-            min="0"
-            onChange={(event) => setEntryFee(event.target.value)}
-            step="0.01"
-            type="number"
-            value={entryFee}
-          />
-          <Input
-            className="rounded-lg"
-            aria-label="Court labels"
-            onChange={(event) => setCourts(event.target.value)}
-            value={courts}
-          />
-          <label className="text-foreground flex cursor-pointer items-center gap-2 text-xs font-semibold md:col-span-2">
-            <input
-              aria-label="Seed with demo players and bracket"
-              checked={seedWithDemo}
-              className="border-border text-primary focus:ring-primary size-4 cursor-pointer rounded"
-              onChange={(event) => setSeedWithDemo(event.target.checked)}
-              type="checkbox"
+          <div className="grid gap-1.5 text-sm font-semibold">
+            <label className="text-foreground" htmlFor="tournament-starts">
+              Starts
+            </label>
+            <Input
+              className="rounded-lg font-normal"
+              id="tournament-starts"
+              onChange={(event) => setStartsAt(event.target.value)}
+              type="datetime-local"
+              value={startsAt}
             />
-            <span className="flex items-center gap-1.5">
-              <Sparkles className="text-primary size-4" />
-              Seed with 8 demo players & live bracket (instant bracket
-              verification)
+          </div>
+          <div className="grid gap-1.5 text-sm font-semibold">
+            <label className="text-foreground" htmlFor="tournament-ends">
+              Ends
+            </label>
+            <Input
+              className="rounded-lg font-normal"
+              id="tournament-ends"
+              onChange={(event) => setEndsAt(event.target.value)}
+              type="datetime-local"
+              value={endsAt}
+            />
+            <span className="text-muted-foreground text-[11px] font-normal">
+              Leave blank if it ends when play finishes.
             </span>
-          </label>
+          </div>
+          <div className="grid gap-1.5 text-sm font-semibold">
+            <label className="text-foreground" htmlFor="tournament-capacity">
+              Player capacity
+            </label>
+            <Input
+              className="rounded-lg font-normal"
+              id="tournament-capacity"
+              min="2"
+              onChange={(event) => setCapacity(event.target.value)}
+              type="number"
+              value={capacity}
+            />
+          </div>
+          <div className="grid gap-1.5 text-sm font-semibold">
+            <label className="text-foreground" htmlFor="tournament-entry-fee">
+              Entry fee ($)
+            </label>
+            <Input
+              className="rounded-lg font-normal"
+              id="tournament-entry-fee"
+              min="0"
+              onChange={(event) => setEntryFee(event.target.value)}
+              step="0.01"
+              type="number"
+              value={entryFee}
+            />
+          </div>
+          <div className="grid gap-1.5 text-sm font-semibold md:col-span-2">
+            <label className="text-foreground" htmlFor="tournament-courts">
+              Courts (comma separated)
+            </label>
+            <Input
+              className="rounded-lg font-normal"
+              id="tournament-courts"
+              onChange={(event) => setCourts(event.target.value)}
+              placeholder="Court 1, Court 2, Center Court"
+              value={courts}
+            />
+          </div>
+          {isPlatformAdmin ? (
+            <div className="border-primary/30 bg-primary/5 flex flex-wrap items-center gap-3 rounded-lg border p-3 md:col-span-2">
+              <label
+                className="flex cursor-pointer items-center gap-2 text-xs font-semibold"
+                htmlFor="seed-with-demo"
+              >
+                <input
+                  checked={seedWithDemo}
+                  className="border-border text-primary focus:ring-primary size-4 cursor-pointer rounded"
+                  id="seed-with-demo"
+                  onChange={(event) => setSeedWithDemo(event.target.checked)}
+                  type="checkbox"
+                />
+                <span className="flex items-center gap-1.5">
+                  <Sparkles className="text-primary size-4" />
+                  Seed a demo bracket
+                </span>
+              </label>
+              {seedWithDemo ? (
+                <div className="flex items-center gap-2 text-xs font-semibold">
+                  <label htmlFor="seed-player-count">Players</label>
+                  <Input
+                    className="w-24 rounded-lg font-normal"
+                    id="seed-player-count"
+                    max="64"
+                    min="2"
+                    onChange={(event) => setSeedPlayerCount(event.target.value)}
+                    type="number"
+                    value={seedPlayerCount}
+                  />
+                </div>
+              ) : null}
+            </div>
+          ) : null}
           <Button
             className="md:col-span-2"
             disabled={createTournament.isPending}
@@ -454,17 +577,19 @@ const ManageOrganizationEditor = ({
                       Matches
                     </Button>
                   </Link>
-                  <Button
-                    className="text-primary border-primary/40 hover:bg-primary/10 cursor-pointer gap-1 rounded-md"
-                    disabled={seedDemo.isPending}
-                    onClick={() => seedDemo.mutate(item.id)}
-                    size="sm"
-                    type="button"
-                    variant="outline"
-                  >
-                    <Sparkles className="size-3.5" />
-                    Seed Demo Bracket
-                  </Button>
+                  {isPlatformAdmin ? (
+                    <Button
+                      className="text-primary border-primary/40 hover:bg-primary/10 cursor-pointer gap-1 rounded-md"
+                      disabled={seedDemo.isPending}
+                      onClick={() => seedDemo.mutate(item.id)}
+                      size="sm"
+                      type="button"
+                      variant="outline"
+                    >
+                      <Sparkles className="size-3.5" />
+                      Seed Demo Bracket
+                    </Button>
+                  ) : null}
                 </div>
               </div>
             </div>
