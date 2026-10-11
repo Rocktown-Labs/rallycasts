@@ -1277,11 +1277,17 @@ export const eventsRouter = new Hono<AppEnv>()
       z.object({ playerCount: z.number().int().min(2).max(64).default(8) })
     ),
     async (c) => {
-      if (!c.env.ALLOW_DEMO_ENDPOINTS) {
-        return c.json({ message: "Not found" }, HttpStatusCodes.NOT_FOUND);
-      }
       const db = createDb(c.env.DB);
       const { user: authUser } = c.var.authSession;
+      // Demo seeding generates fake competitor rosters; platform admins
+      // only, on every environment (prod included), so organizers can test
+      // brackets against real data without the endpoint being public.
+      if (!(await isPlatformAdminUser(db, authUser.id))) {
+        return c.json(
+          { message: "Only platform admins can seed demo brackets" },
+          HttpStatusCodes.FORBIDDEN
+        );
+      }
       const id = c.req.param("id");
       const { playerCount } = c.req.valid("json");
       const record = await getManageableEvent(db, id, authUser.id);
@@ -1355,11 +1361,14 @@ export const eventsRouter = new Hono<AppEnv>()
     );
   })
   .post("/:id/advance-demo-round", requireAuth, async (c) => {
-    if (!c.env.ALLOW_DEMO_ENDPOINTS) {
-      return c.json({ message: "Not found" }, HttpStatusCodes.NOT_FOUND);
-    }
     const db = createDb(c.env.DB);
     const { user: authUser } = c.var.authSession;
+    if (!(await isPlatformAdminUser(db, authUser.id))) {
+      return c.json(
+        { message: "Only platform admins can advance demo brackets" },
+        HttpStatusCodes.FORBIDDEN
+      );
+    }
     const id = c.req.param("id");
     const [record] = await db
       .select()

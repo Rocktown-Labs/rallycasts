@@ -32,6 +32,7 @@ import { eventsRouter } from "./routes/events";
 import { feedRouter } from "./routes/feed";
 import { muxRouter } from "./routes/mux";
 import { organizationsRouter } from "./routes/organizations";
+import { organizerAnalyticsRouter } from "./routes/organizer-analytics";
 import { placesRouter } from "./routes/places";
 import { playersRouter } from "./routes/players";
 import { profileRouter } from "./routes/profile";
@@ -303,6 +304,7 @@ const routes = app
   .route("/api/v1/mux", muxRouter)
   .route("/api/v1/organizations", organizationsRouter)
   .route("/api/v1/hosts", organizationsRouter)
+  .route("/api/v1/organizer/analytics", organizerAnalyticsRouter)
   .route("/api/v1/upload", uploadRouter)
   .route("/api/v1/emails", emailsRouter)
   .route("/api/v1/admin", adminRouter)

@@ -3,8 +3,11 @@ import {
   Camera,
   Clock,
   Flame,
+  BarChart3,
   Building2,
+  CreditCard,
   Home,
+  Megaphone,
   MessageSquare,
   Settings,
   UploadCloud,
@@ -30,6 +33,10 @@ export const discoverNavItems = [
 export const organizerNavItems = [
   { icon: Trophy, label: "Dashboard", to: "/u/organizer" },
   { icon: Building2, label: "Organizations", to: "/u/organizer/organizations" },
+  { icon: Calendar, label: "Tournaments", to: "/u/organizer/tournaments" },
+  { icon: Megaphone, label: "Ads", to: "/u/organizer/ads" },
+  { icon: BarChart3, label: "Analytics", to: "/u/organizer/analytics" },
+  { icon: CreditCard, label: "Payments", to: "/u/organizer/payments" },
 ] as const;
 
 export const adminNavItems = [

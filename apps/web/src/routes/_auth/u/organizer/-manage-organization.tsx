@@ -1,27 +1,22 @@
 import { Button } from "@rallycaststv/ui/components/button";
 import { Input } from "@rallycaststv/ui/components/input";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import {
   ArrowRight,
   Calendar,
   CreditCard,
   FileVideo,
+  ImageUp,
+  Megaphone,
   Plus,
   Settings,
-  Sparkles,
   Users,
-  ImageUp,
 } from "lucide-react";
-import type { FormEvent } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { ManageAdsPanel } from "@/components/ads/manage-ads-panel";
-import { PlaceSearchPicker } from "@/components/places/place-search-picker";
-import type { SelectedPlace } from "@/components/places/place-search-picker";
 import { apiClient } from "@/lib/api-client";
-import { useProfile } from "@/lib/hooks";
 import { readApiJson } from "@/lib/hooks/api";
 
 const getOrganization = (slug: string) =>
@@ -34,7 +29,6 @@ export const ManageOrganizationPage = ({ slug }: { slug: string }) => {
     queryFn: () => getOrganization(slug),
     queryKey: ["organization", slug],
   });
-
   if (!data?.organization) {
     return <div className="bg-muted h-64 animate-pulse rounded-xl" />;
   }
@@ -50,28 +44,13 @@ const ManageOrganizationEditor = ({
   slug: string;
 }) => {
   const queryClient = useQueryClient();
-  const { data: myProfile } = useProfile();
-  const isPlatformAdmin = Boolean(myProfile?.isPlatformAdmin);
-  const navigate = useNavigate();
   const { organization } = data;
   const [name, setName] = useState(organization.name);
   const [city, setCity] = useState(organization.city ?? "");
   const [logoUrl, setLogoUrl] = useState(organization.logoUrl ?? "");
   const [state, setState] = useState(organization.state ?? "");
   const [bio, setBio] = useState(organization.bio ?? "");
-  const [eventName, setEventName] = useState("");
-  const [startsAt, setStartsAt] = useState("");
-  const [capacity, setCapacity] = useState("16");
-  const [entryFee, setEntryFee] = useState("0");
-  const [courts, setCourts] = useState("Court 1, Court 2, Court 3, Court 4");
-  const [locationQuery, setLocationQuery] = useState("");
-  const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(
-    null
-  );
   const [organizationPost, setOrganizationPost] = useState("");
-  const [seedWithDemo, setSeedWithDemo] = useState(false);
-  const [seedPlayerCount, setSeedPlayerCount] = useState("8");
-  const [endsAt, setEndsAt] = useState("");
   const { data: myVideosData } = useQuery({
     queryFn: () => readApiJson(apiClient.api.v1.videos.me.$get()),
     queryKey: ["videos", "me"],
@@ -134,83 +113,6 @@ const ManageOrganizationEditor = ({
       toast.success("Organization profile saved");
     },
   });
-  const seedDemo = useMutation({
-    mutationFn: (eventId: string) =>
-      readApiJson(
-        apiClient.api.v1.events[":id"]["seed-demo"].$post({
-          json: { playerCount: Number(seedPlayerCount) || 8 },
-          param: { id: eventId },
-        })
-      ),
-    onSuccess: async (_, eventId) => {
-      await queryClient.invalidateQueries({ queryKey: ["organization", slug] });
-      await queryClient.invalidateQueries({ queryKey: ["events"] });
-      toast.success(
-        `Tournament populated with ${seedPlayerCount} demo players & live bracket!`
-      );
-      await navigate({
-        params: { id: eventId },
-        to: "/events/$id/bracket",
-      });
-    },
-  });
-  const createTournament = useMutation({
-    mutationFn: () =>
-      readApiJson(
-        apiClient.api.v1.events.$post({
-          json: {
-            bracketType: "single_elimination",
-            capacity: Number(capacity),
-            courtLabels: courts
-              .split(",")
-              .map((court) => court.trim())
-              .filter(Boolean),
-            endsAt: endsAt ? new Date(endsAt).toISOString() : undefined,
-            entryFeeCents: Math.round(Number(entryFee) * 100),
-            eventType: "tournament",
-            googlePlaceId: selectedPlace?.placeId,
-            name: eventName,
-            organizationId: organization?.id,
-            startsAt: new Date(startsAt).toISOString(),
-            status: "published",
-          },
-        })
-      ),
-    onSuccess: async (result) => {
-      setEventName("");
-      setLocationQuery("");
-      setSelectedPlace(null);
-      await queryClient.invalidateQueries({ queryKey: ["organization", slug] });
-      await queryClient.invalidateQueries({ queryKey: ["events", "mine"] });
-
-      if (seedWithDemo) {
-        try {
-          await readApiJson(
-            apiClient.api.v1.events[":id"]["seed-demo"].$post({
-              json: { playerCount: Number(seedPlayerCount) || 8 },
-              param: { id: result.event.id },
-            })
-          );
-          toast.success(
-            `Tournament published and seeded with ${seedPlayerCount} demo competitors!`
-          );
-          await navigate({
-            params: { id: result.event.id },
-            to: "/events/$id/bracket",
-          });
-          return;
-        } catch {
-          // Fall through to regular navigate
-        }
-      }
-
-      toast.success("Tournament published");
-      await navigate({
-        params: { id: result.event.id },
-        to: "/events/$id",
-      });
-    },
-  });
   const startStripe = useMutation({
     mutationFn: () =>
       readApiJson(
@@ -249,19 +151,6 @@ const ManageOrganizationEditor = ({
       toast.success("Video posted as the organization");
     },
   });
-
-  const submitTournament = (event: FormEvent) => {
-    event.preventDefault();
-    if (!(eventName && startsAt)) {
-      toast.error("Tournament name and start time are required.");
-      return;
-    }
-    if (!selectedPlace) {
-      toast.error("Select a validated location before publishing.");
-      return;
-    }
-    createTournament.mutate();
-  };
 
   return (
     <main className="mx-auto max-w-7xl space-y-8">
@@ -387,144 +276,23 @@ const ManageOrganizationEditor = ({
       </div>
 
       <section className="bg-card rounded-2xl border p-6">
-        <h2 className="flex items-center gap-2 text-xl font-bold">
-          <Calendar className="text-primary size-5" /> Create tournament
-        </h2>
-        <form
-          className="mt-5 grid gap-4 md:grid-cols-2"
-          onSubmit={submitTournament}
-        >
-          <div className="grid gap-1.5 text-sm font-semibold">
-            <label className="text-foreground" htmlFor="tournament-name">
-              Tournament name
-            </label>
-            <Input
-              className="rounded-lg font-normal"
-              id="tournament-name"
-              onChange={(event) => setEventName(event.target.value)}
-              placeholder="Spring Classic 2026"
-              value={eventName}
-            />
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className="flex items-center gap-2 text-xl font-bold">
+              <Calendar className="text-primary size-5" /> Tournaments
+            </h2>
+            <p className="text-muted-foreground mt-1 text-sm">
+              Hosting happens in the Tournaments tab now: lists, brackets, and a
+              dedicated create flow.
+            </p>
           </div>
-          <div className="grid gap-1.5 text-sm font-semibold">
-            <span className="text-foreground">Tournament location</span>
-            <PlaceSearchPicker
-              id="tournamentLocationInput"
-              label="Tournament location"
-              onPlaceChange={setSelectedPlace}
-              onQueryChange={setLocationQuery}
-              query={locationQuery}
-              selectedPlace={selectedPlace}
-            />
-          </div>
-          <div className="grid gap-1.5 text-sm font-semibold">
-            <label className="text-foreground" htmlFor="tournament-starts">
-              Starts
-            </label>
-            <Input
-              className="rounded-lg font-normal"
-              id="tournament-starts"
-              onChange={(event) => setStartsAt(event.target.value)}
-              type="datetime-local"
-              value={startsAt}
-            />
-          </div>
-          <div className="grid gap-1.5 text-sm font-semibold">
-            <label className="text-foreground" htmlFor="tournament-ends">
-              Ends
-            </label>
-            <Input
-              className="rounded-lg font-normal"
-              id="tournament-ends"
-              onChange={(event) => setEndsAt(event.target.value)}
-              type="datetime-local"
-              value={endsAt}
-            />
-            <span className="text-muted-foreground text-[11px] font-normal">
-              Leave blank if it ends when play finishes.
-            </span>
-          </div>
-          <div className="grid gap-1.5 text-sm font-semibold">
-            <label className="text-foreground" htmlFor="tournament-capacity">
-              Player capacity
-            </label>
-            <Input
-              className="rounded-lg font-normal"
-              id="tournament-capacity"
-              min="2"
-              onChange={(event) => setCapacity(event.target.value)}
-              type="number"
-              value={capacity}
-            />
-          </div>
-          <div className="grid gap-1.5 text-sm font-semibold">
-            <label className="text-foreground" htmlFor="tournament-entry-fee">
-              Entry fee ($)
-            </label>
-            <Input
-              className="rounded-lg font-normal"
-              id="tournament-entry-fee"
-              min="0"
-              onChange={(event) => setEntryFee(event.target.value)}
-              step="0.01"
-              type="number"
-              value={entryFee}
-            />
-          </div>
-          <div className="grid gap-1.5 text-sm font-semibold md:col-span-2">
-            <label className="text-foreground" htmlFor="tournament-courts">
-              Courts (comma separated)
-            </label>
-            <Input
-              className="rounded-lg font-normal"
-              id="tournament-courts"
-              onChange={(event) => setCourts(event.target.value)}
-              placeholder="Court 1, Court 2, Center Court"
-              value={courts}
-            />
-          </div>
-          {isPlatformAdmin ? (
-            <div className="border-primary/30 bg-primary/5 flex flex-wrap items-center gap-3 rounded-lg border p-3 md:col-span-2">
-              <label
-                className="flex cursor-pointer items-center gap-2 text-xs font-semibold"
-                htmlFor="seed-with-demo"
-              >
-                <input
-                  checked={seedWithDemo}
-                  className="border-border text-primary focus:ring-primary size-4 cursor-pointer rounded"
-                  id="seed-with-demo"
-                  onChange={(event) => setSeedWithDemo(event.target.checked)}
-                  type="checkbox"
-                />
-                <span className="flex items-center gap-1.5">
-                  <Sparkles className="text-primary size-4" />
-                  Seed a demo bracket
-                </span>
-              </label>
-              {seedWithDemo ? (
-                <div className="flex items-center gap-2 text-xs font-semibold">
-                  <label htmlFor="seed-player-count">Players</label>
-                  <Input
-                    className="w-24 rounded-lg font-normal"
-                    id="seed-player-count"
-                    max="64"
-                    min="2"
-                    onChange={(event) => setSeedPlayerCount(event.target.value)}
-                    type="number"
-                    value={seedPlayerCount}
-                  />
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-          <Button
-            className="md:col-span-2"
-            disabled={createTournament.isPending}
-            type="submit"
-          >
-            <Plus className="size-4" /> Publish tournament
-          </Button>
-        </form>
+          <Link to="/u/organizer/tournaments/new">
+            <Button className="rounded-lg">
+              <Plus className="size-4" />
+              Host a tournament
+            </Button>
+          </Link>
+        </div>
       </section>
 
       <section className="bg-card rounded-2xl border p-6">
@@ -577,19 +345,6 @@ const ManageOrganizationEditor = ({
                       Matches
                     </Button>
                   </Link>
-                  {isPlatformAdmin ? (
-                    <Button
-                      className="text-primary border-primary/40 hover:bg-primary/10 cursor-pointer gap-1 rounded-md"
-                      disabled={seedDemo.isPending}
-                      onClick={() => seedDemo.mutate(item.id)}
-                      size="sm"
-                      type="button"
-                      variant="outline"
-                    >
-                      <Sparkles className="size-3.5" />
-                      Seed Demo Bracket
-                    </Button>
-                  ) : null}
                 </div>
               </div>
             </div>
@@ -656,11 +411,18 @@ const ManageOrganizationEditor = ({
               : "Set up Stripe payouts"}
           </Button>
         </div>
-        <ManageAdsPanel
-          events={data.events}
-          organizationId={organization.id}
-          videos={myVideosData?.videos ?? []}
-        />
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <p className="text-muted-foreground text-sm">
+            Campaigns, creative previews, and budget top-ups live in the Ads
+            tab.
+          </p>
+          <Link to="/u/organizer/ads">
+            <Button className="rounded-lg" variant="outline">
+              <Megaphone className="size-4" />
+              Go to Ads
+            </Button>
+          </Link>
+        </div>
       </section>
     </main>
   );
