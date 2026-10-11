@@ -26,8 +26,8 @@ export const discoverNavItems = [
   { icon: Flame, label: "Trending", to: "/trending" },
   { icon: Users, label: "Players", to: "/players" },
   { icon: Calendar, label: "Events", to: "/events" },
-  { icon: Camera, label: "Casters", to: "/casters" },
   { icon: ShoppingBag, label: "Shop", to: "/shop" },
+  { icon: Camera, label: "Casters", to: "/casters" },
 ] as const;
 
 export const organizerNavItems = [
