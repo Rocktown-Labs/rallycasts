@@ -9,6 +9,7 @@ export * from "./use-feed";
 export * from "./use-geolocation";
 export * from "./use-location-consent";
 export * from "./use-organizations";
+export * from "./use-organizer-analytics";
 export * from "./use-places";
 export * from "./use-profile";
 export * from "./use-radar-tracking";

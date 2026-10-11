@@ -22,6 +22,7 @@
     "@sentry/cloudflare": "11.0.0",
     "@sentry/tanstackstart-react": "11.0.0",
     "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/charts": "^1.1.0",
     "@tanstack/db": "catalog:",
     "@tanstack/pacer": "^0.22.0",
     "@tanstack/query-db-collection": "catalog:",

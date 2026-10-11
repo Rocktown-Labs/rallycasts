@@ -74,8 +74,12 @@ import { Route as AuthUHistoryEventsRouteImport } from './routes/_auth/u/history
 import { Route as AuthUHistoryProfilesRouteImport } from './routes/_auth/u/history/profiles'
 import { Route as AuthUHistoryVideosRouteImport } from './routes/_auth/u/history/videos'
 import { Route as AuthUOrganizerIndexRouteImport } from './routes/_auth/u/organizer/index'
+import { Route as AuthUOrganizerAdsRouteImport } from './routes/_auth/u/organizer/ads'
+import { Route as AuthUOrganizerAnalyticsRouteImport } from './routes/_auth/u/organizer/analytics'
 import { Route as AuthUOrganizerEventsRouteImport } from './routes/_auth/u/organizer/events'
 import { Route as AuthUOrganizerOrganizationsRouteImport } from './routes/_auth/u/organizer/organizations'
+import { Route as AuthUOrganizerPaymentsRouteImport } from './routes/_auth/u/organizer/payments'
+import { Route as AuthUOrganizerTournamentsRouteImport } from './routes/_auth/u/organizer/tournaments'
 import { Route as AuthUProfileIndexRouteImport } from './routes/_auth/u/profile/index'
 import { Route as AuthUProfileAnalyticsRouteImport } from './routes/_auth/u/profile/analytics'
 import { Route as AuthUProfileEarnRouteImport } from './routes/_auth/u/profile/earn'
@@ -93,6 +97,7 @@ import { Route as AuthUVideosMeRouteImport } from './routes/_auth/u/videos/me'
 import { Route as AuthEventsHostsSlugManageRouteImport } from './routes/_auth/events.hosts.$slug.manage'
 import { Route as AuthEventsOrganizersSlugManageRouteImport } from './routes/_auth/events.organizers.$slug.manage'
 import { Route as AuthUOrganizerOrganizationsSlugRouteImport } from './routes/_auth/u/organizer/organizations_.$slug'
+import { Route as AuthUOrganizerTournamentsNewRouteImport } from './routes/_auth/u/organizer/tournaments.new'
 import { Route as AuthUStudioVideosIdRouteImport } from './routes/_auth/u/studio/videos.$id'
 import { Route as AuthUOrganizerOrganizationsSlugTeamRouteImport } from './routes/_auth/u/organizer/organizations_.$slug_.team'
 import { Route as AuthUStudioVideosIdClipsRouteImport } from './routes/_auth/u/studio/videos.$id_.clips'
@@ -423,6 +428,16 @@ const AuthUOrganizerIndexRoute = AuthUOrganizerIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthUOrganizerRoute,
 } as any)
+const AuthUOrganizerAdsRoute = AuthUOrganizerAdsRouteImport.update({
+  id: '/ads',
+  path: '/ads',
+  getParentRoute: () => AuthUOrganizerRoute,
+} as any)
+const AuthUOrganizerAnalyticsRoute = AuthUOrganizerAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => AuthUOrganizerRoute,
+} as any)
 const AuthUOrganizerEventsRoute = AuthUOrganizerEventsRouteImport.update({
   id: '/events',
   path: '/events',
@@ -432,6 +447,17 @@ const AuthUOrganizerOrganizationsRoute =
   AuthUOrganizerOrganizationsRouteImport.update({
     id: '/organizations',
     path: '/organizations',
+    getParentRoute: () => AuthUOrganizerRoute,
+  } as any)
+const AuthUOrganizerPaymentsRoute = AuthUOrganizerPaymentsRouteImport.update({
+  id: '/payments',
+  path: '/payments',
+  getParentRoute: () => AuthUOrganizerRoute,
+} as any)
+const AuthUOrganizerTournamentsRoute =
+  AuthUOrganizerTournamentsRouteImport.update({
+    id: '/tournaments',
+    path: '/tournaments',
     getParentRoute: () => AuthUOrganizerRoute,
   } as any)
 const AuthUProfileIndexRoute = AuthUProfileIndexRouteImport.update({
@@ -523,6 +549,12 @@ const AuthUOrganizerOrganizationsSlugRoute =
     path: '/organizations/$slug',
     getParentRoute: () => AuthUOrganizerRoute,
   } as any)
+const AuthUOrganizerTournamentsNewRoute =
+  AuthUOrganizerTournamentsNewRouteImport.update({
+    id: '/new',
+    path: '/new',
+    getParentRoute: () => AuthUOrganizerTournamentsRoute,
+  } as any)
 const AuthUStudioVideosIdRoute = AuthUStudioVideosIdRouteImport.update({
   id: '/studio/videos/$id',
   path: '/studio/videos/$id',
@@ -609,8 +641,12 @@ export interface FileRoutesByFullPath {
   '/u/history/events': typeof AuthUHistoryEventsRoute
   '/u/history/profiles': typeof AuthUHistoryProfilesRoute
   '/u/history/videos': typeof AuthUHistoryVideosRoute
+  '/u/organizer/ads': typeof AuthUOrganizerAdsRoute
+  '/u/organizer/analytics': typeof AuthUOrganizerAnalyticsRoute
   '/u/organizer/events': typeof AuthUOrganizerEventsRoute
   '/u/organizer/organizations': typeof AuthUOrganizerOrganizationsRoute
+  '/u/organizer/payments': typeof AuthUOrganizerPaymentsRoute
+  '/u/organizer/tournaments': typeof AuthUOrganizerTournamentsRouteWithChildren
   '/u/profile/analytics': typeof AuthUProfileAnalyticsRoute
   '/u/profile/earn': typeof AuthUProfileEarnRoute
   '/u/profile/me': typeof AuthUProfileMeRoute
@@ -631,6 +667,7 @@ export interface FileRoutesByFullPath {
   '/events/hosts/$slug/manage': typeof AuthEventsHostsSlugManageRoute
   '/events/organizers/$slug/manage': typeof AuthEventsOrganizersSlugManageRoute
   '/u/organizer/organizations/$slug': typeof AuthUOrganizerOrganizationsSlugRoute
+  '/u/organizer/tournaments/new': typeof AuthUOrganizerTournamentsNewRoute
   '/u/studio/videos/$id': typeof AuthUStudioVideosIdRoute
   '/u/organizer/organizations/$slug/team': typeof AuthUOrganizerOrganizationsSlugTeamRoute
   '/u/studio/videos/$id/clips': typeof AuthUStudioVideosIdClipsRoute
@@ -688,8 +725,12 @@ export interface FileRoutesByTo {
   '/u/history/events': typeof AuthUHistoryEventsRoute
   '/u/history/profiles': typeof AuthUHistoryProfilesRoute
   '/u/history/videos': typeof AuthUHistoryVideosRoute
+  '/u/organizer/ads': typeof AuthUOrganizerAdsRoute
+  '/u/organizer/analytics': typeof AuthUOrganizerAnalyticsRoute
   '/u/organizer/events': typeof AuthUOrganizerEventsRoute
   '/u/organizer/organizations': typeof AuthUOrganizerOrganizationsRoute
+  '/u/organizer/payments': typeof AuthUOrganizerPaymentsRoute
+  '/u/organizer/tournaments': typeof AuthUOrganizerTournamentsRouteWithChildren
   '/u/profile/analytics': typeof AuthUProfileAnalyticsRoute
   '/u/profile/earn': typeof AuthUProfileEarnRoute
   '/u/profile/me': typeof AuthUProfileMeRoute
@@ -710,6 +751,7 @@ export interface FileRoutesByTo {
   '/events/hosts/$slug/manage': typeof AuthEventsHostsSlugManageRoute
   '/events/organizers/$slug/manage': typeof AuthEventsOrganizersSlugManageRoute
   '/u/organizer/organizations/$slug': typeof AuthUOrganizerOrganizationsSlugRoute
+  '/u/organizer/tournaments/new': typeof AuthUOrganizerTournamentsNewRoute
   '/u/studio/videos/$id': typeof AuthUStudioVideosIdRoute
   '/u/organizer/organizations/$slug/team': typeof AuthUOrganizerOrganizationsSlugTeamRoute
   '/u/studio/videos/$id/clips': typeof AuthUStudioVideosIdClipsRoute
@@ -779,8 +821,12 @@ export interface FileRoutesById {
   '/_auth/u/history/events': typeof AuthUHistoryEventsRoute
   '/_auth/u/history/profiles': typeof AuthUHistoryProfilesRoute
   '/_auth/u/history/videos': typeof AuthUHistoryVideosRoute
+  '/_auth/u/organizer/ads': typeof AuthUOrganizerAdsRoute
+  '/_auth/u/organizer/analytics': typeof AuthUOrganizerAnalyticsRoute
   '/_auth/u/organizer/events': typeof AuthUOrganizerEventsRoute
   '/_auth/u/organizer/organizations': typeof AuthUOrganizerOrganizationsRoute
+  '/_auth/u/organizer/payments': typeof AuthUOrganizerPaymentsRoute
+  '/_auth/u/organizer/tournaments': typeof AuthUOrganizerTournamentsRouteWithChildren
   '/_auth/u/profile/analytics': typeof AuthUProfileAnalyticsRoute
   '/_auth/u/profile/earn': typeof AuthUProfileEarnRoute
   '/_auth/u/profile/me': typeof AuthUProfileMeRoute
@@ -801,6 +847,7 @@ export interface FileRoutesById {
   '/_auth/events/hosts/$slug/manage': typeof AuthEventsHostsSlugManageRoute
   '/_auth/events/organizers/$slug/manage': typeof AuthEventsOrganizersSlugManageRoute
   '/_auth/u/organizer/organizations_/$slug': typeof AuthUOrganizerOrganizationsSlugRoute
+  '/_auth/u/organizer/tournaments/new': typeof AuthUOrganizerTournamentsNewRoute
   '/_auth/u/studio/videos/$id': typeof AuthUStudioVideosIdRoute
   '/_auth/u/organizer/organizations_/$slug_/team': typeof AuthUOrganizerOrganizationsSlugTeamRoute
   '/_auth/u/studio/videos/$id_/clips': typeof AuthUStudioVideosIdClipsRoute
@@ -870,8 +917,12 @@ export interface FileRouteTypes {
     | '/u/history/events'
     | '/u/history/profiles'
     | '/u/history/videos'
+    | '/u/organizer/ads'
+    | '/u/organizer/analytics'
     | '/u/organizer/events'
     | '/u/organizer/organizations'
+    | '/u/organizer/payments'
+    | '/u/organizer/tournaments'
     | '/u/profile/analytics'
     | '/u/profile/earn'
     | '/u/profile/me'
@@ -892,6 +943,7 @@ export interface FileRouteTypes {
     | '/events/hosts/$slug/manage'
     | '/events/organizers/$slug/manage'
     | '/u/organizer/organizations/$slug'
+    | '/u/organizer/tournaments/new'
     | '/u/studio/videos/$id'
     | '/u/organizer/organizations/$slug/team'
     | '/u/studio/videos/$id/clips'
@@ -949,8 +1001,12 @@ export interface FileRouteTypes {
     | '/u/history/events'
     | '/u/history/profiles'
     | '/u/history/videos'
+    | '/u/organizer/ads'
+    | '/u/organizer/analytics'
     | '/u/organizer/events'
     | '/u/organizer/organizations'
+    | '/u/organizer/payments'
+    | '/u/organizer/tournaments'
     | '/u/profile/analytics'
     | '/u/profile/earn'
     | '/u/profile/me'
@@ -971,6 +1027,7 @@ export interface FileRouteTypes {
     | '/events/hosts/$slug/manage'
     | '/events/organizers/$slug/manage'
     | '/u/organizer/organizations/$slug'
+    | '/u/organizer/tournaments/new'
     | '/u/studio/videos/$id'
     | '/u/organizer/organizations/$slug/team'
     | '/u/studio/videos/$id/clips'
@@ -1039,8 +1096,12 @@ export interface FileRouteTypes {
     | '/_auth/u/history/events'
     | '/_auth/u/history/profiles'
     | '/_auth/u/history/videos'
+    | '/_auth/u/organizer/ads'
+    | '/_auth/u/organizer/analytics'
     | '/_auth/u/organizer/events'
     | '/_auth/u/organizer/organizations'
+    | '/_auth/u/organizer/payments'
+    | '/_auth/u/organizer/tournaments'
     | '/_auth/u/profile/analytics'
     | '/_auth/u/profile/earn'
     | '/_auth/u/profile/me'
@@ -1061,6 +1122,7 @@ export interface FileRouteTypes {
     | '/_auth/events/hosts/$slug/manage'
     | '/_auth/events/organizers/$slug/manage'
     | '/_auth/u/organizer/organizations_/$slug'
+    | '/_auth/u/organizer/tournaments/new'
     | '/_auth/u/studio/videos/$id'
     | '/_auth/u/organizer/organizations_/$slug_/team'
     | '/_auth/u/studio/videos/$id_/clips'
@@ -1544,6 +1606,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthUOrganizerIndexRouteImport
       parentRoute: typeof AuthUOrganizerRoute
     }
+    '/_auth/u/organizer/ads': {
+      id: '/_auth/u/organizer/ads'
+      path: '/ads'
+      fullPath: '/u/organizer/ads'
+      preLoaderRoute: typeof AuthUOrganizerAdsRouteImport
+      parentRoute: typeof AuthUOrganizerRoute
+    }
+    '/_auth/u/organizer/analytics': {
+      id: '/_auth/u/organizer/analytics'
+      path: '/analytics'
+      fullPath: '/u/organizer/analytics'
+      preLoaderRoute: typeof AuthUOrganizerAnalyticsRouteImport
+      parentRoute: typeof AuthUOrganizerRoute
+    }
     '/_auth/u/organizer/events': {
       id: '/_auth/u/organizer/events'
       path: '/events'
@@ -1556,6 +1632,20 @@ declare module '@tanstack/react-router' {
       path: '/organizations'
       fullPath: '/u/organizer/organizations'
       preLoaderRoute: typeof AuthUOrganizerOrganizationsRouteImport
+      parentRoute: typeof AuthUOrganizerRoute
+    }
+    '/_auth/u/organizer/payments': {
+      id: '/_auth/u/organizer/payments'
+      path: '/payments'
+      fullPath: '/u/organizer/payments'
+      preLoaderRoute: typeof AuthUOrganizerPaymentsRouteImport
+      parentRoute: typeof AuthUOrganizerRoute
+    }
+    '/_auth/u/organizer/tournaments': {
+      id: '/_auth/u/organizer/tournaments'
+      path: '/tournaments'
+      fullPath: '/u/organizer/tournaments'
+      preLoaderRoute: typeof AuthUOrganizerTournamentsRouteImport
       parentRoute: typeof AuthUOrganizerRoute
     }
     '/_auth/u/profile/': {
@@ -1677,6 +1767,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthUOrganizerOrganizationsSlugRouteImport
       parentRoute: typeof AuthUOrganizerRoute
     }
+    '/_auth/u/organizer/tournaments/new': {
+      id: '/_auth/u/organizer/tournaments/new'
+      path: '/new'
+      fullPath: '/u/organizer/tournaments/new'
+      preLoaderRoute: typeof AuthUOrganizerTournamentsNewRouteImport
+      parentRoute: typeof AuthUOrganizerTournamentsRoute
+    }
     '/_auth/u/studio/videos/$id': {
       id: '/_auth/u/studio/videos/$id'
       path: '/studio/videos/$id'
@@ -1748,17 +1845,39 @@ const AuthUHistoryRouteWithChildren = AuthUHistoryRoute._addFileChildren(
   AuthUHistoryRouteChildren,
 )
 
+interface AuthUOrganizerTournamentsRouteChildren {
+  AuthUOrganizerTournamentsNewRoute: typeof AuthUOrganizerTournamentsNewRoute
+}
+
+const AuthUOrganizerTournamentsRouteChildren: AuthUOrganizerTournamentsRouteChildren =
+  {
+    AuthUOrganizerTournamentsNewRoute: AuthUOrganizerTournamentsNewRoute,
+  }
+
+const AuthUOrganizerTournamentsRouteWithChildren =
+  AuthUOrganizerTournamentsRoute._addFileChildren(
+    AuthUOrganizerTournamentsRouteChildren,
+  )
+
 interface AuthUOrganizerRouteChildren {
+  AuthUOrganizerAdsRoute: typeof AuthUOrganizerAdsRoute
+  AuthUOrganizerAnalyticsRoute: typeof AuthUOrganizerAnalyticsRoute
   AuthUOrganizerEventsRoute: typeof AuthUOrganizerEventsRoute
   AuthUOrganizerOrganizationsRoute: typeof AuthUOrganizerOrganizationsRoute
+  AuthUOrganizerPaymentsRoute: typeof AuthUOrganizerPaymentsRoute
+  AuthUOrganizerTournamentsRoute: typeof AuthUOrganizerTournamentsRouteWithChildren
   AuthUOrganizerIndexRoute: typeof AuthUOrganizerIndexRoute
   AuthUOrganizerOrganizationsSlugRoute: typeof AuthUOrganizerOrganizationsSlugRoute
   AuthUOrganizerOrganizationsSlugTeamRoute: typeof AuthUOrganizerOrganizationsSlugTeamRoute
 }
 
 const AuthUOrganizerRouteChildren: AuthUOrganizerRouteChildren = {
+  AuthUOrganizerAdsRoute: AuthUOrganizerAdsRoute,
+  AuthUOrganizerAnalyticsRoute: AuthUOrganizerAnalyticsRoute,
   AuthUOrganizerEventsRoute: AuthUOrganizerEventsRoute,
   AuthUOrganizerOrganizationsRoute: AuthUOrganizerOrganizationsRoute,
+  AuthUOrganizerPaymentsRoute: AuthUOrganizerPaymentsRoute,
+  AuthUOrganizerTournamentsRoute: AuthUOrganizerTournamentsRouteWithChildren,
   AuthUOrganizerIndexRoute: AuthUOrganizerIndexRoute,
   AuthUOrganizerOrganizationsSlugRoute: AuthUOrganizerOrganizationsSlugRoute,
   AuthUOrganizerOrganizationsSlugTeamRoute:

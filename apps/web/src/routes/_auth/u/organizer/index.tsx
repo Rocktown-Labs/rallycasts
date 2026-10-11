@@ -98,14 +98,8 @@ const quickActionTiles = [
   {
     chip: "bg-emerald-500/10 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white",
     icon: Calendar,
-    label: "Publish tournament",
-    resolveTo: (firstOrgSlug?: string) =>
-      firstOrgSlug
-        ? {
-            params: { slug: firstOrgSlug },
-            to: "/u/organizer/organizations/$slug" as const,
-          }
-        : { to: "/events/hosts/new" as const },
+    label: "Host a tournament",
+    resolveTo: () => ({ to: "/u/organizer/tournaments/new" as const }),
   },
   {
     chip: "bg-indigo-500/10 text-indigo-500 group-hover:bg-indigo-500 group-hover:text-white",
@@ -123,13 +117,7 @@ const quickActionTiles = [
     chip: "bg-amber-500/10 text-amber-500 group-hover:bg-amber-500 group-hover:text-white",
     icon: CreditCard,
     label: "Set up payouts",
-    resolveTo: (firstOrgSlug?: string) =>
-      firstOrgSlug
-        ? {
-            params: { slug: firstOrgSlug },
-            to: "/u/organizer/organizations/$slug" as const,
-          }
-        : { to: "/events/hosts/new" as const },
+    resolveTo: () => ({ to: "/u/organizer/payments" as const }),
   },
   {
     chip: "bg-violet-500/10 text-violet-500 group-hover:bg-violet-500 group-hover:text-white",
