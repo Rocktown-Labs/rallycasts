@@ -3,3 +3,8 @@
 @import "heroui-native/styles";
 
 @source './node_modules/heroui-native/lib';
+
+@theme {
+  --color-brand-green: #005c23;
+  --color-brand-yellow: #bcdf21;
+}
