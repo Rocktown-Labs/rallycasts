@@ -12,7 +12,7 @@ import {
   organizationMember,
   video,
 } from "@rallycaststv/db/schema/domain";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 import { z } from "zod";
@@ -141,6 +141,28 @@ const signTrackingUrl = async (
 const campaignActionSchema = z.object({
   action: z.enum(["pause", "resume", "submit"]),
 });
+
+// Full editable field set for draft/rejected campaigns. The client sends the
+// complete set (same shape as creation), so validation can be reused as-is.
+const campaignEditSchema = z.object({
+  city: z.string().max(120).optional(),
+  cpmCents: z.number().int().optional(),
+  creatives: z.array(z.record(z.string(), z.unknown())).min(1),
+  dailyBudgetCents: z.number().int(),
+  endsAt: z.string().optional(),
+  eventId: z.string().min(1),
+  name: z.string().min(1).max(160),
+  placements: z.enum(["both", "display", "preroll"]),
+  skillLevel: z
+    .enum(["advanced", "beginner", "intermediate", "pro"])
+    .optional(),
+  startsAt: z.string().optional(),
+  state: z.string().max(120).optional(),
+  totalBudgetCents: z.number().int(),
+  videoCpmCents: z.number().int().optional(),
+});
+
+const campaignPatchSchema = z.union([campaignActionSchema, campaignEditSchema]);
 
 const topupSchema = z.object({
   amountCents: z.number().int().min(100).max(1_000_000),
@@ -336,7 +358,47 @@ export const adsRouter = new Hono<AppEnv>()
       .from(adCampaign)
       .where(eq(adCampaign.advertiserId, account.id))
       .orderBy(desc(adCampaign.createdAt));
-    return c.json({ campaigns }, HttpStatusCodes.OK);
+
+    // Delivery metrics and creatives come along so the Ads Manager can
+    // render the campaigns table and detail view in one request.
+    const campaignIds = campaigns.map((row) => row.id);
+    const statRows =
+      campaignIds.length > 0
+        ? await db
+            .select({
+              campaignId: adDailyStat.campaignId,
+              clicks: adDailyStat.clicks,
+              impressions: adDailyStat.impressions,
+            })
+            .from(adDailyStat)
+            .where(inArray(adDailyStat.campaignId, campaignIds))
+        : [];
+    const creativeRows =
+      campaignIds.length > 0
+        ? await db
+            .select()
+            .from(adCreative)
+            .where(inArray(adCreative.campaignId, campaignIds))
+        : [];
+    const withDelivery = campaigns.map((row) => {
+      let clicks = 0;
+      let impressions = 0;
+      for (const stat of statRows) {
+        if (stat.campaignId === row.id) {
+          clicks += stat.clicks;
+          impressions += stat.impressions;
+        }
+      }
+      return {
+        ...row,
+        clicks,
+        creatives: creativeRows
+          .filter((creative) => creative.campaignId === row.id)
+          .map(({ campaignId: _campaignId, ...creative }) => creative),
+        impressions,
+      };
+    });
+    return c.json({ campaigns: withDelivery }, HttpStatusCodes.OK);
   })
   // oxlint-disable-next-line complexity -- Campaign creation validates budgets, flight, event ownership, and creatives.
   .post("/campaigns", requireAuth, requireVerifiedAuth, async (c) => {
@@ -354,30 +416,15 @@ export const adsRouter = new Hono<AppEnv>()
     }
 
     const eventId = typeof body?.eventId === "string" ? body.eventId : "";
-    const [eventRecord] = await db
-      .select()
-      .from(event)
-      .where(eq(event.id, eventId))
-      .limit(1);
-    if (!eventRecord || eventRecord.status !== "published") {
-      return c.json(
-        { message: "Promoted event must be published" },
-        HttpStatusCodes.BAD_REQUEST
-      );
+    const promotedEvent = await validateCampaignEvent(
+      db,
+      membership.organization.id,
+      eventId
+    );
+    if (!promotedEvent.ok) {
+      return c.json({ message: promotedEvent.error }, promotedEvent.status);
     }
-    const ownsEvent =
-      eventRecord.organizationId === membership.organization.id ||
-      (await isOrgMember(
-        db,
-        membership.organization.id,
-        eventRecord.organizerUserId
-      ));
-    if (!ownsEvent) {
-      return c.json(
-        { message: "Event does not belong to this organization" },
-        HttpStatusCodes.FORBIDDEN
-      );
-    }
+    const eventRecord = promotedEvent.event;
 
     const validation = validateCampaignInput(body);
     if (!validation.ok) {
@@ -441,7 +488,7 @@ export const adsRouter = new Hono<AppEnv>()
     "/campaigns/:id",
     requireAuth,
     requireVerifiedAuth,
-    zValidator("json", campaignActionSchema),
+    zValidator("json", campaignPatchSchema),
     async (c) => {
       const db = createDb(c.env.DB);
       const { user: authUser } = c.var.authSession;
@@ -474,35 +521,110 @@ export const adsRouter = new Hono<AppEnv>()
         return c.json({ message: "Forbidden" }, HttpStatusCodes.FORBIDDEN);
       }
 
-      const action = body?.action;
-      if (action === "submit") {
-        if (!["draft", "rejected"].includes(campaign.status)) {
-          return c.json(
-            { message: "Only drafts can be submitted" },
-            HttpStatusCodes.CONFLICT
-          );
+      if ("action" in body) {
+        const { action } = body;
+        if (action === "submit") {
+          if (!["draft", "rejected"].includes(campaign.status)) {
+            return c.json(
+              { message: "Only drafts can be submitted" },
+              HttpStatusCodes.CONFLICT
+            );
+          }
+          await db
+            .update(adCampaign)
+            .set({ status: "pending_approval", updatedAt: new Date() })
+            .where(eq(adCampaign.id, campaignId));
+          return c.json({ status: "pending_approval" }, HttpStatusCodes.OK);
         }
-        await db
-          .update(adCampaign)
-          .set({ status: "pending_approval", updatedAt: new Date() })
-          .where(eq(adCampaign.id, campaignId));
-        return c.json({ status: "pending_approval" }, HttpStatusCodes.OK);
-      }
-      if (action === "pause" || action === "resume") {
-        if (!["active", "paused"].includes(campaign.status)) {
-          return c.json(
-            { message: "Only active campaigns can be paused or resumed" },
-            HttpStatusCodes.CONFLICT
-          );
+        if (action === "pause" || action === "resume") {
+          if (!["active", "paused"].includes(campaign.status)) {
+            return c.json(
+              { message: "Only active campaigns can be paused or resumed" },
+              HttpStatusCodes.CONFLICT
+            );
+          }
+          const next = action === "pause" ? "paused" : "active";
+          await db
+            .update(adCampaign)
+            .set({ status: next, updatedAt: new Date() })
+            .where(eq(adCampaign.id, campaignId));
+          return c.json({ status: next }, HttpStatusCodes.OK);
         }
-        const next = action === "pause" ? "paused" : "active";
-        await db
-          .update(adCampaign)
-          .set({ status: next, updatedAt: new Date() })
-          .where(eq(adCampaign.id, campaignId));
-        return c.json({ status: next }, HttpStatusCodes.OK);
+        return c.json(
+          { message: "Unknown action" },
+          HttpStatusCodes.BAD_REQUEST
+        );
       }
-      return c.json({ message: "Unknown action" }, HttpStatusCodes.BAD_REQUEST);
+
+      // Edit mode: only draft or rejected campaigns may be modified.
+      if (!["draft", "rejected"].includes(campaign.status)) {
+        return c.json(
+          { message: "Only draft or rejected campaigns can be edited" },
+          HttpStatusCodes.CONFLICT
+        );
+      }
+      const promotedEvent = await validateCampaignEvent(
+        db,
+        membership.organization.id,
+        body.eventId
+      );
+      if (!promotedEvent.ok) {
+        return c.json({ message: promotedEvent.error }, promotedEvent.status);
+      }
+      const validation = validateCampaignInput(body);
+      if (!validation.ok) {
+        return c.json(
+          { message: validation.error },
+          HttpStatusCodes.BAD_REQUEST
+        );
+      }
+      const creativeCheck = await validateCreatives(
+        db,
+        membership.organization.id,
+        validation.creatives
+      );
+      if (!creativeCheck.ok) {
+        return c.json(
+          { message: creativeCheck.error },
+          HttpStatusCodes.BAD_REQUEST
+        );
+      }
+
+      await db
+        .update(adCampaign)
+        .set({
+          city: validation.city,
+          cpmCents: validation.cpmCents,
+          dailyBudgetCents: validation.dailyBudgetCents,
+          endsAt: validation.endsAt,
+          eventId: promotedEvent.event.id,
+          name: validation.name,
+          placements: validation.placements,
+          skillLevel: validation.skillLevel,
+          startsAt: validation.startsAt,
+          state: validation.state,
+          totalBudgetCents: validation.totalBudgetCents,
+          updatedAt: new Date(),
+          venueId: validation.venueId,
+          videoCpmCents: validation.videoCpmCents,
+        })
+        .where(eq(adCampaign.id, campaignId));
+      await db.delete(adCreative).where(eq(adCreative.campaignId, campaignId));
+      if (creativeCheck.creatives.length > 0) {
+        await db.insert(adCreative).values(
+          creativeCheck.creatives.map((creative) => ({
+            ...creative,
+            campaignId,
+            id: createId(),
+          }))
+        );
+      }
+      const [updated] = await db
+        .select()
+        .from(adCampaign)
+        .where(eq(adCampaign.id, campaignId))
+        .limit(1);
+      return c.json({ campaign: updated }, HttpStatusCodes.OK);
     }
   )
   .post(
@@ -811,6 +933,49 @@ const isOrgMember = async (db: Db, organizationId: string, userId: string) => {
     )
     .limit(1);
   return Boolean(row);
+};
+
+/**
+ * The campaign must promote a published event that belongs to the
+ * organization. Shared by campaign creation and editing.
+ */
+const validateCampaignEvent = async (
+  db: Db,
+  organizationId: string,
+  eventId: string
+): Promise<
+  | {
+      error: string;
+      ok: false;
+      status:
+        | typeof HttpStatusCodes.BAD_REQUEST
+        | typeof HttpStatusCodes.FORBIDDEN;
+    }
+  | { event: typeof event.$inferSelect; ok: true }
+> => {
+  const [eventRecord] = await db
+    .select()
+    .from(event)
+    .where(eq(event.id, eventId))
+    .limit(1);
+  if (!eventRecord || eventRecord.status !== "published") {
+    return {
+      error: "Promoted event must be published",
+      ok: false,
+      status: HttpStatusCodes.BAD_REQUEST,
+    };
+  }
+  const ownsEvent =
+    eventRecord.organizationId === organizationId ||
+    (await isOrgMember(db, organizationId, eventRecord.organizerUserId));
+  if (!ownsEvent) {
+    return {
+      error: "Event does not belong to this organization",
+      ok: false,
+      status: HttpStatusCodes.FORBIDDEN,
+    };
+  }
+  return { event: eventRecord, ok: true };
 };
 
 interface CampaignInput {

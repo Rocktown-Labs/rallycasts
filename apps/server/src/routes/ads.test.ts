@@ -469,6 +469,161 @@ describe("ads campaigns", () => {
   });
 });
 
+describe("ads campaign editing", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("lets the owner edit a draft campaign and replaces creatives", async () => {
+    const owner = await signUp("owner");
+    const orgId = await makeOrg(owner.id);
+    const eventId = await makeEvent(orgId, owner.id);
+    const otherEventId = await makeEvent(orgId, owner.id);
+    const clipId = await makeClip(owner.id);
+
+    const { body } = await createCampaign(owner.cookie, {
+      creatives: [{ kind: "display", title: "First draft" }],
+      dailyBudgetCents: 100,
+      eventId,
+      name: "Draft push",
+      organizationId: orgId,
+      placements: "display",
+      totalBudgetCents: 500,
+    });
+    const campaignId = body.campaign?.id ?? "";
+
+    const edit = await app.request(
+      `/api/v1/ads/campaigns/${campaignId}`,
+      {
+        body: JSON.stringify({
+          city: "Austin",
+          creatives: [{ kind: "preroll", title: "New clip", videoId: clipId }],
+          dailyBudgetCents: 200,
+          endsAt: new Date(Date.now() + 7 * 86_400_000).toISOString(),
+          eventId: otherEventId,
+          name: "Renamed push",
+          placements: "preroll",
+          skillLevel: "intermediate",
+          startsAt: new Date(Date.now() + 86_400_000).toISOString(),
+          state: "TX",
+          totalBudgetCents: 900,
+        }),
+        headers: { "Content-Type": "application/json", Cookie: owner.cookie },
+        method: "PATCH",
+      },
+      env
+    );
+    expect(edit.status).toBe(200);
+
+    const [row] = await env.DB.prepare(
+      "select name, daily_budget_cents as dailyBudget, total_budget_cents as totalBudget, placements, skill_level as skillLevel, event_id as newEventId from ad_campaign where id = ?"
+    )
+      .bind(campaignId)
+      .all<{
+        dailyBudget: number;
+        name: string;
+        newEventId: string;
+        placements: string;
+        skillLevel: string | null;
+        totalBudget: number;
+      }>()
+      .then((result) => result.results);
+    expect(row?.name).toBe("Renamed push");
+    expect(row?.dailyBudget).toBe(200);
+    expect(row?.totalBudget).toBe(900);
+    expect(row?.placements).toBe("preroll");
+    expect(row?.skillLevel).toBe("intermediate");
+    expect(row?.newEventId).toBe(otherEventId);
+
+    const [creative] = await env.DB.prepare(
+      "select kind from ad_creative where campaign_id = ?"
+    )
+      .bind(campaignId)
+      .all<{ kind: string }>()
+      .then((result) => result.results);
+    expect(creative?.kind).toBe("preroll");
+  });
+
+  it("rejects editing active campaigns or foreign events", async () => {
+    const owner = await signUp("owner");
+    const orgId = await makeOrg(owner.id);
+    const eventId = await makeEvent(orgId, owner.id);
+    const stranger = await signUp("stranger");
+    const strangerOrg = await makeOrg(stranger.id);
+    const strangerEvent = await makeEvent(strangerOrg, stranger.id);
+
+    const { body } = await createCampaign(owner.cookie, {
+      creatives: [{ kind: "display", title: "Hi" }],
+      dailyBudgetCents: 100,
+      eventId,
+      name: "Locked push",
+      organizationId: orgId,
+      placements: "display",
+      totalBudgetCents: 500,
+    });
+    const campaignId = body.campaign?.id ?? "";
+    await env.DB.prepare(
+      "update ad_campaign set status = 'active' where id = ?"
+    )
+      .bind(campaignId)
+      .run();
+
+    const { body: draftBody } = await createCampaign(owner.cookie, {
+      creatives: [{ kind: "display", title: "Hi" }],
+      dailyBudgetCents: 100,
+      eventId,
+      name: "Editable draft",
+      organizationId: orgId,
+      placements: "display",
+      totalBudgetCents: 500,
+    });
+    const draftId = draftBody.campaign?.id ?? "";
+
+    const editPayload = {
+      creatives: [{ kind: "display", title: "Hi" }],
+      dailyBudgetCents: 100,
+      eventId,
+      name: "Edit attempt",
+      placements: "display",
+      totalBudgetCents: 500,
+    };
+
+    const activeEdit = await app.request(
+      `/api/v1/ads/campaigns/${campaignId}`,
+      {
+        body: JSON.stringify(editPayload),
+        headers: { "Content-Type": "application/json", Cookie: owner.cookie },
+        method: "PATCH",
+      },
+      env
+    );
+    expect(activeEdit.status).toBe(409);
+
+    const foreignEdit = await app.request(
+      `/api/v1/ads/campaigns/${draftId}`,
+      {
+        body: JSON.stringify({ ...editPayload, eventId: strangerEvent }),
+        headers: { "Content-Type": "application/json", Cookie: owner.cookie },
+        method: "PATCH",
+      },
+      env
+    );
+    expect(foreignEdit.status).toBe(403);
+
+    const intruder = await app.request(
+      `/api/v1/ads/campaigns/${draftId}`,
+      {
+        body: JSON.stringify(editPayload),
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: stranger.cookie,
+        },
+        method: "PATCH",
+      },
+      env
+    );
+    expect(intruder.status).toBe(403);
+  });
+});
+
 describe("RallyCasts Pro ad-free entitlement", () => {
   afterEach(() => vi.restoreAllMocks());
 
