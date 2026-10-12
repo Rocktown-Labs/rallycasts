@@ -2,7 +2,7 @@ import { Button } from "@rallycaststv/ui/components/button";
 import { Card, CardContent } from "@rallycaststv/ui/components/card";
 import { cn } from "@rallycaststv/ui/lib/utils";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Calendar, Plus, Users } from "lucide-react";
+import { Calendar, Plus, Settings2, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import {
@@ -68,8 +68,8 @@ const OrganizerTournamentsPage = () => {
           </p>
           <h1 className="mt-1 text-3xl font-bold">Tournaments</h1>
           <p className="text-muted-foreground mt-2 text-sm">
-            Host tournaments, clinics, leagues, and open play sessions. Track
-            signups and brackets from one place.
+            Every event you host — tournaments, clinics, leagues, and open play.
+            Open one to manage players, check-ins, and its bracket.
           </p>
         </div>
         <Link to="/u/organizer/tournaments/new">
@@ -136,15 +136,22 @@ const OrganizerTournamentsPage = () => {
                   <th className="py-2">Event</th>
                   <th className="py-2">Starts</th>
                   <th className="py-2">Registered</th>
+                  <th className="py-2">Checked in</th>
                   <th className="py-2">Revenue</th>
-                  <th className="py-2">Brackets</th>
+                  <th className="py-2 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-border divide-y">
                 {events.map((record) => (
                   <tr key={record.id}>
                     <td className="py-2 font-medium">
-                      {record.name}
+                      <Link
+                        className="hover:text-primary hover:underline"
+                        params={{ id: record.id }}
+                        to="/events/$id/manage"
+                      >
+                        {record.name}
+                      </Link>
                       <span className="text-muted-foreground ml-1.5 text-[11px]">
                         {typeLabels[record.eventType] ?? record.eventType}
                       </span>
@@ -159,6 +166,9 @@ const OrganizerTournamentsPage = () => {
                         {record.capacity ? ` / ${record.capacity}` : ""}
                       </span>
                     </td>
+                    <td className="py-2 text-xs">
+                      {record.registrations.checkedIn}
+                    </td>
                     <td className="py-2">
                       {formatDollars(
                         (record.registrations.registered -
@@ -166,13 +176,20 @@ const OrganizerTournamentsPage = () => {
                           record.entryFeeCents
                       )}
                     </td>
-                    <td className="py-2">
+                    <td className="py-2 text-right">
                       <Link
-                        className="text-primary text-xs font-semibold hover:underline"
+                        className="text-primary inline-flex items-center gap-1 text-xs font-semibold hover:underline"
+                        params={{ id: record.id }}
+                        to="/events/$id/manage"
+                      >
+                        <Settings2 className="size-3.5" /> Manage
+                      </Link>
+                      <Link
+                        className="text-muted-foreground ml-3 inline-flex items-center gap-1 text-xs font-semibold hover:underline"
                         params={{ id: record.id }}
                         to="/events/$id/bracket"
                       >
-                        View bracket
+                        Bracket
                       </Link>
                     </td>
                   </tr>

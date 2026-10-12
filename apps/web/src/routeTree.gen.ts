@@ -56,6 +56,7 @@ import { Route as AuthUVideosRouteImport } from './routes/_auth/u/videos'
 import { Route as EventsIdIndexRouteImport } from './routes/events.$id.index'
 import { Route as EventsIdBracketRouteImport } from './routes/events.$id.bracket'
 import { Route as EventsIdLocationsRouteImport } from './routes/events.$id.locations'
+import { Route as EventsIdManageRouteImport } from './routes/events.$id.manage'
 import { Route as EventsIdMatchesRouteImport } from './routes/events.$id.matches'
 import { Route as EventsIdPlayersRouteImport } from './routes/events.$id.players'
 import { Route as EventsHostsSlugRouteImport } from './routes/events.hosts_.$slug'
@@ -335,6 +336,11 @@ const EventsIdBracketRoute = EventsIdBracketRouteImport.update({
 const EventsIdLocationsRoute = EventsIdLocationsRouteImport.update({
   id: '/locations',
   path: '/locations',
+  getParentRoute: () => EventsIdRoute,
+} as any)
+const EventsIdManageRoute = EventsIdManageRouteImport.update({
+  id: '/manage',
+  path: '/manage',
   getParentRoute: () => EventsIdRoute,
 } as any)
 const EventsIdMatchesRoute = EventsIdMatchesRouteImport.update({
@@ -624,6 +630,7 @@ export interface FileRoutesByFullPath {
   '/u/videos': typeof AuthUVideosRouteWithChildren
   '/events/$id/bracket': typeof EventsIdBracketRoute
   '/events/$id/locations': typeof EventsIdLocationsRoute
+  '/events/$id/manage': typeof EventsIdManageRoute
   '/events/$id/matches': typeof EventsIdMatchesRoute
   '/events/$id/players': typeof EventsIdPlayersRoute
   '/events/hosts/$slug': typeof EventsHostsSlugRoute
@@ -708,6 +715,7 @@ export interface FileRoutesByTo {
   '/u/settings': typeof AuthUSettingsRoute
   '/events/$id/bracket': typeof EventsIdBracketRoute
   '/events/$id/locations': typeof EventsIdLocationsRoute
+  '/events/$id/manage': typeof EventsIdManageRoute
   '/events/$id/matches': typeof EventsIdMatchesRoute
   '/events/$id/players': typeof EventsIdPlayersRoute
   '/events/hosts/$slug': typeof EventsHostsSlugRoute
@@ -804,6 +812,7 @@ export interface FileRoutesById {
   '/_auth/u/videos': typeof AuthUVideosRouteWithChildren
   '/events/$id/bracket': typeof EventsIdBracketRoute
   '/events/$id/locations': typeof EventsIdLocationsRoute
+  '/events/$id/manage': typeof EventsIdManageRoute
   '/events/$id/matches': typeof EventsIdMatchesRoute
   '/events/$id/players': typeof EventsIdPlayersRoute
   '/events/hosts_/$slug': typeof EventsHostsSlugRoute
@@ -900,6 +909,7 @@ export interface FileRouteTypes {
     | '/u/videos'
     | '/events/$id/bracket'
     | '/events/$id/locations'
+    | '/events/$id/manage'
     | '/events/$id/matches'
     | '/events/$id/players'
     | '/events/hosts/$slug'
@@ -984,6 +994,7 @@ export interface FileRouteTypes {
     | '/u/settings'
     | '/events/$id/bracket'
     | '/events/$id/locations'
+    | '/events/$id/manage'
     | '/events/$id/matches'
     | '/events/$id/players'
     | '/events/hosts/$slug'
@@ -1079,6 +1090,7 @@ export interface FileRouteTypes {
     | '/_auth/u/videos'
     | '/events/$id/bracket'
     | '/events/$id/locations'
+    | '/events/$id/manage'
     | '/events/$id/matches'
     | '/events/$id/players'
     | '/events/hosts_/$slug'
@@ -1478,6 +1490,13 @@ declare module '@tanstack/react-router' {
       path: '/locations'
       fullPath: '/events/$id/locations'
       preLoaderRoute: typeof EventsIdLocationsRouteImport
+      parentRoute: typeof EventsIdRoute
+    }
+    '/events/$id/manage': {
+      id: '/events/$id/manage'
+      path: '/manage'
+      fullPath: '/events/$id/manage'
+      preLoaderRoute: typeof EventsIdManageRouteImport
       parentRoute: typeof EventsIdRoute
     }
     '/events/$id/matches': {
@@ -2006,6 +2025,7 @@ const CastersRouteWithChildren =
 interface EventsIdRouteChildren {
   EventsIdBracketRoute: typeof EventsIdBracketRoute
   EventsIdLocationsRoute: typeof EventsIdLocationsRoute
+  EventsIdManageRoute: typeof EventsIdManageRoute
   EventsIdMatchesRoute: typeof EventsIdMatchesRoute
   EventsIdPlayersRoute: typeof EventsIdPlayersRoute
   EventsIdIndexRoute: typeof EventsIdIndexRoute
@@ -2014,6 +2034,7 @@ interface EventsIdRouteChildren {
 const EventsIdRouteChildren: EventsIdRouteChildren = {
   EventsIdBracketRoute: EventsIdBracketRoute,
   EventsIdLocationsRoute: EventsIdLocationsRoute,
+  EventsIdManageRoute: EventsIdManageRoute,
   EventsIdMatchesRoute: EventsIdMatchesRoute,
   EventsIdPlayersRoute: EventsIdPlayersRoute,
   EventsIdIndexRoute: EventsIdIndexRoute,

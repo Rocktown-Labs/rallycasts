@@ -104,6 +104,42 @@ export const useUpdateEvent = (id: string) => {
   });
 };
 
+export const useUpdateRegistration = (eventId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      json,
+      registrationId,
+    }: {
+      json: {
+        seed?: number | null;
+        status?: "cancelled" | "checked_in" | "registered" | "waitlisted";
+      };
+      registrationId: string;
+    }) =>
+      readApiJson(
+        apiClient.api.v1.events[":id"].registrations[":registrationId"].$patch({
+          json,
+          param: { id: eventId, registrationId },
+        })
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["events", eventId, "players"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["events", eventId, "bracket"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["events", eventId, "matches"],
+      });
+      queryClient.invalidateQueries({ queryKey: ["events", eventId, "live"] });
+      queryClient.invalidateQueries({ queryKey: ["organizer-analytics"] });
+    },
+  });
+};
+
 export const useEventPlayers = (id: string) =>
   useQuery({
     enabled: id.length > 0,

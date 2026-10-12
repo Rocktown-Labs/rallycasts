@@ -10,6 +10,7 @@ import {
   Calendar,
   ChevronLeft,
   ListChecks,
+  ShieldCheck,
   Trophy,
   Users,
   Swords,
@@ -178,11 +179,11 @@ function EventLayout() {
       {/* Back button */}
       <div>
         <Link
-          to={canManageEvent ? "/u/organizer/organizations" : "/events"}
+          to={canManageEvent ? "/u/organizer/tournaments" : "/events"}
           className="text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1.5 text-xs"
         >
           <ChevronLeft className="size-3.5" />{" "}
-          {canManageEvent ? "Back to Organizer Events" : "Back to Events"}
+          {canManageEvent ? "Back to My Tournaments" : "Back to Events"}
         </Link>
       </div>
 
@@ -226,9 +227,9 @@ function EventLayout() {
           </div>
           {canManageEvent ? (
             <div className="flex flex-wrap gap-2 pt-2">
-              <Link params={{ id: eventData.id }} to="/events/$id/players">
+              <Link params={{ id: eventData.id }} to="/events/$id/manage">
                 <Button className="rounded-lg text-xs" size="sm">
-                  <Users className="size-3.5" /> Player Pool
+                  <ShieldCheck className="size-3.5" /> Manage Event
                 </Button>
               </Link>
               <Link params={{ id: eventData.id }} to="/events/$id/bracket">
@@ -294,6 +295,17 @@ function EventLayout() {
         >
           <MapPin className="size-4" /> Locations
         </Link>
+        {canManageEvent ? (
+          <Link
+            to="/events/$id/manage"
+            params={{ id: eventData.id }}
+            activeProps={{ className: activeLinkClass }}
+            inactiveProps={{ className: inactiveLinkClass }}
+            className="flex items-center gap-1.5 border-b-2 pb-3 text-xs font-bold tracking-wider uppercase transition-all sm:text-sm"
+          >
+            <ShieldCheck className="size-4" /> Manage
+          </Link>
+        ) : null}
       </div>
 
       {/* Tab content */}
