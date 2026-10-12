@@ -22,6 +22,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { toast } from "sonner";
 
+import { fromLocalInputValue, toLocalInputValue } from "@/lib/datetime";
 import {
   useEventBracket,
   useEventPlayers,
@@ -71,8 +72,6 @@ const statusOrder: Record<RegistrationStatus, number> = {
   waitlisted: 3,
 };
 
-const pad2 = (value: number) => String(value).padStart(2, "0");
-
 const sortForCheckIn = (players: Registration[]) =>
   players.toSorted((left, right) => {
     const statusDiff =
@@ -113,24 +112,6 @@ const eventStatusStyles: Record<string, string> = {
   completed: "bg-muted text-muted-foreground",
   draft: "bg-muted text-muted-foreground",
   published: "bg-primary/10 text-primary",
-};
-
-/** ISO string → value for `<input type="datetime-local">` in local time. */
-const toLocalInputValue = (iso?: string | null) => {
-  if (!iso) {
-    return "";
-  }
-  const date = new Date(iso);
-  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}T${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
-};
-
-/** datetime-local value → ISO string (or null when cleared). */
-const fromLocalInputValue = (value: string) => {
-  if (!value) {
-    return null;
-  }
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date.toISOString();
 };
 
 function EventManageTab() {
