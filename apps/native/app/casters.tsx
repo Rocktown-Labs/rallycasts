@@ -34,6 +34,7 @@ export default function CastersScreen() {
   return (
     <SafeAreaView edges={["top"]} className="flex-1 bg-background">
       <ScreenHeader
+        showBack
         title="Casters"
         subtitle="On-court broadcasting & match coverage"
       />

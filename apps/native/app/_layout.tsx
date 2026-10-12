@@ -35,6 +35,12 @@ function StackLayout() {
     >
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen
+        name="casters"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
         name="account"
         options={{
           presentation: "modal",

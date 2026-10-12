@@ -27,7 +27,7 @@ export function ScreenHeader({ showBack = false, subtitle, title }: ScreenHeader
     if (Platform.OS === "ios") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    router.push("/account");
+    router.push("/(tabs)/you" as never);
   };
 
   const handleBackPress = () => {

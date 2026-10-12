@@ -92,12 +92,12 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="casters"
+        name="you"
         options={{
-          title: "Casters",
+          title: "You",
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
-              name={focused ? "videocam" : "videocam-outline"}
+              name={focused ? "person" : "person-outline"}
               size={22}
               color={color}
             />
