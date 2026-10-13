@@ -837,13 +837,16 @@ function EditEventDialog({
     setError(null);
     updateEvent.mutate(
       {
-        ...(capacityNumber === undefined ? {} : { capacity: capacityNumber }),
-        ...(description.trim() ? { description: description.trim() } : {}),
-        ...(endsAtIso ? { endsAt: endsAtIso } : {}),
+        // Cleared optional fields are sent as explicit nulls; the server
+        // treats omitted keys as "keep current value", so clearing would
+        // otherwise be a silent no-op.
+        capacity: capacityNumber ?? null,
+        description: description.trim() || null,
+        endsAt: endsAtIso ?? null,
         entryFeeCents: feeCents,
         name: name.trim(),
-        ...(refundPolicy.trim() ? { refundPolicy: refundPolicy.trim() } : {}),
-        ...(deadlineIso ? { registrationDeadline: deadlineIso } : {}),
+        refundPolicy: refundPolicy.trim(),
+        registrationDeadline: deadlineIso ?? null,
         startsAt: startsAtIso,
       },
       {

@@ -372,6 +372,7 @@ describe("events API", () => {
       organizer.cookie,
       {
         capacity: 8,
+        description: "Temporary description",
         eventType: "tournament",
         name: "Draft Classic",
         startsAt: new Date("2027-07-01T15:00:00.000Z").toISOString(),
@@ -381,6 +382,23 @@ describe("events API", () => {
     expect(createResponse.status).toBe(201);
     const created = (await createResponse.json()) as { event: { id: string } };
     const eventId = created.event.id;
+
+    // Clearing an optional field must persist the cleared value.
+    const clearResponse = await jsonRequest(
+      `/api/v1/events/${eventId}`,
+      organizer.cookie,
+      {
+        capacity: null,
+        description: null,
+        name: "Draft Classic",
+        startsAt: new Date("2027-07-01T15:00:00.000Z").toISOString(),
+      },
+      "PATCH"
+    );
+    expect(clearResponse.status).toBe(200);
+    await expect(clearResponse.json()).resolves.toMatchObject({
+      event: { capacity: null, description: null },
+    });
 
     const organizerView = await app.request(
       `/api/v1/events/${eventId}`,

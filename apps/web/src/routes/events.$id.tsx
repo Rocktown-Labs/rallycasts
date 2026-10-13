@@ -107,10 +107,13 @@ function EventLayout() {
     }),
     [eventData?.eventType, eventData?.venueId]
   );
+  // Only owner/admin org members manage events. The server rejects the
+  // editor role, so matching it here avoids a console where every action
+  // would fail with a 404.
   const manageableOrganizationIds = new Set(
-    (organizationsData?.organizations ?? []).map(
-      ({ organization }) => organization.id
-    )
+    (organizationsData?.organizations ?? [])
+      .filter(({ role }) => role !== "editor")
+      .map(({ organization }) => organization.id)
   );
   const canManageEvent = eventData
     ? canUserManageEvent({

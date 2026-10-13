@@ -75,17 +75,17 @@ export const useUpdateEvent = (id: string) => {
   return useMutation({
     mutationFn: (json: {
       bracketType?: "round_robin" | "single_elimination";
-      capacity?: number;
+      capacity?: number | null;
       checkInMinutes?: number;
       courtLabels?: string[];
       currency?: "usd";
-      description?: string;
-      endsAt?: string;
+      description?: string | null;
+      endsAt?: string | null;
       eventType?: "clinic" | "league" | "open_play" | "tournament";
       entryFeeCents?: number;
       name?: string;
       refundPolicy?: string;
-      registrationDeadline?: string;
+      registrationDeadline?: string | null;
       startsAt?: string;
       status?: "cancelled" | "completed" | "draft" | "published";
       venueId?: string;
@@ -100,6 +100,7 @@ export const useUpdateEvent = (id: string) => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["events", "mine"] });
       queryClient.invalidateQueries({ queryKey: ["events", id] });
+      queryClient.invalidateQueries({ queryKey: ["organizer-analytics"] });
     },
   });
 };

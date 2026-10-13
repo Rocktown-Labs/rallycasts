@@ -75,6 +75,16 @@ const eventSchema = eventFields
 const updateEventSchema = eventFields
   .omit({ googlePlaceId: true, organizationId: true })
   .partial()
+  .extend({
+    // Optional content fields accept null so organizers can clear them;
+    // omitted keys keep their current value. refundPolicy is NOT NULL in
+    // the database, so it clears to an empty string instead.
+    capacity: z.number().int().positive().nullable().optional(),
+    description: z.string().max(2000).nullable().optional(),
+    endsAt: z.coerce.date().nullable().optional(),
+    refundPolicy: z.string().max(1000).optional(),
+    registrationDeadline: z.coerce.date().nullable().optional(),
+  })
   .refine(
     (data) => !data.endsAt || !data.startsAt || data.endsAt > data.startsAt,
     {
