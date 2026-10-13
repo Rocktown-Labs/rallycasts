@@ -160,7 +160,7 @@ export default function MoreScreen() {
             onPress={() => {
               Alert.alert(
                 "Tax Documents",
-                "1099-NEC for tax year 2025 is filed and available for download at rallycasts.tv/caster/taxes."
+                "1099-NEC for tax year 2025 is filed and available for download at rallycasts.com/caster/taxes."
               );
             }}
           >

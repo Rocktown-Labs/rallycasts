@@ -40,7 +40,7 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
         rel: "apple-touch-icon",
       },
       {
-        href: "https://rallycasts.tv",
+        href: "https://rallycasts.com",
         rel: "canonical",
       },
     ],
@@ -80,7 +80,7 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
         property: "og:description",
       },
       {
-        content: "https://rallycasts.tv",
+        content: "https://rallycasts.com",
         property: "og:url",
       },
       {
@@ -92,11 +92,11 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
         property: "og:type",
       },
       {
-        content: "https://rallycasts.tv/og-image.png",
+        content: "https://rallycasts.com/og-image.png",
         property: "og:image",
       },
       {
-        content: "https://rallycasts.tv/og-image.png",
+        content: "https://rallycasts.com/og-image.png",
         property: "og:image:secure_url",
       },
       {
@@ -130,7 +130,7 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
         name: "twitter:description",
       },
       {
-        content: "https://rallycasts.tv/og-image.png",
+        content: "https://rallycasts.com/og-image.png",
         name: "twitter:image",
       },
       {
@@ -144,25 +144,25 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
           "@context": "https://schema.org",
           "@graph": [
             {
-              "@id": "https://rallycasts.tv/#website",
+              "@id": "https://rallycasts.com/#website",
               "@type": "WebSite",
               description:
                 "Live Pickleball Streaming, Real-time Scoreboards, and Highlights",
               name: "RallyCasts",
               publisher: {
-                "@id": "https://rallycasts.tv/#organization",
+                "@id": "https://rallycasts.com/#organization",
               },
-              url: "https://rallycasts.tv",
+              url: "https://rallycasts.com",
             },
             {
-              "@id": "https://rallycasts.tv/#organization",
+              "@id": "https://rallycasts.com/#organization",
               "@type": "SportsOrganization",
               description:
                 "Community and broadcast network for live pickleball streaming and tournament coverage.",
-              image: "https://rallycasts.tv/og-image.png",
-              logo: "https://rallycasts.tv/rallycasts-icon.png",
+              image: "https://rallycasts.com/og-image.png",
+              logo: "https://rallycasts.com/rallycasts-icon.png",
               name: "RallyCasts",
-              url: "https://rallycasts.tv",
+              url: "https://rallycasts.com",
             },
           ],
         }),

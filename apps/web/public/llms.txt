@@ -14,10 +14,10 @@ RallyCasts provides high-definition court-side broadcasting, real-time scoreboar
 - **Player & Venue Directory**: Comprehensive profiles for players, organizers, hosts, and verified pickleball facilities.
 
 ## Primary Routes
-- Homepage: https://rallycasts.tv
-- Events & Tournaments: https://rallycasts.tv/events
-- Videos & Clips: https://rallycasts.tv/videos
-- Trending Matches: https://rallycasts.tv/trending
-- Casters Network: https://rallycasts.tv/casters
-- Players: https://rallycasts.tv/players
-- Venues: https://rallycasts.tv/venues
+- Homepage: https://rallycasts.com
+- Events & Tournaments: https://rallycasts.com/events
+- Videos & Clips: https://rallycasts.com/videos
+- Trending Matches: https://rallycasts.com/trending
+- Casters Network: https://rallycasts.com/casters
+- Players: https://rallycasts.com/players
+- Venues: https://rallycasts.com/venues
