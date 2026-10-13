@@ -361,6 +361,104 @@ describe("events API", () => {
     });
   });
 
+  it("shows unpublished events to their organizer but hides them from everyone else", async () => {
+    const organizer = await signUp("Dana Drafts");
+    await promoteToAdmin(organizer.id);
+    await activateOrganizer(organizer.cookie);
+    const stranger = await signUp("Sam Stranger");
+
+    const createResponse = await jsonRequest(
+      "/api/v1/events",
+      organizer.cookie,
+      {
+        capacity: 8,
+        eventType: "tournament",
+        name: "Draft Classic",
+        startsAt: new Date("2027-07-01T15:00:00.000Z").toISOString(),
+        status: "draft",
+      }
+    );
+    expect(createResponse.status).toBe(201);
+    const created = (await createResponse.json()) as { event: { id: string } };
+    const eventId = created.event.id;
+
+    const organizerView = await app.request(
+      `/api/v1/events/${eventId}`,
+      { headers: { Cookie: organizer.cookie } },
+      env
+    );
+    expect(organizerView.status).toBe(200);
+    await expect(organizerView.json()).resolves.toMatchObject({
+      event: { id: eventId, status: "draft" },
+    });
+
+    const anonymousView = await app.request(
+      `/api/v1/events/${eventId}`,
+      {},
+      env
+    );
+    expect(anonymousView.status).toBe(404);
+
+    const strangerView = await app.request(
+      `/api/v1/events/${eventId}`,
+      { headers: { Cookie: stranger.cookie } },
+      env
+    );
+    expect(strangerView.status).toBe(404);
+  });
+
+  it("shows pending-payment registrations to the organizer but not to the public", async () => {
+    const organizer = await signUp("Penny Organizer");
+    const eventId = `evt-${crypto.randomUUID()}`;
+    await env.DB.prepare(
+      "insert into event (id, name, organizer_user_id, starts_at, status, event_type) values (?, ?, ?, ?, 'published', 'tournament')"
+    )
+      .bind(eventId, "Paid Bracket", organizer.id, Date.now() + 86_400_000)
+      .run();
+    const pendingUser = await signUp("Umbra Unpaid");
+    await env.DB.prepare(
+      "insert into event_registration (id, event_id, user_id, status) values (?, ?, ?, 'pending_payment')"
+    )
+      .bind(`reg-${crypto.randomUUID()}`, eventId, pendingUser.id)
+      .run();
+    const paidUser = await signUp("Rita Registered");
+    await env.DB.prepare(
+      "insert into event_registration (id, event_id, user_id, status) values (?, ?, ?, 'registered')"
+    )
+      .bind(`reg-${crypto.randomUUID()}`, eventId, paidUser.id)
+      .run();
+
+    const organizerView = await app.request(
+      `/api/v1/events/${eventId}/players`,
+      { headers: { Cookie: organizer.cookie } },
+      env
+    );
+    expect(organizerView.status).toBe(200);
+    const organizerPlayers = (await organizerView.json()) as {
+      players: { registration: { status: string } }[];
+    };
+    const organizerStatuses = organizerPlayers.players.map(
+      ({ registration }) => registration.status
+    );
+    expect(organizerStatuses).toContain("pending_payment");
+    expect(organizerStatuses).toContain("registered");
+
+    const publicView = await app.request(
+      `/api/v1/events/${eventId}/players`,
+      {},
+      env
+    );
+    expect(publicView.status).toBe(200);
+    const publicPlayers = (await publicView.json()) as {
+      players: { registration: { status: string } }[];
+    };
+    const publicStatuses = publicPlayers.players.map(
+      ({ registration }) => registration.status
+    );
+    expect(publicStatuses).toContain("registered");
+    expect(publicStatuses).not.toContain("pending_payment");
+  });
+
   it("rejects unsupported image uploads before writing to R2", async () => {
     const user = await signUp("Image Tester");
     await env.DB.prepare("update user set email_verified = 1 where id = ?")

@@ -29,7 +29,7 @@ import {
 import { sendTournamentNotification } from "../lib/tournament-notifications";
 import type { AppEnv } from "../lib/types";
 import { findOrCreateVenueFromGooglePlace } from "../lib/venues";
-import { requireAuth } from "../middleware/auth";
+import { optionalAuth, requireAuth } from "../middleware/auth";
 
 const eventFields = z.object({
   bracketType: z
@@ -971,18 +971,32 @@ export const eventsRouter = new Hono<AppEnv>()
 
     return c.json({ event: record }, HttpStatusCodes.CREATED);
   })
-  .get("/:id", async (c) => {
+  .get("/:id", optionalAuth, async (c) => {
     const db = createDb(c.env.DB);
     const [record] = await db
       .select()
       .from(event)
-      .where(
-        and(eq(event.id, c.req.param("id")), eq(event.status, "published"))
-      )
+      .where(eq(event.id, c.req.param("id")))
       .limit(1);
 
     if (!record) {
       return c.json({ message: "Event not found" }, HttpStatusCodes.NOT_FOUND);
+    }
+
+    // Draft, completed, and cancelled events stay hidden from the public,
+    // but their organizers (directly or through their organization) must
+    // reach them: the manage console operates across the whole lifecycle.
+    if (record.status !== "published") {
+      const authUser = c.var.authSession?.user;
+      const manageable = authUser
+        ? await getManageableEvent(db, record.id, authUser.id)
+        : null;
+      if (!manageable) {
+        return c.json(
+          { message: "Event not found" },
+          HttpStatusCodes.NOT_FOUND
+        );
+      }
     }
 
     return c.json({ event: record }, HttpStatusCodes.OK);
@@ -1048,9 +1062,16 @@ export const eventsRouter = new Hono<AppEnv>()
 
     return c.json({ joined: false }, HttpStatusCodes.OK);
   })
-  .get("/:id/players", async (c) => {
+  .get("/:id/players", optionalAuth, async (c) => {
     const db = createDb(c.env.DB);
     const id = c.req.param("id");
+    // Unpaid (pending payment) registrations hold capacity and may need
+    // organizer action, but they are not public: only the event's managers
+    // see them alongside the active registrations.
+    const authUser = c.var.authSession?.user;
+    const isManager = authUser
+      ? Boolean(await getManageableEvent(db, id, authUser.id))
+      : false;
     const players = await db
       .select({
         player: {
@@ -1074,11 +1095,12 @@ export const eventsRouter = new Hono<AppEnv>()
         and(
           eq(event.id, id),
           eq(event.status, "published"),
-          inArray(eventRegistration.status, [
-            "registered",
-            "waitlisted",
-            "checked_in",
-          ])
+          inArray(
+            eventRegistration.status,
+            isManager
+              ? ["checked_in", "pending_payment", "registered", "waitlisted"]
+              : ["checked_in", "registered", "waitlisted"]
+          )
         )
       )
       .orderBy(asc(eventRegistration.createdAt));

@@ -1,5 +1,4 @@
 import { Button } from "@rallycaststv/ui/components/button";
-import { useQuery } from "@tanstack/react-query";
 import {
   useParams,
   Link,
@@ -19,9 +18,8 @@ import {
 } from "lucide-react";
 import { createContext, useContext, useMemo } from "react";
 
-import { apiClient } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
-import { useMyOrganizations } from "@/lib/hooks";
+import { useEvent, useMyOrganizations } from "@/lib/hooks";
 
 export interface EventDetails {
   location: string;
@@ -89,18 +87,9 @@ function EventLayout() {
     Boolean(sessionData?.user)
   );
 
-  const { data, isLoading, error } = useQuery({
-    queryFn: async () => {
-      const res = await apiClient.api.v1.events[":id"].$get({
-        param: { id },
-      });
-      if (!res.ok) {
-        throw new Error("Failed to fetch event");
-      }
-      return res.json();
-    },
-    queryKey: ["event", id],
-  });
+  // Shared hook: its ["events", id] key is the one useUpdateEvent
+  // invalidates, so status changes and edits refresh the layout.
+  const { data, isLoading, error } = useEvent(id);
 
   const eventData = data?.event;
 
