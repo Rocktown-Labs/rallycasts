@@ -250,7 +250,10 @@ function VideoStudioPage() {
       return;
     }
     uploadImage.mutate(file, {
-      onError: () => toast.error("Could not upload the image"),
+      onError: (error) =>
+        toast.error(
+          error instanceof Error ? error.message : "Could not upload the image"
+        ),
       onSuccess: (result) => {
         if (result.url) {
           saveCustomThumbnail.mutate(result.url);
