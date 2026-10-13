@@ -15,10 +15,13 @@ import {
 import { useMemo, useState } from "react";
 
 import { useMyEvents } from "@/lib/hooks/use-events";
-import { useMyOrganizations } from "@/lib/hooks/use-organizations";
+import {
+  useMyOrganizations,
+  useOrganization,
+} from "@/lib/hooks/use-organizations";
 import { useProfile } from "@/lib/hooks/use-profile";
 
-interface SetupItem {
+export interface SetupItem {
   actionLabel: string;
   description: string;
   id: string;
@@ -27,12 +30,46 @@ interface SetupItem {
   to: string;
 }
 
-interface SetupCategory {
+export interface SetupCategory {
   description: string;
   icon: typeof User;
   id: string;
   items: SetupItem[];
   title: string;
+}
+
+export interface HostCategoryData {
+  firstOrgDetails?: {
+    events?: unknown[];
+    members?: { role: string; user?: unknown }[];
+    organization?: {
+      bio?: string | null;
+      city?: string | null;
+      coverImageUrl?: string | null;
+      id?: string;
+      logoUrl?: string | null;
+      name?: string;
+      slug?: string;
+      state?: string | null;
+      stripeOnboardingStatus?: string | null;
+    } | null;
+    posts?: unknown[];
+  } | null;
+  myEvents?: unknown[];
+  myOrgs?: {
+    organization: {
+      bio?: string | null;
+      city?: string | null;
+      coverImageUrl?: string | null;
+      id?: string;
+      logoUrl?: string | null;
+      name?: string;
+      slug: string;
+      state?: string | null;
+      stripeOnboardingStatus?: string | null;
+    };
+    role?: string;
+  }[];
 }
 
 const STORAGE_KEY_MINIMIZED = "rallycasts.setup-guide.minimized";
@@ -86,64 +123,132 @@ function buildPlayerCategory(
   };
 }
 
-function buildHostCategory(
-  myOrgs: {
-    organization: {
-      bio?: string | null;
-      logoUrl?: string | null;
-      slug: string;
+function getOrgUrls(orgSlug?: string) {
+  if (!orgSlug) {
+    return {
+      feedUrl: "/events/hosts/new",
+      manageUrl: "/events/hosts/new",
+      teamUrl: "/events/hosts/new",
     };
-  }[],
-  myEvents: unknown[]
-): SetupCategory {
-  const firstOrg = myOrgs[0]?.organization;
-  const orgManageUrl = firstOrg
-    ? `/events/hosts/${firstOrg.slug}/manage`
-    : "/events/hosts/new";
+  }
+  return {
+    feedUrl: `/events/hosts/${orgSlug}`,
+    manageUrl: `/u/organizer/organizations/${orgSlug}`,
+    teamUrl: `/u/organizer/organizations/${orgSlug}/team`,
+  };
+}
 
+interface FirstOrgInfo {
+  bio?: string | null;
+  coverImageUrl?: string | null;
+  logoUrl?: string | null;
+  stripeOnboardingStatus?: string | null;
+}
+
+function getHostProgressStats(
+  firstOrg: FirstOrgInfo | undefined,
+  firstOrgDetails: HostCategoryData["firstOrgDetails"],
+  myEventsCount: number
+) {
+  const postsCount = firstOrgDetails?.posts?.length ?? 0;
+  const membersCount = firstOrgDetails?.members?.length ?? 0;
+  const fallbackEvents = firstOrgDetails?.events?.length ?? 0;
+  const eventsCount = myEventsCount > 0 ? myEventsCount : fallbackEvents;
   const hasBranding = Boolean(
-    myOrgs.some((o) => o.organization.bio || o.organization.logoUrl)
+    firstOrg?.bio && (firstOrg?.logoUrl || firstOrg?.coverImageUrl)
   );
+  const orgStripeStatus = firstOrg?.stripeOnboardingStatus;
+  const detailStripeStatus =
+    firstOrgDetails?.organization?.stripeOnboardingStatus;
+  const hasPayouts =
+    orgStripeStatus === "complete" || detailStripeStatus === "complete";
 
   return {
-    description: "Set up your club identity and host tournament brackets.",
+    eventsCount,
+    hasBranding,
+    hasPayouts,
+    membersCount,
+    postsCount,
+  };
+}
+
+export function buildHostCategory({
+  firstOrgDetails,
+  myEvents = [],
+  myOrgs = [],
+}: HostCategoryData): SetupCategory {
+  const firstOrg = myOrgs[0]?.organization;
+  const hasOrg = myOrgs.length > 0;
+  const { feedUrl, manageUrl, teamUrl } = getOrgUrls(firstOrg?.slug);
+
+  const { eventsCount, hasBranding, hasPayouts, membersCount, postsCount } =
+    getHostProgressStats(firstOrg, firstOrgDetails, myEvents.length);
+
+  const hasShared =
+    hasOrg && (postsCount > 0 || membersCount > 1 || eventsCount > 0);
+
+  return {
+    description: "Launch your club hub, publish posts, and run events.",
     icon: Building2,
     id: "host",
     items: [
       {
-        actionLabel: "Create Org",
-        description: "A public host profile to organize tournaments.",
+        actionLabel: hasOrg ? "View Hub" : "Create Org",
+        description: "A public host profile and club hub to organize players.",
         id: "org_create",
-        isComplete: myOrgs.length > 0,
-        title: "Create an organization",
-        to: "/events/hosts/new",
+        isComplete: hasOrg,
+        title: "Create organization hub",
+        to: feedUrl,
       },
       {
-        actionLabel: "Branding",
-        description: "Add a logo, bio, and city for your club or series.",
+        actionLabel: "Customize",
+        description: "Add an emblem, cover banner, bio, and home courts.",
         id: "org_branding",
         isComplete: hasBranding,
-        title: "Customize organization & logo",
-        to: orgManageUrl,
+        title: "Customize branding & logo",
+        to: manageUrl,
       },
       {
-        actionLabel: "New Tournament",
-        description: "Publish a bracket with seeds, dates, and courts.",
+        actionLabel: "Post Update",
+        description: "Share a welcome post, announcement, or rally video.",
+        id: "org_first_post",
+        isComplete: postsCount > 0,
+        title: "Publish first group post",
+        to: feedUrl,
+      },
+      {
+        actionLabel: "Invite Team",
+        description: "Add bracket directors, scorekeepers, and co-hosts.",
+        id: "org_team",
+        isComplete: membersCount > 1,
+        title: "Invite co-hosts & admins",
+        to: teamUrl,
+      },
+      {
+        actionLabel: "Host Event",
+        description: "Schedule a tournament bracket, clinic, or open play.",
         id: "org_tournament",
-        isComplete: myEvents.length > 0,
-        title: "Host your first tournament",
-        to: orgManageUrl,
+        isComplete: eventsCount > 0,
+        title: "Host first tournament or event",
+        to: "/u/organizer/tournaments/new",
       },
       {
         actionLabel: "Payouts",
         description:
-          "Connect your club's bank account so entry fees reach you.",
+          "Connect Stripe so player registration fees reach your bank.",
         id: "org_payouts",
-        // The member view never exposes Stripe ids; the payouts step stays
-        // open until the owner finishes Connect onboarding.
-        isComplete: false,
+        isComplete: hasPayouts,
         title: "Set up tournament payouts",
-        to: orgManageUrl,
+        to: "/u/organizer/payments",
+      },
+      {
+        actionLabel: "Share Link",
+        description:
+          "Invite players via Messenger, social, or link to join your hub.",
+        id: "org_share",
+        isComplete: hasShared,
+        title: "Share group page with community",
+        to: feedUrl,
       },
     ],
     title: "Host & Organization",
@@ -167,6 +272,13 @@ export function SetupGuide() {
 
   const { data: orgsData } = useMyOrganizations(Boolean(user));
   const { data: eventsData } = useMyEvents();
+
+  const myOrgs = useMemo(
+    () => orgsData?.organizations ?? [],
+    [orgsData?.organizations]
+  );
+  const firstOrgSlug = myOrgs[0]?.organization?.slug ?? "";
+  const { data: firstOrgDetails } = useOrganization(firstOrgSlug);
 
   const [isMinimized, setIsMinimized] = useState(() => {
     try {
@@ -193,18 +305,22 @@ export function SetupGuide() {
       return [];
     }
 
-    const myOrgs = orgsData?.organizations ?? [];
     const myEvents = eventsData?.events ?? [];
-
     const showHost =
       myOrgs.length > 0 || getIsRoleActive(profile, "isOrganizer");
     const result: SetupCategory[] = [buildPlayerCategory(user, profile)];
     if (showHost) {
-      result.push(buildHostCategory(myOrgs, myEvents));
+      result.push(
+        buildHostCategory({
+          firstOrgDetails: firstOrgDetails ?? null,
+          myEvents,
+          myOrgs,
+        })
+      );
     }
 
     return result;
-  }, [user, profile, orgsData, eventsData]);
+  }, [user, profile, myOrgs, eventsData, firstOrgDetails]);
 
   const allItems = useMemo(
     () => categories.flatMap((cat) => cat.items),
@@ -225,13 +341,13 @@ export function SetupGuide() {
     [allItems]
   );
 
-  if (
-    !user ||
-    // The guide only appears on the dashboard; studio, casting, and other
-    // /u surfaces stay clean.
-    (currentPath !== "/u" && currentPath !== "/u/me") ||
-    totalCount === 0
-  ) {
+  const isEligiblePath =
+    currentPath === "/u" ||
+    currentPath === "/u/me" ||
+    currentPath.startsWith("/u/organizer") ||
+    currentPath.startsWith("/events/hosts");
+
+  if (!user || !isEligiblePath || totalCount === 0) {
     return null;
   }
 
