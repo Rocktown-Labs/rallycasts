@@ -62,21 +62,21 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
         name: "color-scheme",
       },
       {
-        title: "RallyCasts — Live Pickleball Streaming & Highlights",
+        title: "RallyCasts — The Social Home for Pickleball",
       },
       {
         content:
-          "Stream live pickleball matches in 4K, follow real-time scoreboards, track tournament brackets, and catch clutch highlights from courts near you.",
+          "Connect with local pickleball players, find active open play courts, track tournament brackets, and share match highlights with your community.",
         name: "description",
       },
       // Open Graph
       {
-        content: "RallyCasts — Live Pickleball Streaming & Highlights",
+        content: "RallyCasts — The Social Home for Pickleball",
         property: "og:title",
       },
       {
         content:
-          "Stream live pickleball from any court. 4K broadcasts, live scoreboards, tournament brackets, and clutch highlights.",
+          "Discover local players, find active open courts, join tournaments, and share your best rallies with the pickleball community.",
         property: "og:description",
       },
       {
@@ -112,7 +112,8 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
         property: "og:image:height",
       },
       {
-        content: "RallyCasts — Live Pickleball. Every Court. Live Scores.",
+        content:
+          "RallyCasts — The Social Home for Pickleball. Discover players, active courts, tournaments, and match highlights.",
         property: "og:image:alt",
       },
       // Twitter Card
@@ -121,12 +122,12 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
         name: "twitter:card",
       },
       {
-        content: "RallyCasts — Live Pickleball Streaming & Highlights",
+        content: "RallyCasts — The Social Home for Pickleball",
         name: "twitter:title",
       },
       {
         content:
-          "Stream live pickleball from any court. 4K broadcasts, live scoreboards, tournament brackets, and clutch highlights.",
+          "Discover local players, find active open courts, join tournaments, and share your best rallies with the pickleball community.",
         name: "twitter:description",
       },
       {
@@ -134,7 +135,8 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
         name: "twitter:image",
       },
       {
-        content: "RallyCasts — Live Pickleball. Every Court. Live Scores.",
+        content:
+          "RallyCasts — The Social Home for Pickleball. Discover players, active courts, tournaments, and match highlights.",
         name: "twitter:image:alt",
       },
     ],
@@ -147,7 +149,7 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
               "@id": "https://rallycasts.com/#website",
               "@type": "WebSite",
               description:
-                "Live Pickleball Streaming, Real-time Scoreboards, and Highlights",
+                "The social platform for pickleball. Discover local players, find active courts, join tournaments, and share highlights.",
               name: "RallyCasts",
               publisher: {
                 "@id": "https://rallycasts.com/#organization",
@@ -158,7 +160,7 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
               "@id": "https://rallycasts.com/#organization",
               "@type": "SportsOrganization",
               description:
-                "Community and broadcast network for live pickleball streaming and tournament coverage.",
+                "The social platform and community for pickleball players, active courts, tournaments, and match highlights.",
               image: "https://rallycasts.com/og-image.png",
               logo: "https://rallycasts.com/rallycasts-icon.png",
               name: "RallyCasts",
