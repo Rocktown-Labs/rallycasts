@@ -1065,9 +1065,10 @@ export const eventsRouter = new Hono<AppEnv>()
   .get("/:id/players", optionalAuth, async (c) => {
     const db = createDb(c.env.DB);
     const id = c.req.param("id");
-    // Unpaid (pending payment) registrations hold capacity and may need
-    // organizer action, but they are not public: only the event's managers
-    // see them alongside the active registrations.
+    // Managers see the full lifecycle picture: unpaid (pending payment)
+    // registrations that hold capacity, plus completed and cancelled
+    // events' final rosters. The public only sees active rosters of
+    // published events.
     const authUser = c.var.authSession?.user;
     const isManager = authUser
       ? Boolean(await getManageableEvent(db, id, authUser.id))
@@ -1094,7 +1095,7 @@ export const eventsRouter = new Hono<AppEnv>()
       .where(
         and(
           eq(event.id, id),
-          eq(event.status, "published"),
+          ...(isManager ? [] : [eq(event.status, "published")]),
           inArray(
             eventRegistration.status,
             isManager
@@ -1125,16 +1126,30 @@ export const eventsRouter = new Hono<AppEnv>()
 
     return c.json({ snapshot }, HttpStatusCodes.OK);
   })
-  .get("/:id/bracket", async (c) => {
+  .get("/:id/bracket", optionalAuth, async (c) => {
     const db = createDb(c.env.DB);
     const id = c.req.param("id");
-    const [publishedEvent] = await db
-      .select({ id: event.id })
+    const [record] = await db
+      .select({ id: event.id, status: event.status })
       .from(event)
-      .where(and(eq(event.id, id), eq(event.status, "published")))
+      .where(eq(event.id, id))
       .limit(1);
-    if (!publishedEvent) {
+    if (!record) {
       return c.json({ message: "Event not found" }, HttpStatusCodes.NOT_FOUND);
+    }
+    // Public users only see brackets for published events; managers also
+    // see the bracket of completed and cancelled events from the console.
+    if (record.status !== "published") {
+      const authUser = c.var.authSession?.user;
+      const manageable = authUser
+        ? await getManageableEvent(db, id, authUser.id)
+        : null;
+      if (!manageable) {
+        return c.json(
+          { message: "Event not found" },
+          HttpStatusCodes.NOT_FOUND
+        );
+      }
     }
     const matches = await db
       .select({
