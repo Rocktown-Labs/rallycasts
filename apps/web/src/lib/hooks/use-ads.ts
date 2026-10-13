@@ -78,6 +78,46 @@ export const useAdCampaignAction = (organizationId?: string) => {
   });
 };
 
+/** Edit a draft or rejected campaign; the full editable field set is sent. */
+export interface CampaignEditInput {
+  city?: string;
+  creatives: CreateCampaignInput["creatives"];
+  dailyBudgetCents: number;
+  endsAt?: string;
+  eventId: string;
+  name: string;
+  placements: "both" | "display" | "preroll";
+  skillLevel?: "advanced" | "beginner" | "intermediate" | "pro";
+  startsAt?: string;
+  state?: string;
+  totalBudgetCents: number;
+  videoCpmCents?: number;
+}
+
+export const useUpdateAdCampaign = (organizationId?: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      campaignId,
+      json,
+    }: {
+      campaignId: string;
+      json: CampaignEditInput;
+    }) =>
+      readApiJson(
+        apiClient.api.v1.ads.campaigns[":id"].$patch({
+          json,
+          param: { id: campaignId },
+        })
+      ),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: ["ads", "campaigns", organizationId],
+      });
+    },
+  });
+};
+
 export const useAdTopup = () =>
   useMutation({
     mutationFn: ({ id, amountCents }: { amountCents: number; id: string }) =>
