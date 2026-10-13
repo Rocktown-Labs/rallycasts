@@ -542,6 +542,66 @@ describe("ads campaign editing", () => {
     expect(creative?.kind).toBe("preroll");
   });
 
+  it("clears targeting and flight fields when the edit omits them", async () => {
+    const owner = await signUp("owner");
+    const orgId = await makeOrg(owner.id);
+    const eventId = await makeEvent(orgId, owner.id);
+
+    const { body } = await createCampaign(owner.cookie, {
+      city: "Austin",
+      creatives: [{ kind: "display", title: "Targeted draft" }],
+      dailyBudgetCents: 100,
+      endsAt: new Date(Date.now() + 14 * 86_400_000).toISOString(),
+      eventId,
+      name: "Targeted push",
+      organizationId: orgId,
+      placements: "display",
+      skillLevel: "advanced",
+      startsAt: new Date(Date.now() + 86_400_000).toISOString(),
+      state: "TX",
+      totalBudgetCents: 500,
+    });
+    const campaignId = body.campaign?.id ?? "";
+
+    // Full edit payload with every optional field cleared: the database
+    // must reflect the cleared values, not silently keep the old ones.
+    const edit = await app.request(
+      `/api/v1/ads/campaigns/${campaignId}`,
+      {
+        body: JSON.stringify({
+          creatives: [{ kind: "display", title: "Targeted draft" }],
+          dailyBudgetCents: 100,
+          eventId,
+          name: "Targeted push",
+          placements: "display",
+          totalBudgetCents: 500,
+        }),
+        headers: { "Content-Type": "application/json", Cookie: owner.cookie },
+        method: "PATCH",
+      },
+      env
+    );
+    expect(edit.status).toBe(200);
+
+    const [row] = await env.DB.prepare(
+      "select city, state, skill_level as skillLevel, starts_at as startsAt, ends_at as endsAt from ad_campaign where id = ?"
+    )
+      .bind(campaignId)
+      .all<{
+        city: string | null;
+        endsAt: string | null;
+        skillLevel: string | null;
+        startsAt: string | null;
+        state: string | null;
+      }>()
+      .then((result) => result.results);
+    expect(row?.city).toBeNull();
+    expect(row?.state).toBeNull();
+    expect(row?.skillLevel).toBeNull();
+    expect(row?.startsAt).toBeNull();
+    expect(row?.endsAt).toBeNull();
+  });
+
   it("rejects editing active campaigns or foreign events", async () => {
     const owner = await signUp("owner");
     const orgId = await makeOrg(owner.id);

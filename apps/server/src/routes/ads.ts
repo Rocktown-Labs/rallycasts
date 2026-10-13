@@ -522,38 +522,16 @@ export const adsRouter = new Hono<AppEnv>()
       }
 
       if ("action" in body) {
-        const { action } = body;
-        if (action === "submit") {
-          if (!["draft", "rejected"].includes(campaign.status)) {
-            return c.json(
-              { message: "Only drafts can be submitted" },
-              HttpStatusCodes.CONFLICT
-            );
-          }
-          await db
-            .update(adCampaign)
-            .set({ status: "pending_approval", updatedAt: new Date() })
-            .where(eq(adCampaign.id, campaignId));
-          return c.json({ status: "pending_approval" }, HttpStatusCodes.OK);
-        }
-        if (action === "pause" || action === "resume") {
-          if (!["active", "paused"].includes(campaign.status)) {
-            return c.json(
-              { message: "Only active campaigns can be paused or resumed" },
-              HttpStatusCodes.CONFLICT
-            );
-          }
-          const next = action === "pause" ? "paused" : "active";
-          await db
-            .update(adCampaign)
-            .set({ status: next, updatedAt: new Date() })
-            .where(eq(adCampaign.id, campaignId));
-          return c.json({ status: next }, HttpStatusCodes.OK);
-        }
-        return c.json(
-          { message: "Unknown action" },
-          HttpStatusCodes.BAD_REQUEST
+        const result = await applyCampaignAction(
+          db,
+          campaignId,
+          campaign,
+          body.action
         );
+        if ("error" in result) {
+          return c.json({ message: result.error }, result.status);
+        }
+        return c.json({ status: result.status }, HttpStatusCodes.OK);
       }
 
       // Edit mode: only draft or rejected campaigns may be modified.
@@ -593,19 +571,22 @@ export const adsRouter = new Hono<AppEnv>()
       await db
         .update(adCampaign)
         .set({
-          city: validation.city,
+          // The edit payload is a full replacement of the editable fields,
+          // so cleared optionals must be written as NULL — drizzle skips
+          // undefined values, which would silently keep the old value.
+          city: validation.city ?? null,
           cpmCents: validation.cpmCents,
           dailyBudgetCents: validation.dailyBudgetCents,
-          endsAt: validation.endsAt,
+          endsAt: validation.endsAt ?? null,
           eventId: promotedEvent.event.id,
           name: validation.name,
           placements: validation.placements,
-          skillLevel: validation.skillLevel,
-          startsAt: validation.startsAt,
-          state: validation.state,
+          skillLevel: validation.skillLevel ?? null,
+          startsAt: validation.startsAt ?? null,
+          state: validation.state ?? null,
           totalBudgetCents: validation.totalBudgetCents,
           updatedAt: new Date(),
-          venueId: validation.venueId,
+          venueId: validation.venueId ?? null,
           videoCpmCents: validation.videoCpmCents,
         })
         .where(eq(adCampaign.id, campaignId));
@@ -919,6 +900,44 @@ const withSignedTracking = async (
     );
   }
   return signed;
+};
+
+type CampaignActionResult =
+  | { error: string; status: typeof HttpStatusCodes.CONFLICT }
+  | { status: "active" | "paused" | "pending_approval" };
+
+/** Submit / pause / resume transitions shared by the campaign PATCH route. */
+const applyCampaignAction = async (
+  db: Db,
+  campaignId: string,
+  campaign: { status: string },
+  action: "pause" | "resume" | "submit"
+): Promise<CampaignActionResult> => {
+  if (action === "submit") {
+    if (!["draft", "rejected"].includes(campaign.status)) {
+      return {
+        error: "Only drafts can be submitted",
+        status: HttpStatusCodes.CONFLICT,
+      };
+    }
+    await db
+      .update(adCampaign)
+      .set({ status: "pending_approval", updatedAt: new Date() })
+      .where(eq(adCampaign.id, campaignId));
+    return { status: "pending_approval" };
+  }
+  if (!["active", "paused"].includes(campaign.status)) {
+    return {
+      error: "Only active campaigns can be paused or resumed",
+      status: HttpStatusCodes.CONFLICT,
+    };
+  }
+  const next = action === "pause" ? "paused" : "active";
+  await db
+    .update(adCampaign)
+    .set({ status: next, updatedAt: new Date() })
+    .where(eq(adCampaign.id, campaignId));
+  return { status: next };
 };
 
 const isOrgMember = async (db: Db, organizationId: string, userId: string) => {
