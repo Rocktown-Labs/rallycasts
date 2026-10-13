@@ -54,30 +54,37 @@ function SheetContent({
   return (
     <SheetPortal>
       <SheetBackdrop />
-      <DrawerPrimitive.Popup
-        data-slot="sheet-content"
-        className={cn(
-          "bg-background fixed inset-y-0 z-50 flex h-dvh flex-col outline-none",
-          "transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
-          "motion-reduce:transition-none",
-          side === "left"
-            ? "left-0 w-[86vw] max-w-[20rem] border-r data-[ending-style]:-translate-x-full data-[starting-style]:-translate-x-full"
-            : "right-0 w-[86vw] max-w-[20rem] border-l data-[ending-style]:translate-x-full data-[starting-style]:translate-x-full",
-          className
-        )}
-        {...props}
+      {/* The viewport hosts the swipe-gesture and touch scroll-lock logic;
+          rendering the popup without it disables those behaviors. */}
+      <DrawerPrimitive.Viewport
+        data-slot="sheet-viewport"
+        className="fixed inset-0 z-50"
       >
-        {children}
-        {showCloseButton ? (
-          <DrawerPrimitive.Close
-            data-slot="sheet-close-button"
-            className="ring-offset-background focus-visible:ring-ring absolute top-3 right-3 z-10 flex size-9 items-center justify-center rounded-md opacity-70 transition-opacity hover:opacity-100 focus-visible:ring-2 focus-visible:outline-none"
-          >
-            <XIcon className="size-4" />
-            <span className="sr-only">Close</span>
-          </DrawerPrimitive.Close>
-        ) : null}
-      </DrawerPrimitive.Popup>
+        <DrawerPrimitive.Popup
+          data-slot="sheet-content"
+          className={cn(
+            "bg-background fixed inset-y-0 z-50 flex h-dvh flex-col outline-none",
+            "transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
+            "motion-reduce:transition-none",
+            side === "left"
+              ? "left-0 w-[86vw] max-w-[20rem] border-r data-[ending-style]:-translate-x-full data-[starting-style]:-translate-x-full"
+              : "right-0 w-[86vw] max-w-[20rem] border-l data-[ending-style]:translate-x-full data-[starting-style]:translate-x-full",
+            className
+          )}
+          {...props}
+        >
+          {children}
+          {showCloseButton ? (
+            <DrawerPrimitive.Close
+              data-slot="sheet-close-button"
+              className="ring-offset-background focus-visible:ring-ring absolute top-3 right-3 z-10 flex size-9 items-center justify-center rounded-md opacity-70 transition-opacity hover:opacity-100 focus-visible:ring-2 focus-visible:outline-none"
+            >
+              <XIcon className="size-4" />
+              <span className="sr-only">Close</span>
+            </DrawerPrimitive.Close>
+          ) : null}
+        </DrawerPrimitive.Popup>
+      </DrawerPrimitive.Viewport>
     </SheetPortal>
   );
 }
