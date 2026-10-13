@@ -103,6 +103,68 @@ export const useCreatePost = () => {
   });
 };
 
+export const usePostComments = (postId: string) =>
+  useQuery({
+    enabled: Boolean(postId),
+    queryFn: () =>
+      readApiJson(
+        apiClient.api.v1.social.posts[":id"].comments.$get({
+          param: { id: postId },
+        })
+      ),
+    queryKey: ["posts", postId, "comments"],
+  });
+
+export const useCreatePostComment = (postId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (json: { content: string }) =>
+      readApiJson(
+        apiClient.api.v1.social.posts[":id"].comments.$post({
+          json,
+          param: { id: postId },
+        })
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["posts", postId, "comments"],
+      });
+      queryClient.invalidateQueries({ queryKey: ["organization"] });
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+    },
+  });
+};
+
+export const useTogglePostLike = (postId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      isLiked,
+    }: {
+      isLiked: boolean;
+    }): Promise<{ liked: boolean }> => {
+      if (isLiked) {
+        return readApiJson(
+          apiClient.api.v1.social.posts[":id"].likes.$delete({
+            param: { id: postId },
+          })
+        );
+      }
+      return readApiJson(
+        apiClient.api.v1.social.posts[":id"].likes.$post({
+          param: { id: postId },
+        })
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["organization"] });
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+    },
+  });
+};
+
 export const useSendFriendRequest = () => {
   const queryClient = useQueryClient();
 
