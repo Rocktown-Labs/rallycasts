@@ -2,19 +2,55 @@ import "@/polyfills";
 import "@/global.css";
 import { Stack } from "expo-router";
 import { HeroUINativeProvider } from "heroui-native";
+import React from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 
 import { AppThemeProvider } from "@/contexts/app-theme-context";
+import { CasterGigProvider } from "@/contexts/caster-gig-context";
 
 export const unstable_settings = {
-  initialRouteName: "(drawer)",
+  initialRouteName: "(tabs)",
 };
 
 function StackLayout() {
   return (
-    <Stack screenOptions={{}}>
-      <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: "#0a0c12" },
+      }}
+    >
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="offer-modal"
+        options={{
+          presentation: "modal",
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="active-gig"
+        options={{
+          headerShown: false,
+          animation: "slide_from_right",
+        }}
+      />
+      <Stack.Screen
+        name="zone-modal"
+        options={{
+          presentation: "formSheet",
+          headerShown: false,
+          sheetGrabberVisible: true,
+        }}
+      />
+      <Stack.Screen
+        name="gig/[id]"
+        options={{
+          headerShown: false,
+          animation: "slide_from_right",
+        }}
+      />
       <Stack.Screen
         name="modal"
         options={{ presentation: "modal", title: "Modal" }}
@@ -29,7 +65,9 @@ export default function Layout() {
       <KeyboardProvider>
         <AppThemeProvider>
           <HeroUINativeProvider>
-            <StackLayout />
+            <CasterGigProvider>
+              <StackLayout />
+            </CasterGigProvider>
           </HeroUINativeProvider>
         </AppThemeProvider>
       </KeyboardProvider>
