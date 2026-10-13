@@ -27,8 +27,19 @@ export async function readApiJson<
   const response = await request;
 
   if (!response.ok) {
+    // Hono error bodies carry a human-readable `message`; surface it so
+    // callers can show why a request failed instead of a bare status text.
+    const body = (await response.json().catch(() => null)) as {
+      message?: unknown;
+    } | null;
+    const serverMessage =
+      typeof body?.message === "string" && body.message
+        ? body.message
+        : undefined;
     throw new Error(
-      response.statusText || `Request failed with ${response.status}`
+      serverMessage ||
+        response.statusText ||
+        `Request failed with ${response.status}`
     );
   }
 

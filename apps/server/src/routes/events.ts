@@ -29,7 +29,7 @@ import {
 import { sendTournamentNotification } from "../lib/tournament-notifications";
 import type { AppEnv } from "../lib/types";
 import { findOrCreateVenueFromGooglePlace } from "../lib/venues";
-import { requireAuth } from "../middleware/auth";
+import { optionalAuth, requireAuth } from "../middleware/auth";
 
 const eventFields = z.object({
   bracketType: z
@@ -75,6 +75,16 @@ const eventSchema = eventFields
 const updateEventSchema = eventFields
   .omit({ googlePlaceId: true, organizationId: true })
   .partial()
+  .extend({
+    // Optional content fields accept null so organizers can clear them;
+    // omitted keys keep their current value. refundPolicy is NOT NULL in
+    // the database, so it clears to an empty string instead.
+    capacity: z.number().int().positive().nullable().optional(),
+    description: z.string().max(2000).nullable().optional(),
+    endsAt: z.coerce.date().nullable().optional(),
+    refundPolicy: z.string().max(1000).optional(),
+    registrationDeadline: z.coerce.date().nullable().optional(),
+  })
   .refine(
     (data) => !data.endsAt || !data.startsAt || data.endsAt > data.startsAt,
     {
@@ -971,18 +981,32 @@ export const eventsRouter = new Hono<AppEnv>()
 
     return c.json({ event: record }, HttpStatusCodes.CREATED);
   })
-  .get("/:id", async (c) => {
+  .get("/:id", optionalAuth, async (c) => {
     const db = createDb(c.env.DB);
     const [record] = await db
       .select()
       .from(event)
-      .where(
-        and(eq(event.id, c.req.param("id")), eq(event.status, "published"))
-      )
+      .where(eq(event.id, c.req.param("id")))
       .limit(1);
 
     if (!record) {
       return c.json({ message: "Event not found" }, HttpStatusCodes.NOT_FOUND);
+    }
+
+    // Draft, completed, and cancelled events stay hidden from the public,
+    // but their organizers (directly or through their organization) must
+    // reach them: the manage console operates across the whole lifecycle.
+    if (record.status !== "published") {
+      const authUser = c.var.authSession?.user;
+      const manageable = authUser
+        ? await getManageableEvent(db, record.id, authUser.id)
+        : null;
+      if (!manageable) {
+        return c.json(
+          { message: "Event not found" },
+          HttpStatusCodes.NOT_FOUND
+        );
+      }
     }
 
     return c.json({ event: record }, HttpStatusCodes.OK);
@@ -1048,9 +1072,17 @@ export const eventsRouter = new Hono<AppEnv>()
 
     return c.json({ joined: false }, HttpStatusCodes.OK);
   })
-  .get("/:id/players", async (c) => {
+  .get("/:id/players", optionalAuth, async (c) => {
     const db = createDb(c.env.DB);
     const id = c.req.param("id");
+    // Managers see the full lifecycle picture: unpaid (pending payment)
+    // registrations that hold capacity, plus completed and cancelled
+    // events' final rosters. The public only sees active rosters of
+    // published events.
+    const authUser = c.var.authSession?.user;
+    const isManager = authUser
+      ? Boolean(await getManageableEvent(db, id, authUser.id))
+      : false;
     const players = await db
       .select({
         player: {
@@ -1073,12 +1105,13 @@ export const eventsRouter = new Hono<AppEnv>()
       .where(
         and(
           eq(event.id, id),
-          eq(event.status, "published"),
-          inArray(eventRegistration.status, [
-            "registered",
-            "waitlisted",
-            "checked_in",
-          ])
+          ...(isManager ? [] : [eq(event.status, "published")]),
+          inArray(
+            eventRegistration.status,
+            isManager
+              ? ["checked_in", "pending_payment", "registered", "waitlisted"]
+              : ["checked_in", "registered", "waitlisted"]
+          )
         )
       )
       .orderBy(asc(eventRegistration.createdAt));
@@ -1103,16 +1136,30 @@ export const eventsRouter = new Hono<AppEnv>()
 
     return c.json({ snapshot }, HttpStatusCodes.OK);
   })
-  .get("/:id/bracket", async (c) => {
+  .get("/:id/bracket", optionalAuth, async (c) => {
     const db = createDb(c.env.DB);
     const id = c.req.param("id");
-    const [publishedEvent] = await db
-      .select({ id: event.id })
+    const [record] = await db
+      .select({ id: event.id, status: event.status })
       .from(event)
-      .where(and(eq(event.id, id), eq(event.status, "published")))
+      .where(eq(event.id, id))
       .limit(1);
-    if (!publishedEvent) {
+    if (!record) {
       return c.json({ message: "Event not found" }, HttpStatusCodes.NOT_FOUND);
+    }
+    // Public users only see brackets for published events; managers also
+    // see the bracket of completed and cancelled events from the console.
+    if (record.status !== "published") {
+      const authUser = c.var.authSession?.user;
+      const manageable = authUser
+        ? await getManageableEvent(db, id, authUser.id)
+        : null;
+      if (!manageable) {
+        return c.json(
+          { message: "Event not found" },
+          HttpStatusCodes.NOT_FOUND
+        );
+      }
     }
     const matches = await db
       .select({

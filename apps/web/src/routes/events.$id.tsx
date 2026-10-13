@@ -1,5 +1,4 @@
 import { Button } from "@rallycaststv/ui/components/button";
-import { useQuery } from "@tanstack/react-query";
 import {
   useParams,
   Link,
@@ -10,6 +9,7 @@ import {
   Calendar,
   ChevronLeft,
   ListChecks,
+  ShieldCheck,
   Trophy,
   Users,
   Swords,
@@ -18,9 +18,8 @@ import {
 } from "lucide-react";
 import { createContext, useContext, useMemo } from "react";
 
-import { apiClient } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
-import { useMyOrganizations } from "@/lib/hooks";
+import { useEvent, useMyOrganizations } from "@/lib/hooks";
 
 export interface EventDetails {
   location: string;
@@ -88,18 +87,9 @@ function EventLayout() {
     Boolean(sessionData?.user)
   );
 
-  const { data, isLoading, error } = useQuery({
-    queryFn: async () => {
-      const res = await apiClient.api.v1.events[":id"].$get({
-        param: { id },
-      });
-      if (!res.ok) {
-        throw new Error("Failed to fetch event");
-      }
-      return res.json();
-    },
-    queryKey: ["event", id],
-  });
+  // Shared hook: its ["events", id] key is the one useUpdateEvent
+  // invalidates, so status changes and edits refresh the layout.
+  const { data, isLoading, error } = useEvent(id);
 
   const eventData = data?.event;
 
@@ -117,10 +107,13 @@ function EventLayout() {
     }),
     [eventData?.eventType, eventData?.venueId]
   );
+  // Only owner/admin org members manage events. The server rejects the
+  // editor role, so matching it here avoids a console where every action
+  // would fail with a 404.
   const manageableOrganizationIds = new Set(
-    (organizationsData?.organizations ?? []).map(
-      ({ organization }) => organization.id
-    )
+    (organizationsData?.organizations ?? [])
+      .filter(({ role }) => role !== "editor")
+      .map(({ organization }) => organization.id)
   );
   const canManageEvent = eventData
     ? canUserManageEvent({
@@ -178,11 +171,11 @@ function EventLayout() {
       {/* Back button */}
       <div>
         <Link
-          to={canManageEvent ? "/u/organizer/organizations" : "/events"}
+          to={canManageEvent ? "/u/organizer/tournaments" : "/events"}
           className="text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1.5 text-xs"
         >
           <ChevronLeft className="size-3.5" />{" "}
-          {canManageEvent ? "Back to Organizer Events" : "Back to Events"}
+          {canManageEvent ? "Back to My Tournaments" : "Back to Events"}
         </Link>
       </div>
 
@@ -226,9 +219,9 @@ function EventLayout() {
           </div>
           {canManageEvent ? (
             <div className="flex flex-wrap gap-2 pt-2">
-              <Link params={{ id: eventData.id }} to="/events/$id/players">
+              <Link params={{ id: eventData.id }} to="/events/$id/manage">
                 <Button className="rounded-lg text-xs" size="sm">
-                  <Users className="size-3.5" /> Player Pool
+                  <ShieldCheck className="size-3.5" /> Manage Event
                 </Button>
               </Link>
               <Link params={{ id: eventData.id }} to="/events/$id/bracket">
@@ -294,6 +287,17 @@ function EventLayout() {
         >
           <MapPin className="size-4" /> Locations
         </Link>
+        {canManageEvent ? (
+          <Link
+            to="/events/$id/manage"
+            params={{ id: eventData.id }}
+            activeProps={{ className: activeLinkClass }}
+            inactiveProps={{ className: inactiveLinkClass }}
+            className="flex items-center gap-1.5 border-b-2 pb-3 text-xs font-bold tracking-wider uppercase transition-all sm:text-sm"
+          >
+            <ShieldCheck className="size-4" /> Manage
+          </Link>
+        ) : null}
       </div>
 
       {/* Tab content */}
