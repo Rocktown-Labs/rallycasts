@@ -840,11 +840,21 @@ function CampaignDetailDialog({
   const isEditable = EDITABLE_STATUSES.has(campaign.status);
 
   const chartDefinition = useMemo(() => {
-    const rows = (statsData?.byDay ?? [])
-      .toSorted((left, right) => left.day.localeCompare(right.day))
-      .map((day) => ({
-        date: day.day.slice(5),
-        impressions: day.impressions,
+    // Daily stats are tracked per placement, so a "both" campaign produces
+    // two rows per day. Sum them per day or the chart under-reports
+    // delivery and draws overlapping bars.
+    const impressionsByDay = new Map<string, number>();
+    for (const row of statsData?.byDay ?? []) {
+      impressionsByDay.set(
+        row.day,
+        (impressionsByDay.get(row.day) ?? 0) + row.impressions
+      );
+    }
+    const rows = [...impressionsByDay.entries()]
+      .toSorted((left, right) => left[0].localeCompare(right[0]))
+      .map(([day, impressions]) => ({
+        date: day.slice(5),
+        impressions,
       }));
     if (rows.length === 0) {
       return null;
