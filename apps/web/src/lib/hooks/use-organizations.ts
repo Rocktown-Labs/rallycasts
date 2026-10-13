@@ -74,8 +74,70 @@ export const useAddOrganizationMember = (slug: string) => {
   });
 };
 
+export const useJoinOrganization = (slug: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () =>
+      readApiJson(
+        apiClient.api.v1.hosts[":slug"].join.$post({
+          param: { slug },
+        })
+      ),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["organization", slug] });
+      await queryClient.invalidateQueries({
+        queryKey: ["organizations", "me"],
+      });
+    },
+  });
+};
+
+export const useLeaveOrganization = (slug: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () =>
+      readApiJson(
+        apiClient.api.v1.hosts[":slug"].leave.$post({
+          param: { slug },
+        })
+      ),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["organization", slug] });
+      await queryClient.invalidateQueries({
+        queryKey: ["organizations", "me"],
+      });
+    },
+  });
+};
+
+export const useCreateOrganizationPost = (slug: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (json: {
+      content: string;
+      imageUrl?: string;
+      mediaUrls?: string[];
+    }) =>
+      readApiJson(
+        apiClient.api.v1.hosts[":slug"].posts.$post({
+          json,
+          param: { slug },
+        })
+      ),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["organization", slug] });
+    },
+  });
+};
+
 export const useHosts = useOrganizations;
 export const useMyHosts = useMyOrganizations;
 export const useHost = useOrganization;
 export const useUpdateHost = useUpdateOrganization;
 export const useAddHostMember = useAddOrganizationMember;
+export const useJoinHost = useJoinOrganization;
+export const useLeaveHost = useLeaveOrganization;
+export const useCreateHostPost = useCreateOrganizationPost;

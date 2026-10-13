@@ -198,4 +198,83 @@ describe("organizations API", () => {
       ]),
     });
   });
+
+  it("supports joining, leaving, and publishing posts with social metrics", async () => {
+    const owner = await signUp("Group Admin");
+    const member = await signUp("Community Member");
+    const slug = `social-group-${crypto.randomUUID().slice(0, 8)}`;
+
+    const createOrg = await jsonRequest("/api/v1/hosts", owner.cookie, {
+      city: "Memphis",
+      name: "Memphis Pickleball Group",
+      slug,
+      state: "TN",
+    });
+    expect(createOrg.status).toBe(201);
+
+    // Join organization
+    const joinRes = await app.request(
+      `/api/v1/hosts/${slug}/join`,
+      { headers: { Cookie: member.cookie }, method: "POST" },
+      env
+    );
+    expect(joinRes.status).toBe(200);
+    await expect(joinRes.json()).resolves.toMatchObject({ joined: true });
+
+    // Member posts an update with photo
+    const postRes = await jsonRequest(
+      `/api/v1/hosts/${slug}/posts`,
+      member.cookie,
+      {
+        content: "Great matches at the courts today!",
+        imageUrl: "https://example.com/court-action.jpg",
+      }
+    );
+    expect(postRes.status).toBe(201);
+    const postBody = (await postRes.json()) as { post: { id: string } };
+
+    // Like post
+    const likeRes = await app.request(
+      `/api/v1/social/posts/${postBody.post.id}/likes`,
+      { headers: { Cookie: owner.cookie }, method: "POST" },
+      env
+    );
+    expect(likeRes.status).toBe(200);
+
+    // Comment on post
+    const commentRes = await jsonRequest(
+      `/api/v1/social/posts/${postBody.post.id}/comments`,
+      owner.cookie,
+      { content: "Love the photo! See you next Tuesday." }
+    );
+    expect(commentRes.status).toBe(201);
+
+    // Get public host group page
+    const groupRes = await app.request(
+      `/api/v1/hosts/${slug}`,
+      { headers: { Cookie: member.cookie } },
+      env
+    );
+    expect(groupRes.status).toBe(200);
+    await expect(groupRes.json()).resolves.toMatchObject({
+      isMember: true,
+      posts: expect.arrayContaining([
+        expect.objectContaining({
+          author: expect.objectContaining({ name: "Community Member" }),
+          commentCount: 1,
+          id: postBody.post.id,
+          likeCount: 1,
+        }),
+      ]),
+    });
+
+    // Leave organization
+    const leaveRes = await app.request(
+      `/api/v1/hosts/${slug}/leave`,
+      { headers: { Cookie: member.cookie }, method: "POST" },
+      env
+    );
+    expect(leaveRes.status).toBe(200);
+    await expect(leaveRes.json()).resolves.toMatchObject({ left: true });
+  });
 });

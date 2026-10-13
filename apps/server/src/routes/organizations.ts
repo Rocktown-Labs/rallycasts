@@ -6,9 +6,11 @@ import {
   organization,
   organizationMember,
   post,
+  postComment,
+  postLike,
   video,
 } from "@rallycaststv/db/schema/domain";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 import { z } from "zod";
@@ -17,7 +19,7 @@ import { isPlatformAdminUser } from "../lib/admin";
 import { createId } from "../lib/ids";
 import { toPublicVideo } from "../lib/public-data";
 import type { AppEnv } from "../lib/types";
-import { requireAuth } from "../middleware/auth";
+import { optionalAuth, requireAuth } from "../middleware/auth";
 
 const organizationFields = z.object({
   bio: z.string().max(1000).optional(),
@@ -39,7 +41,9 @@ const addMemberSchema = z.object({
 });
 
 const organizationPostSchema = z.object({
-  content: z.string().trim().min(1).max(2000),
+  content: z.string().trim().min(1).max(5000),
+  imageUrl: z.string().url().optional(),
+  mediaUrls: z.array(z.string().url()).max(10).optional(),
 });
 
 const organizationVideoSchema = z.object({
@@ -149,7 +153,7 @@ export const organizationsRouter = new Hono<AppEnv>()
       HttpStatusCodes.CREATED
     );
   })
-  .get("/:slug", async (c) => {
+  .get("/:slug", optionalAuth, async (c) => {
     const db = createDb(c.env.DB);
     const [record] = await db
       .select()
@@ -163,7 +167,7 @@ export const organizationsRouter = new Hono<AppEnv>()
       );
     }
 
-    const [members, events, videos, posts] = await Promise.all([
+    const [members, events, videos, postsWithMetrics] = await Promise.all([
       db
         .select({
           role: organizationMember.role,
@@ -199,17 +203,64 @@ export const organizationsRouter = new Hono<AppEnv>()
         )
         .orderBy(desc(video.createdAt)),
       db
-        .select()
+        .select({
+          author: {
+            displayUsername: user.displayUsername,
+            id: user.id,
+            image: user.image,
+            name: user.name,
+            username: user.username,
+          },
+          commentCount: sql<number>`count(distinct ${postComment.id})`,
+          likeCount: sql<number>`count(distinct ${postLike.userId})`,
+          post,
+        })
         .from(post)
+        .innerJoin(user, eq(post.userId, user.id))
+        .leftJoin(postLike, eq(postLike.postId, post.id))
+        .leftJoin(postComment, eq(postComment.postId, post.id))
         .where(eq(post.organizationId, record.id))
+        .groupBy(post.id)
         .orderBy(desc(post.createdAt)),
     ]);
+
+    const authUserId = c.var.authSession?.user?.id;
+    let userLikedPostIds = new Set<string>();
+    if (authUserId && postsWithMetrics.length > 0) {
+      const postIds = postsWithMetrics.map((item) => item.post.id);
+      const likedRows = await db
+        .select({ postId: postLike.postId })
+        .from(postLike)
+        .where(
+          and(
+            eq(postLike.userId, authUserId),
+            inArray(postLike.postId, postIds)
+          )
+        );
+      userLikedPostIds = new Set(likedRows.map((r) => r.postId));
+    }
+
+    const formattedPosts = postsWithMetrics.map((item) => ({
+      ...item.post,
+      author: item.author,
+      commentCount: Number(item.commentCount ?? 0),
+      likeCount: Number(item.likeCount ?? 0),
+      liked: userLikedPostIds.has(item.post.id),
+    }));
+
+    const userMembership = authUserId
+      ? members.find((m) => m.user.id === authUserId)
+      : null;
+    const isMember = Boolean(userMembership);
+
     return c.json(
       {
         events,
+        isMember,
         members,
         organization: toPublicOrganization(record),
-        posts,
+        posts: formattedPosts,
+        userRole: userMembership?.role ?? null,
         videos: videos.map(toPublicVideo),
       },
       HttpStatusCodes.OK
@@ -317,6 +368,85 @@ export const organizationsRouter = new Hono<AppEnv>()
       return c.json({ added: true }, HttpStatusCodes.OK);
     }
   )
+  .post("/:slug/join", requireAuth, async (c) => {
+    const db = createDb(c.env.DB);
+    const { user: authUser } = c.var.authSession;
+    const [record] = await db
+      .select()
+      .from(organization)
+      .where(eq(organization.slug, c.req.param("slug")))
+      .limit(1);
+    if (!record) {
+      return c.json(
+        { message: "Organization not found" },
+        HttpStatusCodes.NOT_FOUND
+      );
+    }
+    const [existing] = await db
+      .select({ role: organizationMember.role })
+      .from(organizationMember)
+      .where(
+        and(
+          eq(organizationMember.organizationId, record.id),
+          eq(organizationMember.userId, authUser.id)
+        )
+      )
+      .limit(1);
+    if (!existing) {
+      await db.insert(organizationMember).values({
+        organizationId: record.id,
+        role: "editor",
+        userId: authUser.id,
+      });
+    }
+    return c.json(
+      { joined: true, role: existing?.role ?? "editor" },
+      HttpStatusCodes.OK
+    );
+  })
+  .post("/:slug/leave", requireAuth, async (c) => {
+    const db = createDb(c.env.DB);
+    const { user: authUser } = c.var.authSession;
+    const [record] = await db
+      .select()
+      .from(organization)
+      .where(eq(organization.slug, c.req.param("slug")))
+      .limit(1);
+    if (!record) {
+      return c.json(
+        { message: "Organization not found" },
+        HttpStatusCodes.NOT_FOUND
+      );
+    }
+    const [existing] = await db
+      .select({ role: organizationMember.role })
+      .from(organizationMember)
+      .where(
+        and(
+          eq(organizationMember.organizationId, record.id),
+          eq(organizationMember.userId, authUser.id)
+        )
+      )
+      .limit(1);
+    if (!existing) {
+      return c.json({ left: true }, HttpStatusCodes.OK);
+    }
+    if (existing.role === "owner") {
+      return c.json(
+        { message: "Owners cannot leave their own organization" },
+        HttpStatusCodes.FORBIDDEN
+      );
+    }
+    await db
+      .delete(organizationMember)
+      .where(
+        and(
+          eq(organizationMember.organizationId, record.id),
+          eq(organizationMember.userId, authUser.id)
+        )
+      );
+    return c.json({ left: true }, HttpStatusCodes.OK);
+  })
   .post(
     "/:slug/posts",
     requireAuth,
@@ -329,11 +459,34 @@ export const organizationsRouter = new Hono<AppEnv>()
         .from(organization)
         .where(eq(organization.slug, c.req.param("slug")))
         .limit(1);
-      if (!record || !(await getMembership(db, record.id, authUser.id))) {
-        return c.json({ message: "Forbidden" }, HttpStatusCodes.FORBIDDEN);
+      if (!record) {
+        return c.json(
+          { message: "Organization not found" },
+          HttpStatusCodes.NOT_FOUND
+        );
+      }
+      const membership = await getMembership(db, record.id, authUser.id);
+      if (!membership) {
+        await db.insert(organizationMember).values({
+          organizationId: record.id,
+          role: "editor",
+          userId: authUser.id,
+        });
+      }
+      const data = c.req.valid("json");
+      let { content } = data;
+      const allMedia = [
+        ...(data.imageUrl ? [data.imageUrl] : []),
+        ...(data.mediaUrls ?? []),
+      ];
+      if (allMedia.length > 0) {
+        const mediaMarkdown = allMedia
+          .map((url) => `![photo](${url})`)
+          .join("\n");
+        content = `${content}\n\n${mediaMarkdown}`.trim();
       }
       const organizationPost = {
-        content: c.req.valid("json").content,
+        content,
         id: createId(),
         organizationId: record.id,
         userId: authUser.id,
