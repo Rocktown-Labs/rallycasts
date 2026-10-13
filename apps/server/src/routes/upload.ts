@@ -103,6 +103,23 @@ const logUploadError = (event: string, error: unknown) => {
   );
 };
 
+// Validation rejections are intentional, but logging them is the only way to
+// tell "user picked a 12MB phone photo" apart from "storage is misconfigured"
+// in production logs.
+const logImageRejection = (
+  reason: string,
+  file: { size: number; type: string } | null
+) => {
+  console.error(
+    JSON.stringify({
+      contentType: file?.type ?? null,
+      event: "image_upload_rejected",
+      reason,
+      sizeBytes: file?.size ?? null,
+    })
+  );
+};
+
 export const uploadRouter = new Hono<AppEnv>()
   .post(
     "/mux",
@@ -266,6 +283,7 @@ export const uploadRouter = new Hono<AppEnv>()
             "function"
         )
       ) {
+        logImageRejection("missing_file", null);
         return c.json(
           { message: "No file provided" },
           HttpStatusCodes.BAD_REQUEST
@@ -275,12 +293,14 @@ export const uploadRouter = new Hono<AppEnv>()
       const file = fileValue as unknown as File;
       const contentType = file.type;
       if (!ALLOWED_IMAGE_TYPES.has(contentType)) {
+        logImageRejection("unsupported_type", file);
         return c.json(
           { message: "Only AVIF, JPEG, PNG, and WebP images are supported" },
           HttpStatusCodes.BAD_REQUEST
         );
       }
       if (file.size > MAX_IMAGE_BYTES) {
+        logImageRejection("too_large", file);
         return c.json(
           { message: "Image must be 5MB or smaller" },
           HttpStatusCodes.BAD_REQUEST
@@ -288,12 +308,14 @@ export const uploadRouter = new Hono<AppEnv>()
       }
       const imageBytes = new Uint8Array(await file.slice(0, 32).arrayBuffer());
       if (!hasDeclaredImageSignature(imageBytes, contentType)) {
+        logImageRejection("signature_mismatch", file);
         return c.json(
           { message: "Image contents do not match the declared type" },
           HttpStatusCodes.BAD_REQUEST
         );
       }
       if (!(bucket && publicUrl)) {
+        logImageRejection("storage_not_configured", file);
         return c.json(
           { message: "Media storage is not configured" },
           HttpStatusCodes.SERVICE_UNAVAILABLE

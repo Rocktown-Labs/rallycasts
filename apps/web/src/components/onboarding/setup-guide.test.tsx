@@ -120,6 +120,46 @@ describe("buildHostCategory", () => {
     }
   });
 
+  it("marks branding complete with bio and logo alone (no cover image field)", () => {
+    const category = buildHostCategory({
+      firstOrgDetails: null,
+      myEvents: [],
+      myOrgs: [
+        {
+          organization: {
+            bio: "Premier club in Austin, TX",
+            logoUrl: "https://media.rallycasts.com/images/abc.png",
+            slug: "austin-pickleball",
+          },
+        },
+      ],
+    });
+
+    const brandingItem = category.items.find((i) => i.id === "org_branding");
+    expect(brandingItem?.isComplete).toBe(true);
+    expect(brandingItem?.to).toBe(
+      "/u/organizer/organizations/austin-pickleball"
+    );
+  });
+
+  it("marks branding incomplete when the bio or logo is missing", () => {
+    const category = buildHostCategory({
+      firstOrgDetails: null,
+      myEvents: [],
+      myOrgs: [
+        {
+          organization: {
+            logoUrl: "https://media.rallycasts.com/images/abc.png",
+            slug: "austin-pickleball",
+          },
+        },
+      ],
+    });
+
+    const brandingItem = category.items.find((i) => i.id === "org_branding");
+    expect(brandingItem?.isComplete).toBe(false);
+  });
+
   it("marks payouts incomplete when Stripe onboarding is not completed", () => {
     const category = buildHostCategory({
       firstOrgDetails: {

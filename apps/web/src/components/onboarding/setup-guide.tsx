@@ -45,7 +45,6 @@ export interface HostCategoryData {
     organization?: {
       bio?: string | null;
       city?: string | null;
-      coverImageUrl?: string | null;
       id?: string;
       logoUrl?: string | null;
       name?: string;
@@ -60,7 +59,6 @@ export interface HostCategoryData {
     organization: {
       bio?: string | null;
       city?: string | null;
-      coverImageUrl?: string | null;
       id?: string;
       logoUrl?: string | null;
       name?: string;
@@ -140,7 +138,6 @@ function getOrgUrls(orgSlug?: string) {
 
 interface FirstOrgInfo {
   bio?: string | null;
-  coverImageUrl?: string | null;
   logoUrl?: string | null;
   stripeOnboardingStatus?: string | null;
 }
@@ -154,9 +151,7 @@ function getHostProgressStats(
   const membersCount = firstOrgDetails?.members?.length ?? 0;
   const fallbackEvents = firstOrgDetails?.events?.length ?? 0;
   const eventsCount = myEventsCount > 0 ? myEventsCount : fallbackEvents;
-  const hasBranding = Boolean(
-    firstOrg?.bio && (firstOrg?.logoUrl || firstOrg?.coverImageUrl)
-  );
+  const hasBranding = Boolean(firstOrg?.bio && firstOrg?.logoUrl);
   const orgStripeStatus = firstOrg?.stripeOnboardingStatus;
   const detailStripeStatus =
     firstOrgDetails?.organization?.stripeOnboardingStatus;
@@ -202,7 +197,7 @@ export function buildHostCategory({
       },
       {
         actionLabel: "Customize",
-        description: "Add an emblem, cover banner, bio, and home courts.",
+        description: "Add an emblem logo, bio, and location.",
         id: "org_branding",
         isComplete: hasBranding,
         title: "Customize branding & logo",

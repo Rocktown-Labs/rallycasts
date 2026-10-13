@@ -18,6 +18,7 @@ import { toast } from "sonner";
 
 import { apiClient } from "@/lib/api-client";
 import { readApiJson } from "@/lib/hooks/api";
+import { useImageUpload } from "@/lib/hooks/use-upload";
 
 const getOrganization = (slug: string) =>
   readApiJson(apiClient.api.v1.hosts[":slug"].$get({ param: { slug } }));
@@ -56,30 +57,7 @@ const ManageOrganizationEditor = ({
     queryKey: ["videos", "me"],
   });
 
-  const uploadLogo = useMutation({
-    mutationFn: async (file: File) => {
-      const formData = new FormData();
-      formData.append("file", file);
-      const response = await apiClient.api.v1.upload.image.$post({
-        form: formData,
-      });
-      if (!response.ok) {
-        throw new Error("Could not upload the image");
-      }
-      const body = (await response.json()) as { url?: string | null };
-      return body.url ?? null;
-    },
-    onError: (error) => {
-      toast.error(
-        error instanceof Error ? error.message : "Could not upload the logo."
-      );
-    },
-    onSuccess: (url) => {
-      if (url) {
-        setLogoUrl(url);
-      }
-    },
-  });
+  const uploadLogo = useImageUpload();
 
   const updateOrganization = useMutation({
     mutationFn: () => {
@@ -217,9 +195,26 @@ const ManageOrganizationEditor = ({
                     onChange={(event) => {
                       const file = event.target.files?.[0];
                       event.target.value = "";
-                      if (file) {
-                        uploadLogo.mutate(file);
+                      if (!file) {
+                        return;
                       }
+                      uploadLogo.mutate(file, {
+                        onError: (error) => {
+                          toast.error(
+                            error instanceof Error
+                              ? error.message
+                              : "Could not upload the logo."
+                          );
+                        },
+                        onSuccess: (result) => {
+                          if (result.url) {
+                            setLogoUrl(result.url);
+                            toast.success(
+                              "Logo uploaded. Save the profile to keep it."
+                            );
+                          }
+                        },
+                      });
                     }}
                     type="file"
                   />

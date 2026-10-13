@@ -79,8 +79,10 @@ export function OrganizationComposer({
         toast.success("Image attached!");
         setIsExpanded(true);
       }
-    } catch {
-      toast.error("Could not upload image.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not upload image."
+      );
     } finally {
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
