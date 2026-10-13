@@ -1,0 +1,23 @@
+# RallyCasts
+
+> RallyCasts is the premier live pickleball streaming network, bracket tracker, and community highlight platform.
+
+## About
+RallyCasts provides high-definition court-side broadcasting, real-time scoreboards, automated highlights, and tournament organization for the fastest-growing sport in North America.
+
+## Key Features & Capabilities
+- **Live Match Streaming**: 4K multicam court-side broadcasts from parks, clubs, and sanctioned tournament venues.
+- **Real-Time Scoreboards**: Instant point-by-point tracking with live serving indicators, game scores, and match results.
+- **Tournament Engine**: Full bracket management, pool play, elimination rounds, and schedule coordination.
+- **Caster Network**: Certified local videographers and casters streaming club events and open play.
+- **Video Studio & Clutch Clips**: Instant highlight clipping for ATPs, ernes, dink rallies, and championship points.
+- **Player & Venue Directory**: Comprehensive profiles for players, organizers, hosts, and verified pickleball facilities.
+
+## Primary Routes
+- Homepage: https://rallycasts.tv
+- Events & Tournaments: https://rallycasts.tv/events
+- Videos & Clips: https://rallycasts.tv/videos
+- Trending Matches: https://rallycasts.tv/trending
+- Casters Network: https://rallycasts.tv/casters
+- Players: https://rallycasts.tv/players
+- Venues: https://rallycasts.tv/venues
