@@ -19,8 +19,14 @@ import {
   Users,
 } from "lucide-react";
 
+import { OrganizerSetupCard } from "@/components/onboarding/organizer-setup-card";
 import { EmptyState, EventCard, StatCard } from "@/components/rally/cards";
-import { useMyEvents, useMyOrganizations, useProfile } from "@/lib/hooks";
+import {
+  useMyEvents,
+  useMyOrganizations,
+  useOrganization,
+  useProfile,
+} from "@/lib/hooks";
 
 export const Route = createFileRoute("/_auth/u/organizer/")({
   component: OrganizerDashboardPage,
@@ -168,6 +174,7 @@ function OrganizerDashboardPage() {
     organizations.length > 0
       ? (organizations[0].organization.slug as string | undefined)
       : undefined;
+  const { data: firstOrgDetails } = useOrganization(firstOrgSlug ?? "");
   const publishedEvents = events.filter(
     (event) => event.status === "published"
   );
@@ -253,6 +260,12 @@ function OrganizerDashboardPage() {
           </CardContent>
         </Card>
       </section>
+
+      <OrganizerSetupCard
+        events={events}
+        firstOrgDetails={firstOrgDetails}
+        organizations={organizations}
+      />
 
       <QuickActions firstOrgSlug={firstOrgSlug} />
 
