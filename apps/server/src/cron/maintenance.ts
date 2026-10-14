@@ -18,8 +18,6 @@ const DEFAULT_EVENT_DURATION_MS = 24 * 60 * 60 * 1000;
 /** Demo accounts are recreated on demand by the seed-demo endpoint. */
 const DEMO_USER_ID_PATTERN = "demo-%";
 const DEMO_EMAIL_PATTERN = "%@rallycasts.demo";
-/** Bound the work per run so a backlog cannot exceed D1 limits. */
-const MAX_EVENTS_PER_RUN = 200;
 
 export interface MaintenanceResult {
   archivedAsCompleted: number;
@@ -76,41 +74,40 @@ export async function runMaintenance(
 
   // 2. Demo purge pass: demo accounts only exist to fill test brackets, so
   // once their host event is no longer published their rows and accounts go
-  // away. Event owners' own rows are never touched.
-  const deadEvents = await db
+  // away. Event owners' own rows are never touched. The terminal-event set
+  // is a subquery rather than a capped list: the pass deletes the rows it
+  // finds, so the candidate set shrinks monotonically and every run makes
+  // progress no matter how many terminal events accumulate.
+  const terminalEventIds = db
     .select({ id: event.id })
     .from(event)
-    .where(inArray(event.status, ["cancelled", "completed"]))
-    .limit(MAX_EVENTS_PER_RUN);
-  const deadEventIds = deadEvents.map((row) => row.id);
+    .where(inArray(event.status, ["cancelled", "completed"]));
 
-  if (deadEventIds.length > 0) {
-    const deletedMatches = await db
-      .delete(eventMatch)
-      .where(
-        and(
-          inArray(eventMatch.eventId, deadEventIds),
-          or(
-            like(eventMatch.playerOneUserId, DEMO_USER_ID_PATTERN),
-            like(eventMatch.playerTwoUserId, DEMO_USER_ID_PATTERN),
-            like(eventMatch.winnerUserId, DEMO_USER_ID_PATTERN)
-          )
+  const deletedMatches = await db
+    .delete(eventMatch)
+    .where(
+      and(
+        inArray(eventMatch.eventId, terminalEventIds),
+        or(
+          like(eventMatch.playerOneUserId, DEMO_USER_ID_PATTERN),
+          like(eventMatch.playerTwoUserId, DEMO_USER_ID_PATTERN),
+          like(eventMatch.winnerUserId, DEMO_USER_ID_PATTERN)
         )
       )
-      .returning({ id: eventMatch.id });
-    result.deletedDemoMatches = deletedMatches.length;
+    )
+    .returning({ id: eventMatch.id });
+  result.deletedDemoMatches = deletedMatches.length;
 
-    const deletedRegistrations = await db
-      .delete(eventRegistration)
-      .where(
-        and(
-          inArray(eventRegistration.eventId, deadEventIds),
-          like(eventRegistration.userId, DEMO_USER_ID_PATTERN)
-        )
+  const deletedRegistrations = await db
+    .delete(eventRegistration)
+    .where(
+      and(
+        inArray(eventRegistration.eventId, terminalEventIds),
+        like(eventRegistration.userId, DEMO_USER_ID_PATTERN)
       )
-      .returning({ id: eventRegistration.id });
-    result.deletedDemoRegistrations = deletedRegistrations.length;
-  }
+    )
+    .returning({ id: eventRegistration.id });
+  result.deletedDemoRegistrations = deletedRegistrations.length;
 
   // Demo users with no remaining registration or match participation are
   // deleted; user_profile, posts, and notifications cascade with them.

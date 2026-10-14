@@ -196,4 +196,46 @@ describe("runMaintenance", () => {
     const userIds = allUsers.map((row) => row.id);
     expect(userIds).toContain("demo-cgstewart");
   });
+
+  it("purges demo rows across every terminal event in a single run", async () => {
+    // Regression guard: the purge must not be a capped window over a
+    // non-shrinking candidate set — demo data on ANY terminal event is
+    // reached on the first run.
+    const organizerId = "organizer-5";
+    await insertUser(organizerId, "organizer-5@example.com");
+    const batch = [0, 1, 2, 3, 4];
+    await db.insert(user).values(
+      batch.map((index) => ({
+        email: `batch_${index}@rallycasts.demo`,
+        emailVerified: true,
+        id: `demo-batch_${index}`,
+        name: `demo-batch_${index}`,
+      }))
+    );
+    await db.insert(event).values(
+      batch.map((index) => ({
+        id: `cancelled-batch-${index}`,
+        name: `Event cancelled-batch-${index}`,
+        organizerUserId: organizerId,
+        startsAt: new Date(Date.now() - (index + 1) * 24 * 60 * 60 * 1000),
+        status: "cancelled" as const,
+      }))
+    );
+    await db.insert(eventRegistration).values(
+      batch.map((index) => ({
+        eventId: `cancelled-batch-${index}`,
+        id: `reg-batch-${index}`,
+        userId: `demo-batch_${index}`,
+      }))
+    );
+
+    const result = await runMaintenance(db);
+
+    expect(result.deletedDemoRegistrations).toBe(5);
+    expect(result.deletedDemoUsers).toBe(5);
+    const remaining = await db
+      .select({ id: eventRegistration.id })
+      .from(eventRegistration);
+    expect(remaining).toHaveLength(0);
+  });
 });
