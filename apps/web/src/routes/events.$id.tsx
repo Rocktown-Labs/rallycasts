@@ -43,6 +43,7 @@ export interface EventData {
   refundPolicy?: string | null;
   courtLabelsJson?: string | null;
   organizationId?: string | null;
+  bracketType?: string | null;
 }
 
 export interface EventContextType {

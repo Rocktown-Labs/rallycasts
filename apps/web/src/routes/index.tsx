@@ -41,13 +41,91 @@ export const Route = createFileRoute("/")({
   component: HomeComponent,
 });
 
+const HOME_TABS = [
+  { id: "all", label: "All" },
+  { id: "matches", label: "Matches" },
+  { id: "highlights", label: "Highlights" },
+  { id: "courts", label: "Courts & Parks" },
+  { id: "tournaments", label: "Tournaments" },
+  { id: "community", label: "Community" },
+] as const;
+
+type HomeTabId = (typeof HOME_TABS)[number]["id"];
+
+function LocationPill() {
+  const { data: profileData } = useProfile();
+  const profile = profileData?.profile as
+    | { homeCity?: string; homeState?: string }
+    | undefined;
+  const homeLabel =
+    profile?.homeCity && profile.homeState
+      ? `${profile.homeCity}, ${profile.homeState}`
+      : (profile?.homeCity ?? null);
+
+  return (
+    <Link
+      to="/trending"
+      title="View trending courts near you"
+      className="bg-card hover:bg-accent border-border/80 text-foreground hover:border-primary/50 group inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-2xs transition-all duration-150 active:scale-97"
+    >
+      <MapPin className="text-primary size-3.5 shrink-0 transition-transform group-hover:scale-110" />
+      <span className="max-w-[130px] truncate sm:max-w-[180px]">
+        {homeLabel ?? "Set location"}
+      </span>
+      <ChevronRight className="text-muted-foreground size-3 shrink-0" />
+    </Link>
+  );
+}
+
+function HomeTabsBar({
+  activeTab,
+  onSelectTab,
+  showLocationPill,
+}: {
+  activeTab: HomeTabId;
+  onSelectTab: (tab: HomeTabId) => void;
+  showLocationPill: boolean;
+}) {
+  return (
+    <div className="bg-background/95 border-border/40 sticky top-(--header-height) z-20 -mx-4 -mt-2 mb-6 border-b px-4 py-2.5 backdrop-blur-md md:-mx-8 md:px-8">
+      <div className="flex scrollbar-none items-center gap-2 overflow-x-auto py-0.5">
+        {showLocationPill && (
+          <>
+            <LocationPill />
+            <div className="bg-border/70 mx-1 h-5 w-px shrink-0" />
+          </>
+        )}
+
+        {HOME_TABS.map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => onSelectTab(tab.id)}
+              className={cn(
+                "shrink-0 cursor-pointer rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all duration-150 select-none",
+                isActive
+                  ? "bg-foreground text-background hover:bg-foreground/90 font-bold shadow-xs"
+                  : "bg-muted/70 text-foreground/80 hover:bg-muted hover:text-foreground active:scale-97"
+              )}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function HomeComponent() {
   const { data: session, isPending: sessionPending } = authClient.useSession();
   const isPersonalized = Boolean(session?.user);
 
   return (
-    <div className="animate-in fade-in mx-auto max-w-7xl space-y-12 duration-200">
-      <HeroBanner />
+    <div className="animate-in fade-in mx-auto max-w-7xl space-y-6 duration-200">
+      {!isPersonalized && <HeroBanner />}
 
       <HomeFeedView
         isPersonalized={isPersonalized}
@@ -119,6 +197,317 @@ const isShortVideo = (video: VideoCardData): boolean =>
     (video.durationSeconds ?? 0) <= 60 &&
     video.title.toLowerCase().includes("clip"));
 
+type FeedItem = NonNullable<
+  ReturnType<typeof useHomeFeed>["data"]
+>["items"][number];
+
+function useAggregatedVideos(
+  rawFeedItems: FeedItem[],
+  latestVideos: VideoCardData[] = []
+): VideoCardData[] {
+  return useMemo(() => {
+    const list: VideoCardData[] = [];
+    const seen = new Set<string>();
+
+    for (const item of rawFeedItems) {
+      if (item.entityType === "video") {
+        const v = item.entity as VideoCardData;
+        if (!seen.has(v.id)) {
+          seen.add(v.id);
+          list.push(v);
+        }
+      }
+    }
+
+    for (const v of latestVideos) {
+      if (!seen.has(v.id)) {
+        seen.add(v.id);
+        list.push(v);
+      }
+    }
+
+    // Demo content keeps fresh preview environments from looking broken.
+    // Production builds ship without VITE_DEMO_DATA, so this never runs there.
+    if (list.length === 0 && demoEnabled) {
+      for (const v of demoVideos) {
+        if (!seen.has(v.id)) {
+          seen.add(v.id);
+          list.push(v);
+        }
+      }
+    }
+
+    return list;
+  }, [rawFeedItems, latestVideos]);
+}
+
+function useVenuesList(
+  rawFeedItems: FeedItem[],
+  trendingVenues: VenueCardData[] = [],
+  userHomeCourt?: string | null
+): VenueCardData[] {
+  return useMemo(() => {
+    const list: VenueCardData[] = [];
+    const seen = new Set<string>();
+
+    for (const item of rawFeedItems) {
+      if (item.entityType === "venue") {
+        const v = item.entity as unknown as VenueCardData;
+        if (!seen.has(v.id)) {
+          seen.add(v.id);
+          list.push(v);
+        }
+      }
+    }
+
+    for (const v of trendingVenues) {
+      if (!seen.has(v.id)) {
+        seen.add(v.id);
+        list.push(v);
+      }
+    }
+
+    const homeCourtName = userHomeCourt?.toLowerCase().trim();
+    if (homeCourtName) {
+      for (const v of list) {
+        if (
+          v.name.toLowerCase().includes(homeCourtName) ||
+          homeCourtName.includes(v.name.toLowerCase())
+        ) {
+          v.isHomeCourt = true;
+          v.isFavorited = true;
+        }
+      }
+    }
+
+    return list.toSorted((a, b) => {
+      if (a.isHomeCourt && !b.isHomeCourt) {
+        return -1;
+      }
+      if (!a.isHomeCourt && b.isHomeCourt) {
+        return 1;
+      }
+      return (b.activePlayers ?? 0) - (a.activePlayers ?? 0);
+    });
+  }, [rawFeedItems, trendingVenues, userHomeCourt]);
+}
+
+function getTabVisibility({
+  activeTab,
+  hasCommunity,
+  hasFeatured,
+  hasHighlights,
+  hasTournaments,
+  hasVenues,
+}: {
+  activeTab: HomeTabId;
+  hasCommunity: boolean;
+  hasFeatured: boolean;
+  hasHighlights: boolean;
+  hasTournaments: boolean;
+  hasVenues: boolean;
+}) {
+  const showAll = activeTab === "all";
+  const tabShows = (tab: Exclude<HomeTabId, "all">): boolean =>
+    showAll || activeTab === tab;
+
+  const showFeaturedMatches = tabShows("matches") && hasFeatured;
+  const showHighlights = tabShows("highlights") && hasHighlights;
+  const showMoreMatches = tabShows("matches");
+  const showVenues = tabShows("courts") && hasVenues;
+  const showTournaments = tabShows("tournaments") && hasTournaments;
+  const showCommunity = tabShows("community") && hasCommunity;
+
+  const hasContentForTab: Record<Exclude<HomeTabId, "all">, boolean> = {
+    community: showCommunity,
+    courts: showVenues,
+    highlights: showHighlights,
+    matches: showFeaturedMatches || showMoreMatches,
+    tournaments: showTournaments,
+  };
+  const isFilteredEmpty = !showAll && !hasContentForTab[activeTab];
+
+  return {
+    isFilteredEmpty,
+    showCommunity,
+    showFeaturedMatches,
+    showHighlights,
+    showMoreMatches,
+    showTournaments,
+    showVenues,
+  };
+}
+
+function HomeEmptyFilterState({
+  activeTab,
+  onReset,
+}: {
+  activeTab: HomeTabId;
+  onReset: () => void;
+}) {
+  const tabLabel =
+    HOME_TABS.find((t) => t.id === activeTab)?.label ?? "this category";
+  return (
+    <div className="bg-card/40 border-border/80 rounded-2xl border border-dashed p-12 text-center">
+      <p className="text-muted-foreground text-sm font-medium">
+        No items found under {tabLabel}.
+      </p>
+      <Button
+        variant="outline"
+        size="sm"
+        className="mt-4 cursor-pointer"
+        onClick={onReset}
+      >
+        View All
+      </Button>
+    </div>
+  );
+}
+
+function FeaturedMatchesShelf({
+  videoGridClass,
+  videos,
+}: {
+  videoGridClass: string;
+  videos: VideoCardData[];
+}) {
+  return (
+    <section className="space-y-4">
+      <div>
+        <h2 className="text-foreground text-xl font-bold tracking-tight sm:text-2xl">
+          Featured Matches
+        </h2>
+        <p className="text-muted-foreground mt-0.5 text-xs">
+          Recent rallies, matches, and clinics recorded with RallyCasts.
+        </p>
+      </div>
+      <div className={videoGridClass}>
+        {videos.map((video) => (
+          <VideoCard key={video.id} video={video} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function TournamentsSection({ items }: { items: FeedItem[] }) {
+  return (
+    <section className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-foreground text-xl font-bold tracking-tight sm:text-2xl">
+            Tournaments & Court Activity
+          </h2>
+          <p className="text-muted-foreground mt-0.5 text-xs">
+            Upcoming tournaments, brackets, and open play sessions.
+          </p>
+        </div>
+        <Link
+          className="text-primary hover:text-primary/80 hidden text-xs font-semibold sm:inline"
+          to="/events"
+        >
+          View all
+        </Link>
+      </div>
+      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        {items.map((item) =>
+          item.entityType === "event" ? (
+            <EventCard
+              event={item.entity as unknown as EventCardData}
+              key={`${item.entityType}:${item.id}`}
+            />
+          ) : null
+        )}
+      </div>
+    </section>
+  );
+}
+
+function CommunityFeedSection({ items }: { items: FeedItem[] }) {
+  return (
+    <section className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-foreground text-xl font-bold tracking-tight sm:text-2xl">
+            Court Activity & Tournaments
+          </h2>
+          <p className="text-muted-foreground mt-0.5 text-xs">
+            Upcoming open plays, tournament brackets, and player updates.
+          </p>
+        </div>
+      </div>
+      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        {items.map((item) => (
+          <HomeFeedCard key={`${item.entityType}:${item.id}`} item={item} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function HomeFeedSections({
+  communityItems,
+  featuredLandscape,
+  fetchNextPage,
+  hasNextPage,
+  highlightsVideos,
+  isFetchingNextPage,
+  moreMatches,
+  tournamentItems,
+  venuesList,
+  videoGridClass,
+  visibility,
+}: {
+  communityItems: FeedItem[];
+  featuredLandscape: VideoCardData[];
+  fetchNextPage: () => Promise<unknown>;
+  hasNextPage: boolean;
+  highlightsVideos: VideoCardData[];
+  isFetchingNextPage: boolean;
+  moreMatches: VideoCardData[];
+  tournamentItems: FeedItem[];
+  venuesList: VenueCardData[];
+  videoGridClass: string;
+  visibility: ReturnType<typeof getTabVisibility>;
+}) {
+  return (
+    <>
+      {visibility.showFeaturedMatches ? (
+        <FeaturedMatchesShelf
+          videoGridClass={videoGridClass}
+          videos={featuredLandscape}
+        />
+      ) : null}
+
+      {visibility.showHighlights ? (
+        <ShortsShelf videos={highlightsVideos} />
+      ) : null}
+
+      {visibility.showMoreMatches ? (
+        <MoreMatchesSection
+          fetchNextPage={fetchNextPage}
+          hasNextPage={hasNextPage}
+          isFetchingNextPage={isFetchingNextPage}
+          videoGridClass={videoGridClass}
+          videos={moreMatches}
+        />
+      ) : null}
+
+      {visibility.showVenues ? (
+        <NearbyParksSection venues={venuesList} />
+      ) : null}
+
+      {visibility.showTournaments ? (
+        <TournamentsSection items={tournamentItems} />
+      ) : null}
+
+      {visibility.showCommunity ? (
+        <CommunityFeedSection items={communityItems} />
+      ) : null}
+    </>
+  );
+}
+
 function HomeFeedView({
   isPersonalized,
   sessionPending,
@@ -140,40 +529,10 @@ function HomeFeedView({
     () => (isPersonalized ? (homeFeed.data?.items ?? []) : []),
     [isPersonalized, homeFeed.data?.items]
   );
-  const allVideos: VideoCardData[] = useMemo(() => {
-    const list: VideoCardData[] = [];
-    const seen = new Set<string>();
-
-    for (const item of rawFeedItems) {
-      if (item.entityType === "video") {
-        const v = item.entity as VideoCardData;
-        if (!seen.has(v.id)) {
-          seen.add(v.id);
-          list.push(v);
-        }
-      }
-    }
-
-    for (const v of latestVideosQuery.data?.videos ?? []) {
-      if (!seen.has(v.id)) {
-        seen.add(v.id);
-        list.push(v);
-      }
-    }
-
-    // Demo content keeps fresh preview environments from looking broken.
-    // Production builds ship without VITE_DEMO_DATA, so this never runs there.
-    if (list.length === 0 && demoEnabled) {
-      for (const v of demoVideos) {
-        if (!seen.has(v.id)) {
-          seen.add(v.id);
-          list.push(v);
-        }
-      }
-    }
-
-    return list;
-  }, [rawFeedItems, latestVideosQuery.data?.videos]);
+  const allVideos = useAggregatedVideos(
+    rawFeedItems,
+    latestVideosQuery.data?.videos
+  );
 
   // Split into Highlights (vertical clips) vs landscape videos
   const { landscapeVideos, shortsVideos } = useMemo(() => {
@@ -226,54 +585,11 @@ function HomeFeedView({
       ? (userProfile as { homeCourtName?: string | null }).homeCourtName
       : undefined;
 
-  const venuesList: VenueCardData[] = useMemo(() => {
-    const list: VenueCardData[] = [];
-    const seen = new Set<string>();
-
-    // 1. From personalized feed
-    for (const item of rawFeedItems) {
-      if (item.entityType === "venue") {
-        const v = item.entity as unknown as VenueCardData;
-        if (!seen.has(v.id)) {
-          seen.add(v.id);
-          list.push(v);
-        }
-      }
-    }
-
-    // 2. Supplement from trending venues if feed is thin
-    for (const v of trendingQuery.data?.venues ?? []) {
-      if (!seen.has(v.id)) {
-        seen.add(v.id);
-        list.push(v);
-      }
-    }
-
-    // 3. Prioritize & badge home court
-    const homeCourtName = userHomeCourt?.toLowerCase().trim();
-    if (homeCourtName) {
-      for (const v of list) {
-        if (
-          v.name.toLowerCase().includes(homeCourtName) ||
-          homeCourtName.includes(v.name.toLowerCase())
-        ) {
-          v.isHomeCourt = true;
-          v.isFavorited = true;
-        }
-      }
-    }
-
-    // Sort: home court first, then by heat or active players
-    return list.toSorted((a, b) => {
-      if (a.isHomeCourt && !b.isHomeCourt) {
-        return -1;
-      }
-      if (!a.isHomeCourt && b.isHomeCourt) {
-        return 1;
-      }
-      return (b.activePlayers ?? 0) - (a.activePlayers ?? 0);
-    });
-  }, [rawFeedItems, trendingQuery.data?.venues, userHomeCourt]);
+  const venuesList = useVenuesList(
+    rawFeedItems,
+    trendingQuery.data?.venues,
+    userHomeCourt
+  );
 
   // Community feed items (Events, Players, Posts)
   const communityItems = useMemo(
@@ -284,9 +600,16 @@ function HomeFeedView({
     [rawFeedItems]
   );
 
+  // Tournaments tab shows only upcoming events, not the mixed feed.
+  const tournamentItems = useMemo(
+    () => communityItems.filter((item) => item.entityType === "event"),
+    [communityItems]
+  );
+
   // Called before any early return: the loading skeleton below must not
   // change the hook count between renders, or React throws.
   const { collapsed: sidebarCollapsed } = useSidebar();
+  const [activeTab, setActiveTab] = useState<HomeTabId>("all");
 
   if (isLoading) {
     return (
@@ -312,66 +635,44 @@ function HomeFeedView({
     (video) => !featuredIds.has(video.id)
   );
 
+  const visibility = getTabVisibility({
+    activeTab,
+    hasCommunity: communityItems.length > 0,
+    hasFeatured: featuredLandscape.length > 0,
+    hasHighlights: highlightsVideos.length > 0,
+    hasTournaments: tournamentItems.length > 0,
+    hasVenues: venuesList.length > 0,
+  });
+
   return (
-    <div className="space-y-14">
-      {/* 1. Featured Matches (Landscape 16:9 shelf) */}
-      {featuredLandscape.length > 0 ? (
-        <section className="space-y-4">
-          <div>
-            <h2 className="text-foreground text-xl font-bold tracking-tight sm:text-2xl">
-              Featured Matches
-            </h2>
-            <p className="text-muted-foreground mt-0.5 text-xs">
-              Recent rallies, matches, and clinics recorded with RallyCasts.
-            </p>
-          </div>
-          <div className={videoGridClass}>
-            {featuredLandscape.map((video) => (
-              <VideoCard key={video.id} video={video} />
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {/* 2. Highlights (Shorts Shelf - Portrait 9:16) */}
-      {highlightsVideos.length > 0 ? (
-        <ShortsShelf videos={highlightsVideos} />
-      ) : null}
-
-      {/* 3. More Matches & Highlights (reveals 9 at a time via Load more) */}
-      <MoreMatchesSection
-        fetchNextPage={fetchNextPage}
-        hasNextPage={hasNextPage}
-        isFetchingNextPage={isFetchingNextPage}
-        videoGridClass={videoGridClass}
-        videos={moreMatches}
+    <div className="space-y-8">
+      {/* YouTube-style sticky category chips with Location pill */}
+      <HomeTabsBar
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+        showLocationPill={isPersonalized}
       />
 
-      {/* 4. Courts & Parks Near You (Home court prioritized first, below videos) */}
-      {venuesList.length > 0 ? (
-        <NearbyParksSection venues={venuesList} />
+      {visibility.isFilteredEmpty ? (
+        <HomeEmptyFilterState
+          activeTab={activeTab}
+          onReset={() => setActiveTab("all")}
+        />
       ) : null}
 
-      {/* 5. Community Feed / Upcoming Events */}
-      {communityItems.length > 0 ? (
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-foreground text-xl font-bold tracking-tight sm:text-2xl">
-                Court Activity & Tournaments
-              </h2>
-              <p className="text-muted-foreground mt-0.5 text-xs">
-                Upcoming open plays, tournament brackets, and player updates.
-              </p>
-            </div>
-          </div>
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {communityItems.map((item) => (
-              <HomeFeedCard key={`${item.entityType}:${item.id}`} item={item} />
-            ))}
-          </div>
-        </section>
-      ) : null}
+      <HomeFeedSections
+        communityItems={communityItems}
+        featuredLandscape={featuredLandscape}
+        fetchNextPage={fetchNextPage}
+        hasNextPage={hasNextPage}
+        highlightsVideos={highlightsVideos}
+        isFetchingNextPage={isFetchingNextPage}
+        moreMatches={moreMatches}
+        tournamentItems={tournamentItems}
+        venuesList={venuesList}
+        videoGridClass={videoGridClass}
+        visibility={visibility}
+      />
     </div>
   );
 }
