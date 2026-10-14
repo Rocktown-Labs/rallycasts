@@ -297,35 +297,35 @@ function getTabVisibility({
   hasCommunity,
   hasFeatured,
   hasHighlights,
-  hasMoreMatches,
+  hasTournaments,
   hasVenues,
 }: {
   activeTab: HomeTabId;
   hasCommunity: boolean;
   hasFeatured: boolean;
   hasHighlights: boolean;
-  hasMoreMatches: boolean;
+  hasTournaments: boolean;
   hasVenues: boolean;
 }) {
-  const showFeaturedMatches =
-    (activeTab === "all" || activeTab === "matches") && hasFeatured;
-  const showHighlights =
-    (activeTab === "all" || activeTab === "highlights") && hasHighlights;
-  const showMoreMatches = activeTab === "all" || activeTab === "matches";
-  const showVenues =
-    (activeTab === "all" || activeTab === "courts") && hasVenues;
-  const showCommunity =
-    (activeTab === "all" ||
-      activeTab === "tournaments" ||
-      activeTab === "community") &&
-    hasCommunity;
+  const showAll = activeTab === "all";
+  const tabShows = (tab: Exclude<HomeTabId, "all">): boolean =>
+    showAll || activeTab === tab;
 
-  const isFilteredEmpty =
-    (activeTab === "matches" && !hasFeatured && !hasMoreMatches) ||
-    (activeTab === "highlights" && !showHighlights) ||
-    (activeTab === "courts" && !showVenues) ||
-    ((activeTab === "tournaments" || activeTab === "community") &&
-      !showCommunity);
+  const showFeaturedMatches = tabShows("matches") && hasFeatured;
+  const showHighlights = tabShows("highlights") && hasHighlights;
+  const showMoreMatches = tabShows("matches");
+  const showVenues = tabShows("courts") && hasVenues;
+  const showTournaments = tabShows("tournaments") && hasTournaments;
+  const showCommunity = tabShows("community") && hasCommunity;
+
+  const hasContentForTab: Record<Exclude<HomeTabId, "all">, boolean> = {
+    community: showCommunity,
+    courts: showVenues,
+    highlights: showHighlights,
+    matches: showFeaturedMatches || showMoreMatches,
+    tournaments: showTournaments,
+  };
+  const isFilteredEmpty = !showAll && !hasContentForTab[activeTab];
 
   return {
     isFilteredEmpty,
@@ -333,6 +333,7 @@ function getTabVisibility({
     showFeaturedMatches,
     showHighlights,
     showMoreMatches,
+    showTournaments,
     showVenues,
   };
 }
@@ -389,6 +390,39 @@ function FeaturedMatchesShelf({
   );
 }
 
+function TournamentsSection({ items }: { items: FeedItem[] }) {
+  return (
+    <section className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-foreground text-xl font-bold tracking-tight sm:text-2xl">
+            Tournaments & Court Activity
+          </h2>
+          <p className="text-muted-foreground mt-0.5 text-xs">
+            Upcoming tournaments, brackets, and open play sessions.
+          </p>
+        </div>
+        <Link
+          className="text-primary hover:text-primary/80 hidden text-xs font-semibold sm:inline"
+          to="/events"
+        >
+          View all
+        </Link>
+      </div>
+      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        {items.map((item) =>
+          item.entityType === "event" ? (
+            <EventCard
+              event={item.entity as unknown as EventCardData}
+              key={`${item.entityType}:${item.id}`}
+            />
+          ) : null
+        )}
+      </div>
+    </section>
+  );
+}
+
 function CommunityFeedSection({ items }: { items: FeedItem[] }) {
   return (
     <section className="space-y-4">
@@ -419,6 +453,7 @@ function HomeFeedSections({
   highlightsVideos,
   isFetchingNextPage,
   moreMatches,
+  tournamentItems,
   venuesList,
   videoGridClass,
   visibility,
@@ -430,6 +465,7 @@ function HomeFeedSections({
   highlightsVideos: VideoCardData[];
   isFetchingNextPage: boolean;
   moreMatches: VideoCardData[];
+  tournamentItems: FeedItem[];
   venuesList: VenueCardData[];
   videoGridClass: string;
   visibility: ReturnType<typeof getTabVisibility>;
@@ -459,6 +495,10 @@ function HomeFeedSections({
 
       {visibility.showVenues ? (
         <NearbyParksSection venues={venuesList} />
+      ) : null}
+
+      {visibility.showTournaments ? (
+        <TournamentsSection items={tournamentItems} />
       ) : null}
 
       {visibility.showCommunity ? (
@@ -560,6 +600,12 @@ function HomeFeedView({
     [rawFeedItems]
   );
 
+  // Tournaments tab shows only upcoming events, not the mixed feed.
+  const tournamentItems = useMemo(
+    () => communityItems.filter((item) => item.entityType === "event"),
+    [communityItems]
+  );
+
   // Called before any early return: the loading skeleton below must not
   // change the hook count between renders, or React throws.
   const { collapsed: sidebarCollapsed } = useSidebar();
@@ -594,7 +640,7 @@ function HomeFeedView({
     hasCommunity: communityItems.length > 0,
     hasFeatured: featuredLandscape.length > 0,
     hasHighlights: highlightsVideos.length > 0,
-    hasMoreMatches: moreMatches.length > 0,
+    hasTournaments: tournamentItems.length > 0,
     hasVenues: venuesList.length > 0,
   });
 
@@ -622,6 +668,7 @@ function HomeFeedView({
         highlightsVideos={highlightsVideos}
         isFetchingNextPage={isFetchingNextPage}
         moreMatches={moreMatches}
+        tournamentItems={tournamentItems}
         venuesList={venuesList}
         videoGridClass={videoGridClass}
         visibility={visibility}

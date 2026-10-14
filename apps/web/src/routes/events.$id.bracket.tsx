@@ -385,9 +385,7 @@ function BracketMatchCard({
 
   const isUserMatch =
     match.playerOneUserId === currentUserId ||
-    match.playerTwoUserId === currentUserId ||
-    (Boolean(currentUserId) &&
-      (p1Name === "CG Stewart" || p2Name === "CG Stewart"));
+    match.playerTwoUserId === currentUserId;
 
   const { isP1Winner, isP2Winner } = parseWinnerStatus(
     match,
@@ -786,9 +784,7 @@ function BracketColumnsGrid({
             courtLabel: m.court,
             id: m.id,
             playerOneScore: s1,
-            playerOneUserId: m.one === "CG Stewart" ? "cg-stewart" : undefined,
             playerTwoScore: s2,
-            playerTwoUserId: m.two === "CG Stewart" ? "cg-stewart" : undefined,
             round: rd.round,
             score: m.score,
             status: m.status,
