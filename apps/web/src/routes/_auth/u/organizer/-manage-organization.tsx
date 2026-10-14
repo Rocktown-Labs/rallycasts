@@ -174,7 +174,9 @@ const ManageOrganizationEditor = ({
           <h1 className="text-3xl font-black">Manage {organization.name}</h1>
         </div>
         <Link params={{ slug }} to="/events/hosts/$slug">
-          <Button variant="outline">View public page</Button>
+          <Button className="rounded-lg" variant="outline">
+            View public page
+          </Button>
         </Link>
       </header>
 
@@ -287,7 +289,10 @@ const ManageOrganizationEditor = ({
               placeholder="Organization bio"
               value={bio}
             />
-            <Button onClick={() => updateOrganization.mutate()}>
+            <Button
+              className="rounded-lg"
+              onClick={() => updateOrganization.mutate()}
+            >
               Save profile
             </Button>
           </div>
@@ -368,22 +373,22 @@ const ManageOrganizationEditor = ({
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Link params={{ id: item.id }} to="/events/$id">
-                    <Button className="rounded-md" size="sm" variant="outline">
+                    <Button className="rounded-lg" size="sm" variant="outline">
                       View
                     </Button>
                   </Link>
                   <Link params={{ id: item.id }} to="/events/$id/players">
-                    <Button className="rounded-md" size="sm" variant="outline">
+                    <Button className="rounded-lg" size="sm" variant="outline">
                       Players
                     </Button>
                   </Link>
                   <Link params={{ id: item.id }} to="/events/$id/bracket">
-                    <Button className="rounded-md" size="sm" variant="outline">
+                    <Button className="rounded-lg" size="sm" variant="outline">
                       Bracket
                     </Button>
                   </Link>
                   <Link params={{ id: item.id }} to="/events/$id/matches">
-                    <Button className="rounded-md" size="sm" variant="outline">
+                    <Button className="rounded-lg" size="sm" variant="outline">
                       Matches
                     </Button>
                   </Link>
@@ -412,7 +417,7 @@ const ManageOrganizationEditor = ({
             value={organizationPost}
           />
           <Button
-            className="mt-2"
+            className="mt-2 rounded-lg"
             disabled={!organizationPost.trim() || publishPost.isPending}
             onClick={() => publishPost.mutate()}
           >
@@ -428,6 +433,7 @@ const ManageOrganizationEditor = ({
                   {item.title}
                 </span>
                 <Button
+                  className="rounded-lg"
                   onClick={() => attachVideo.mutate(item.id)}
                   size="sm"
                   variant="outline"
@@ -446,7 +452,10 @@ const ManageOrganizationEditor = ({
             Stripe-hosted onboarding enables paid registration and organizer
             payouts. RallyCasts retains 5%.
           </p>
-          <Button className="mt-4" onClick={() => startStripe.mutate()}>
+          <Button
+            className="mt-4 rounded-lg"
+            onClick={() => startStripe.mutate()}
+          >
             {(organization as { stripeOnboardingStatus?: string })
               .stripeOnboardingStatus === "complete"
               ? "Update Stripe"
