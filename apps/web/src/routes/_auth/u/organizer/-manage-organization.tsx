@@ -13,7 +13,7 @@ import {
   Settings,
   Users,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { apiClient } from "@/lib/api-client";
@@ -58,6 +58,40 @@ const ManageOrganizationEditor = ({
   });
 
   const uploadLogo = useImageUpload();
+  // Local preview of the file the user just picked, so the selection is
+  // visible (and looks like the future logo) before the upload completes.
+  const [pendingLogo, setPendingLogo] = useState<{
+    name: string;
+    url: string;
+  } | null>(null);
+  const pendingLogoUrlRef = useRef<string | null>(null);
+
+  const clearPendingLogo = () => {
+    if (pendingLogoUrlRef.current) {
+      URL.revokeObjectURL(pendingLogoUrlRef.current);
+      pendingLogoUrlRef.current = null;
+    }
+    setPendingLogo(null);
+  };
+
+  const showPendingLogo = (file: File) => {
+    if (pendingLogoUrlRef.current) {
+      URL.revokeObjectURL(pendingLogoUrlRef.current);
+    }
+    const url = URL.createObjectURL(file);
+    pendingLogoUrlRef.current = url;
+    setPendingLogo({ name: file.name, url });
+  };
+
+  useEffect(
+    () => () => {
+      if (pendingLogoUrlRef.current) {
+        URL.revokeObjectURL(pendingLogoUrlRef.current);
+      }
+    },
+    []
+  );
+  const previewSrc = pendingLogo?.url ?? (logoUrl.trim() || null);
 
   const updateOrganization = useMutation({
     mutationFn: () => {
@@ -175,50 +209,63 @@ const ManageOrganizationEditor = ({
             </div>
             <div className="grid gap-2">
               <div className="flex items-center gap-3">
-                {logoUrl.trim() ? (
+                {previewSrc ? (
                   <img
-                    alt="Organization logo preview"
+                    alt={
+                      pendingLogo
+                        ? "Selected logo preview"
+                        : "Organization logo preview"
+                    }
                     className="border-border size-12 rounded-lg border object-contain"
-                    src={logoUrl.trim()}
+                    src={previewSrc}
                   />
                 ) : null}
-                <label
-                  className="border-border bg-background hover:bg-muted text-foreground inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border px-4 text-sm font-medium"
-                  htmlFor="organization-logo-file"
-                >
-                  <ImageUp className="size-4" />
-                  Upload logo
-                  <input
-                    accept="image/avif,image/jpeg,image/png,image/webp"
-                    className="hidden"
-                    id="organization-logo-file"
-                    onChange={(event) => {
-                      const file = event.target.files?.[0];
-                      event.target.value = "";
-                      if (!file) {
-                        return;
-                      }
-                      uploadLogo.mutate(file, {
-                        onError: (error) => {
-                          toast.error(
-                            error instanceof Error
-                              ? error.message
-                              : "Could not upload the logo."
-                          );
-                        },
-                        onSuccess: (result) => {
-                          if (result.url) {
-                            setLogoUrl(result.url);
-                            toast.success(
-                              "Logo uploaded. Save the profile to keep it."
+                <div className="flex flex-col">
+                  <label
+                    className="border-border bg-background hover:bg-muted text-foreground inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border px-4 text-sm font-medium"
+                    htmlFor="organization-logo-file"
+                  >
+                    <ImageUp className="size-4" />
+                    Upload logo
+                    <input
+                      accept="image/avif,image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      id="organization-logo-file"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        event.target.value = "";
+                        if (!file) {
+                          return;
+                        }
+                        showPendingLogo(file);
+                        uploadLogo.mutate(file, {
+                          onError: (error) => {
+                            toast.error(
+                              error instanceof Error
+                                ? error.message
+                                : "Could not upload the logo."
                             );
-                          }
-                        },
-                      });
-                    }}
-                    type="file"
-                  />
-                </label>
+                          },
+                          onSuccess: (result) => {
+                            if (result.url) {
+                              setLogoUrl(result.url);
+                              clearPendingLogo();
+                              toast.success(
+                                "Logo uploaded. Save the profile to keep it."
+                              );
+                            }
+                          },
+                        });
+                      }}
+                      type="file"
+                    />
+                  </label>
+                  {pendingLogo ? (
+                    <span className="text-muted-foreground max-w-48 truncate text-xs">
+                      {pendingLogo.name}
+                    </span>
+                  ) : null}
+                </div>
                 {uploadLogo.isPending ? (
                   <span className="text-muted-foreground text-xs">
                     Uploading...

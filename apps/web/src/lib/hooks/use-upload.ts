@@ -70,13 +70,12 @@ export function useImageUpload() {
         return Promise.reject(new Error(validationError));
       }
 
-      const formData = new FormData();
-      formData.append("file", file);
-
-      // readApiJson surfaces the server's `message` on non-OK responses so
-      // callers can show why an upload failed instead of a generic error.
+      // The hono client builds its multipart body with Object.entries, which
+      // cannot read a FormData instance (entries live on the prototype), so
+      // passing one silently uploads an empty body. The supported form is a
+      // plain object whose File values are appended for us.
       return readApiJson(
-        apiClient.api.v1.upload.image.$post({ form: formData })
+        apiClient.api.v1.upload.image.$post({ form: { file } })
       ) as Promise<{
         key: string;
         url: string | null;
