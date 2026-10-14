@@ -324,6 +324,19 @@ export default Alchemy.Stack(
       }
     );
 
+    // Hourly maintenance: archives stale published events and purges demo
+    // data once its host event is no longer published. DB-only bindings.
+    yield* Cloudflare.Worker("rallycasts-maintenance", {
+      ...workerDefaults,
+      crons: ["0 * * * *"],
+      env: {
+        DB: db,
+      },
+      main: "../../apps/server/src/cron/maintenance.ts",
+      name: physicalName("rallycasts-maintenance", isProd, stage),
+      observability,
+    });
+
     const webApp = yield* Cloudflare.Website.Vite("rallycasts-web", {
       ...workerDefaults,
       env: {

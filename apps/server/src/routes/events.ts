@@ -9,7 +9,7 @@ import {
   organizationMember,
   userProfile,
 } from "@rallycaststv/db/schema/domain";
-import { and, asc, desc, eq, inArray, ne, or } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, ne, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
 import { Hono } from "hono";
 import type { Context } from "hono";
@@ -122,6 +122,8 @@ const updateMatchSchema = z
 
 const STRIPE_REQUEST_TIMEOUT_MS = 10_000;
 const STRIPE_API_VERSION = "2026-07-29.dahlia";
+/** Events stay in discovery lists this long past their start. */
+const EVENT_LIST_GRACE_MS = 6 * 60 * 60 * 1000;
 
 const submitScoreSchema = z.object({
   note: z.string().max(500).optional(),
@@ -869,10 +871,15 @@ const isOrganizerUser = (db: ReturnType<typeof createDb>, userId: string) =>
 export const eventsRouter = new Hono<AppEnv>()
   .get("/", async (c) => {
     const db = createDb(c.env.DB);
+    // Discovery lists upcoming events only; without a date guard a stale
+    // event would linger here for days after it ended.
+    const upcomingCutoff = new Date(Date.now() - EVENT_LIST_GRACE_MS);
     const events = await db
       .select()
       .from(event)
-      .where(eq(event.status, "published"))
+      .where(
+        and(eq(event.status, "published"), gte(event.startsAt, upcomingCutoff))
+      )
       .orderBy(desc(event.startsAt))
       .limit(50);
 

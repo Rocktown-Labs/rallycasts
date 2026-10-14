@@ -8,7 +8,7 @@ import {
   venue,
   video,
 } from "@rallycaststv/db/schema/domain";
-import { and, desc, eq, like, or, sql } from "drizzle-orm";
+import { and, desc, eq, like, notLike, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
 import { Hono } from "hono";
 import * as HttpStatusCodes from "stoker/http-status-codes";
@@ -20,6 +20,9 @@ const searchPattern = (query: string | undefined) => `%${query ?? ""}%`;
 const challengerTable = alias(user, "challenger");
 const challengedTable = alias(user, "challenged");
 const partnerTable = alias(user, "partner");
+
+/** Seeded demo accounts never belong in people discovery. */
+const DEMO_EMAIL_PATTERN = "%@rallycasts.demo";
 
 export const playersRouter = new Hono<AppEnv>()
   .get("/", async (c) => {
@@ -36,7 +39,11 @@ export const playersRouter = new Hono<AppEnv>()
     } else {
       conditions.push(eq(userProfile.isPlayer, true));
     }
-    conditions.push(eq(userProfile.onboardingStatus, "complete"));
+    conditions.push(
+      eq(userProfile.onboardingStatus, "complete"),
+      // Demo personas exist to fill test brackets; hide them from discovery.
+      notLike(user.email, DEMO_EMAIL_PATTERN)
+    );
 
     if (query) {
       conditions.push(
