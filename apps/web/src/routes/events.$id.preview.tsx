@@ -65,10 +65,8 @@ const previewBracketSizeForCapacity = (
     1,
     Math.ceil((capacity ?? 16) / (mode === "doubles" ? 2 : 1))
   );
-  return (
-    PREVIEW_BRACKET_SIZES.toReversed().find((size) => size <= entrants) ??
-    PREVIEW_BRACKET_SIZES[0]
-  );
+  const lastSize = PREVIEW_BRACKET_SIZES.at(-1) ?? 128;
+  return PREVIEW_BRACKET_SIZES.find((size) => size >= entrants) ?? lastSize;
 };
 
 function EventPreviewTab() {
