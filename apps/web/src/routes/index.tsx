@@ -88,7 +88,7 @@ function HomeTabsBar({
   showLocationPill: boolean;
 }) {
   return (
-    <div className="bg-background border-border/40 sticky top-(--header-height) z-20 -mx-4 mb-5 border-b px-4 py-2 md:-mx-8 md:px-8">
+    <div className="bg-background border-border/40 sticky top-(--header-height) z-20 -mx-4 border-b px-4 py-3 md:-mx-8 md:px-8">
       <div className="flex scrollbar-none items-center gap-2 overflow-x-auto py-0.5">
         {showLocationPill && (
           <>
@@ -125,7 +125,7 @@ function HomeComponent() {
   const isPersonalized = Boolean(session?.user);
 
   return (
-    <div className="animate-in fade-in mx-auto -mt-6 max-w-7xl space-y-6 duration-200">
+    <div className="animate-in fade-in mx-auto max-w-7xl space-y-6 duration-200">
       {!isPersonalized && <HeroBanner />}
 
       <HomeFeedView
@@ -695,14 +695,19 @@ function HomeFeedView({
   // change the hook count between renders, or React throws.
   const { collapsed: sidebarCollapsed } = useSidebar();
   const [activeTab, setActiveTab] = useState<HomeTabId>("all");
-  const homeFeedClassName = "space-y-8";
-
   if (isLoading) {
     return (
-      <div className={homeFeedClassName}>
-        <FeedSectionShell isLoading={true} title="Featured Matches">
-          <FeedSkeleton />
-        </FeedSectionShell>
+      <div>
+        <HomeTabsBar
+          activeTab={activeTab}
+          onSelectTab={setActiveTab}
+          showLocationPill={isPersonalized}
+        />
+        <div className="space-y-8 pt-4">
+          <FeedSectionShell isLoading={true} title="Featured Matches">
+            <FeedSkeleton />
+          </FeedSectionShell>
+        </div>
       </div>
     );
   }
@@ -734,7 +739,7 @@ function HomeFeedView({
   });
 
   return (
-    <div className={homeFeedClassName}>
+    <div>
       {/* YouTube-style sticky category chips with Location pill */}
       <HomeTabsBar
         activeTab={activeTab}
@@ -742,28 +747,30 @@ function HomeFeedView({
         showLocationPill={isPersonalized}
       />
 
-      {visibility.isFilteredEmpty ? (
-        <HomeEmptyFilterState
-          activeTab={activeTab}
-          onReset={() => setActiveTab("all")}
-        />
-      ) : null}
+      <div className="space-y-8 pt-4">
+        {visibility.isFilteredEmpty ? (
+          <HomeEmptyFilterState
+            activeTab={activeTab}
+            onReset={() => setActiveTab("all")}
+          />
+        ) : null}
 
-      <HomeFeedSections
-        communityItems={communityItems}
-        featuredLandscape={featuredLandscape}
-        fetchNextPage={fetchNextPage}
-        hasNextPage={hasNextPage}
-        highlightsVideos={highlightsVideos}
-        isFetchingNextPage={isFetchingNextPage}
-        moreMatches={moreMatches}
-        tournamentItems={tournamentItems}
-        venuesList={venuesList}
-        videoGridClass={videoGridClass}
-        visibility={visibility}
-        friendsVideos={friendsVideos}
-        friendsCommunityItems={friendsCommunityItems}
-      />
+        <HomeFeedSections
+          communityItems={communityItems}
+          featuredLandscape={featuredLandscape}
+          fetchNextPage={fetchNextPage}
+          hasNextPage={hasNextPage}
+          highlightsVideos={highlightsVideos}
+          isFetchingNextPage={isFetchingNextPage}
+          moreMatches={moreMatches}
+          tournamentItems={tournamentItems}
+          venuesList={venuesList}
+          videoGridClass={videoGridClass}
+          visibility={visibility}
+          friendsVideos={friendsVideos}
+          friendsCommunityItems={friendsCommunityItems}
+        />
+      </div>
     </div>
   );
 }

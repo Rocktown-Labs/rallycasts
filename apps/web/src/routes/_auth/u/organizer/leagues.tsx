@@ -1,6 +1,12 @@
 import { Button } from "@rallycaststv/ui/components/button";
 import { Card, CardContent } from "@rallycaststv/ui/components/card";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  Outlet,
+  useNavigate,
+  useRouterState,
+} from "@tanstack/react-router";
 import { Plus, Users } from "lucide-react";
 
 import { useMyLeagues } from "@/lib/hooks";
@@ -19,8 +25,15 @@ const formatLabels = {
 
 function OrganizerLeaguesPage() {
   const navigate = useNavigate();
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname,
+  });
   const { data, isLoading } = useMyLeagues();
   const leagues = data?.leagues ?? [];
+
+  if (pathname !== "/u/organizer/leagues") {
+    return <Outlet />;
+  }
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
