@@ -297,6 +297,7 @@ function getTabVisibility({
   activeTab,
   hasCommunity,
   hasFeatured,
+  hasFriends,
   hasHighlights,
   hasTournaments,
   hasVenues,
@@ -304,6 +305,7 @@ function getTabVisibility({
   activeTab: HomeTabId;
   hasCommunity: boolean;
   hasFeatured: boolean;
+  hasFriends: boolean;
   hasHighlights: boolean;
   hasTournaments: boolean;
   hasVenues: boolean;
@@ -318,12 +320,12 @@ function getTabVisibility({
   const showVenues = tabShows("courts") && hasVenues;
   const showTournaments = tabShows("tournaments") && hasTournaments;
   const showCommunity = tabShows("community") && hasCommunity;
-  const showFriends = activeTab === "friends";
+  const showFriends = activeTab === "friends" && hasFriends;
 
   const hasContentForTab: Record<Exclude<HomeTabId, "all">, boolean> = {
     community: showCommunity,
     courts: showVenues,
-    friends: hasFeatured || hasHighlights || hasCommunity,
+    friends: hasFriends,
     highlights: showHighlights,
     matches: showFeaturedMatches || showMoreMatches,
     tournaments: showTournaments,
@@ -532,15 +534,6 @@ function FriendsFeedSection({
   const clips = videos.filter(isShortVideo);
   const matches = videos.filter((video) => !isShortVideo(video));
 
-  if (videos.length === 0 && items.length === 0) {
-    return (
-      <HomeEmptyFilterState
-        activeTab="friends"
-        onReset={() => window.scrollTo({ behavior: "smooth", top: 0 })}
-      />
-    );
-  }
-
   return (
     <section className="space-y-8">
       <div>
@@ -731,6 +724,7 @@ function HomeFeedView({
     activeTab,
     hasCommunity: communityItems.length > 0,
     hasFeatured: featuredLandscape.length > 0,
+    hasFriends: friendsVideos.length > 0 || friendsCommunityItems.length > 0,
     hasHighlights: highlightsVideos.length > 0,
     hasTournaments: tournamentItems.length > 0,
     hasVenues: venuesList.length > 0,
