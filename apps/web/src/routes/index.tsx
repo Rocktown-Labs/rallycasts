@@ -43,6 +43,7 @@ export const Route = createFileRoute("/")({
 
 const HOME_TABS = [
   { id: "all", label: "All" },
+  { id: "friends", label: "Friends" },
   { id: "matches", label: "Matches" },
   { id: "highlights", label: "Highlights" },
   { id: "courts", label: "Courts & Parks" },
@@ -296,6 +297,7 @@ function getTabVisibility({
   activeTab,
   hasCommunity,
   hasFeatured,
+  hasFriends,
   hasHighlights,
   hasTournaments,
   hasVenues,
@@ -303,6 +305,7 @@ function getTabVisibility({
   activeTab: HomeTabId;
   hasCommunity: boolean;
   hasFeatured: boolean;
+  hasFriends: boolean;
   hasHighlights: boolean;
   hasTournaments: boolean;
   hasVenues: boolean;
@@ -317,10 +320,12 @@ function getTabVisibility({
   const showVenues = tabShows("courts") && hasVenues;
   const showTournaments = tabShows("tournaments") && hasTournaments;
   const showCommunity = tabShows("community") && hasCommunity;
+  const showFriends = activeTab === "friends" && hasFriends;
 
   const hasContentForTab: Record<Exclude<HomeTabId, "all">, boolean> = {
     community: showCommunity,
     courts: showVenues,
+    friends: hasFriends,
     highlights: showHighlights,
     matches: showFeaturedMatches || showMoreMatches,
     tournaments: showTournaments,
@@ -331,6 +336,7 @@ function getTabVisibility({
     isFilteredEmpty,
     showCommunity,
     showFeaturedMatches,
+    showFriends,
     showHighlights,
     showMoreMatches,
     showTournaments,
@@ -457,6 +463,8 @@ function HomeFeedSections({
   venuesList,
   videoGridClass,
   visibility,
+  friendsVideos,
+  friendsCommunityItems,
 }: {
   communityItems: FeedItem[];
   featuredLandscape: VideoCardData[];
@@ -469,9 +477,17 @@ function HomeFeedSections({
   venuesList: VenueCardData[];
   videoGridClass: string;
   visibility: ReturnType<typeof getTabVisibility>;
+  friendsVideos: VideoCardData[];
+  friendsCommunityItems: FeedItem[];
 }) {
   return (
     <>
+      {visibility.showFriends ? (
+        <FriendsFeedSection
+          items={friendsCommunityItems}
+          videos={friendsVideos}
+        />
+      ) : null}
       {visibility.showFeaturedMatches ? (
         <FeaturedMatchesShelf
           videoGridClass={videoGridClass}
@@ -508,6 +524,63 @@ function HomeFeedSections({
   );
 }
 
+function FriendsFeedSection({
+  items,
+  videos,
+}: {
+  items: FeedItem[];
+  videos: VideoCardData[];
+}) {
+  const clips = videos.filter(isShortVideo);
+  const matches = videos.filter((video) => !isShortVideo(video));
+
+  return (
+    <section className="space-y-8">
+      <div>
+        <p className="text-primary text-xs font-bold tracking-[0.18em] uppercase">
+          Your people
+        </p>
+        <h2 className="mt-1 text-2xl font-bold tracking-tight">
+          From your friends
+        </h2>
+        <p className="text-muted-foreground mt-1 text-sm">
+          Matches, highlights, and updates shared by players you know.
+        </p>
+      </div>
+      {clips.length > 0 ? (
+        <div className="space-y-4">
+          <h3 className="text-lg font-bold">Highlights</h3>
+          <div className="flex touch-pan-y snap-x snap-mandatory gap-4 overflow-x-auto pb-3">
+            {clips.map((video) => (
+              <RallyClipCard key={video.id} video={video} />
+            ))}
+          </div>
+        </div>
+      ) : null}
+      {matches.length > 0 ? (
+        <div className="space-y-4">
+          <h3 className="text-lg font-bold">Matches</h3>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {matches.map((video) => (
+              <VideoCard key={video.id} video={video} />
+            ))}
+          </div>
+        </div>
+      ) : null}
+      {items.length > 0 ? (
+        <div className="space-y-4">
+          <h3 className="text-lg font-bold">Friend updates</h3>
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            {items.map((item) => (
+              <HomeFeedCard key={`${item.entityType}:${item.id}`} item={item} />
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 function HomeFeedView({
   isPersonalized,
   sessionPending,
@@ -532,6 +605,18 @@ function HomeFeedView({
   const allVideos = useAggregatedVideos(
     rawFeedItems,
     latestVideosQuery.data?.videos
+  );
+  const friendsFeedItems = useMemo(
+    () => rawFeedItems.filter((item) => item.signals?.social > 0),
+    [rawFeedItems]
+  );
+  const friendsVideos = useAggregatedVideos(friendsFeedItems);
+  const friendsCommunityItems = useMemo(
+    () =>
+      friendsFeedItems.filter(
+        (item) => item.entityType !== "video" && item.entityType !== "venue"
+      ),
+    [friendsFeedItems]
   );
 
   // Split into Highlights (vertical clips) vs landscape videos
@@ -639,6 +724,7 @@ function HomeFeedView({
     activeTab,
     hasCommunity: communityItems.length > 0,
     hasFeatured: featuredLandscape.length > 0,
+    hasFriends: friendsVideos.length > 0 || friendsCommunityItems.length > 0,
     hasHighlights: highlightsVideos.length > 0,
     hasTournaments: tournamentItems.length > 0,
     hasVenues: venuesList.length > 0,
@@ -672,6 +758,8 @@ function HomeFeedView({
         venuesList={venuesList}
         videoGridClass={videoGridClass}
         visibility={visibility}
+        friendsVideos={friendsVideos}
+        friendsCommunityItems={friendsCommunityItems}
       />
     </div>
   );

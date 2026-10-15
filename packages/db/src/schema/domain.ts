@@ -241,6 +241,8 @@ export const event = sqliteTable(
     })
       .default("single_elimination")
       .notNull(),
+    /** Organizer-controlled preview branding: accent color, logo, banner. */
+    brandingJson: text("branding_json"),
     capacity: integer("capacity"),
     checkInMinutes: integer("check_in_minutes").default(30).notNull(),
     courtLabelsJson: text("court_labels_json"),

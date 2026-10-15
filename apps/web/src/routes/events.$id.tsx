@@ -8,16 +8,18 @@ import {
 import {
   Calendar,
   ChevronLeft,
+  Eye,
+  Info,
   ListChecks,
+  MapPin,
   ShieldCheck,
+  Swords,
   Trophy,
   Users,
-  Swords,
-  MapPin,
-  Info,
 } from "lucide-react";
 import { createContext, useContext, useMemo } from "react";
 
+import { accentForeground } from "@/lib/accent-color";
 import { authClient } from "@/lib/auth-client";
 import { useEvent, useMyOrganizations } from "@/lib/hooks";
 
@@ -44,6 +46,13 @@ export interface EventData {
   courtLabelsJson?: string | null;
   organizationId?: string | null;
   bracketType?: string | null;
+  branding?: EventBranding | null;
+}
+
+export interface EventBranding {
+  accentColor?: string;
+  bannerUrl?: string | null;
+  logoUrl?: string | null;
 }
 
 export interface EventContextType {
@@ -81,6 +90,122 @@ const canUserManageEvent = ({
       eventData.organizationId && organizationIds.has(eventData.organizationId)
     ));
 
+const DEFAULT_EVENT_ACCENT = "#16a34a";
+
+const eventAccentColor = (branding: EventBranding | null): string =>
+  branding?.accentColor ?? DEFAULT_EVENT_ACCENT;
+
+const eventHeroBackground = (branding: EventBranding | null): string => {
+  const fallback =
+    "linear-gradient(135deg, hsl(142 100% 18% / 0.6), hsl(78 100% 60% / 0.15))";
+  if (branding?.bannerUrl) {
+    return `url(${branding.bannerUrl}) center / cover`;
+  }
+  if (branding?.accentColor) {
+    return `linear-gradient(135deg, ${branding.accentColor}cc, ${branding.accentColor}44)`;
+  }
+  return fallback;
+};
+
+function EventHeroBanner({
+  accentColor,
+  canManageEvent,
+  eventData,
+  formattedDate,
+  heroBackground,
+  location,
+}: {
+  accentColor: string;
+  canManageEvent: boolean;
+  eventData: EventData;
+  formattedDate: string;
+  heroBackground: string;
+  location: string;
+}) {
+  return (
+    <div
+      className="border-border/50 relative flex h-64 w-full flex-col justify-end overflow-hidden rounded-2xl border p-6 md:h-80 md:p-8"
+      style={{ background: heroBackground }}
+    >
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+
+      <div className="relative z-10 space-y-3">
+        <div className="flex items-center gap-2">
+          {eventData.branding?.logoUrl ? (
+            <img
+              alt={`${eventData.name} logo`}
+              className="size-10 shrink-0 rounded-lg border border-white/30 bg-black/30 object-contain p-1"
+              src={eventData.branding.logoUrl}
+            />
+          ) : null}
+          <span
+            className="rounded-full px-2.5 py-0.5 text-[10px] font-extrabold tracking-wider uppercase"
+            style={{
+              backgroundColor: accentColor,
+              color: accentForeground(accentColor),
+            }}
+          >
+            {eventData.eventType.replace("_", " ")}
+          </span>
+          <span className="rounded-full bg-yellow-500/20 px-2.5 py-0.5 text-[10px] font-extrabold tracking-wider text-yellow-400 uppercase">
+            {eventData.status}
+          </span>
+          {canManageEvent ? (
+            <span className="rounded-full bg-black/40 px-2.5 py-0.5 text-[10px] font-extrabold tracking-wider text-white uppercase">
+              Organizer view
+            </span>
+          ) : null}
+        </div>
+
+        <h1 className="max-w-4xl text-3xl font-extrabold tracking-tight text-white md:text-4xl">
+          {eventData.name}
+        </h1>
+
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-gray-300 md:text-sm">
+          <span className="inline-flex items-center gap-1.5">
+            <Calendar className="text-primary size-4" /> {formattedDate}
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <MapPin className="text-primary size-4" /> {location}
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <Users className="text-primary size-4" />{" "}
+            {eventData.capacity ? `${eventData.capacity} Cap` : "Open Entry"}
+          </span>
+        </div>
+        {canManageEvent ? (
+          <div className="flex flex-wrap gap-2 pt-2">
+            <Link params={{ id: eventData.id }} to="/events/$id/manage">
+              <Button className="rounded-lg text-xs" size="sm">
+                <ShieldCheck className="size-3.5" /> Manage Event
+              </Button>
+            </Link>
+            <Link params={{ id: eventData.id }} to="/events/$id/preview">
+              <Button
+                className="rounded-lg bg-white/15 text-xs text-white hover:bg-white/25"
+                size="sm"
+                variant="outline"
+              >
+                <Eye className="size-3.5" /> Preview
+              </Button>
+            </Link>
+            <Link params={{ id: eventData.id }} to="/events/$id/bracket">
+              <Button className="rounded-lg text-xs" size="sm">
+                <Trophy className="size-3.5" /> Bracket
+              </Button>
+            </Link>
+            <Link params={{ id: eventData.id }} to="/events/$id/matches">
+              <Button className="rounded-lg text-xs" size="sm">
+                <ListChecks className="size-3.5" /> Match Desk
+              </Button>
+            </Link>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 function EventLayout() {
   const { id } = useParams({ from: "/events/$id" });
   const { data: sessionData } = authClient.useSession();
@@ -97,6 +222,9 @@ function EventLayout() {
   // Every hook must run before the loading/error early returns below, or
   // React throws "rendered more hooks than during the previous render"
   // the moment data arrives.
+  const branding = eventData?.branding ?? null;
+  const heroBackground = eventHeroBackground(branding);
+  const accentColor = eventAccentColor(branding);
   const details = useMemo(
     () => ({
       imageUrl:
@@ -181,64 +309,14 @@ function EventLayout() {
       </div>
 
       {/* Hero Banner */}
-      <div
-        className="border-border/50 relative flex h-64 w-full flex-col justify-end overflow-hidden rounded-2xl border p-6 md:h-80 md:p-8"
-        style={{ background: details.imageUrl }}
-      >
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-
-        <div className="relative z-10 space-y-3">
-          <div className="flex items-center gap-2">
-            <span className="bg-primary text-primary-foreground rounded-full px-2.5 py-0.5 text-[10px] font-extrabold tracking-wider uppercase">
-              {eventData.eventType.replace("_", " ")}
-            </span>
-            <span className="rounded-full bg-yellow-500/20 px-2.5 py-0.5 text-[10px] font-extrabold tracking-wider text-yellow-400 uppercase">
-              {eventData.status}
-            </span>
-            {canManageEvent ? (
-              <span className="rounded-full bg-black/40 px-2.5 py-0.5 text-[10px] font-extrabold tracking-wider text-white uppercase">
-                Organizer view
-              </span>
-            ) : null}
-          </div>
-
-          <h1 className="max-w-4xl text-3xl font-extrabold tracking-tight text-white md:text-4xl">
-            {eventData.name}
-          </h1>
-
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-gray-300 md:text-sm">
-            <span className="inline-flex items-center gap-1.5">
-              <Calendar className="text-primary size-4" /> {formattedDate}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <MapPin className="text-primary size-4" /> {details.location}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <Users className="text-primary size-4" />{" "}
-              {eventData.capacity ? `${eventData.capacity} Cap` : "Open Entry"}
-            </span>
-          </div>
-          {canManageEvent ? (
-            <div className="flex flex-wrap gap-2 pt-2">
-              <Link params={{ id: eventData.id }} to="/events/$id/manage">
-                <Button className="rounded-lg text-xs" size="sm">
-                  <ShieldCheck className="size-3.5" /> Manage Event
-                </Button>
-              </Link>
-              <Link params={{ id: eventData.id }} to="/events/$id/bracket">
-                <Button className="rounded-lg text-xs" size="sm">
-                  <Trophy className="size-3.5" /> Bracket
-                </Button>
-              </Link>
-              <Link params={{ id: eventData.id }} to="/events/$id/matches">
-                <Button className="rounded-lg text-xs" size="sm">
-                  <ListChecks className="size-3.5" /> Match Desk
-                </Button>
-              </Link>
-            </div>
-          ) : null}
-        </div>
-      </div>
+      <EventHeroBanner
+        accentColor={accentColor}
+        canManageEvent={canManageEvent}
+        eventData={eventData}
+        formattedDate={formattedDate}
+        heroBackground={heroBackground}
+        location={details.location}
+      />
 
       {/* Tabs Navigation */}
       <div className="border-border flex flex-wrap justify-center gap-x-6 gap-y-2 border-b sm:justify-start">
