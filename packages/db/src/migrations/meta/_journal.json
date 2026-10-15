@@ -211,6 +211,13 @@
       "when": 1792046344817,
       "tag": "0029_worthless_scarecrow",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "6",
+      "when": 1792055494801,
+      "tag": "0030_silly_blacklash",
+      "breakpoints": true
     }
   ]
 }
