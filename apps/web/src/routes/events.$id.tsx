@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { createContext, useContext, useMemo } from "react";
 
+import { accentForeground } from "@/lib/accent-color";
 import { authClient } from "@/lib/auth-client";
 import { useEvent, useMyOrganizations } from "@/lib/hooks";
 
@@ -138,8 +139,11 @@ function EventHeroBanner({
             />
           ) : null}
           <span
-            className="rounded-full px-2.5 py-0.5 text-[10px] font-extrabold tracking-wider text-white uppercase"
-            style={{ backgroundColor: accentColor }}
+            className="rounded-full px-2.5 py-0.5 text-[10px] font-extrabold tracking-wider uppercase"
+            style={{
+              backgroundColor: accentColor,
+              color: accentForeground(accentColor),
+            }}
           >
             {eventData.eventType.replace("_", " ")}
           </span>

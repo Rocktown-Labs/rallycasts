@@ -17,6 +17,7 @@ import { useMemo, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { toast } from "sonner";
 
+import { accentText } from "@/lib/accent-color";
 import { useUpdateEvent } from "@/lib/hooks";
 import {
   PREVIEW_BRACKET_SIZES,
@@ -56,6 +57,20 @@ interface BrandingDraft {
   logoUrl?: string | null;
 }
 
+const previewBracketSizeForCapacity = (
+  capacity: number | null | undefined,
+  mode: PreviewMode
+): number => {
+  const entrants = Math.max(
+    1,
+    Math.ceil((capacity ?? 16) / (mode === "doubles" ? 2 : 1))
+  );
+  return (
+    PREVIEW_BRACKET_SIZES.toReversed().find((size) => size <= entrants) ??
+    PREVIEW_BRACKET_SIZES[0]
+  );
+};
+
 function EventPreviewTab() {
   const { canManageEvent, details, event } = useEventContext();
   const updateEvent = useUpdateEvent(event.id);
@@ -67,7 +82,9 @@ function EventPreviewTab() {
     logoUrl: persisted?.logoUrl ?? null,
   }));
   const [mode, setMode] = useState<PreviewMode>("singles");
-  const [bracketSize, setBracketSize] = useState<number>(event.capacity ?? 16);
+  const [bracketSize, setBracketSize] = useState<number>(() =>
+    previewBracketSizeForCapacity(event.capacity, "singles")
+  );
 
   const accentColor = draft.accentColor ?? DEFAULT_ACCENT;
 
@@ -238,7 +255,12 @@ function EventPreviewTab() {
                         : "text-muted-foreground hover:text-foreground"
                     )}
                     key={value}
-                    onClick={() => setMode(value)}
+                    onClick={() => {
+                      setMode(value);
+                      setBracketSize(
+                        previewBracketSizeForCapacity(event.capacity, value)
+                      );
+                    }}
                     type="button"
                   >
                     {value === "singles" ? "Singles" : "Doubles"}
@@ -394,7 +416,10 @@ function PreviewHero({
           </div>
           <span
             className="rounded-full px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase"
-            style={{ backgroundColor: `${accentColor}22`, color: accentColor }}
+            style={{
+              backgroundColor: `${accentColor}22`,
+              color: accentText(accentColor),
+            }}
           >
             {event.eventType.replaceAll("_", " ")}
           </span>
@@ -420,6 +445,17 @@ function PreviewHero({
   );
 }
 
+const previewRoundLabel = (index: number, total: number): string => {
+  const fromFinal = total - 1 - index;
+  if (fromFinal === 0) {
+    return "Finals";
+  }
+  if (fromFinal === 1) {
+    return "Semifinals";
+  }
+  return `Round ${index + 1}`;
+};
+
 function PreviewBracketView({
   accentColor,
   bracket,
@@ -429,14 +465,6 @@ function PreviewBracketView({
   bracket: ReturnType<typeof buildPreviewBracket>;
   mode: PreviewMode;
 }) {
-  const roundLabels = ["Round 1", "Round 2", "Semifinals", "Finals"];
-  const roundLabel = (index: number, total: number): string => {
-    if (total - index <= roundLabels.length) {
-      return roundLabels[roundLabels.length - (total - index)];
-    }
-    return `Round ${index + 1}`;
-  };
-
   return (
     <div className="bg-card rounded-2xl border p-5">
       <div className="flex items-center justify-between gap-2">
@@ -446,7 +474,7 @@ function PreviewBracketView({
             Bracket preview
           </h3>
           <p className="text-muted-foreground mt-0.5 text-xs">
-            {bracket.matchesByRound[0].length} first-round{" "}
+            {bracket.matchesByRound[0]?.length ?? 0} first-round{" "}
             {mode === "doubles" ? "team matches" : "matches"} · byes fill the
             rest of the draw.
           </p>
@@ -464,7 +492,7 @@ function PreviewBracketView({
               key={`round-${roundIndex + 1}`}
             >
               <div className="mb-2 text-center text-[10px] font-bold tracking-wider text-[color:var(--preview-accent)] uppercase">
-                {roundLabel(roundIndex, bracket.matchesByRound.length)}
+                {previewRoundLabel(roundIndex, bracket.matchesByRound.length)}
               </div>
               {matches.map((match) => (
                 <PreviewMatchCard
@@ -598,7 +626,7 @@ function PreviewPlayerCard({
     <div className="relative shrink-0">
       <button
         aria-label={`${team ? team.name : player.name} details`}
-        className="grid size-6 cursor-pointer place-items-center rounded-full text-[9px] font-bold text-white transition-transform outline-none active:scale-95"
+        className="focus-visible:ring-ring grid size-6 cursor-pointer place-items-center rounded-full text-[9px] font-bold text-white transition-transform focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none active:scale-95"
         onClick={() => setOpen((previous) => !previous)}
         onMouseEnter={() => setOpen(true)}
         onMouseLeave={() => setOpen(false)}
@@ -649,7 +677,10 @@ function PlayerCardBody({
       </p>
       <p
         className="mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold"
-        style={{ backgroundColor: `${accentColor}1a`, color: accentColor }}
+        style={{
+          backgroundColor: `${accentColor}1a`,
+          color: accentText(accentColor),
+        }}
       >
         {player.rating.toFixed(2)} · {player.skillLevel}
       </p>
