@@ -1,3 +1,4 @@
+import MuxPlayer from "@mux/mux-player-react/lazy";
 import { Button } from "@rallycaststv/ui/components/button";
 import { Input } from "@rallycaststv/ui/components/input";
 import { Label } from "@rallycaststv/ui/components/label";
@@ -25,6 +26,7 @@ import {
   PlusCircle,
   Camera,
   Grid3X3,
+  Scissors,
   ChevronLeft,
   ChevronRight,
   Trophy,
@@ -983,16 +985,19 @@ function ProfileTabs({
   activeTab,
   onTabChange,
 }: {
-  activeTab: "all" | "videos" | "photos" | "challenges";
-  onTabChange: (tab: "all" | "videos" | "photos" | "challenges") => void;
+  activeTab: "all" | "videos" | "clips" | "photos" | "challenges";
+  onTabChange: (
+    tab: "all" | "videos" | "clips" | "photos" | "challenges"
+  ) => void;
 }) {
   const tabs: {
     icon: React.ReactNode;
     label: string;
-    value: "all" | "videos" | "photos" | "challenges";
+    value: "all" | "videos" | "clips" | "photos" | "challenges";
   }[] = [
     { icon: <Grid3X3 className="size-4" />, label: "All", value: "all" },
-    { icon: <Video className="size-4" />, label: "Videos", value: "videos" },
+    { icon: <Video className="size-4" />, label: "Matches", value: "videos" },
+    { icon: <Scissors className="size-4" />, label: "Clips", value: "clips" },
     { icon: <Camera className="size-4" />, label: "Photos", value: "photos" },
     {
       icon: <Video className="size-4" />,
@@ -1022,7 +1027,7 @@ function ProfileTabs({
 }
 
 function getFeedItemsForTab(
-  activeTab: "all" | "videos" | "photos" | "challenges",
+  activeTab: "all" | "videos" | "clips" | "photos" | "challenges",
   allFeedItems: FeedItem[]
 ): FeedItem[] {
   switch (activeTab) {
@@ -1030,7 +1035,18 @@ function getFeedItemsForTab(
       return allFeedItems;
     }
     case "videos": {
-      return allFeedItems.filter((item) => item.type === "video");
+      return allFeedItems.filter(
+        (item) =>
+          item.type === "video" &&
+          (item.data as VideoCardData).mediaType !== "short"
+      );
+    }
+    case "clips": {
+      return allFeedItems.filter(
+        (item) =>
+          item.type === "video" &&
+          (item.data as VideoCardData).mediaType === "short"
+      );
     }
     case "photos": {
       return allFeedItems.filter((item) => item.type === "photo");
@@ -1244,7 +1260,7 @@ function PlayerProfilePage() {
     ? rawUsername.slice(1)
     : rawUsername;
   const [activeTab, setActiveTab] = useState<
-    "all" | "videos" | "photos" | "challenges"
+    "all" | "videos" | "clips" | "photos" | "challenges"
   >("all");
 
   const {
@@ -1856,7 +1872,20 @@ function FeedDetailModal({
 function FeedDetailContent({ item }: { item: FeedItem }) {
   switch (item.type) {
     case "video": {
-      return (
+      const video = item.data as VideoCardData;
+      return video.muxPlaybackId ? (
+        <div className="flex size-full items-center justify-center bg-black">
+          <MuxPlayer
+            className="size-full"
+            playbackId={video.muxPlaybackId}
+            style={{
+              aspectRatio: video.mediaType === "short" ? "9 / 16" : "16 / 9",
+              maxHeight: "100%",
+              maxWidth: "100%",
+            }}
+          />
+        </div>
+      ) : (
         <div className="flex size-full items-center justify-center">
           <Video className="text-muted-foreground size-16" />
         </div>

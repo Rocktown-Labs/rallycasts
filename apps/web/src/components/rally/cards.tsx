@@ -346,11 +346,15 @@ function VideoThumbnail({
   imageUrl: string | null;
 }) {
   const hoverPreview = useHoverPreview(video.muxPlaybackId);
+  const isShort = video.mediaType === "short";
   return (
     <Link
       to="/videos/$id"
       params={{ id: getVideoSlug(video) }}
-      className="border-border bg-muted relative block aspect-video cursor-pointer overflow-hidden rounded-xl border"
+      className={cn(
+        "border-border bg-muted relative block cursor-pointer overflow-hidden rounded-xl border",
+        isShort ? "aspect-[9/16] sm:aspect-[4/5]" : "aspect-video"
+      )}
       {...hoverPreview.handlers}
     >
       {imageUrl ? (
@@ -462,9 +466,13 @@ export function PlayerCard({ player }: { player: PlayerCardData }) {
     .join(", ");
 
   return (
-    <Card className="rounded-lg">
-      <div className="h-28 bg-[linear-gradient(135deg,hsl(142_100%_18%/.28),hsl(78_100%_60%/.2))]" />
-      <CardContent className="-mt-10">
+    <Card className="border-border/60 bg-card overflow-hidden rounded-xl">
+      <div className="bg-[#096b2d] px-4 py-3">
+        <p className="text-[10px] font-bold tracking-[0.18em] text-[#bcdf21] uppercase">
+          Player
+        </p>
+      </div>
+      <CardContent className="-mt-8 p-4">
         <Link
           to="/players/$username"
           params={{
@@ -472,7 +480,7 @@ export function PlayerCard({ player }: { player: PlayerCardData }) {
           }}
           className="group/link block"
         >
-          <div className="border-card bg-muted group-hover/link:border-primary/50 grid size-16 place-items-center overflow-hidden rounded-full border-4 text-lg transition-all">
+          <div className="border-card bg-muted group-hover/link:border-primary/50 grid size-14 place-items-center overflow-hidden rounded-full border-4 text-lg transition-all">
             {player.image ? (
               <img
                 alt=""
@@ -483,7 +491,7 @@ export function PlayerCard({ player }: { player: PlayerCardData }) {
               player.name.at(0)
             )}
           </div>
-          <h3 className="group-hover/link:text-primary mt-4 text-lg font-bold transition-colors">
+          <h3 className="group-hover/link:text-primary mt-3 text-base font-bold transition-colors">
             {player.name}
           </h3>
         </Link>
@@ -502,11 +510,9 @@ export function PlayerCard({ player }: { player: PlayerCardData }) {
             </span>
           ) : null}
         </div>
-        {player.bio ? (
-          <p className="text-muted-foreground mt-3 line-clamp-2 text-sm">
-            {player.bio}
-          </p>
-        ) : null}
+        <div className="text-muted-foreground mt-4 border-t pt-3 text-xs">
+          View player profile
+        </div>
       </CardContent>
     </Card>
   );
