@@ -5,7 +5,12 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { useLeague, useUpdateLeague } from "@/lib/hooks/use-leagues";
+import {
+  useLeague,
+  useLeagueMatchups,
+  useLeagueStandings,
+  useUpdateLeague,
+} from "@/lib/hooks/use-leagues";
 import type { LeagueFormat } from "@/lib/hooks/use-leagues";
 
 export const Route = createFileRoute("/_auth/u/organizer/leagues/$id")({
@@ -25,6 +30,8 @@ function LeagueEditorPage() {
   const navigate = useNavigate();
   const { data, isLoading } = useLeague(id);
   const updateLeague = useUpdateLeague(id);
+  const matchupsQuery = useLeagueMatchups(id);
+  const standingsQuery = useLeagueStandings(id);
   const league = data?.league;
   const [name, setName] = useState("");
   const [locationLabel, setLocationLabel] = useState("");
@@ -196,6 +203,56 @@ function LeagueEditorPage() {
           </div>
         </CardContent>
       </Card>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="rounded-xl">
+          <CardContent className="p-6">
+            <h2 className="text-lg font-bold">Standings</h2>
+            <div className="mt-4 divide-y">
+              {standingsQuery.data?.standings?.length ? (
+                standingsQuery.data.standings.map((standing, index) => (
+                  <div
+                    className="flex items-center justify-between gap-3 py-3 text-sm"
+                    key={standing.id}
+                  >
+                    <span className="font-semibold">
+                      {index + 1}. {standing.name}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {standing.teamPoints} pts · {standing.matchesWon}-
+                      {standing.matchesLost}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-muted-foreground mt-4 text-sm">
+                  Standings appear after teams and results are recorded.
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="rounded-xl">
+          <CardContent className="p-6">
+            <h2 className="text-lg font-bold">Weekly matchups</h2>
+            <div className="mt-4 divide-y">
+              {matchupsQuery.data?.matchups?.length ? (
+                matchupsQuery.data.matchups.map((matchup) => (
+                  <div className="py-3 text-sm" key={matchup.id}>
+                    <p className="font-semibold">Week {matchup.weekNumber}</p>
+                    <p className="text-muted-foreground">
+                      {matchup.homeTeamId} vs {matchup.awayTeamId}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-muted-foreground mt-4 text-sm">
+                  Generate a schedule after teams join the league.
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

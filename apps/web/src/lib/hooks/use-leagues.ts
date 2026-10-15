@@ -40,6 +40,24 @@ export interface LeagueRecord {
     | "recruiting";
 }
 
+export interface LeagueMatchup {
+  awayTeamId: string;
+  homeTeamId: string;
+  id: string;
+  leagueId: string;
+  status: string;
+  weekNumber: number;
+}
+
+export interface LeagueStanding {
+  id: string;
+  matchesLost: number;
+  matchesWon: number;
+  name: string;
+  pointsDiff: number;
+  teamPoints: number;
+}
+
 interface LeagueInput {
   casterMode?: "none" | "optional" | "required";
   entryFeeCents?: number;
@@ -102,3 +120,27 @@ export const useUpdateLeague = (id: string) => {
     },
   });
 };
+
+export const useLeagueMatchups = (id: string) =>
+  useQuery({
+    enabled: id.length > 0,
+    queryFn: () =>
+      readApiJson(
+        apiClient.api.v1.leagues[":id"].matchups.$get({
+          param: { id },
+        })
+      ),
+    queryKey: ["leagues", id, "matchups"],
+  });
+
+export const useLeagueStandings = (id: string) =>
+  useQuery({
+    enabled: id.length > 0,
+    queryFn: () =>
+      readApiJson(
+        apiClient.api.v1.leagues[":id"].standings.$get({
+          param: { id },
+        })
+      ),
+    queryKey: ["leagues", id, "standings"],
+  });
