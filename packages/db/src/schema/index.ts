@@ -50,3 +50,13 @@ export {
   videoRelations,
   webhookEvent,
 } from "./domain";
+export {
+  league,
+  leagueMatchup,
+  leagueMatchupSubgame,
+  leaguePost,
+  leagueProgram,
+  leagueProgramQueue,
+  leagueRosterMember,
+  leagueTeam,
+} from "./leagues";
