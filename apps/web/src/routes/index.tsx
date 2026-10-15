@@ -731,7 +731,7 @@ function HomeFeedView({
   });
 
   return (
-    <div className="space-y-8">
+    <div className="-mt-4 space-y-8">
       {/* YouTube-style sticky category chips with Location pill */}
       <HomeTabsBar
         activeTab={activeTab}
