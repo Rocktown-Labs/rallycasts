@@ -8,6 +8,7 @@ import {
   CalendarClock,
   Check,
   Copy,
+  Eye,
   ListChecks,
   Lock,
   Pencil,
@@ -197,7 +198,7 @@ function ManageConsole({ event }: { event: EventData }) {
   }, [event.capacity, event.entryFeeCents, players]);
 
   const setEventStatus = (
-    status: "cancelled" | "completed" | "published",
+    status: "cancelled" | "completed" | "draft" | "published",
     successMessage: string
   ) => {
     updateEvent.mutate(
@@ -278,6 +279,11 @@ function ManageConsole({ event }: { event: EventData }) {
           ) : null}
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Link params={{ id: event.id }} to="/events/$id/preview">
+            <Button size="sm" variant="outline">
+              <Eye data-icon="inline-start" /> Preview
+            </Button>
+          </Link>
           {event.status === "draft" ? (
             <Button
               disabled={!canPublish || updateEvent.isPending}
@@ -287,6 +293,18 @@ function ManageConsole({ event }: { event: EventData }) {
               size="sm"
             >
               Publish event
+            </Button>
+          ) : null}
+          {event.status === "published" ? (
+            <Button
+              disabled={updateEvent.isPending}
+              onClick={() =>
+                setEventStatus("draft", "Event moved back to draft")
+              }
+              size="sm"
+              variant="outline"
+            >
+              Save as draft
             </Button>
           ) : null}
           {event.status === "published" ? (

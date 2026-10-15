@@ -31,10 +31,41 @@ import type { AppEnv } from "../lib/types";
 import { findOrCreateVenueFromGooglePlace } from "../lib/venues";
 import { optionalAuth, requireAuth } from "../middleware/auth";
 
+/**
+ * Organizer-controlled preview branding. Applied to the private preview and
+ * the published event page. Defaults are theme-driven, so every field is
+ * optional; null clears a value.
+ */
+const eventBrandingSchema = z.object({
+  accentColor: z
+    .string()
+    .regex(
+      /^#[0-9a-fA-F]{6}$/u,
+      "Accent color must be a hex color like #16a34a"
+    )
+    .optional(),
+  bannerUrl: z.string().url().nullable().optional(),
+  logoUrl: z.string().url().nullable().optional(),
+});
+
+export type EventBranding = z.infer<typeof eventBrandingSchema>;
+
+const parseBranding = (brandingJson: string | null): EventBranding | null => {
+  if (!brandingJson) {
+    return null;
+  }
+  try {
+    return eventBrandingSchema.parse(JSON.parse(brandingJson));
+  } catch {
+    return null;
+  }
+};
+
 const eventFields = z.object({
   bracketType: z
     .enum(["single_elimination", "round_robin"])
     .default("single_elimination"),
+  branding: eventBrandingSchema.optional(),
   capacity: z.number().int().positive().optional(),
   checkInMinutes: z.number().int().min(0).max(240).default(30),
   courtLabels: z.array(z.string().trim().min(1).max(40)).max(50).default([]),
@@ -915,7 +946,7 @@ export const eventsRouter = new Hono<AppEnv>()
     const db = createDb(c.env.DB);
     const { user } = c.var.authSession;
     const data = c.req.valid("json");
-    const { googlePlaceId, ...eventData } = data;
+    const { branding, googlePlaceId, ...eventData } = data;
     if (data.organizationId) {
       const [membership] = await db
         .select({ role: organizationMember.role })
@@ -967,6 +998,7 @@ export const eventsRouter = new Hono<AppEnv>()
 
     const record = {
       ...eventData,
+      brandingJson: branding ? JSON.stringify(branding) : null,
       courtLabels: undefined,
       courtLabelsJson: JSON.stringify(data.courtLabels),
       hostLabel: isPlatformAdmin ? "RallyCasts" : undefined,
@@ -1016,7 +1048,16 @@ export const eventsRouter = new Hono<AppEnv>()
       }
     }
 
-    return c.json({ event: record }, HttpStatusCodes.OK);
+    return c.json(
+      {
+        event: {
+          ...record,
+          branding: parseBranding(record.brandingJson),
+          brandingJson: undefined,
+        },
+      },
+      HttpStatusCodes.OK
+    );
   })
   .post("/:id/join", requireAuth, async (c) => {
     const db = createDb(c.env.DB);
@@ -1623,6 +1664,7 @@ export const eventsRouter = new Hono<AppEnv>()
       const { user } = c.var.authSession;
       const id = c.req.param("id");
       const data = c.req.valid("json");
+      const { branding, ...updateData } = data;
 
       const manageableEvent = await getManageableEvent(db, id, user.id);
       if (!manageableEvent) {
@@ -1684,7 +1726,10 @@ export const eventsRouter = new Hono<AppEnv>()
       await db
         .update(event)
         .set({
-          ...data,
+          ...updateData,
+          ...(branding === undefined
+            ? {}
+            : { brandingJson: JSON.stringify(branding) }),
           updatedAt: new Date(),
         })
         .where(eq(event.id, id));

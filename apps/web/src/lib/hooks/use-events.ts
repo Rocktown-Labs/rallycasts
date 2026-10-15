@@ -75,6 +75,11 @@ export const useUpdateEvent = (id: string) => {
   return useMutation({
     mutationFn: (json: {
       bracketType?: "round_robin" | "single_elimination";
+      branding?: {
+        accentColor?: string;
+        bannerUrl?: string | null;
+        logoUrl?: string | null;
+      };
       capacity?: number | null;
       checkInMinutes?: number;
       courtLabels?: string[];

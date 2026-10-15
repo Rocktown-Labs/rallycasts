@@ -361,6 +361,74 @@ describe("events API", () => {
     });
   });
 
+  it("round-trips tournament branding and rejects invalid accent colors", async () => {
+    const organizer = await signUp("Brand Studio");
+    await promoteToAdmin(organizer.id);
+    await activateOrganizer(organizer.cookie);
+
+    const eventResponse = await jsonRequest(
+      "/api/v1/events",
+      organizer.cookie,
+      {
+        branding: {
+          accentColor: "#7c3aed",
+          logoUrl: "https://media.example.com/logo.png",
+        },
+        eventType: "tournament",
+        name: "Branded Preview Cup",
+        startsAt: new Date("2027-06-01T15:00:00.000Z").toISOString(),
+        status: "draft",
+      }
+    );
+    expect(eventResponse.status).toBe(201);
+    const created = (await eventResponse.json()) as {
+      event: { id: string };
+    };
+    const eventId = created.event.id;
+
+    const getResponse = await app.request(
+      `/api/v1/events/${eventId}`,
+      { headers: { Cookie: organizer.cookie } },
+      env
+    );
+    expect(getResponse.status).toBe(200);
+    const fetched = (await getResponse.json()) as {
+      event: { branding?: { accentColor?: string; logoUrl?: string } };
+    };
+    expect(fetched.event.branding).toMatchObject({
+      accentColor: "#7c3aed",
+      logoUrl: "https://media.example.com/logo.png",
+    });
+
+    const patchResponse = await jsonRequest(
+      `/api/v1/events/${eventId}`,
+      organizer.cookie,
+      { branding: { accentColor: "#16a34a", bannerUrl: null } },
+      "PATCH"
+    );
+    expect(patchResponse.status).toBe(200);
+
+    const refreshed = await app.request(
+      `/api/v1/events/${eventId}`,
+      { headers: { Cookie: organizer.cookie } },
+      env
+    );
+    const refreshedBody = (await refreshed.json()) as {
+      event: { branding?: { accentColor?: string } };
+    };
+    expect(refreshedBody.event.branding).toMatchObject({
+      accentColor: "#16a34a",
+    });
+
+    const invalidPatch = await jsonRequest(
+      `/api/v1/events/${eventId}`,
+      organizer.cookie,
+      { branding: { accentColor: "not-a-color" } },
+      "PATCH"
+    );
+    expect(invalidPatch.status).toBe(400);
+  });
+
   it("shows unpublished events to their organizer but hides them from everyone else", async () => {
     const organizer = await signUp("Dana Drafts");
     await promoteToAdmin(organizer.id);

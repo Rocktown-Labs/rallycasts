@@ -204,6 +204,13 @@
       "when": 1791472364422,
       "tag": "0028_woozy_texas_twister",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "6",
+      "when": 1792046344817,
+      "tag": "0029_worthless_scarecrow",
+      "breakpoints": true
     }
   ]
 }

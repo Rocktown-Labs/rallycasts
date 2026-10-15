@@ -59,6 +59,7 @@ import { Route as EventsIdLocationsRouteImport } from './routes/events.$id.locat
 import { Route as EventsIdManageRouteImport } from './routes/events.$id.manage'
 import { Route as EventsIdMatchesRouteImport } from './routes/events.$id.matches'
 import { Route as EventsIdPlayersRouteImport } from './routes/events.$id.players'
+import { Route as EventsIdPreviewRouteImport } from './routes/events.$id.preview'
 import { Route as EventsHostsSlugRouteImport } from './routes/events.hosts_.$slug'
 import { Route as EventsOrganizersSlugRouteImport } from './routes/events.organizers.$slug'
 import { Route as AuthEventsHostsNewRouteImport } from './routes/_auth/events.hosts.new'
@@ -353,6 +354,11 @@ const EventsIdPlayersRoute = EventsIdPlayersRouteImport.update({
   path: '/players',
   getParentRoute: () => EventsIdRoute,
 } as any)
+const EventsIdPreviewRoute = EventsIdPreviewRouteImport.update({
+  id: '/preview',
+  path: '/preview',
+  getParentRoute: () => EventsIdRoute,
+} as any)
 const EventsHostsSlugRoute = EventsHostsSlugRouteImport.update({
   id: '/hosts_/$slug',
   path: '/hosts/$slug',
@@ -633,6 +639,7 @@ export interface FileRoutesByFullPath {
   '/events/$id/manage': typeof EventsIdManageRoute
   '/events/$id/matches': typeof EventsIdMatchesRoute
   '/events/$id/players': typeof EventsIdPlayersRoute
+  '/events/$id/preview': typeof EventsIdPreviewRoute
   '/events/hosts/$slug': typeof EventsHostsSlugRoute
   '/events/organizers/$slug': typeof EventsOrganizersSlugRoute
   '/u/': typeof AuthUIndexRoute
@@ -718,6 +725,7 @@ export interface FileRoutesByTo {
   '/events/$id/manage': typeof EventsIdManageRoute
   '/events/$id/matches': typeof EventsIdMatchesRoute
   '/events/$id/players': typeof EventsIdPlayersRoute
+  '/events/$id/preview': typeof EventsIdPreviewRoute
   '/events/hosts/$slug': typeof EventsHostsSlugRoute
   '/events/organizers/$slug': typeof EventsOrganizersSlugRoute
   '/u': typeof AuthUIndexRoute
@@ -815,6 +823,7 @@ export interface FileRoutesById {
   '/events/$id/manage': typeof EventsIdManageRoute
   '/events/$id/matches': typeof EventsIdMatchesRoute
   '/events/$id/players': typeof EventsIdPlayersRoute
+  '/events/$id/preview': typeof EventsIdPreviewRoute
   '/events/hosts_/$slug': typeof EventsHostsSlugRoute
   '/events/organizers/$slug': typeof EventsOrganizersSlugRoute
   '/_auth/u/': typeof AuthUIndexRoute
@@ -912,6 +921,7 @@ export interface FileRouteTypes {
     | '/events/$id/manage'
     | '/events/$id/matches'
     | '/events/$id/players'
+    | '/events/$id/preview'
     | '/events/hosts/$slug'
     | '/events/organizers/$slug'
     | '/u/'
@@ -997,6 +1007,7 @@ export interface FileRouteTypes {
     | '/events/$id/manage'
     | '/events/$id/matches'
     | '/events/$id/players'
+    | '/events/$id/preview'
     | '/events/hosts/$slug'
     | '/events/organizers/$slug'
     | '/u'
@@ -1093,6 +1104,7 @@ export interface FileRouteTypes {
     | '/events/$id/manage'
     | '/events/$id/matches'
     | '/events/$id/players'
+    | '/events/$id/preview'
     | '/events/hosts_/$slug'
     | '/events/organizers/$slug'
     | '/_auth/u/'
@@ -1511,6 +1523,13 @@ declare module '@tanstack/react-router' {
       path: '/players'
       fullPath: '/events/$id/players'
       preLoaderRoute: typeof EventsIdPlayersRouteImport
+      parentRoute: typeof EventsIdRoute
+    }
+    '/events/$id/preview': {
+      id: '/events/$id/preview'
+      path: '/preview'
+      fullPath: '/events/$id/preview'
+      preLoaderRoute: typeof EventsIdPreviewRouteImport
       parentRoute: typeof EventsIdRoute
     }
     '/events/hosts_/$slug': {
@@ -2028,6 +2047,7 @@ interface EventsIdRouteChildren {
   EventsIdManageRoute: typeof EventsIdManageRoute
   EventsIdMatchesRoute: typeof EventsIdMatchesRoute
   EventsIdPlayersRoute: typeof EventsIdPlayersRoute
+  EventsIdPreviewRoute: typeof EventsIdPreviewRoute
   EventsIdIndexRoute: typeof EventsIdIndexRoute
 }
 
@@ -2037,6 +2057,7 @@ const EventsIdRouteChildren: EventsIdRouteChildren = {
   EventsIdManageRoute: EventsIdManageRoute,
   EventsIdMatchesRoute: EventsIdMatchesRoute,
   EventsIdPlayersRoute: EventsIdPlayersRoute,
+  EventsIdPreviewRoute: EventsIdPreviewRoute,
   EventsIdIndexRoute: EventsIdIndexRoute,
 }
 
