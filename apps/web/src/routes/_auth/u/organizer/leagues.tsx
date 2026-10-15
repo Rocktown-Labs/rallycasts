@@ -1,6 +1,6 @@
 import { Button } from "@rallycaststv/ui/components/button";
 import { Card, CardContent } from "@rallycaststv/ui/components/card";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Plus, Users } from "lucide-react";
 
 import { useMyLeagues } from "@/lib/hooks";
@@ -18,6 +18,7 @@ const formatLabels = {
 } as const;
 
 function OrganizerLeaguesPage() {
+  const navigate = useNavigate();
   const { data, isLoading } = useMyLeagues();
   const leagues = data?.leagues ?? [];
 
@@ -34,12 +35,13 @@ function OrganizerLeaguesPage() {
             structured weekly competition.
           </p>
         </div>
-        <Link to="/u/organizer/leagues/new">
-          <Button className="rounded-lg">
-            <Plus className="size-4" />
-            Create league
-          </Button>
-        </Link>
+        <Button
+          className="rounded-lg"
+          onClick={() => navigate({ to: "/u/organizer/leagues/new" })}
+        >
+          <Plus className="size-4" />
+          Create league
+        </Button>
       </header>
 
       {isLoading ? (
@@ -56,12 +58,13 @@ function OrganizerLeaguesPage() {
                 Start with a simple singles or doubles season.
               </p>
             </div>
-            <Link to="/u/organizer/leagues/new">
-              <Button className="rounded-lg">
-                <Plus className="size-4" />
-                Create league
-              </Button>
-            </Link>
+            <Button
+              className="rounded-lg"
+              onClick={() => navigate({ to: "/u/organizer/leagues/new" })}
+            >
+              <Plus className="size-4" />
+              Create league
+            </Button>
           </CardContent>
         </Card>
       ) : null}
