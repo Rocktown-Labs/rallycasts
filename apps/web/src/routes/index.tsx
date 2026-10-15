@@ -695,12 +695,15 @@ function HomeFeedView({
   // change the hook count between renders, or React throws.
   const { collapsed: sidebarCollapsed } = useSidebar();
   const [activeTab, setActiveTab] = useState<HomeTabId>("all");
+  const homeFeedClassName = "-mt-4 space-y-8";
 
   if (isLoading) {
     return (
-      <FeedSectionShell isLoading={true} title="Featured Matches">
-        <FeedSkeleton />
-      </FeedSectionShell>
+      <div className={homeFeedClassName}>
+        <FeedSectionShell isLoading={true} title="Featured Matches">
+          <FeedSkeleton />
+        </FeedSectionShell>
+      </div>
     );
   }
 
@@ -731,7 +734,7 @@ function HomeFeedView({
   });
 
   return (
-    <div className="space-y-8">
+    <div className={homeFeedClassName}>
       {/* YouTube-style sticky category chips with Location pill */}
       <HomeTabsBar
         activeTab={activeTab}
