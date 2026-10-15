@@ -88,7 +88,7 @@ function HomeTabsBar({
   showLocationPill: boolean;
 }) {
   return (
-    <div className="bg-background/95 border-border/40 sticky top-(--header-height) z-20 -mx-4 -mt-2 mb-6 border-b px-4 py-2.5 backdrop-blur-md md:-mx-8 md:px-8">
+    <div className="bg-background border-border/40 sticky top-(--header-height) z-20 -mx-4 mb-5 border-b px-4 py-2 md:-mx-8 md:px-8">
       <div className="flex scrollbar-none items-center gap-2 overflow-x-auto py-0.5">
         {showLocationPill && (
           <>
@@ -125,7 +125,7 @@ function HomeComponent() {
   const isPersonalized = Boolean(session?.user);
 
   return (
-    <div className="animate-in fade-in mx-auto max-w-7xl space-y-6 duration-200">
+    <div className="animate-in fade-in mx-auto -mt-6 max-w-7xl space-y-6 duration-200">
       {!isPersonalized && <HeroBanner />}
 
       <HomeFeedView
@@ -695,7 +695,7 @@ function HomeFeedView({
   // change the hook count between renders, or React throws.
   const { collapsed: sidebarCollapsed } = useSidebar();
   const [activeTab, setActiveTab] = useState<HomeTabId>("all");
-  const homeFeedClassName = "-mt-4 space-y-8";
+  const homeFeedClassName = "space-y-8";
 
   if (isLoading) {
     return (
