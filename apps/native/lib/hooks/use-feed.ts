@@ -10,6 +10,13 @@ export interface FeedResponse {
     entityType: "video" | "venue" | "post" | "event" | "player";
     id: string;
     reason: string;
+    signals?: {
+      engagement?: number;
+      freshness?: number;
+      location?: number;
+      semantic?: number;
+      social?: number;
+    };
     title: string;
   }>;
 }
