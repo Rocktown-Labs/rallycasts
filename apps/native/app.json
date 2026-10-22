@@ -6,6 +6,8 @@
     "scheme": "rallycaststv",
     "userInterfaceStyle": "automatic",
     "orientation": "default",
+    "icon": "./assets/images/icon.png",
+    "backgroundColor": "#0d1117",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "tv.rallycasts.app"
@@ -25,7 +27,16 @@
       "expo-router",
       "expo-secure-store",
       "expo-status-bar",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0d1117",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 160,
+          "resizeMode": "contain"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
