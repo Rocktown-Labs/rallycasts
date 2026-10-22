@@ -1,6 +1,9 @@
 import React, { createContext, useCallback, useContext, useMemo } from "react";
 import { Uniwind, useUniwind } from "uniwind";
 
+// RallyCasts is dark-first. Settings still lets people switch to light.
+Uniwind.setTheme("dark");
+
 type ThemeName = "light" | "dark";
 
 interface AppThemeContextType {

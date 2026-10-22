@@ -691,6 +691,22 @@ export default function YouScreen() {
                 </View>
               </View>
             </View>
+
+            <View className="mt-4 overflow-hidden rounded-2xl border border-border/60 bg-surface">
+              <View className="flex-row items-center justify-between p-4">
+                <View className="flex-row items-center gap-3">
+                  <Ionicons
+                    name="moon-outline"
+                    size={18}
+                    className="text-muted"
+                  />
+                  <Text className="text-sm font-semibold text-foreground">
+                    Dark / Light Theme
+                  </Text>
+                </View>
+                <ThemeToggle />
+              </View>
+            </View>
           </View>
         )}
       </ScrollView>
