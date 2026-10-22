@@ -1,18 +1,55 @@
 import "@/polyfills";
 import "@/global.css";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import {
+  DarkTheme,
+  DefaultTheme,
+  Stack,
+  ThemeProvider,
+} from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import { HeroUINativeProvider, useThemeColor } from "heroui-native";
 import React from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 
-import { AppThemeProvider } from "@/contexts/app-theme-context";
+import {
+  AppThemeProvider,
+  useAppTheme,
+} from "@/contexts/app-theme-context";
 import { queryClient } from "@/lib/query-client";
 
 export const unstable_settings = {
   initialRouteName: "(tabs)",
 };
+
+function NavigationTheme({ children }: { children: React.ReactNode }) {
+  const { isDark } = useAppTheme();
+  const background = useThemeColor("background");
+  const foreground = useThemeColor("foreground");
+  const border = useThemeColor("border");
+  const primary = useThemeColor("accent");
+  const baseTheme = isDark ? DarkTheme : DefaultTheme;
+
+  const theme = {
+    ...baseTheme,
+    colors: {
+      ...baseTheme.colors,
+      background,
+      border,
+      card: background,
+      primary,
+      text: foreground,
+    },
+  };
+
+  return (
+    <ThemeProvider value={theme}>
+      <StatusBar style={isDark ? "light" : "dark"} />
+      {children}
+    </ThemeProvider>
+  );
+}
 
 function StackLayout() {
   const bg = useThemeColor("background");
@@ -34,6 +71,12 @@ function StackLayout() {
       }}
     >
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="notifications"
+        options={{
+          headerShown: false,
+        }}
+      />
       <Stack.Screen
         name="casters"
         options={{
@@ -99,7 +142,9 @@ export default function Layout() {
         <QueryClientProvider client={queryClient}>
           <AppThemeProvider>
             <HeroUINativeProvider>
-              <StackLayout />
+              <NavigationTheme>
+                <StackLayout />
+              </NavigationTheme>
             </HeroUINativeProvider>
           </AppThemeProvider>
         </QueryClientProvider>

@@ -1,11 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import React from "react";
 import { Platform, Pressable, Text, View } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
-import { ThemeToggle } from "@/components/theme-toggle";
+import { NotificationButton } from "@/components/notification-button";
 import { authClient } from "@/lib/auth-client";
 
 interface ScreenHeaderProps {
@@ -39,6 +40,7 @@ export function ScreenHeader({ showBack = false, subtitle, title }: ScreenHeader
 
   const userName = session?.user?.name || "Guest";
   const userInitial = userName.charAt(0).toUpperCase();
+  const isBrand = !title || title === "RallyCasts";
 
   return (
     <View className="flex-row items-center justify-between border-b border-border/40 bg-background/95 px-4 py-3">
@@ -55,12 +57,23 @@ export function ScreenHeader({ showBack = false, subtitle, title }: ScreenHeader
 
         <View>
           <View className="flex-row items-center gap-1.5">
-            <View className="size-5 items-center justify-center rounded-full bg-[#005c23]">
-              <Ionicons name="tennisball-outline" size={13} color="#bcdf21" />
-            </View>
-            <Text className="text-lg font-bold tracking-tight text-foreground">
-              {title || "RallyCasts"}
-            </Text>
+            {isBrand ? (
+              <Image
+                accessibilityLabel="RallyCasts"
+                contentFit="contain"
+                source={require("../assets/images/rallycasts-wordmark.png")}
+                style={{ height: 28, width: 125 }}
+              />
+            ) : (
+              <>
+                <View className="size-5 items-center justify-center rounded-full bg-[#005c23]">
+                  <Ionicons name="tennisball-outline" size={13} color="#bcdf21" />
+                </View>
+                <Text className="text-lg font-bold tracking-tight text-foreground">
+                  {title}
+                </Text>
+              </>
+            )}
           </View>
           {subtitle ? (
             <Text className="text-[11px] text-muted">{subtitle}</Text>
@@ -69,7 +82,7 @@ export function ScreenHeader({ showBack = false, subtitle, title }: ScreenHeader
       </View>
 
       <View className="flex-row items-center gap-1.5">
-        <ThemeToggle />
+        <NotificationButton />
 
         <Animated.View style={avatarAnimatedStyle}>
           <Pressable
