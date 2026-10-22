@@ -7,8 +7,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { EventCard, VideoCard } from "@/components/cards";
 import { ScreenHeader } from "@/components/header";
-import { SignIn } from "@/components/sign-in";
-import { SignUp } from "@/components/sign-up";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { authClient } from "@/lib/auth-client";
 import { demoEvents, demoVideos } from "@/lib/demo-data";
@@ -23,7 +21,6 @@ export default function YouScreen() {
   const { data: organizerData } = useOrganizerData();
 
   const [mode, setMode] = useState<HubMode>("player");
-  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
 
   const profile = profileData?.profile;
   const userName = session?.user?.name || profile?.name || "Cameron Stewart";
@@ -614,46 +611,27 @@ export default function YouScreen() {
               <Text className="mt-1 text-center text-xs text-muted">
                 Track your matches, view court ratings, and run pickleball tournaments with live coverage.
               </Text>
-
-              {/* Sign In / Sign Up toggle */}
-              <View className="mt-4 flex-row rounded-full border border-border/60 bg-surface p-1">
-                <Pressable
-                  onPress={() => setAuthMode("signin")}
-                  className={`rounded-full px-5 py-1.5 ${
-                    authMode === "signin"
-                      ? "bg-[#005c23]"
-                      : "bg-transparent"
-                  }`}
-                >
-                  <Text
-                    className={`text-xs font-bold ${
-                      authMode === "signin" ? "text-white" : "text-muted"
-                    }`}
-                  >
-                    Sign In
-                  </Text>
-                </Pressable>
-
-                <Pressable
-                  onPress={() => setAuthMode("signup")}
-                  className={`rounded-full px-5 py-1.5 ${
-                    authMode === "signup"
-                      ? "bg-[#005c23]"
-                      : "bg-transparent"
-                  }`}
-                >
-                  <Text
-                    className={`text-xs font-bold ${
-                      authMode === "signup" ? "text-white" : "text-muted"
-                    }`}
-                  >
-                    Create Account
-                  </Text>
-                </Pressable>
-              </View>
             </View>
 
-            {authMode === "signin" ? <SignIn /> : <SignUp />}
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => navigateTo("/sign-in")}
+              className="items-center justify-center rounded-xl bg-[#005c23] py-3.5 active:opacity-80 dark:bg-[#bcdf21]"
+            >
+              <Text className="text-sm font-bold text-white dark:text-black">
+                Sign in
+              </Text>
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => navigateTo("/sign-up")}
+              className="mt-3 items-center justify-center rounded-xl border border-border/60 bg-surface py-3.5 active:opacity-80"
+            >
+              <Text className="text-sm font-bold text-foreground">
+                Create an account
+              </Text>
+            </Pressable>
 
             {/* Quick Guest Preview info */}
             <View className="mt-8 rounded-2xl border border-border/50 bg-surface p-4">

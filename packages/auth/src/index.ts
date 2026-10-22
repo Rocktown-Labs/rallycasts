@@ -1,11 +1,13 @@
 import { apiKey } from "@better-auth/api-key";
 import { expo } from "@better-auth/expo";
+import { passkey } from "@better-auth/passkey";
 import { createDb } from "@rallycaststv/db";
 import * as schema from "@rallycaststv/db/schema/auth";
 import { env } from "@rallycaststv/env/server";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin } from "better-auth/plugins/admin";
+import { emailOTP } from "better-auth/plugins/email-otp";
 import { username } from "better-auth/plugins/username";
 import { eq } from "drizzle-orm";
 
@@ -87,6 +89,11 @@ const getSocialProviders = () => ({
 });
 
 export interface AuthEmailCallbacks {
+  sendOtp?: (data: {
+    email: string;
+    otp: string;
+    type: "change-email" | "email-verification" | "forget-password" | "sign-in";
+  }) => Promise<void>;
   sendResetPassword?: (data: {
     user: {
       email: string;
@@ -122,6 +129,17 @@ export const createAuth = (
   emailCallbacks?: AuthEmailCallbacks
 ) => {
   const db = createDb(database);
+  const isLocalAuth = isLocalUrl(env.BETTER_AUTH_URL);
+
+  // WebAuthn is bound to the serving origin, so passkeys are pinned to the
+  // production domain; preview workers keep the password/OTP flows.
+  const passkeyConfig = {
+    origin: isLocalAuth
+      ? [env.BETTER_AUTH_URL.replace(/\/$/u, ""), "http://localhost:3001"]
+      : ["https://rallycasts.com"],
+    rpID: isLocalAuth ? "localhost" : "rallycasts.com",
+    rpName: "RallyCasts",
+  };
 
   return betterAuth({
     account: {
@@ -254,7 +272,13 @@ export const createAuth = (
         adminRoles: ["admin"],
         defaultRole: "user",
       }),
+      emailOTP({
+        async sendVerificationOTP({ email, otp, type }) {
+          await emailCallbacks?.sendOtp?.({ email, otp, type });
+        },
+      }),
       expo(),
+      passkey(passkeyConfig),
       username({
         maxUsernameLength: 30,
         minUsernameLength: 3,

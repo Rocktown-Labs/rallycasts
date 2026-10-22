@@ -1,5 +1,6 @@
 import { createAuth } from "@rallycaststv/auth";
 import {
+  renderOtpEmail,
   renderResetPasswordEmail,
   renderWelcomeEmail,
 } from "@rallycaststv/email/render";
@@ -215,6 +216,50 @@ const routes = app
       c.env.BETTER_AUTH_URL.includes("127.0.0.1");
 
     const auth = createAuth(c.env.DB, {
+      sendOtp: async ({ email, otp, type }) => {
+        if (!resend) {
+          if (isLocalAuth) {
+            // No mailer in local dev; surface the code in the server logs so
+            // the OTP flow stays testable end to end.
+            console.info(
+              JSON.stringify({ email, event: "otp_local_dev", otp, type })
+            );
+            return;
+          }
+          throw new Error("Email service is not configured");
+        }
+
+        const subject = {
+          "change-email": "Your RallyCasts email change code",
+          "email-verification": "Your RallyCasts verification code",
+          "forget-password": "Your RallyCasts password reset code",
+          "sign-in": "Your RallyCasts sign-in code",
+        }[type];
+
+        const html = await renderOtpEmail({ otp, type });
+        const text = `Your RallyCasts code is ${otp}. It expires in 10 minutes. If you didn't request it, you can safely ignore this email.`;
+
+        const { error } = await resend.emails.send(
+          {
+            from: EMAIL_FROM,
+            html,
+            subject,
+            text,
+            to: email,
+          },
+          { idempotencyKey: `otp/${type}/${email}/${otp}` }
+        );
+
+        if (error) {
+          console.error(
+            JSON.stringify({
+              event: "otp_email_failed",
+              message: error.message,
+            })
+          );
+          throw new Error("OTP email could not be sent");
+        }
+      },
       sendResetPassword: async ({ user, url }) => {
         if (!resend) {
           if (isLocalAuth) {
