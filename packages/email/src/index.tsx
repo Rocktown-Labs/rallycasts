@@ -1,3 +1,7 @@
 export { default as WelcomeEmail } from "./templates/welcome";
 export { default as ResetPasswordEmail } from "./templates/reset-password";
-export { renderResetPasswordEmail, renderWelcomeEmail } from "./render";
+export {
+  renderResetPasswordEmail,
+  renderWelcomeEmail,
+  renderOtpEmail,
+} from "./render";

@@ -101,6 +101,63 @@ export function renderWelcomeEmail(options: {
   );
 }
 
+export function renderOtpEmail(options: {
+  otp: string;
+  type: "change-email" | "email-verification" | "forget-password" | "sign-in";
+  username?: string;
+}): Promise<string> {
+  const otp = escapeHtml(options.otp);
+  const username = escapeHtml(options.username ?? "");
+
+  const copy = {
+    "change-email": {
+      eyebrow: "Confirm your new email",
+      heading: "Confirm the change.",
+      preview: "Your RallyCasts email change code",
+      subject: "email change code",
+    },
+    "email-verification": {
+      eyebrow: "Verify your email",
+      heading: "Confirm it's you.",
+      preview: "Your RallyCasts verification code",
+      subject: "verification code",
+    },
+    "forget-password": {
+      eyebrow: "Password reset",
+      heading: "Reset your password.",
+      preview: "Your RallyCasts password reset code",
+      subject: "password reset code",
+    },
+    "sign-in": {
+      eyebrow: "Secure sign-in",
+      heading: "Your sign-in code.",
+      preview: "Your RallyCasts sign-in code",
+      subject: "sign-in code",
+    },
+  }[options.type];
+
+  const greeting = username
+    ? `Hi ${username}, use this code to continue.`
+    : "Use this code to continue.";
+
+  return Promise.resolve(
+    renderDocument(
+      copy.preview,
+      `${renderEyebrow(copy.eyebrow)}
+      <h1 style="margin:0;color:${TEXT_DARK};font-size:34px;line-height:42px;letter-spacing:-0.5px;">${copy.heading}</h1>
+      <p style="margin:18px 0 0;color:${TEXT_MUTED};font-size:16px;line-height:27px;">${greeting}</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:28px 0;">
+        <tr>
+          <td align="center" style="border:2px solid ${BRAND_LIME};border-radius:14px;background:${SURFACE};padding:22px 12px;">
+            <span style="display:inline-block;color:${BRAND_GREEN};font-size:40px;font-weight:900;letter-spacing:10px;line-height:46px;">${otp}</span>
+          </td>
+        </tr>
+      </table>
+      <p style="margin:0;color:${TEXT_MUTED};font-size:13px;line-height:21px;">This code expires in 10 minutes. If you didn't request it, you can safely ignore this email.</p>`
+    )
+  );
+}
+
 export function renderResetPasswordEmail(options: {
   resetUrl: string;
   username: string;

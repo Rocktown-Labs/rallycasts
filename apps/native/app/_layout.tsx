@@ -115,6 +115,30 @@ function StackLayout() {
         }}
       />
       <Stack.Screen
+        name="parks/index"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="videos/index"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="sign-in"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="sign-up"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
         name="players/[username]"
         options={{
           title: "Player Profile",
