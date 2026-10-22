@@ -19,7 +19,13 @@
     "web": {
       "bundler": "metro"
     },
-    "plugins": ["expo-font"],
+    "plugins": [
+      "expo-font",
+      "expo-router",
+      "expo-secure-store",
+      "expo-status-bar",
+      "expo-web-browser"
+    ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true

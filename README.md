@@ -59,7 +59,7 @@ Open [http://localhost:3001](http://localhost:3001) in your browser to see the w
 
 ### Mobile development
 
-`apps/native` and `apps/caster` use Expo SDK 56 with a development build, so they are not tied to the Expo Go version installed on your device. Build the client once per native dependency change:
+`apps/native` and `apps/caster` use Expo SDK 57 with a development build, so they are not tied to the Expo Go version installed on your device. Build the client once per native dependency change:
 
 ```bash
 bunx turbo -F native ios        # local build, requires Xcode
@@ -67,7 +67,7 @@ bunx turbo -F native android    # local build, requires Android Studio
 bunx turbo -F native dev        # Metro; the dev client connects automatically
 ```
 
-Swap `native` for `caster` for the streaming app. Physical devices without a local toolchain can use `bunx eas-cli build --profile development --platform ios` (or `android`) instead. To use Expo Go, install an SDK 56 build and start with `--go`.
+Swap `native` for `caster` for the streaming app. Physical devices without a local toolchain can use `bunx eas-cli build --profile development --platform ios` (or `android`) instead. Expo Go must match the project SDK (57); start it with `--go`.
 
 ## UI Customization
 
