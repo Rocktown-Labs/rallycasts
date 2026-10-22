@@ -6,7 +6,7 @@ pre-commit:
   jobs:
     - name: oxlint
       glob: "*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,astro,vue}"
-      run: bun oxlint --fix {staged_files}
+      run: bun oxlint --fix --no-error-on-unmatched-pattern {staged_files}
       stage_fixed: true
     - name: oxfmt
       run: bun oxfmt --write --no-error-on-unmatched-pattern {staged_files}
