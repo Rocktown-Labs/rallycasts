@@ -20,6 +20,8 @@ import {
   HomeTabsBar,
   type HomeTabId,
 } from "@/components/home-tabs";
+import { ReelsPager } from "@/components/reels-pager";
+import { SocialFeedPager } from "@/components/social-feed-pager";
 import {
   demoPosts,
   type EventData,
@@ -140,14 +142,6 @@ export default function HomeScreen() {
     [feedItems]
   );
 
-  const friendVideos = useMemo(
-    () =>
-      friendItems
-        .filter((item) => item.entityType === "video")
-        .map((item) => item.entity as VideoData),
-    [friendItems]
-  );
-
   const friendPosts = useMemo(
     () =>
       friendItems
@@ -158,7 +152,7 @@ export default function HomeScreen() {
 
   const clips = clipsData?.videos ?? [];
   const featured = videos.slice(0, FEATURED_VIDEO_LIMIT);
-  const hasFriends = friendVideos.length > 0 || friendPosts.length > 0;
+  const hasFriends = friendPosts.length > 0 || demoPosts.length > 0;
 
   const shows = (tab: Exclude<HomeTabId, "all">) =>
     activeTab === "all" || activeTab === tab;
@@ -201,12 +195,31 @@ export default function HomeScreen() {
     router.push("/events");
   };
 
+  const feedPosts = friendPosts.length > 0 ? friendPosts : demoPosts;
+  const isFeedTab = activeTab === "friends" || activeTab === "highlights";
+
+  // Friends and Highlights are full-screen, swipe-up-and-down feeds.
+  if (isFeedTab) {
+    return (
+      <SafeAreaView className="flex-1 bg-background" edges={["top"]} style={{ flex: 1 }}>
+        <ScreenHeader title="RallyCasts" />
+
+        <HomeTabsBar activeTab={activeTab} onSelectTab={handleSelectTab} />
+
+        <View className="flex-1">
+          {activeTab === "friends" ? (
+            <SocialFeedPager posts={feedPosts} />
+          ) : (
+            <ReelsPager clips={clips} />
+          )}
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
-    <SafeAreaView edges={["top"]} className="flex-1 bg-background">
-      <ScreenHeader
-        title="RallyCasts"
-        subtitle="Pickleball courts, matches & community"
-      />
+    <SafeAreaView className="flex-1 bg-background" edges={["top"]} style={{ flex: 1 }}>
+      <ScreenHeader title="RallyCasts" />
 
       <ScrollView
         ref={scrollRef}
@@ -266,10 +279,6 @@ export default function HomeScreen() {
           />
         ) : null}
 
-        {activeTab === "friends" && hasFriends ? (
-          <FriendsSection posts={friendPosts} videos={friendVideos} />
-        ) : null}
-
         {shows("highlights") && clips.length > 0 ? (
           <HighlightsSection clips={clips} />
         ) : null}
@@ -279,21 +288,29 @@ export default function HomeScreen() {
         ) : null}
 
         {shows("courts") && venues.length > 0 ? (
-          <ParksSection
-            cardWidth={shelfCardWidth}
-            onViewAll={handleTrendingPress}
-            snapInterval={shelfCardWidth + SHELF_CARD_GAP}
-            venues={venues}
-          />
+          activeTab === "courts" ? (
+            <ParksListSection venues={venues} />
+          ) : (
+            <ParksSection
+              cardWidth={shelfCardWidth}
+              onViewAll={handleTrendingPress}
+              snapInterval={shelfCardWidth + SHELF_CARD_GAP}
+              venues={venues}
+            />
+          )
         ) : null}
 
         {shows("tournaments") && events.length > 0 ? (
-          <TournamentsSection
-            cardWidth={shelfCardWidth}
-            events={events}
-            onViewAll={handleViewAllEvents}
-            snapInterval={shelfCardWidth + SHELF_CARD_GAP}
-          />
+          activeTab === "tournaments" ? (
+            <EventsListSection events={events} onViewAll={handleViewAllEvents} />
+          ) : (
+            <TournamentsSection
+              cardWidth={shelfCardWidth}
+              events={events}
+              onViewAll={handleViewAllEvents}
+              snapInterval={shelfCardWidth + SHELF_CARD_GAP}
+            />
+          )
         ) : null}
 
         {shows("community") && posts.length > 0 ? (
@@ -516,6 +533,50 @@ function TournamentsSection({
   );
 }
 
+function ParksListSection({ venues }: { venues: VenueData[] }) {
+  return (
+    <View className="mt-6">
+      <SectionHeading
+        icon={<Ionicons name="location" size={18} color="#bcdf21" />}
+        subtitle="Courts with active heat, open play, and checked-in players."
+        title="Parks Near You"
+      />
+
+      <View className="px-4">
+        {venues.map((venue) => (
+          <ParkCard key={venue.id} venue={venue} />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function EventsListSection({
+  events,
+  onViewAll,
+}: {
+  events: EventData[];
+  onViewAll: () => void;
+}) {
+  return (
+    <View className="mt-6">
+      <SectionHeading
+        actionLabel="View all"
+        icon={<Ionicons name="calendar" size={18} color="#bcdf21" />}
+        onAction={onViewAll}
+        subtitle="Upcoming tournaments, brackets, and open play sessions."
+        title="Tournaments & Court Activity"
+      />
+
+      <View className="px-4">
+        {events.map((event) => (
+          <EventCard event={event} key={event.id} />
+        ))}
+      </View>
+    </View>
+  );
+}
+
 function CommunitySection({ posts }: { posts: PostData[] }) {
   return (
     <View className="mt-6">
@@ -526,33 +587,6 @@ function CommunitySection({ posts }: { posts: PostData[] }) {
       />
 
       <View className="px-4">
-        {posts.map((post) => (
-          <ChatterCard key={post.id} post={post} />
-        ))}
-      </View>
-    </View>
-  );
-}
-
-function FriendsSection({
-  posts,
-  videos,
-}: {
-  posts: PostData[];
-  videos: VideoData[];
-}) {
-  return (
-    <View className="mt-6">
-      <SectionHeading
-        icon={<Ionicons name="people" size={18} color="#bcdf21" />}
-        subtitle="Matches, highlights, and updates shared by players you know."
-        title="From your friends"
-      />
-
-      <View className="px-4">
-        {videos.map((video) => (
-          <VideoCard key={video.id} video={video} />
-        ))}
         {posts.map((post) => (
           <ChatterCard key={post.id} post={post} />
         ))}

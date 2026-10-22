@@ -1,36 +1,18 @@
-import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { Tabs } from "expo-router";
-import { useThemeColor } from "heroui-native";
+import { NativeTabs } from "expo-router/unstable-native-tabs";
 import React from "react";
 import { Platform } from "react-native";
 
+import { useAppTheme } from "@/contexts/app-theme-context";
+
 export default function TabLayout() {
-  const foreground = useThemeColor("foreground");
-  const background = useThemeColor("background");
-  const muted = useThemeColor("muted");
-  const border = useThemeColor("border");
+  const { isDark } = useAppTheme();
 
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        animation: "none",
-        tabBarActiveTintColor: "#bcdf21",
-        tabBarInactiveTintColor: muted,
-        tabBarStyle: {
-          backgroundColor: background,
-          borderTopColor: border,
-          borderTopWidth: 0.5,
-          paddingTop: 6,
-          height: Platform.OS === "ios" ? 88 : 64,
-        },
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: "600",
-          marginBottom: Platform.OS === "ios" ? 0 : 6,
-        },
-      }}
+    <NativeTabs
+      blurEffect={
+        isDark ? "systemUltraThinMaterialDark" : "systemUltraThinMaterialLight"
+      }
       screenListeners={{
         tabPress: () => {
           if (Platform.OS === "ios") {
@@ -38,86 +20,41 @@ export default function TabLayout() {
           }
         },
       }}
+      tintColor="#bcdf21"
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: "Home",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "home" : "home-outline"}
-              size={22}
-              color={color}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="trending"
-        options={{
-          title: "Trending",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "flame" : "flame-outline"}
-              size={22}
-              color={color}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="players"
-        options={{
-          title: "Players",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "people" : "people-outline"}
-              size={22}
-              color={color}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="events"
-        options={{
-          title: "Events",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "calendar" : "calendar-outline"}
-              size={22}
-              color={color}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="search"
-        options={{
-          title: "Search",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "search" : "search-outline"}
-              size={22}
-              color={color}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="you"
-        options={{
-          href: null,
-          title: "You",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "person" : "person-outline"}
-              size={22}
-              color={color}
-            />
-          ),
-        }}
-      />
-    </Tabs>
+      <NativeTabs.Trigger name="index">
+        <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          md="home"
+          sf={{ default: "house", selected: "house.fill" }}
+        />
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="trending">
+        <NativeTabs.Trigger.Label>Trending</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          md="local_fire_department"
+          sf={{ default: "flame", selected: "flame.fill" }}
+        />
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="events">
+        <NativeTabs.Trigger.Label>Events</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon md="calendar_month" sf="calendar" />
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="messages">
+        <NativeTabs.Trigger.Label>Messages</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          md="chat_bubble"
+          sf={{ default: "message", selected: "message.fill" }}
+        />
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="search">
+        <NativeTabs.Trigger.Label>Search</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon md="search" sf="magnifyingglass" />
+      </NativeTabs.Trigger>
+    </NativeTabs>
   );
 }

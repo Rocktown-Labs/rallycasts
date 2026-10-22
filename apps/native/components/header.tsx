@@ -28,7 +28,7 @@ export function ScreenHeader({ showBack = false, subtitle, title }: ScreenHeader
     if (Platform.OS === "ios") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    router.push("/(tabs)/you" as never);
+    router.push("/you" as never);
   };
 
   const handleBackPress = () => {
@@ -96,14 +96,20 @@ export function ScreenHeader({ showBack = false, subtitle, title }: ScreenHeader
             onPress={handleAvatarPress}
             accessibilityLabel="My Account"
             accessibilityRole="button"
-            className="size-8 items-center justify-center rounded-full border border-border bg-[#005c23]/15"
+            className="size-8 items-center justify-center overflow-hidden rounded-full border border-[#bcdf21]/40 bg-[#005c23]"
           >
-            {session?.user ? (
-              <Text className="text-xs font-bold text-[#005c23] dark:text-[#bcdf21]">
+            {session?.user?.image ? (
+              <Image
+                contentFit="cover"
+                source={{ uri: session.user.image }}
+                style={{ height: "100%", width: "100%" }}
+              />
+            ) : session?.user ? (
+              <Text className="text-xs font-bold text-[#bcdf21]">
                 {userInitial}
               </Text>
             ) : (
-              <Ionicons name="person-outline" size={16} className="text-foreground" />
+              <Ionicons name="person-outline" size={16} color="#bcdf21" />
             )}
           </Pressable>
         </Animated.View>

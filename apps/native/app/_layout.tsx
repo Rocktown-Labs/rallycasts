@@ -109,9 +109,42 @@ function StackLayout() {
         }}
       />
       <Stack.Screen
+        name="players/index"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
         name="players/[username]"
         options={{
           title: "Player Profile",
+        }}
+      />
+      <Stack.Screen
+        name="you"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="messages/[id]"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="comments/[id]"
+        options={{
+          headerShown: false,
+          presentation: "formSheet",
+          sheetAllowedDetents: [0.5, 1.0],
+          sheetGrabberVisible: true,
+        }}
+      />
+      <Stack.Screen
+        name="search-history"
+        options={{
+          headerShown: false,
         }}
       />
       <Stack.Screen
