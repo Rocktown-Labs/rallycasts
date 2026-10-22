@@ -1,7 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
-import { useFocusEffect, useRouter } from "expo-router";
+import {
+  useFocusEffect,
+  useLocalSearchParams,
+  useRouter,
+} from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -19,6 +23,7 @@ import { authClient } from "@/lib/auth-client";
 import type { EventData, PostData, VenueData, VideoData } from "@/lib/demo-data";
 import {
   useDebouncedValue,
+  useRecentSearches,
   useSearch,
   type SearchEntity,
   type SearchPlayer,
@@ -54,12 +59,16 @@ function hapticSelection() {
 }
 
 function ResultSection({
+  actionLabel,
   children,
   count,
+  onAction,
   title,
 }: {
+  actionLabel?: string;
   children: React.ReactNode;
   count: number;
+  onAction?: () => void;
   title: string;
 }) {
   return (
@@ -68,7 +77,20 @@ function ResultSection({
         <Text className="text-[11px] font-bold uppercase tracking-wider text-muted">
           {title}
         </Text>
-        <Text className="text-[10px] font-semibold text-muted">{count}</Text>
+        {actionLabel && onAction ? (
+          <Pressable
+            accessibilityRole="button"
+            hitSlop={8}
+            onPress={onAction}
+            className="active:opacity-70"
+          >
+            <Text className="text-xs font-semibold text-[#005c23] dark:text-[#bcdf21]">
+              {actionLabel}
+            </Text>
+          </Pressable>
+        ) : (
+          <Text className="text-[10px] font-semibold text-muted">{count}</Text>
+        )}
       </View>
       <View className="px-4">{children}</View>
     </View>
@@ -278,11 +300,14 @@ function NoResults({ query }: { query: string }) {
 }
 
 export default function SearchScreen() {
+  const router = useRouter();
   const inputRef = useRef<TextInput>(null);
   const [query, setQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<SearchEntity>("all");
   const { data: session } = authClient.useSession();
   const isSignedIn = Boolean(session?.user);
+  const params = useLocalSearchParams<{ q?: string }>();
+  const { addRecentSearch, searches } = useRecentSearches();
 
   const debouncedQuery = useDebouncedValue(query.trim(), 300);
   const { data, isFetching } = useSearch(debouncedQuery, activeFilter);
@@ -294,6 +319,20 @@ export default function SearchScreen() {
       return () => clearTimeout(timer);
     }, [])
   );
+
+  // Recent searches can hand the screen a query (history page, deep links).
+  useEffect(() => {
+    const paramQuery = Array.isArray(params.q) ? params.q[0] : params.q;
+    if (paramQuery) {
+      setQuery(paramQuery);
+    }
+  }, [params.q]);
+
+  useEffect(() => {
+    if (debouncedQuery.length > 1) {
+      void addRecentSearch(debouncedQuery);
+    }
+  }, [addRecentSearch, debouncedQuery]);
 
   useEffect(() => {
     if (!isSignedIn && activeFilter === "players") {
@@ -400,7 +439,59 @@ export default function SearchScreen() {
           </View>
         ) : null}
 
-        {!isSearching ? <SearchPrompt /> : null}
+        {!isSearching ? (
+          searches.length > 0 ? (
+            <View className="mt-2">
+              <View className="mb-2 flex-row items-center justify-between px-4">
+                <Text className="text-[11px] font-bold uppercase tracking-wider text-muted">
+                  Recent searches
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  hitSlop={8}
+                  onPress={() => router.push("/search-history")}
+                  className="active:opacity-70"
+                >
+                  <Text className="text-xs font-semibold text-[#005c23] dark:text-[#bcdf21]">
+                    View all
+                  </Text>
+                </Pressable>
+              </View>
+
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}
+              >
+                {searches.slice(0, 5).map((item) => (
+                  <Pressable
+                    accessibilityRole="button"
+                    key={item}
+                    onPress={() => {
+                      hapticSelection();
+                      setQuery(item);
+                    }}
+                    className="flex-row items-center gap-1.5 rounded-full border border-border/60 bg-surface px-3.5 py-2 active:opacity-80"
+                  >
+                    <Ionicons
+                      name="time-outline"
+                      size={13}
+                      className="text-muted"
+                    />
+                    <Text
+                      className="max-w-[160px] text-xs font-medium text-foreground"
+                      numberOfLines={1}
+                    >
+                      {item}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          ) : (
+            <SearchPrompt />
+          )
+        ) : null}
 
         {isSearching && !isFetching && !hasResults ? (
           <NoResults query={debouncedQuery} />
@@ -415,7 +506,15 @@ export default function SearchScreen() {
         ) : null}
 
         {players.length > 0 ? (
-          <ResultSection count={players.length} title="Players">
+          <ResultSection
+            actionLabel="View all"
+            count={players.length}
+            onAction={() => {
+              hapticSelection();
+              router.push("/players");
+            }}
+            title="Players"
+          >
             {players.map((player) => (
               <PlayerResult key={player.id} player={player} />
             ))}

@@ -161,7 +161,7 @@ export default function NotificationsScreen() {
           </Text>
           <Pressable
             accessibilityRole="button"
-            onPress={() => router.push("/(tabs)/you")}
+            onPress={() => router.push("/you")}
             className="mt-4 rounded-lg bg-[#005c23] px-4 py-2 active:opacity-80 dark:bg-[#bcdf21]"
           >
             <Text className="text-xs font-bold text-white dark:text-black">
