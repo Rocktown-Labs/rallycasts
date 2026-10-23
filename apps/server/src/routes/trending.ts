@@ -231,20 +231,25 @@ export const mergeTrendingVenues = (
 type TrendingDb = ReturnType<typeof createDb>;
 
 const sponsoredTrendingEvents = async (db: TrendingDb, secret: string) => {
-  const sponsorships = await getDisplaySponsorships(db, {});
-  return Promise.all(
-    sponsorships.slice(0, 2).map(async (sponsorship) => ({
-      ...sponsorship.event,
-      adCampaignId: sponsorship.campaign.id,
-      adCreativeId: sponsorship.creative.id,
-      adTracking: await signDisplayTracking(
-        secret,
-        sponsorship.campaign.id,
-        sponsorship.creative.id
-      ),
-      sponsored: true as const,
-    }))
-  );
+  try {
+    const sponsorships = await getDisplaySponsorships(db, {});
+    return await Promise.all(
+      sponsorships.slice(0, 2).map(async (sponsorship) => ({
+        ...sponsorship.event,
+        adCampaignId: sponsorship.campaign.id,
+        adCreativeId: sponsorship.creative.id,
+        adTracking: await signDisplayTracking(
+          secret,
+          sponsorship.campaign.id,
+          sponsorship.creative.id
+        ),
+        sponsored: true as const,
+      }))
+    );
+  } catch (error) {
+    console.error("Failed to load sponsored trending events:", error);
+    return [];
+  }
 };
 
 const fetchNearbyTrendingVenues = async (
