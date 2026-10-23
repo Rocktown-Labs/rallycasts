@@ -15,7 +15,10 @@ env:
 
 jobs:
   deploy:
-    if: ${{ github.event.action != 'closed' }}
+    # Dependabot runs do not receive repository secrets, so preview
+    # deploys cannot work from its pull requests; the bumps are validated
+    # by the lint/type/build/test jobs and deployed when merged to master.
+    if: ${{ github.event.action != 'closed' && github.actor != 'dependabot[bot]' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
