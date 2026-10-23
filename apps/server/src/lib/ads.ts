@@ -1,3 +1,5 @@
+import { setTimeout as delay } from "node:timers/promises";
+
 import type { createDb } from "@rallycaststv/db";
 import {
   adCampaign,
@@ -103,33 +105,70 @@ export const campaignCpmFor = (
 ): number =>
   placement === "preroll" ? campaign.videoCpmCents : campaign.cpmCents;
 
+const isTransientD1Error = (error: unknown): boolean => {
+  if (!error) {
+    return false;
+  }
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    message.includes("D1_ERROR") ||
+    message.includes("internal error") ||
+    message.includes("storage operation exceeded timeout") ||
+    message.includes("Network connection lost") ||
+    message.includes("reset")
+  );
+};
+
 /**
  * Pick eligible sponsored events for a placement. Editorial search/feed
  * ranking is never consulted here, so ad spend cannot corrupt the
  * Vectorize cosine space. Callers append results with `sponsored: true`.
+ *
+ * Ad lookup is fault-tolerant: transient D1 or network errors retry once
+ * before falling back to an empty result list so optional ads never fail
+ * core consumer responses (trending, search, home feed).
  */
 export const decideAds = async (
   db: Db,
   context: AdDecideContext
 ): Promise<DecidedAd[]> => {
+  const creativeKind = context.placement === "preroll" ? "preroll" : "display";
+
+  const fetchCandidates = () =>
+    db
+      .select({ campaign: adCampaign, creative: adCreative, event })
+      .from(adCampaign)
+      .innerJoin(event, eq(adCampaign.eventId, event.id))
+      .innerJoin(
+        adCreative,
+        and(
+          eq(adCreative.campaignId, adCampaign.id),
+          eq(adCreative.kind, creativeKind),
+          eq(adCreative.status, "active")
+        )
+      )
+      .where(eq(adCampaign.status, "active"));
+
+  let candidates: Awaited<ReturnType<typeof fetchCandidates>>;
+  try {
+    try {
+      candidates = await fetchCandidates();
+    } catch (error) {
+      if (isTransientD1Error(error)) {
+        await delay(60);
+        candidates = await fetchCandidates();
+      } else {
+        throw error;
+      }
+    }
+  } catch (error) {
+    console.error("Ad decision candidate query failed:", error);
+    return [];
+  }
+
   const now = Date.now();
   const limit = Math.max(1, Math.min(context.limit ?? 2, 6));
   const excluded = new Set(context.excludeCampaignIds);
-  const creativeKind = context.placement === "preroll" ? "preroll" : "display";
-
-  const candidates = await db
-    .select({ campaign: adCampaign, creative: adCreative, event })
-    .from(adCampaign)
-    .innerJoin(event, eq(adCampaign.eventId, event.id))
-    .innerJoin(
-      adCreative,
-      and(
-        eq(adCreative.campaignId, adCampaign.id),
-        eq(adCreative.kind, creativeKind),
-        eq(adCreative.status, "active")
-      )
-    )
-    .where(eq(adCampaign.status, "active"));
 
   const eligible = candidates.filter(
     ({ campaign, event: eventRecord }) =>
@@ -146,18 +185,25 @@ export const decideAds = async (
   }
 
   const today = utcDay(now);
-  const stats = await db
-    .select()
-    .from(adDailyStat)
-    .where(
-      and(
-        inArray(
-          adDailyStat.campaignId,
-          eligible.map(({ campaign }) => campaign.id)
-        ),
-        eq(adDailyStat.day, today)
-      )
-    );
+  let stats: (typeof adDailyStat.$inferSelect)[] = [];
+  try {
+    stats = await db
+      .select()
+      .from(adDailyStat)
+      .where(
+        and(
+          inArray(
+            adDailyStat.campaignId,
+            eligible.map(({ campaign }) => campaign.id)
+          ),
+          eq(adDailyStat.day, today)
+        )
+      );
+  } catch (error) {
+    console.error("Ad decision daily stats query failed:", error);
+    return [];
+  }
+
   const spentTodayByCampaign = new Map<string, number>();
   for (const row of stats) {
     spentTodayByCampaign.set(

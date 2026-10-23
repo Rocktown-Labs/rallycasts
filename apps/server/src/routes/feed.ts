@@ -636,39 +636,44 @@ export const feedRouter = new Hono<AppEnv>().get(
       .slice(0, FEED_RESULT_LIMIT - MAX_SPONSORED_ITEMS)
       .map(({ sortDate: _sortDate, ...item }) => item);
 
-    const sponsorships = await getDisplaySponsorships(db, {
-      city: profile?.homeCity ?? null,
-      skillLevel: profile?.skillLevel ?? null,
-      state: profile?.homeState ?? null,
-    });
-    const sponsoredItems = await Promise.all(
-      sponsorships.slice(0, MAX_SPONSORED_ITEMS).map(async (sponsorship) => ({
-        entity: {
-          ...sponsorship.event,
-          adCampaignId: sponsorship.campaign.id,
-          adCreativeId: sponsorship.creative.id,
-          adTracking: await signDisplayTracking(
-            adsSecret(c.env),
-            sponsorship.campaign.id,
-            sponsorship.creative.id
-          ),
-          location: "",
-          sponsored: true as const,
-        },
-        entityType: "event" as const,
-        id: sponsorship.event.id,
-        reason: "Promoted tournament",
-        score: 0,
-        signals: {
-          engagement: 0,
-          freshness: 0,
-          location: 0,
-          semantic: 0,
-          social: 0,
-        },
-        title: sponsorship.event.name,
-      }))
-    );
+    let sponsoredItems: FeedItem[] = [];
+    try {
+      const sponsorships = await getDisplaySponsorships(db, {
+        city: profile?.homeCity ?? null,
+        skillLevel: profile?.skillLevel ?? null,
+        state: profile?.homeState ?? null,
+      });
+      sponsoredItems = await Promise.all(
+        sponsorships.slice(0, MAX_SPONSORED_ITEMS).map(async (sponsorship) => ({
+          entity: {
+            ...sponsorship.event,
+            adCampaignId: sponsorship.campaign.id,
+            adCreativeId: sponsorship.creative.id,
+            adTracking: await signDisplayTracking(
+              adsSecret(c.env),
+              sponsorship.campaign.id,
+              sponsorship.creative.id
+            ),
+            location: "",
+            sponsored: true as const,
+          },
+          entityType: "event" as const,
+          id: sponsorship.event.id,
+          reason: "Promoted tournament",
+          score: 0,
+          signals: {
+            engagement: 0,
+            freshness: 0,
+            location: 0,
+            semantic: 0,
+            social: 0,
+          },
+          title: sponsorship.event.name,
+        }))
+      );
+    } catch (error) {
+      console.error("Failed to load sponsored feed items:", error);
+    }
     // Fixed slots keep sponsored placement deterministic and auditable.
     for (const [slot, item] of [
       [3, sponsoredItems[0]],

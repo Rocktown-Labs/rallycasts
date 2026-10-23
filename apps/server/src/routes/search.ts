@@ -378,29 +378,33 @@ export const searchRouter = new Hono<AppEnv>()
     if (type === "all" || type === "events") {
       // Sponsored events match the query text so intent is preserved,
       // and they are labeled instead of blended into semantic order.
-      const sponsorships = await getDisplaySponsorships(db, {});
-      const needle = query.trim().toLowerCase();
-      const sponsored = await Promise.all(
-        sponsorships
-          .filter((sponsorship) =>
-            `${sponsorship.event.name} ${sponsorship.event.description ?? ""}`
-              .toLowerCase()
-              .includes(needle)
-          )
-          .slice(0, 2)
-          .map(async (sponsorship) => ({
-            ...sponsorship.event,
-            adCampaignId: sponsorship.campaign.id,
-            adCreativeId: sponsorship.creative.id,
-            adTracking: await signDisplayTracking(
-              adsSecret(c.env),
-              sponsorship.campaign.id,
-              sponsorship.creative.id
-            ),
-            sponsored: true as const,
-          }))
-      );
-      events = [...sponsored, ...events].slice(0, 6);
+      try {
+        const sponsorships = await getDisplaySponsorships(db, {});
+        const needle = query.trim().toLowerCase();
+        const sponsored = await Promise.all(
+          sponsorships
+            .filter((sponsorship) =>
+              `${sponsorship.event.name} ${sponsorship.event.description ?? ""}`
+                .toLowerCase()
+                .includes(needle)
+            )
+            .slice(0, 2)
+            .map(async (sponsorship) => ({
+              ...sponsorship.event,
+              adCampaignId: sponsorship.campaign.id,
+              adCreativeId: sponsorship.creative.id,
+              adTracking: await signDisplayTracking(
+                adsSecret(c.env),
+                sponsorship.campaign.id,
+                sponsorship.creative.id
+              ),
+              sponsored: true as const,
+            }))
+        );
+        events = [...sponsored, ...events].slice(0, 6);
+      } catch (error) {
+        console.error("Failed to load sponsored search events:", error);
+      }
     }
     const keywordVenues =
       type === "all" || type === "parks"

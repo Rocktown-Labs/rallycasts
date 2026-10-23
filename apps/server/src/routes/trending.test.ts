@@ -65,6 +65,31 @@ describe("trending venue discovery", () => {
     await expect(response.json()).resolves.toMatchObject({ venues: [] });
   });
 
+  it("keeps Trending available when ad sponsorships encounter database errors", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const adsModule = await import("../lib/ads");
+    vi.spyOn(adsModule, "getDisplaySponsorships").mockRejectedValueOnce(
+      new Error(
+        "D1_ERROR: internal error; reference = e_Gz3hrU_e4d9c3c5db3a4315801d2c83468f1edc"
+      )
+    );
+
+    const response = await app.request(
+      "/api/v1/trending?lat=36.37&lng=-94.21",
+      {},
+      { ...env, GOOGLE_PLACES_API_KEY: "" }
+    );
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { sponsoredEvents: unknown[] };
+    expect(body.sponsoredEvents).toEqual([]);
+    expect(errorSpy).toHaveBeenCalledWith(
+      "Failed to load sponsored trending events:",
+      expect.any(Error)
+    );
+    errorSpy.mockRestore();
+  });
+
   it("returns Google Places pickleball parks and caches them into D1 for subsequent requests", async () => {
     const searchSpy = vi
       .spyOn(GooglePlacesClient.prototype, "searchNearby")
