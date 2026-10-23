@@ -31,6 +31,19 @@ export function useClips() {
   return useQuery({
     queryKey: ["clips"],
     queryFn: async (): Promise<VideosResponse> => {
+      try {
+        const data = await readApiJson<VideosResponse>(
+          apiClient.api.v1.videos.$get()
+        );
+        const clips = (data?.videos ?? []).filter(
+          (video) => video.mediaType === "short"
+        );
+        if (clips.length > 0) {
+          return { videos: clips };
+        }
+      } catch {
+        // Fall back to demo clips
+      }
       return { videos: demoClips };
     },
   });
