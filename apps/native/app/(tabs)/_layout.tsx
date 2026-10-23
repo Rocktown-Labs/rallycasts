@@ -30,7 +30,7 @@ export default function TabLayout() {
         />
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="trending">
+      <NativeTabs.Trigger name="(trending)">
         <NativeTabs.Trigger.Label>Trending</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
           md="local_fire_department"
@@ -51,7 +51,7 @@ export default function TabLayout() {
         />
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="search">
+      <NativeTabs.Trigger name="(search)">
         <NativeTabs.Trigger.Label>Search</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon md="search" sf="magnifyingglass" />
       </NativeTabs.Trigger>

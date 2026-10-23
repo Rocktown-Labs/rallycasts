@@ -7,10 +7,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { PlayerCard } from "@/components/cards";
 import { ScreenHeader } from "@/components/header";
 import { usePlayers } from "@/lib/hooks";
+import { useTabContentInset } from "@/lib/tab-bar-inset";
 
 const SKILL_FILTERS = ["All", "3.5 Rec", "4.0 Doubles", "4.5 Tournament", "5.0 Pro"];
 
 export default function PlayersScreen() {
+  const tabContentInset = useTabContentInset();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
 
@@ -40,7 +42,7 @@ export default function PlayersScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 36 }}
+        contentContainerStyle={{ paddingBottom: tabContentInset }}
       >
         {/* Search Bar */}
         <View className="p-4 pb-2">

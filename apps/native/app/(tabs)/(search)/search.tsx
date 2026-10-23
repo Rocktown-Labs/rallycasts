@@ -28,6 +28,7 @@ import {
   type SearchEntity,
   type SearchPlayer,
 } from "@/lib/hooks";
+import { useTabContentInset } from "@/lib/tab-bar-inset";
 
 const FILTERS: Array<{ id: SearchEntity; label: string }> = [
   { id: "all", label: "All" },
@@ -301,6 +302,7 @@ function NoResults({ query }: { query: string }) {
 
 export default function SearchScreen() {
   const router = useRouter();
+  const tabContentInset = useTabContentInset();
   const inputRef = useRef<TextInput>(null);
   const [query, setQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<SearchEntity>("all");
@@ -431,7 +433,7 @@ export default function SearchScreen() {
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 32 }}
+        contentContainerStyle={{ paddingBottom: tabContentInset }}
       >
         {isFetching && isSearching ? (
           <View className="items-center py-6">

@@ -109,21 +109,9 @@ function StackLayout() {
         }}
       />
       <Stack.Screen
-        name="players/index"
+        name="players/[username]"
         options={{
-          headerShown: false,
-        }}
-      />
-      <Stack.Screen
-        name="parks/index"
-        options={{
-          headerShown: false,
-        }}
-      />
-      <Stack.Screen
-        name="videos/index"
-        options={{
-          headerShown: false,
+          title: "Player Profile",
         }}
       />
       <Stack.Screen
@@ -136,12 +124,6 @@ function StackLayout() {
         name="sign-up"
         options={{
           headerShown: false,
-        }}
-      />
-      <Stack.Screen
-        name="players/[username]"
-        options={{
-          title: "Player Profile",
         }}
       />
       <Stack.Screen
@@ -163,12 +145,6 @@ function StackLayout() {
           presentation: "formSheet",
           sheetAllowedDetents: [0.5, 1.0],
           sheetGrabberVisible: true,
-        }}
-      />
-      <Stack.Screen
-        name="search-history"
-        options={{
-          headerShown: false,
         }}
       />
       <Stack.Screen

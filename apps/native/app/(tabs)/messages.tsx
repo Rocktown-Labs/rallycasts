@@ -16,6 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ScreenHeader } from "@/components/header";
 import { authClient } from "@/lib/auth-client";
 import { useConversations, type ConversationSummary } from "@/lib/hooks";
+import { useTabContentInset } from "@/lib/tab-bar-inset";
 
 function formatMessageTime(value?: string | number | null) {
   if (!value) {
@@ -97,6 +98,7 @@ function ConversationRow({
 
 export default function MessagesScreen() {
   const router = useRouter();
+  const tabContentInset = useTabContentInset();
   const { data: session, isPending } = authClient.useSession();
   const isSignedIn = Boolean(session?.user);
   const { data, isLoading } = useConversations(isSignedIn);
@@ -146,7 +148,7 @@ export default function MessagesScreen() {
       {isSignedIn && !isLoading ? (
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 32, paddingHorizontal: 16 }}
+          contentContainerStyle={{ paddingBottom: tabContentInset, paddingHorizontal: 16 }}
         >
           {conversations.length > 0 ? (
             conversations.map((conversation) => (
