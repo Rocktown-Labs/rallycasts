@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { apiClient } from "@/lib/api-client";
 import { readApiJson } from "@/lib/api";
+import { withDemoItems, demoDataEnabled } from "@/lib/demo-mode";
 import {
   demoEvents,
   demoPlayers,
@@ -105,9 +106,27 @@ export function useSearch(query: string, type: SearchEntity) {
     enabled: query.trim().length > 1,
     queryFn: async (): Promise<SearchResponse> => {
       try {
-        return await readApiJson<SearchResponse>(
+        const data = await readApiJson<SearchResponse>(
           apiClient.api.v1.search.$get({ query: { q: query, type } })
         );
+        if (demoDataEnabled) {
+          const demo = demoSearch(query, type);
+          const seenPostIds = new Set(
+            data.posts.map((item) => item.post.id)
+          );
+          return {
+            ...data,
+            events: withDemoItems(data.events, demo.events),
+            players: withDemoItems(data.players, demo.players),
+            posts: [
+              ...data.posts,
+              ...demo.posts.filter((item) => !seenPostIds.has(item.post.id)),
+            ],
+            venues: withDemoItems(data.venues, demo.venues),
+            videos: withDemoItems(data.videos, demo.videos),
+          };
+        }
+        return data;
       } catch {
         return demoSearch(query, type);
       }

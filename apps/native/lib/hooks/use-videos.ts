@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { apiClient } from "@/lib/api-client";
 import { readApiJson } from "@/lib/api";
+import { withDemoItems } from "@/lib/demo-mode";
 import { demoVideos, demoClips, type VideoData } from "@/lib/demo-data";
 
 export interface VideosResponse {
@@ -17,7 +18,7 @@ export function useVideos() {
           apiClient.api.v1.videos.$get()
         );
         if (data?.videos?.length) {
-          return data;
+          return { videos: withDemoItems(data.videos, demoVideos) };
         }
       } catch {
         // Fall back to demo videos
@@ -39,7 +40,7 @@ export function useClips() {
           (video) => video.mediaType === "short"
         );
         if (clips.length > 0) {
-          return { videos: clips };
+          return { videos: withDemoItems(clips, demoClips) };
         }
       } catch {
         // Fall back to demo clips

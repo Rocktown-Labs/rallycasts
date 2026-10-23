@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { apiClient } from "@/lib/api-client";
 import { readApiJson } from "@/lib/api";
+import { withDemoItems } from "@/lib/demo-mode";
 import { demoPlayers, type PlayerData } from "@/lib/demo-data";
 
 export interface PlayersResponse {
@@ -21,7 +22,22 @@ export function usePlayers(query = "", role?: string) {
           apiClient.api.v1.players.$get({ query: queryParams })
         );
         if (data?.players?.length) {
-          return data;
+          return {
+            players: withDemoItems(
+              data.players,
+              demoPlayers.filter((player) =>
+                query.trim()
+                  ? [player.name, player.username, player.homeCity, player.skillLevel]
+                      .filter(Boolean)
+                      .some((value) =>
+                        String(value)
+                          .toLowerCase()
+                          .includes(query.trim().toLowerCase())
+                      )
+                  : true
+              ),
+            ),
+          };
         }
       } catch {
         // Fall back

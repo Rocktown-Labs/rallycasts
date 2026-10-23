@@ -2,7 +2,17 @@ import { useQuery } from "@tanstack/react-query";
 
 import { apiClient } from "@/lib/api-client";
 import { readApiJson } from "@/lib/api";
-import { demoVenues, demoVideos, demoPlayers, demoEvents, type VenueData, type VideoData, type PlayerData, type EventData } from "@/lib/demo-data";
+import { withDemoItems } from "@/lib/demo-mode";
+import {
+  demoEvents,
+  demoPlayers,
+  demoVenues,
+  demoVideos,
+  type EventData,
+  type PlayerData,
+  type VenueData,
+  type VideoData,
+} from "@/lib/demo-data";
 
 export interface TrendingResponse {
   venues: VenueData[];
@@ -21,7 +31,12 @@ export function useTrending(radiusMiles?: number) {
           apiClient.api.v1.trending.$get({ query })
         );
         if (data?.venues?.length || data?.videos?.length) {
-          return data;
+          return {
+            events: withDemoItems(data.events ?? [], demoEvents),
+            players: withDemoItems(data.players ?? [], demoPlayers),
+            venues: withDemoItems(data.venues ?? [], demoVenues),
+            videos: withDemoItems(data.videos ?? [], demoVideos),
+          };
         }
       } catch {
         // Fall back to demo data
