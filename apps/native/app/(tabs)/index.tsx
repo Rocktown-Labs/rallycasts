@@ -36,6 +36,7 @@ import {
   useTrending,
   useVideos,
 } from "@/lib/hooks";
+import { useTabContentInset } from "@/lib/tab-bar-inset";
 import { authClient } from "@/lib/auth-client";
 
 const SHELF_CARD_GAP = 12;
@@ -57,6 +58,7 @@ function addUnique<T extends { id: string }>(
 
 export default function HomeScreen() {
   const router = useRouter();
+  const tabContentInset = useTabContentInset();
   const { width } = useWindowDimensions();
   const scrollRef = useRef<ScrollView>(null);
   const [activeTab, setActiveTab] = useState<HomeTabId>("all");
@@ -224,7 +226,7 @@ export default function HomeScreen() {
       <ScrollView
         ref={scrollRef}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 32 }}
+        contentContainerStyle={{ paddingBottom: tabContentInset }}
         stickyHeaderIndices={[1]}
       >
         {/* Hero Section */}

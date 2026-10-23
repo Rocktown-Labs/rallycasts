@@ -15,8 +15,10 @@ import { VideoCard } from "@/components/cards";
 import { ScreenHeader } from "@/components/header";
 import { VIDEO_SORTS, type VideoSort } from "@/lib/discovery";
 import { useTrending } from "@/lib/hooks";
+import { useTabContentInset } from "@/lib/tab-bar-inset";
 
 export default function VideosScreen() {
+  const tabContentInset = useTabContentInset();
   const [sort, setSort] = useState<VideoSort>("views");
   const { data, isLoading } = useTrending();
 
@@ -91,7 +93,7 @@ export default function VideosScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 36 }}
+        contentContainerStyle={{ paddingBottom: tabContentInset }}
       >
         {isLoading ? (
           <View className="items-center py-10">

@@ -6,9 +6,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ScreenHeader } from "@/components/header";
 import { useRecentSearches } from "@/lib/hooks";
+import { useTabContentInset } from "@/lib/tab-bar-inset";
 
 export default function SearchHistoryScreen() {
   const router = useRouter();
+  const tabContentInset = useTabContentInset();
   const { clearRecentSearches, removeRecentSearch, searches } =
     useRecentSearches();
 
@@ -29,7 +31,7 @@ export default function SearchHistoryScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 32 }}
+        contentContainerStyle={{ paddingBottom: tabContentInset }}
       >
         <View className="flex-row items-center justify-between px-4 py-3">
           <Text className="text-[11px] font-bold uppercase tracking-wider text-muted">

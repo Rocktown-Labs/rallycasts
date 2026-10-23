@@ -16,6 +16,7 @@ import { ParkCard, PlayerCard, VideoCard } from "@/components/cards";
 import { ScreenHeader } from "@/components/header";
 import { RADIUS_OPTIONS } from "@/lib/discovery";
 import { useTrending } from "@/lib/hooks";
+import { useTabContentInset } from "@/lib/tab-bar-inset";
 import type { PlayerData } from "@/lib/demo-data";
 
 const SHELF_CARD_GAP = 12;
@@ -43,6 +44,7 @@ function RankedPlayerCard({
 
 export default function TrendingScreen() {
   const router = useRouter();
+  const tabContentInset = useTabContentInset();
   const { width } = useWindowDimensions();
   const [selectedRadius, setSelectedRadius] = useState<number>(15);
   const { data: trendingData } = useTrending(
@@ -92,7 +94,7 @@ export default function TrendingScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 36 }}
+        contentContainerStyle={{ paddingBottom: tabContentInset }}
       >
         {/* Radius filter pills */}
         <View className="border-b border-border/40 py-3">

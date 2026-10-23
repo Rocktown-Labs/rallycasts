@@ -16,8 +16,10 @@ import { ParkCard } from "@/components/cards";
 import { ScreenHeader } from "@/components/header";
 import { PARK_SORTS, RADIUS_OPTIONS, type ParkSort } from "@/lib/discovery";
 import { useTrending } from "@/lib/hooks";
+import { useTabContentInset } from "@/lib/tab-bar-inset";
 
 export default function ParksScreen() {
+  const tabContentInset = useTabContentInset();
   const { radius } = useLocalSearchParams<{ radius?: string }>();
   const initialRadius = Number(radius ?? 15);
   const [selectedRadius, setSelectedRadius] = useState<number>(
@@ -143,7 +145,7 @@ export default function ParksScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 36 }}
+        contentContainerStyle={{ paddingBottom: tabContentInset }}
       >
         {isLoading ? (
           <View className="items-center py-10">

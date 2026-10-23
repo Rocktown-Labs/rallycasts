@@ -7,10 +7,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { EventCard } from "@/components/cards";
 import { ScreenHeader } from "@/components/header";
 import { useEvents } from "@/lib/hooks";
+import { useTabContentInset } from "@/lib/tab-bar-inset";
 
 const CATEGORY_FILTERS = ["All Events", "Tournaments", "Open Play", "Major"];
 
 export default function EventsScreen() {
+  const tabContentInset = useTabContentInset();
   const [activeCategory, setActiveCategory] = useState("All Events");
   const { data: eventsData, isLoading } = useEvents();
 
@@ -41,7 +43,7 @@ export default function EventsScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 36 }}
+        contentContainerStyle={{ paddingBottom: tabContentInset }}
       >
         {/* Category filters */}
         <View className="py-3">
