@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { apiClient } from "@/lib/api-client";
 import { readApiJson } from "@/lib/api";
+import { withDemoItems } from "@/lib/demo-mode";
 import { demoEvents, type EventData } from "@/lib/demo-data";
 
 export interface EventsResponse {
@@ -17,7 +18,7 @@ export function useEvents(query = "") {
           apiClient.api.v1.events.$get()
         );
         if (data?.events?.length) {
-          return data;
+          return { events: withDemoItems(data.events, demoEvents) };
         }
       } catch {
         // Fall back
