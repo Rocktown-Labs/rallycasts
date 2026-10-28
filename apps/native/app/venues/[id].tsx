@@ -9,12 +9,33 @@ import * as WebBrowser from "expo-web-browser";
 
 import { VideoCard } from "@/components/cards";
 import { demoVenues, demoVideos } from "@/lib/demo-data";
+import { demoDataEnabled } from "@/lib/demo-mode";
 
 export default function VenueDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const venue = demoVenues.find((v) => v.id === id) || demoVenues[0]!;
-  const heatScore = venue.heatScore ?? 85;
+  const venue =
+    demoVenues.find((v) => v.id === id) ??
+    (demoDataEnabled ? demoVenues[0] : undefined);
+
+  if (!venue) {
+    return (
+      <SafeAreaView
+        edges={["bottom"]}
+        className="bg-background flex-1 items-center justify-center px-6"
+      >
+        <Ionicons name="location-outline" size={42} color="#8892a0" />
+        <Text className="text-foreground mt-3 text-lg font-bold">
+          Venue not found
+        </Text>
+        <Text className="text-muted mt-1 text-center text-sm">
+          Open the web app to browse live venue details.
+        </Text>
+      </SafeAreaView>
+    );
+  }
+
+  const heatScore = venue.heatScore ?? 0;
   const heatWidthPercent = `${Math.min(Math.max(heatScore, 10), 100)}%`;
 
   const handleCheckIn = () => {
