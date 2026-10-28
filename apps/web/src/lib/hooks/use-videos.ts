@@ -154,13 +154,20 @@ export const useVideoSocial = (videoId: string, enabled = true) =>
     queryKey: ["videos", videoId, "social"],
   });
 
+export interface VideoViewResponse {
+  id: string;
+  viewId: string;
+  views: number;
+}
+
 export const useRecordVideoView = (videoId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () =>
-      readApiJson(
+    mutationFn: (payload?: { completed?: boolean; watchedSeconds?: number }) =>
+      readApiJson<VideoViewResponse>(
         apiClient.api.v1.videos[":id"].views.$post({
+          ...(payload ? { json: payload } : {}),
           param: { id: videoId },
         })
       ),
@@ -168,6 +175,34 @@ export const useRecordVideoView = (videoId: string) => {
       queryClient.invalidateQueries({
         queryKey: ["videos", videoId, "social"],
       });
+    },
+  });
+};
+
+export const useUpdateVideoView = (videoId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: {
+      completed?: boolean;
+      viewId: string;
+      watchedSeconds?: number;
+    }) =>
+      readApiJson(
+        apiClient.api.v1.videos[":id"].views[":viewId"].$patch({
+          json: {
+            ...(input.completed === undefined
+              ? {}
+              : { completed: input.completed }),
+            ...(input.watchedSeconds === undefined
+              ? {}
+              : { watchedSeconds: input.watchedSeconds }),
+          },
+          param: { id: videoId, viewId: input.viewId },
+        })
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["creator-analytics"] });
     },
   });
 };

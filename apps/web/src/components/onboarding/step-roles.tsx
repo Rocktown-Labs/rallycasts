@@ -41,7 +41,7 @@ const StepRolesForm = (props: React.ComponentProps<typeof StepRoles>) => {
       badge: "Core Experience",
       badgeColor: "text-primary border-primary/30 bg-primary/10",
       description:
-        "Play games, track your DUPR rating, challenge opponents, and request court recordings.",
+        "Play games, track your match history, challenge opponents, and request court recordings.",
       icon: Users,
       key: "isPlayer" as const,
       label: "Player",
@@ -233,7 +233,7 @@ const StepRolesForm = (props: React.ComponentProps<typeof StepRoles>) => {
                     <div className="border-border/40 text-muted-foreground space-y-1.5 border-t pt-2.5 text-xs">
                       <div className="flex items-center gap-2">
                         <Check className="text-primary size-3.5 shrink-0 stroke-[2.5]" />
-                        <span>Player profile & verified DUPR rating</span>
+                        <span>Player profile & self-described skill level</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Check className="text-primary size-3.5 shrink-0 stroke-[2.5]" />

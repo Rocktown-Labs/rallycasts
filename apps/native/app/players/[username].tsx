@@ -5,6 +5,7 @@ import { useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
 import { Alert, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import * as WebBrowser from "expo-web-browser";
 
 import { VideoCard } from "@/components/cards";
 import { demoVideos } from "@/lib/demo-data";
@@ -13,16 +14,13 @@ import { usePlayer } from "@/lib/hooks";
 export default function PlayerProfileScreen() {
   const { username } = useLocalSearchParams<{ username: string }>();
   const { data: player } = usePlayer(username || "");
-  const [isChallenged, setIsChallenged] = useState(false);
 
   const handleChallenge = () => {
     if (Platform.OS === "ios") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
-    setIsChallenged(true);
-    Alert.alert(
-      "Challenge Sent!",
-      `Match challenge sent to ${player?.name || "player"}. You will be notified when they accept!`
+    void WebBrowser.openBrowserAsync(
+      `https://rallycasts.com/players/${encodeURIComponent(username || "")}`
     );
   };
 
@@ -89,24 +87,11 @@ export default function PlayerProfileScreen() {
           {/* Challenge Button */}
           <Pressable
             onPress={handleChallenge}
-            disabled={isChallenged}
-            className={`mt-4 w-full flex-row items-center justify-center gap-2 rounded-2xl py-3 active:opacity-90 ${
-              isChallenged
-                ? "bg-surface-secondary border border-border"
-                : "bg-[#005c23]"
-            }`}
+            className="mt-4 w-full flex-row items-center justify-center gap-2 rounded-2xl bg-[#005c23] py-3 active:opacity-90"
           >
-            <Ionicons
-              name={isChallenged ? "checkmark-circle" : "flash"}
-              size={18}
-              color={isChallenged ? "#10b981" : "#ffffff"}
-            />
-            <Text
-              className={`text-sm font-bold ${
-                isChallenged ? "text-emerald-500" : "text-white"
-              }`}
-            >
-              {isChallenged ? "Challenge Pending" : "Challenge to a Match"}
+            <Ionicons name="flash" size={18} color="#ffffff" />
+            <Text className="text-sm font-bold text-white">
+              Challenge to a Match
             </Text>
           </Pressable>
         </View>

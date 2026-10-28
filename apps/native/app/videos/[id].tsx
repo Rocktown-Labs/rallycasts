@@ -2,37 +2,94 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useState } from "react";
-import { Platform, Pressable, ScrollView, Text, View } from "react-native";
+import { useVideoPlayer, VideoView } from "expo-video";
+import React, { useEffect, useRef } from "react";
+import {
+  Alert,
+  Platform,
+  Pressable,
+  ScrollView,
+  Share,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useVideo } from "@/lib/hooks";
+import {
+  useRecordVideoView,
+  useToggleVideoLike,
+  useVideo,
+  useVideoSocial,
+} from "@/lib/hooks";
 
 export default function VideoDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { data: video } = useVideo(id || "");
-  const [isLiked, setIsLiked] = useState(false);
-  const [likesCount, setLikesCount] = useState(42);
+  const { data: video, error: videoError } = useVideo(id || "");
+  const { data: social } = useVideoSocial(id || "");
+  const likeMutation = useToggleVideoLike(id || "");
+  const recordView = useRecordVideoView(id || "");
+  const viewRecordedRef = useRef(false);
+  const playbackUrl = video?.muxPlaybackId
+    ? `https://stream.mux.com/${encodeURIComponent(video.muxPlaybackId)}.m3u8`
+    : "";
+  const player = useVideoPlayer(playbackUrl, (configuredPlayer) => {
+    configuredPlayer.loop = false;
+  });
+  const isLiked = social?.hasLiked ?? false;
+  const likesCount = social?.likes ?? 0;
+  const viewsCount = social?.views ?? video?.viewsCount ?? 0;
+
+  useEffect(() => {
+    if (video && playbackUrl && !viewRecordedRef.current) {
+      viewRecordedRef.current = true;
+      recordView.mutate();
+    }
+  }, [playbackUrl, recordView, video]);
 
   const handleLike = () => {
     if (Platform.OS === "ios") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    setIsLiked((prev) => !prev);
-    setLikesCount((prev) => (isLiked ? prev - 1 : prev + 1));
+    likeMutation.mutate(!isLiked, {
+      onError: () => Alert.alert("Could not update like", "Try again."),
+    });
   };
 
   const handleShare = () => {
     if (Platform.OS === "ios") {
       Haptics.selectionAsync();
     }
+    void Share.share({
+      message: `${video?.title ?? "RallyCasts highlight"} https://rallycasts.com/videos/${id}`,
+      url: `https://rallycasts.com/videos/${id}`,
+    });
   };
+
+  if (videoError) {
+    return (
+      <SafeAreaView
+        edges={["bottom"]}
+        className="bg-background flex-1 items-center justify-center px-6"
+      >
+        <Ionicons name="videocam-off-outline" size={42} color="#8892a0" />
+        <Text className="text-foreground mt-3 text-lg font-bold">
+          Video not found
+        </Text>
+        <Text className="text-muted mt-1 text-center text-sm">
+          This highlight is private or no longer available.
+        </Text>
+      </SafeAreaView>
+    );
+  }
 
   if (!video) {
     return (
-      <SafeAreaView edges={["bottom"]} className="flex-1 items-center justify-center bg-background">
-        <Text className="text-sm text-muted">Loading match highlights...</Text>
+      <SafeAreaView
+        edges={["bottom"]}
+        className="bg-background flex-1 items-center justify-center"
+      >
+        <Text className="text-muted text-sm">Loading match highlights...</Text>
       </SafeAreaView>
     );
   }
@@ -46,27 +103,38 @@ export default function VideoDetailScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 40 }}
       >
-        {/* Video Player Mock / Thumbnail */}
-        <View className="relative aspect-video w-full bg-black">
-          {video.thumbnailUrl ? (
-            <Image
-              source={{ uri: video.thumbnailUrl }}
-              style={{ width: "100%", height: "100%" }}
-              contentFit="cover"
-            />
-          ) : (
-            <View className="size-full items-center justify-center bg-gradient-to-br from-[#005c23] to-black">
-              <Ionicons name="videocam" size={48} color="#bcdf21" />
-            </View>
-          )}
+        {playbackUrl ? (
+          <VideoView
+            contentFit="contain"
+            player={player}
+            style={{ aspectRatio: 16 / 9, width: "100%" }}
+          />
+        ) : (
+          <View className="relative aspect-video w-full bg-black">
+            {video.thumbnailUrl ? (
+              <Image
+                source={{ uri: video.thumbnailUrl }}
+                style={{ width: "100%", height: "100%" }}
+                contentFit="cover"
+              />
+            ) : (
+              <View className="size-full items-center justify-center bg-gradient-to-br from-[#005c23] to-black">
+                <Ionicons name="videocam" size={48} color="#bcdf21" />
+              </View>
+            )}
 
-          {/* Central Play Indicator */}
-          <View className="absolute inset-0 items-center justify-center">
-            <View className="size-16 items-center justify-center rounded-full bg-black/60 shadow-lg">
-              <Ionicons name="play" size={30} color="#bcdf21" style={{ marginLeft: 3 }} />
+            <View className="absolute inset-0 items-center justify-center">
+              <View className="size-16 items-center justify-center rounded-full bg-black/60 shadow-lg">
+                <Ionicons
+                  name="play"
+                  size={30}
+                  color="#bcdf21"
+                  style={{ marginLeft: 3 }}
+                />
+              </View>
             </View>
           </View>
-        </View>
+        )}
 
         {/* Video Info */}
         <View className="p-4">
@@ -76,12 +144,10 @@ export default function VideoDetailScreen() {
 
           <View className="mt-2 flex-row items-center gap-2">
             <Text className="text-xs text-muted">
-              {video.viewsCount ?? 1420} views
+              {viewsCount} views
             </Text>
             <Text className="text-xs text-muted">•</Text>
-            <Text className="text-xs text-muted">
-              Recorded with RallyCasts 4K
-            </Text>
+            <Text className="text-xs text-muted">Shared on RallyCasts</Text>
           </View>
 
           {/* Action Row */}

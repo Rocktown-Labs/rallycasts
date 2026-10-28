@@ -551,8 +551,8 @@ export function ProfileEditorPage({
               <Sparkles className="text-primary size-5" /> Rating
             </CardTitle>
             <CardDescription className="text-xs">
-              Pick the closest DUPR-style range for matchmaking and challenge
-              context.
+              Pick the skill range that best matches your game for matchmaking
+              and challenge context.
             </CardDescription>
           </CardHeader>
           <CardContent>

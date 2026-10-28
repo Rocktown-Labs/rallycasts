@@ -191,6 +191,7 @@ const verifyStripeSignature = async (
 // oxlint-disable-next-line complexity -- Payment validation and registration reconciliation are intentionally explicit.
 const processCheckoutCompleted = async (
   db: ReturnType<typeof createDb>,
+  env: AppEnv["Bindings"],
   session: Record<string, unknown>,
   stripeSecret?: string
 ) => {
@@ -314,15 +315,19 @@ const processCheckoutCompleted = async (
         updatedAt: new Date(),
       })
       .where(eq(eventRegistration.id, registrationId));
-    await createNotification(db, {
-      body: `Your ${eventRecord.name} registration was refunded because the event was cancelled.`,
-      entityId: eventRecord.id,
-      entityType: "event",
-      href: `/events/${eventRecord.id}`,
-      title: "Cancelled event payment refunded",
-      type: "event",
-      userId: pendingRegistration.userId,
-    });
+    await createNotification(
+      db,
+      {
+        body: `Your ${eventRecord.name} registration was refunded because the event was cancelled.`,
+        entityId: eventRecord.id,
+        entityType: "event",
+        href: `/events/${eventRecord.id}`,
+        title: "Cancelled event payment refunded",
+        type: "event",
+        userId: pendingRegistration.userId,
+      },
+      env
+    );
     return;
   }
   const registrationStatusExpression =
@@ -374,21 +379,25 @@ const processCheckoutCompleted = async (
   if (!registration) {
     return;
   }
-  await createNotification(db, {
-    body:
-      registrationStatus === "waitlisted"
-        ? "Your payment is confirmed. The field is full, so you are on the paid waitlist."
-        : "Your payment is confirmed and your tournament spot is secured.",
-    entityId: registration.eventId,
-    entityType: "event",
-    href: `/events/${registration.eventId}`,
-    title:
-      registrationStatus === "waitlisted"
-        ? "Tournament waitlist confirmed"
-        : "Tournament registration confirmed",
-    type: "event",
-    userId: registration.userId,
-  });
+  await createNotification(
+    db,
+    {
+      body:
+        registrationStatus === "waitlisted"
+          ? "Your payment is confirmed. The field is full, so you are on the paid waitlist."
+          : "Your payment is confirmed and your tournament spot is secured.",
+      entityId: registration.eventId,
+      entityType: "event",
+      href: `/events/${registration.eventId}`,
+      title:
+        registrationStatus === "waitlisted"
+          ? "Tournament waitlist confirmed"
+          : "Tournament registration confirmed",
+      type: "event",
+      userId: registration.userId,
+    },
+    env
+  );
 };
 
 /**
@@ -804,15 +813,19 @@ export const stripeRouter = new Hono<AppEnv>()
           updatedAt: new Date(),
         })
         .where(eq(eventRegistration.id, record.registration.id));
-      await createNotification(db, {
-        body: `Your ${record.event.name} registration was refunded in full.`,
-        entityId: eventId,
-        entityType: "event",
-        href: `/events/${eventId}`,
-        title: "Tournament refund submitted",
-        type: "event",
-        userId: authUser.id,
-      });
+      await createNotification(
+        db,
+        {
+          body: `Your ${record.event.name} registration was refunded in full.`,
+          entityId: eventId,
+          entityType: "event",
+          href: `/events/${eventId}`,
+          title: "Tournament refund submitted",
+          type: "event",
+          userId: authUser.id,
+        },
+        c.env
+      );
       return c.json({ refunded: true }, HttpStatusCodes.OK);
     }
   )
@@ -1240,7 +1253,12 @@ export const stripeRouter = new Hono<AppEnv>()
           ? await processAdBudgetCompleted(db, object)
           : false;
         if (!handledByAds && object) {
-          await processCheckoutCompleted(db, object, c.env.STRIPE_SECRET_KEY);
+          await processCheckoutCompleted(
+            db,
+            c.env,
+            object,
+            c.env.STRIPE_SECRET_KEY
+          );
         }
       }
       await db

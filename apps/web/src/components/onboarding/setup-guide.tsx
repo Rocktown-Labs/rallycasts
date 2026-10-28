@@ -110,7 +110,7 @@ function buildPlayerCategory(
       },
       {
         actionLabel: "Set Rating",
-        description: "Self-assessed or DUPR rating (beginner to pro).",
+        description: "Self-described skill level (beginner to pro).",
         id: "player_rating",
         isComplete: hasRating,
         title: "Choose skill rating & paddle",

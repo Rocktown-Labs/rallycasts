@@ -12,7 +12,9 @@ export { EventCoordinator } from "../durable-objects/event-coordinator";
 export interface Env {
   DB: D1Database;
   EVENT_ACTIVITY_QUEUE?: Queue<EventActivityMessage>;
+  EXPO_ACCESS_TOKEN?: string;
   RESEND_API_KEY?: string;
+  USER_NOTIFICATIONS?: DurableObjectNamespace;
 }
 
 const getEventParticipants = (
@@ -32,6 +34,7 @@ const getEventParticipants = (
 
 const notifyParticipants = async (
   db: ReturnType<typeof createDb>,
+  env: Env,
   eventId: string,
   input: {
     actorUserId?: string;
@@ -47,10 +50,14 @@ const notifyParticipants = async (
 
   for (const participant of participants) {
     // oxlint-disable-next-line eslint/no-await-in-loop -- notification fan-out / queue acking; sequential by design
-    await createNotification(db, {
-      ...input,
-      userId: participant.userId,
-    });
+    await createNotification(
+      db,
+      {
+        ...input,
+        userId: participant.userId,
+      },
+      env
+    );
   }
 };
 
@@ -76,21 +83,25 @@ const processEventActivity = async (
       .where(eq(user.id, message.userId))
       .limit(1);
 
-    await createNotification(db, {
-      actorUserId: message.userId,
-      body: `${player?.name ?? "A player"} joined or updated registration.`,
-      entityId: message.eventId,
-      entityType: "event",
-      href: `/events/${message.eventId}`,
-      title: "Registration updated",
-      type: "event",
-      userId: record.organizerUserId,
-    });
+    await createNotification(
+      db,
+      {
+        actorUserId: message.userId,
+        body: `${player?.name ?? "A player"} joined or updated registration.`,
+        entityId: message.eventId,
+        entityType: "event",
+        href: `/events/${message.eventId}`,
+        title: "Registration updated",
+        type: "event",
+        userId: record.organizerUserId,
+      },
+      env
+    );
     return;
   }
 
   if (message.type === "event.reminder") {
-    await notifyParticipants(db, message.eventId, {
+    await notifyParticipants(db, env, message.eventId, {
       body: `${record.name} starts soon. Check in and watch your match assignments.`,
       entityId: message.eventId,
       entityType: "event",
@@ -102,7 +113,7 @@ const processEventActivity = async (
   }
 
   if (message.type === "event.started") {
-    await notifyParticipants(db, message.eventId, {
+    await notifyParticipants(db, env, message.eventId, {
       body: `${record.name} is starting now.`,
       entityId: message.eventId,
       entityType: "event",
@@ -116,10 +127,7 @@ const processEventActivity = async (
   if (message.type === "event.match.assigned") {
     await sendTournamentNotification({
       db,
-      env: {
-        DB: env.DB,
-        RESEND_API_KEY: env.RESEND_API_KEY,
-      },
+      env,
       eventId: message.eventId,
       matchId: message.matchId,
       type: "match_ready",
@@ -131,21 +139,25 @@ const processEventActivity = async (
     message.type === "event.score.confirmed" ||
     message.type === "event.score.disputed"
   ) {
-    await createNotification(db, {
-      body:
-        message.type === "event.score.confirmed"
-          ? "A match score was confirmed."
-          : "A score dispute needs review.",
-      entityId: message.matchId,
-      entityType: "event",
-      href: `/events/${message.eventId}/matches`,
-      title:
-        message.type === "event.score.confirmed"
-          ? "Score confirmed"
-          : "Score dispute",
-      type: "event",
-      userId: record.organizerUserId,
-    });
+    await createNotification(
+      db,
+      {
+        body:
+          message.type === "event.score.confirmed"
+            ? "A match score was confirmed."
+            : "A score dispute needs review.",
+        entityId: message.matchId,
+        entityType: "event",
+        href: `/events/${message.eventId}/matches`,
+        title:
+          message.type === "event.score.confirmed"
+            ? "Score confirmed"
+            : "Score dispute",
+        type: "event",
+        userId: record.organizerUserId,
+      },
+      env
+    );
   }
 };
 

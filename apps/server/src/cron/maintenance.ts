@@ -7,8 +7,11 @@ import {
 } from "@rallycaststv/db/schema/domain";
 import { and, eq, inArray, like, or, sql } from "drizzle-orm";
 
+import { checkPushReceipts } from "../lib/push";
+
 export interface MaintenanceEnv {
   DB: D1Database;
+  EXPO_ACCESS_TOKEN?: string;
 }
 
 /** Archive published events this long after they end. */
@@ -25,12 +28,15 @@ export interface MaintenanceResult {
   deletedDemoMatches: number;
   deletedDemoRegistrations: number;
   deletedDemoUsers: number;
+  pushReceiptsChecked: number;
+  pushTokensDisabled: number;
 }
 
 const eventEndMillis = sql<number>`COALESCE(${event.endsAt}, ${event.startsAt} + ${DEFAULT_EVENT_DURATION_MS})`;
 
 export async function runMaintenance(
-  db: ReturnType<typeof createDb>
+  db: ReturnType<typeof createDb>,
+  env?: MaintenanceEnv
 ): Promise<MaintenanceResult> {
   const result: MaintenanceResult = {
     archivedAsCancelled: 0,
@@ -38,7 +44,15 @@ export async function runMaintenance(
     deletedDemoMatches: 0,
     deletedDemoRegistrations: 0,
     deletedDemoUsers: 0,
+    pushReceiptsChecked: 0,
+    pushTokensDisabled: 0,
   };
+
+  if (env) {
+    const pushResult = await checkPushReceipts(db, env);
+    result.pushReceiptsChecked = pushResult.checked;
+    result.pushTokensDisabled = pushResult.disabled;
+  }
 
   // 1. Archive pass: published events stay public only for a grace window
   // after they end, then move to a terminal status so discovery queries
@@ -135,7 +149,7 @@ export default {
   ): void {
     const run = async () => {
       try {
-        const result = await runMaintenance(createDb(env.DB));
+        const result = await runMaintenance(createDb(env.DB), env);
         console.log(
           JSON.stringify({ event: "maintenance_completed", ...result })
         );

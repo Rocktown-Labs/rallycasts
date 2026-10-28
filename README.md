@@ -7,7 +7,10 @@ This project was created with [Better-T-Stack](https://github.com/AmanVarshney01
 - **Player discovery** - Profiles, nearby players, friendships, messaging, and notifications
 - **Location-aware Trending** - Nearby parks from RallyCasts venue data and Google Places, ranked by distance
 - **Video discovery** - Cursor-paginated RallyCasts, player tags, venue metadata, comments, and related videos
-- **Creator Studio** - Direct Mux uploads, processing status, publishing controls, and short clips
+- **Creator Studio** - Direct Mux uploads, RTMPS live streams with automatic replay publishing, processing status, publishing controls, and short clips
+- **Live directory** - Public live watch pages and a courtside directory, with owner-only ingest credentials in Studio
+- **Push notifications** - Expo push tokens stored per device and sent for court calls, tournament wins, challenges, messages, and other in-app notifications
+- **Creator analytics** - Real view counts, watch time, followers, and daily audience momentum from first-party playback events
 - **Organizations** - Independent organizer profiles, role-based teams, organization-authored posts/videos, and verified RallyCasts identity
 - **Tournaments** - Free or paid registration, seeded single-elimination or round-robin brackets, court assignments, match scoring, notifications, and refunds
 - **Match challenges** - Player-to-player challenges with park, court, schedule, optional caster, split-pay preference, and caster tip
@@ -108,6 +111,10 @@ Production deployments provision the web app, Hono API, D1 migrations, queues, D
 The production `CLOUDFLARE_API_TOKEN` GitHub secret must permit the documented R2 bucket/custom-domain operations and zone lookup for `rallycasts.com`. The deployment verifies that `media.rallycasts.com` is active and has an authoritative DNS record, reports public resolver propagation, and reattaches the documented R2 custom domain if the authoritative record is missing. It also performs a unique put/fetch/content comparison through the custom domain and deletes the smoke-test object. Do not replace it with a manual `r2.dev` CNAME.
 
 Paid tournaments require `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`. Connect onboarding and payment confirmation remain unavailable when those bindings are absent; registrations are confirmed only by a verified webhook.
+
+Live streaming uses the existing Mux Video credentials (`MUX_TOKEN_ID`, `MUX_TOKEN_SECRET`, `MUX_WEBHOOK_SECRET`). Studio creates an RTMPS live stream, stores the ingest key owner-only, and the Mux webhook publishes the completed recording as a normal replay video. Point the Mux webhook at `https://api.rallycasts.com/api/v1/mux/webhook` and enable the live stream and asset events.
+
+Push notifications use Expo Push. Set `EXPO_ACCESS_TOKEN` on the server if push security is enabled in EAS, and set `EXPO_PUBLIC_EAS_PROJECT_ID` in `apps/native/.env` and `apps/caster/.env` so the mobile apps can obtain an Expo push token. Without a project ID the apps skip push registration and every other notification path keeps working.
 
 For more details, see the guide on [Deploying to Cloudflare with Alchemy](https://www.better-t-stack.dev/docs/guides/cloudflare-alchemy).
 

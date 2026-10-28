@@ -1,3 +1,4 @@
+import { env } from "@rallycaststv/env/web";
 import { Button } from "@rallycaststv/ui/components/button";
 import { Card, CardContent } from "@rallycaststv/ui/components/card";
 import { Input } from "@rallycaststv/ui/components/input";
@@ -29,8 +30,10 @@ import {
   useFriends,
   useLikeVideo,
   usePinVideoComment,
+  useFollowStatus,
   useRecordVideoView,
   useShareEntity,
+  useToggleFollow,
   useUnlikeVideo,
   getVideoSlug,
   useVideo,
@@ -246,11 +249,11 @@ function VideoMetaHeader({
   const initialLetter = ownerName.at(0) || "P";
   const videoDescription =
     video.description || "No description provided for this video.";
-  let subscriptionLabel = "Subscribe";
+  let subscriptionLabel = "Follow";
   if (isDemo) {
     subscriptionLabel = "Demo creator";
   } else if (isSubscribed) {
-    subscriptionLabel = "Subscribed";
+    subscriptionLabel = "Following";
   }
 
   return (
@@ -966,44 +969,53 @@ function VideoDetailPage() {
   const pinCommentMutation = usePinVideoComment(id);
 
   const viewRecordedRef = useRef(false);
+  const viewIdRef = useRef<string | null>(null);
+  const watchedSecondsRef = useRef(0);
+  const durationRef = useRef(0);
+
   useEffect(() => {
     if (!viewRecordedRef.current && id && !isDemoVideo) {
       viewRecordedRef.current = true;
-      recordViewMutation.mutate();
+      recordViewMutation.mutate(undefined, {
+        onSuccess: (result) => {
+          viewIdRef.current = result.viewId;
+        },
+      });
     }
   }, [id, isDemoVideo, recordViewMutation]);
 
-  const [commentText, setCommentText] = useState("");
-  const [subscribedCreatorIds, setSubscribedCreatorIds] = useState<string[]>(
-    () => {
-      if (typeof window === "undefined" || !currentUser?.id) {
-        return [];
+  useEffect(
+    () => () => {
+      const viewId = viewIdRef.current;
+      const watchedSeconds = Math.round(watchedSecondsRef.current);
+      if (!(viewId && watchedSeconds > 0)) {
+        return;
       }
-      try {
-        const stored = localStorage.getItem(
-          `rallycasts_subscriptions_${currentUser.id}`
-        );
-        return stored ? (JSON.parse(stored) as string[]) : [];
-      } catch {
-        return [];
-      }
-    }
+      const completed =
+        durationRef.current > 0 && watchedSeconds / durationRef.current >= 0.9;
+      void (async () => {
+        try {
+          await fetch(
+            `${env.VITE_SERVER_URL}/api/v1/videos/${encodeURIComponent(id)}/views/${encodeURIComponent(viewId)}`,
+            {
+              body: JSON.stringify({ completed, watchedSeconds }),
+              credentials: "include",
+              headers: { "Content-Type": "application/json" },
+              keepalive: true,
+              method: "PATCH",
+            }
+          );
+        } catch {
+          // Watch progress is best-effort; the view itself is already counted.
+        }
+      })();
+    },
+    [id]
   );
 
-  useEffect(() => {
-    if (!currentUser?.id) {
-      setSubscribedCreatorIds([]);
-      return;
-    }
-    try {
-      const stored = localStorage.getItem(
-        `rallycasts_subscriptions_${currentUser.id}`
-      );
-      setSubscribedCreatorIds(stored ? (JSON.parse(stored) as string[]) : []);
-    } catch {
-      setSubscribedCreatorIds([]);
-    }
-  }, [currentUser?.id]);
+  const [commentText, setCommentText] = useState("");
+  const followStatusQuery = useFollowStatus(videoData?.owner?.id);
+  const toggleFollowMutation = useToggleFollow(videoData?.owner?.id);
 
   const [optimisticLiked, setOptimisticLiked] = useState<boolean | null>(null);
   const [optimisticLikesDelta, setOptimisticLikesDelta] = useState(0);
@@ -1051,9 +1063,7 @@ function VideoDetailPage() {
   );
   const canPinComments = isOwnChannel;
 
-  const isSubscribed = Boolean(
-    currentUser?.id && owner?.id && subscribedCreatorIds.includes(owner.id)
-  );
+  const isSubscribed = followStatusQuery.data?.following ?? false;
 
   const handleSubscribeToggle = () => {
     if (isDemoVideo) {
@@ -1061,7 +1071,7 @@ function VideoDetailPage() {
       return;
     }
     if (!currentUser) {
-      toast.error("Log in to subscribe to this channel.", {
+      toast.error("Log in to follow this creator.", {
         action: {
           label: "Log In",
           onClick: () => {
@@ -1075,30 +1085,22 @@ function VideoDetailPage() {
       return;
     }
     if (currentUser.id === owner.id) {
-      toast.info("You cannot subscribe to your own channel.");
+      toast.info("You cannot follow your own channel.");
       return;
     }
 
-    const nextSubscribed = !isSubscribed;
-    const nextList = nextSubscribed
-      ? [...subscribedCreatorIds, owner.id]
-      : subscribedCreatorIds.filter((cid) => cid !== owner.id);
-
-    setSubscribedCreatorIds(nextList);
-    try {
-      localStorage.setItem(
-        `rallycasts_subscriptions_${currentUser.id}`,
-        JSON.stringify(nextList)
-      );
-    } catch {
-      // ignore localStorage errors
-    }
-
-    if (nextSubscribed) {
-      toast.success(`Subscribed to ${owner?.name || "creator"}`);
-    } else {
-      toast.info(`Unsubscribed from ${owner?.name || "creator"}`);
-    }
+    toggleFollowMutation.mutate(!isSubscribed, {
+      onError: () => {
+        toast.error("Could not update this follow. Try again.");
+      },
+      onSuccess: () => {
+        toast.success(
+          isSubscribed
+            ? `Unfollowed ${owner?.name || "creator"}`
+            : `Following ${owner?.name || "creator"}`
+        );
+      },
+    });
   };
 
   const handleLikeToggle = () => {
@@ -1233,6 +1235,13 @@ function VideoDetailPage() {
                   city: venue?.city ?? null,
                   state: venue?.state ?? null,
                   venueId: video.venueId ?? null,
+                }}
+                onTimeUpdate={(currentTime, duration) => {
+                  watchedSecondsRef.current = Math.max(
+                    watchedSecondsRef.current,
+                    currentTime
+                  );
+                  durationRef.current = duration;
                 }}
                 poster={posterUrl}
                 playbackId={video.muxPlaybackId}

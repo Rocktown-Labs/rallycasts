@@ -21,6 +21,7 @@ export interface SponsoredPlayerAdContext {
 interface SponsoredPlayerProps {
   adContext?: SponsoredPlayerAdContext;
   poster?: string;
+  onTimeUpdate?: (currentTime: number, duration: number) => void;
   playbackId: string;
   title: string;
   /**
@@ -44,6 +45,7 @@ type Phase = "ad" | "content" | "poster";
  */
 export function SponsoredPlayer({
   adContext,
+  onTimeUpdate,
   poster,
   playbackId,
   title,
@@ -198,6 +200,12 @@ export function SponsoredPlayer({
             video_id: videoId,
             video_title: title,
             ...(viewerId ? { viewer_user_id: viewerId } : {}),
+          }}
+          onTimeUpdate={(event) => {
+            const target = event.currentTarget as HTMLVideoElement;
+            if (Number.isFinite(target.currentTime)) {
+              onTimeUpdate?.(target.currentTime, target.duration);
+            }
           }}
           poster={poster}
           playbackId={playbackId}

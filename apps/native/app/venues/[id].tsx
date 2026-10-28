@@ -2,16 +2,16 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { useLocalSearchParams } from "expo-router";
-import React, { useState } from "react";
+import React from "react";
 import { Alert, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import * as WebBrowser from "expo-web-browser";
 
 import { VideoCard } from "@/components/cards";
 import { demoVenues, demoVideos } from "@/lib/demo-data";
 
 export default function VenueDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [isCheckedIn, setIsCheckedIn] = useState(false);
 
   const venue = demoVenues.find((v) => v.id === id) || demoVenues[0]!;
   const heatScore = venue.heatScore ?? 85;
@@ -21,12 +21,8 @@ export default function VenueDetailScreen() {
     if (Platform.OS === "ios") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
-    setIsCheckedIn((prev) => !prev);
-    Alert.alert(
-      isCheckedIn ? "Checked Out" : "Checked In!",
-      isCheckedIn
-        ? `You checked out of ${venue.name}.`
-        : `You are now checked in at ${venue.name}! Other players nearby can see active court heat.`
+    void WebBrowser.openBrowserAsync(
+      `https://rallycasts.com/venues/${encodeURIComponent(id || venue.id)}`
     );
   };
 
@@ -126,23 +122,11 @@ export default function VenueDetailScreen() {
           {/* Check In Action */}
           <Pressable
             onPress={handleCheckIn}
-            className={`w-full flex-row items-center justify-center gap-2 rounded-2xl py-3.5 active:opacity-90 ${
-              isCheckedIn
-                ? "bg-surface-secondary border border-emerald-500/30"
-                : "bg-[#005c23]"
-            }`}
+            className="w-full flex-row items-center justify-center gap-2 rounded-2xl bg-[#005c23] py-3.5 active:opacity-90"
           >
-            <Ionicons
-              name={isCheckedIn ? "checkmark-circle" : "location"}
-              size={18}
-              color={isCheckedIn ? "#10b981" : "#ffffff"}
-            />
-            <Text
-              className={`text-sm font-bold ${
-                isCheckedIn ? "text-emerald-500" : "text-white"
-              }`}
-            >
-              {isCheckedIn ? "You're Checked In Here" : "Check In (I'm Playing Here)"}
+            <Ionicons name="location" size={18} color="#ffffff" />
+            <Text className="text-sm font-bold text-white">
+              Check In (I'm Playing Here)
             </Text>
           </Pressable>
 

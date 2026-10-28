@@ -1,8 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { apiClient } from "@/lib/api-client";
 import { readApiJson } from "@/lib/api";
-import { withDemoItems } from "@/lib/demo-mode";
+import { demoDataEnabled, withDemoItems } from "@/lib/demo-mode";
 import { demoVideos, demoClips, type VideoData } from "@/lib/demo-data";
 
 export interface VideosResponse {
@@ -20,10 +20,13 @@ export function useVideos() {
         if (data?.videos?.length) {
           return { videos: withDemoItems(data.videos, demoVideos) };
         }
-      } catch {
-        // Fall back to demo videos
+        return { videos: [] };
+      } catch (error) {
+        if (demoDataEnabled) {
+          return { videos: demoVideos };
+        }
+        throw error;
       }
-      return { videos: demoVideos };
     },
   });
 }
@@ -42,10 +45,13 @@ export function useClips() {
         if (clips.length > 0) {
           return { videos: withDemoItems(clips, demoClips) };
         }
-      } catch {
-        // Fall back to demo clips
+        return { videos: [] };
+      } catch (error) {
+        if (demoDataEnabled) {
+          return { videos: demoClips };
+        }
+        throw error;
       }
-      return { videos: demoClips };
     },
   });
 }
@@ -61,14 +67,66 @@ export function useVideo(id: string) {
         if (data?.video) {
           return data.video;
         }
-      } catch {
-        // Fallback
+      } catch (error) {
+        if (!demoDataEnabled) {
+          throw error;
+        }
       }
       const match = [...demoVideos, ...demoClips].find((v) => v.id === id);
       if (match) {
         return match;
       }
-      return demoVideos[0]!;
+      throw new Error("Video not found");
+    },
+  });
+}
+
+export interface NativeVideoSocial {
+  comments: number;
+  hasLiked: boolean;
+  likes: number;
+  views: number;
+}
+
+export function useVideoSocial(id: string, enabled = true) {
+  return useQuery({
+    enabled: enabled && id.length > 0,
+    queryKey: ["video", id, "social"],
+    queryFn: () =>
+      readApiJson<NativeVideoSocial>(
+        apiClient.api.v1.videos[":id"].social.$get({ param: { id } })
+      ),
+  });
+}
+
+export function useToggleVideoLike(id: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (liked: boolean) =>
+      liked
+        ? readApiJson(
+            apiClient.api.v1.videos[":id"].likes.$post({ param: { id } })
+          )
+        : readApiJson(
+            apiClient.api.v1.videos[":id"].likes.$delete({ param: { id } })
+          ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["video", id, "social"] });
+    },
+  });
+}
+
+export function useRecordVideoView(id: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () =>
+      readApiJson(
+        apiClient.api.v1.videos[":id"].views.$post({ param: { id } })
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["video", id, "social"] });
     },
   });
 }

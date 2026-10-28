@@ -312,6 +312,180 @@ export async function getMuxUpload(
   };
 }
 
+export const MUX_RTMP_INGEST_URL = "rtmps://global-live.mux.com:443/app";
+
+export interface MuxLiveStream {
+  activeAssetId: string | null;
+  id: string;
+  latencyMode: string;
+  playbackId: string | null;
+  playbackPolicy: string | null;
+  recentAssetIds: string[];
+  reconnectWindow: number;
+  status: string;
+  streamKey: string;
+}
+
+interface MuxLiveStreamResponse {
+  data: {
+    active_asset_id?: string | null;
+    id: string;
+    latency_mode?: string;
+    playback_ids?: { id: string; policy: string }[];
+    recent_asset_ids?: string[];
+    reconnect_window?: number;
+    status: string;
+    stream_key: string;
+  };
+}
+
+const toMuxLiveStream = (
+  data: MuxLiveStreamResponse["data"]
+): MuxLiveStream => ({
+  activeAssetId: data.active_asset_id ?? null,
+  id: data.id,
+  latencyMode: data.latency_mode ?? "standard",
+  playbackId: data.playback_ids?.[0]?.id ?? null,
+  playbackPolicy: data.playback_ids?.[0]?.policy ?? null,
+  recentAssetIds: data.recent_asset_ids ?? [],
+  reconnectWindow: data.reconnect_window ?? 60,
+  status: data.status,
+  streamKey: data.stream_key,
+});
+
+export async function createMuxLiveStream(
+  tokenId: string,
+  tokenSecret: string,
+  options: {
+    latencyMode?: "low" | "reduced" | "standard";
+    passthrough?: string;
+    playbackPolicy?: "public" | "signed";
+    reconnectWindow?: number;
+    title: string;
+  }
+): Promise<MuxLiveStream> {
+  const response = await fetch(`${MUX_API_BASE}/live-streams`, {
+    body: JSON.stringify({
+      latency_mode: options.latencyMode ?? "low",
+      meta: { title: options.title },
+      new_asset_settings: {
+        ...(options.passthrough ? { passthrough: options.passthrough } : {}),
+        playback_policies: [options.playbackPolicy ?? "public"],
+      },
+      ...(options.passthrough ? { passthrough: options.passthrough } : {}),
+      playback_policies: [options.playbackPolicy ?? "public"],
+      reconnect_window: options.reconnectWindow ?? 60,
+    }),
+    headers: {
+      Authorization: `Basic ${btoa(`${tokenId}:${tokenSecret}`)}`,
+      "Content-Type": "application/json",
+    },
+    method: "POST",
+    signal: AbortSignal.timeout(MUX_REQUEST_TIMEOUT_MS),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(
+      `Mux live stream creation failed: ${response.status} ${error}`
+    );
+  }
+
+  const result = (await response.json()) as MuxLiveStreamResponse;
+  return toMuxLiveStream(result.data);
+}
+
+export async function getMuxLiveStream(
+  liveStreamId: string,
+  tokenId: string,
+  tokenSecret: string
+): Promise<MuxLiveStream | null> {
+  const response = await fetch(
+    `${MUX_API_BASE}/live-streams/${encodeURIComponent(liveStreamId)}`,
+    {
+      headers: {
+        Authorization: `Basic ${btoa(`${tokenId}:${tokenSecret}`)}`,
+      },
+      signal: AbortSignal.timeout(MUX_REQUEST_TIMEOUT_MS),
+    }
+  );
+
+  if (!response.ok) {
+    return null;
+  }
+
+  const result = (await response.json()) as MuxLiveStreamResponse;
+  return toMuxLiveStream(result.data);
+}
+
+export async function resetMuxLiveStreamKey(
+  liveStreamId: string,
+  tokenId: string,
+  tokenSecret: string
+): Promise<string> {
+  const response = await fetch(
+    `${MUX_API_BASE}/live-streams/${encodeURIComponent(liveStreamId)}/reset-stream-key`,
+    {
+      headers: {
+        Authorization: `Basic ${btoa(`${tokenId}:${tokenSecret}`)}`,
+      },
+      method: "POST",
+      signal: AbortSignal.timeout(MUX_REQUEST_TIMEOUT_MS),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Mux live stream key reset failed: ${response.status} ${await response.text()}`
+    );
+  }
+
+  const result = (await response.json()) as MuxLiveStreamResponse;
+  return result.data.stream_key;
+}
+
+export async function signalMuxLiveStreamComplete(
+  liveStreamId: string,
+  tokenId: string,
+  tokenSecret: string
+): Promise<void> {
+  const response = await fetch(
+    `${MUX_API_BASE}/live-streams/${encodeURIComponent(liveStreamId)}/complete`,
+    {
+      headers: {
+        Authorization: `Basic ${btoa(`${tokenId}:${tokenSecret}`)}`,
+      },
+      method: "PUT",
+      signal: AbortSignal.timeout(MUX_REQUEST_TIMEOUT_MS),
+    }
+  );
+
+  if (!response.ok && response.status !== 404) {
+    throw new Error(
+      `Mux live stream completion failed: ${response.status} ${await response.text()}`
+    );
+  }
+}
+
+export async function deleteMuxLiveStream(
+  liveStreamId: string,
+  tokenId: string,
+  tokenSecret: string
+): Promise<boolean> {
+  const response = await fetch(
+    `${MUX_API_BASE}/live-streams/${encodeURIComponent(liveStreamId)}`,
+    {
+      headers: {
+        Authorization: `Basic ${btoa(`${tokenId}:${tokenSecret}`)}`,
+      },
+      method: "DELETE",
+      signal: AbortSignal.timeout(MUX_REQUEST_TIMEOUT_MS),
+    }
+  );
+
+  return response.ok || response.status === 404;
+}
+
 export async function deleteMuxAsset(
   assetId: string,
   tokenId: string,

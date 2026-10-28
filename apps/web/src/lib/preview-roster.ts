@@ -15,7 +15,7 @@ export interface PreviewPlayer {
   username: string;
   /** "User One"…"User Twenty", then "User 21"…"User 128". */
   name: string;
-  /** Deterministic DUPR-style rating, always 2 decimals. */
+  /** Deterministic preview skill rating, always 2 decimals. */
   rating: number;
   skillLevel: "advanced" | "beginner" | "intermediate" | "pro";
 }
@@ -93,7 +93,7 @@ export const previewTeamName = (index: number): string =>
   `Team ${index + 1 <= WORD_NUMBERS.length ? WORD_NUMBERS[index] : index + 1}`;
 
 /**
- * Deterministic spread of DUPR-style ratings (3.00–4.90). No randomness so
+ * Deterministic spread of preview skill ratings (3.00–4.90). No randomness so
  * the preview is stable across renders and screenshots.
  */
 export const previewRating = (index: number): number =>

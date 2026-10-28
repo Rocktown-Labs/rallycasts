@@ -4,6 +4,7 @@ import { user } from "@rallycaststv/db/schema/auth";
 import {
   conversation,
   conversationParticipant,
+  creatorFollow,
   friendRequest,
   friendship,
   message,
@@ -28,7 +29,7 @@ import {
   upsertSearchDocument,
 } from "../lib/search-index";
 import type { AppEnv } from "../lib/types";
-import { requireAuth } from "../middleware/auth";
+import { optionalAuth, requireAuth } from "../middleware/auth";
 
 const postSchema = z.object({
   content: z.string().min(1).max(2000),
@@ -106,69 +107,14 @@ type ChatRoomStub = DurableObjectStub & {
   broadcastMessage: (event: ChatRealtimeEvent) => Promise<void>;
 };
 
-type UserNotificationsStub = DurableObjectStub & {
-  broadcast: (event: {
-    notification?: {
-      body?: null | string;
-      href: string;
-      id: string;
-      title: string;
-      type: string;
-    };
-    type: "notification";
-    unreadCount?: number;
-  }) => Promise<void>;
-};
-
 const getChatRoom = (env: AppEnv["Bindings"], conversationId: string) =>
   env.CHAT_ROOMS.getByName(conversationId) as ChatRoomStub;
-
-const getUserNotifications = (env: AppEnv["Bindings"], userId: string) =>
-  env.USER_NOTIFICATIONS.getByName(userId) as UserNotificationsStub;
-
-const broadcastNotification = async (
-  env: AppEnv["Bindings"],
-  input: {
-    body?: null | string;
-    href: string;
-    id: string;
-    title: string;
-    type: string;
-    userId: string;
-  }
-) => {
-  try {
-    await getUserNotifications(env, input.userId).broadcast({
-      notification: {
-        body: input.body,
-        href: input.href,
-        id: input.id,
-        title: input.title,
-        type: input.type,
-      },
-      type: "notification",
-    });
-  } catch {
-    // Realtime fanout is best-effort; D1 notifications remain the source of truth.
-  }
-};
 
 const createLiveNotification = async (
   db: ReturnType<typeof createDb>,
   env: AppEnv["Bindings"],
   input: CreateNotificationInput
-) => {
-  const record = await createNotification(db, input);
-  await broadcastNotification(env, {
-    body: record.body,
-    href: record.href,
-    id: record.id,
-    title: record.title,
-    type: record.type,
-    userId: record.userId,
-  });
-  return record;
-};
+) => await createNotification(db, input, env);
 
 export const socialRouter = new Hono<AppEnv>()
   .get("/posts", async (c) => {
@@ -347,6 +293,92 @@ export const socialRouter = new Hono<AppEnv>()
       .orderBy(desc(friendship.createdAt));
 
     return c.json({ friends }, HttpStatusCodes.OK);
+  })
+  .get("/follows/:userId", optionalAuth, async (c) => {
+    const db = createDb(c.env.DB);
+    const targetUserId = c.req.param("userId");
+    const viewerId = c.var.authSession?.user?.id;
+
+    const [followerRow] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(creatorFollow)
+      .where(eq(creatorFollow.creatorUserId, targetUserId));
+    const [followingRow] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(creatorFollow)
+      .where(eq(creatorFollow.followerUserId, targetUserId));
+
+    let following = false;
+    if (viewerId) {
+      const [record] = await db
+        .select({ followerUserId: creatorFollow.followerUserId })
+        .from(creatorFollow)
+        .where(
+          and(
+            eq(creatorFollow.followerUserId, viewerId),
+            eq(creatorFollow.creatorUserId, targetUserId)
+          )
+        )
+        .limit(1);
+      following = Boolean(record);
+    }
+
+    return c.json(
+      {
+        followerCount: followerRow?.count ?? 0,
+        following,
+        followingCount: followingRow?.count ?? 0,
+      },
+      HttpStatusCodes.OK
+    );
+  })
+  .post("/follows/:userId", requireAuth, async (c) => {
+    const db = createDb(c.env.DB);
+    const { user: authUser } = c.var.authSession;
+    const targetUserId = c.req.param("userId");
+
+    if (targetUserId === authUser.id) {
+      return c.json(
+        { message: "You cannot follow yourself" },
+        HttpStatusCodes.BAD_REQUEST
+      );
+    }
+
+    const [targetUser] = await db
+      .select({ id: user.id })
+      .from(user)
+      .where(eq(user.id, targetUserId))
+      .limit(1);
+    if (!targetUser) {
+      return c.json({ message: "User not found" }, HttpStatusCodes.NOT_FOUND);
+    }
+
+    await db
+      .insert(creatorFollow)
+      .values({
+        createdAt: new Date(),
+        creatorUserId: targetUserId,
+        followerUserId: authUser.id,
+      })
+      .onConflictDoNothing();
+
+    return c.json({ following: true }, HttpStatusCodes.OK);
+  })
+  .delete("/follows/:userId", requireAuth, async (c) => {
+    const db = createDb(c.env.DB);
+    const { user: authUser } = c.var.authSession;
+    const targetUserId = c.req.param("userId");
+
+    await db
+      .delete(creatorFollow)
+      .where(
+        and(
+          eq(creatorFollow.followerUserId, authUser.id),
+          eq(creatorFollow.creatorUserId, targetUserId)
+        )
+      );
+
+    return c.json({ following: false }, HttpStatusCodes.OK);
   })
   .post(
     "/friend-requests",

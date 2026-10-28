@@ -2,8 +2,9 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Alert, Platform, Pressable, ScrollView, Text, View } from "react-native";
+import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import * as WebBrowser from "expo-web-browser";
 
 import { EventCard } from "@/components/cards";
 import { useOrganizerData } from "@/lib/hooks";
@@ -12,21 +13,21 @@ export default function OrganizerDashboardScreen() {
   const router = useRouter();
   const { data: organizerData } = useOrganizerData();
 
-  const analytics = organizerData?.analytics || {
-    activeTournaments: 3,
-    playerCount: 184,
-    totalRevenueCents: 560000,
-    viewsCount: 15800,
+  const analytics = organizerData?.analytics ?? {
+    activeTournaments: 0,
+    checkedIn: 0,
+    playerCount: 0,
+    totalRevenueCents: 0,
   };
 
   const organizations = organizerData?.organizations || [];
   const events = organizerData?.events || [];
 
-  const handleAction = (label: string) => {
+  const openOrganizerTool = (path: string) => {
     if (Platform.OS === "ios") {
       Haptics.selectionAsync();
     }
-    Alert.alert(label, `${label} workflow initiated.`);
+    void WebBrowser.openBrowserAsync(`https://rallycasts.com${path}`);
   };
 
   return (
@@ -45,10 +46,10 @@ export default function OrganizerDashboardScreen() {
           </View>
 
           <Text className="mt-3 text-xl font-black text-white">
-            Rocky Mountain Pickleball
+            {organizations[0]?.name ?? "Your organization"}
           </Text>
           <Text className="mt-1 text-xs text-gray-200">
-            Denver, CO • 184 registered club players
+            {analytics.playerCount} registered players
           </Text>
         </View>
 
@@ -83,11 +84,11 @@ export default function OrganizerDashboardScreen() {
           </View>
 
           <View className="flex-1 min-w-[140px] rounded-2xl border border-border/50 bg-surface p-3.5">
-            <Text className="text-xs text-muted">Match Views</Text>
+            <Text className="text-xs text-muted">Checked In</Text>
             <Text className="mt-1 text-2xl font-black text-foreground">
-              {(analytics.viewsCount / 1000).toFixed(1)}k
+              {analytics.checkedIn}
             </Text>
-            <Text className="mt-0.5 text-[10px] text-muted">streamed</Text>
+            <Text className="mt-0.5 text-[10px] text-muted">players on site</Text>
           </View>
         </View>
 
@@ -98,7 +99,7 @@ export default function OrganizerDashboardScreen() {
 
         <View className="mb-6 flex-row flex-wrap gap-2.5">
           <Pressable
-            onPress={() => handleAction("Host a Tournament")}
+            onPress={() => openOrganizerTool("/u/organizer/tournaments/new")}
             className="flex-1 min-w-[140px] flex-row items-center gap-2.5 rounded-2xl border border-[#bcdf21]/40 bg-[#005c23]/15 p-3.5 active:opacity-80"
           >
             <Ionicons name="add-circle" size={20} color="#bcdf21" />
@@ -109,7 +110,7 @@ export default function OrganizerDashboardScreen() {
           </Pressable>
 
           <Pressable
-            onPress={() => handleAction("Manage Brackets")}
+            onPress={() => openOrganizerTool("/u/organizer/tournaments")}
             className="flex-1 min-w-[140px] flex-row items-center gap-2.5 rounded-2xl border border-border/60 bg-surface p-3.5 active:opacity-80"
           >
             <Ionicons name="git-network-outline" size={20} color="#bcdf21" />
@@ -120,7 +121,7 @@ export default function OrganizerDashboardScreen() {
           </Pressable>
 
           <Pressable
-            onPress={() => handleAction("Set Up Payouts")}
+            onPress={() => openOrganizerTool("/u/organizer/payments")}
             className="flex-1 min-w-[140px] flex-row items-center gap-2.5 rounded-2xl border border-border/60 bg-surface p-3.5 active:opacity-80"
           >
             <Ionicons name="card-outline" size={20} color="#bcdf21" />
@@ -131,7 +132,7 @@ export default function OrganizerDashboardScreen() {
           </Pressable>
 
           <Pressable
-            onPress={() => handleAction("Invite Teammate")}
+            onPress={() => openOrganizerTool("/u/organizer/organizations")}
             className="flex-1 min-w-[140px] flex-row items-center gap-2.5 rounded-2xl border border-border/60 bg-surface p-3.5 active:opacity-80"
           >
             <Ionicons name="person-add-outline" size={20} color="#bcdf21" />

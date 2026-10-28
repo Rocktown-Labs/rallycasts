@@ -72,10 +72,8 @@ const getPlayerScore = (skill: string | null | undefined): number => {
   return 3;
 };
 
-const getDuprRating = (skill: string | null | undefined): string => {
-  const score = getPlayerScore(skill);
-  return score.toFixed(1);
-};
+const getSkillLabel = (skill: string | null | undefined): string =>
+  skill ? skill.charAt(0).toUpperCase() + skill.slice(1) : "Open";
 
 const stateNames: Record<string, string> = {
   AR: "Arkansas",
@@ -187,7 +185,7 @@ function PlayersPage() {
     query !== "" || selectedState !== "" || selectedSkill !== "";
 
   const renderPlayerCard = (player: PlayerWithStreak, rank?: number) => {
-    const rating = getDuprRating(player.skillLevel);
+    const skillLabel = getSkillLabel(player.skillLevel);
     const isCurrentUser = currentUserId === player.id;
     const playerUsername = player.username || player.displayUsername || "";
     return (
@@ -245,10 +243,10 @@ function PlayersPage() {
 
             <div className="bg-primary/10 border-primary/20 rounded-lg border px-2 py-1 text-center">
               <span className="text-primary block text-[8px] font-bold tracking-wider uppercase">
-                DUPR
+                Level
               </span>
-              <span className="text-primary block text-xs font-black">
-                {rating}
+              <span className="text-primary block text-[10px] font-black">
+                {skillLabel}
               </span>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Link } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import React, { useState } from "react";
 import {
   Alert,
@@ -94,6 +95,26 @@ export default function MoreScreen() {
                 <Text style={styles.menuLabel}>Equipment & Rig Checklist</Text>
                 <Text style={styles.menuSub}>
                   4K Mount, Wireless Mic, Battery Pack
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color="#8892a0" />
+          </Pressable>
+
+          <Pressable
+            style={styles.menuRow}
+            onPress={() => {
+              void WebBrowser.openBrowserAsync(
+                "https://rallycasts.com/u/studio/live"
+              );
+            }}
+          >
+            <View style={styles.menuLeft}>
+              <Ionicons name="radio" size={18} color="#ff4d4d" />
+              <View>
+                <Text style={styles.menuLabel}>Live Stream Setup</Text>
+                <Text style={styles.menuSub}>
+                  Create RTMPS ingest credentials for your encoder
                 </Text>
               </View>
             </View>

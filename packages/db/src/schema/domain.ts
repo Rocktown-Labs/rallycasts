@@ -203,6 +203,7 @@ export const video = sqliteTable(
     venueId: text("venue_id").references(() => venue.id, {
       onDelete: "set null",
     }),
+    viewCount: integer("view_count").default(0).notNull(),
     visibility: text("visibility", { enum: ["public", "friends", "private"] })
       .default("public")
       .notNull(),
@@ -230,6 +231,29 @@ export const videoLike = sqliteTable(
     uniqueIndex("video_like_user_video_idx").on(table.videoId, table.userId),
     index("video_like_video_idx").on(table.videoId),
     index("video_like_user_idx").on(table.userId),
+  ]
+);
+
+export const videoView = sqliteTable(
+  "video_view",
+  {
+    completed: integer("completed", { mode: "boolean" })
+      .default(false)
+      .notNull(),
+    createdAt: timestamp("created_at"),
+    id: text("id").primaryKey(),
+    userId: text("user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    videoId: text("video_id")
+      .notNull()
+      .references(() => video.id, { onDelete: "cascade" }),
+    watchedSeconds: integer("watched_seconds").default(0).notNull(),
+  },
+  (table) => [
+    index("video_view_video_created_idx").on(table.videoId, table.createdAt),
+    index("video_view_created_idx").on(table.createdAt),
+    index("video_view_user_idx").on(table.userId),
   ]
 );
 
@@ -294,6 +318,59 @@ export const event = sqliteTable(
     index("event_venue_idx").on(table.venueId),
     index("event_organizer_idx").on(table.organizerUserId),
     index("event_organization_idx").on(table.organizationId),
+  ]
+);
+
+export const liveStream = sqliteTable(
+  "live_stream",
+  {
+    createdAt: timestamp("created_at"),
+    description: text("description"),
+    endedAt: nullableTimestamp("ended_at"),
+    eventId: text("event_id").references(() => event.id, {
+      onDelete: "set null",
+    }),
+    id: text("id").primaryKey(),
+    latencyMode: text("latency_mode", {
+      enum: ["low", "reduced", "standard"],
+    })
+      .default("low")
+      .notNull(),
+    muxLiveStreamId: text("mux_live_stream_id").notNull(),
+    muxPlaybackId: text("mux_playback_id"),
+    muxStreamKey: text("mux_stream_key").notNull(),
+    ownerUserId: text("owner_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    recordingAssetId: text("recording_asset_id"),
+    recordingVideoId: text("recording_video_id").references(() => video.id, {
+      onDelete: "set null",
+    }),
+    startedAt: nullableTimestamp("started_at"),
+    status: text("status", {
+      enum: [
+        "idle",
+        "connected",
+        "recording",
+        "active",
+        "disconnected",
+        "completed",
+        "failed",
+      ],
+    })
+      .default("idle")
+      .notNull(),
+    title: text("title").notNull(),
+    updatedAt: timestamp("updated_at").$onUpdate(() => new Date()),
+    visibility: text("visibility", { enum: ["public", "private"] })
+      .default("public")
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("live_stream_mux_id_idx").on(table.muxLiveStreamId),
+    index("live_stream_owner_idx").on(table.ownerUserId),
+    index("live_stream_status_idx").on(table.status),
+    index("live_stream_event_idx").on(table.eventId),
   ]
 );
 
@@ -591,6 +668,45 @@ export const friendship = sqliteTable(
   ]
 );
 
+export const creatorFollow = sqliteTable(
+  "creator_follow",
+  {
+    createdAt: timestamp("created_at"),
+    creatorUserId: text("creator_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    followerUserId: text("follower_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    uniqueIndex("creator_follow_pair_idx").on(
+      table.followerUserId,
+      table.creatorUserId
+    ),
+    index("creator_follow_creator_idx").on(table.creatorUserId),
+    index("creator_follow_follower_idx").on(table.followerUserId),
+  ]
+);
+
+export const profileLike = sqliteTable(
+  "profile_like",
+  {
+    createdAt: timestamp("created_at"),
+    profileUserId: text("profile_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    uniqueIndex("profile_like_pair_idx").on(table.userId, table.profileUserId),
+    index("profile_like_profile_idx").on(table.profileUserId),
+    index("profile_like_user_idx").on(table.userId),
+  ]
+);
+
 export const friendRequest = sqliteTable(
   "friend_request",
   {
@@ -674,6 +790,53 @@ export const notification = sqliteTable(
       table.createdAt
     ),
     index("notification_entity_idx").on(table.entityType, table.entityId),
+  ]
+);
+
+export const pushToken = sqliteTable(
+  "push_token",
+  {
+    createdAt: timestamp("created_at"),
+    deviceId: text("device_id"),
+    disabledAt: nullableTimestamp("disabled_at"),
+    id: text("id").primaryKey(),
+    lastSeenAt: timestamp("last_seen_at"),
+    platform: text("platform", { enum: ["ios", "android", "unknown"] })
+      .default("unknown")
+      .notNull(),
+    token: text("token").notNull(),
+    updatedAt: timestamp("updated_at").$onUpdate(() => new Date()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    uniqueIndex("push_token_token_idx").on(table.token),
+    index("push_token_user_idx").on(table.userId),
+  ]
+);
+
+export const pushReceipt = sqliteTable(
+  "push_receipt",
+  {
+    checkedAt: nullableTimestamp("checked_at"),
+    createdAt: timestamp("created_at"),
+    errorCode: text("error_code"),
+    id: text("id").primaryKey(),
+    pushTokenId: text("push_token_id").references(() => pushToken.id, {
+      onDelete: "cascade",
+    }),
+    status: text("status", { enum: ["pending", "ok", "error"] })
+      .default("pending")
+      .notNull(),
+    ticketId: text("ticket_id").notNull(),
+    userId: text("user_id").references(() => user.id, {
+      onDelete: "cascade",
+    }),
+  },
+  (table) => [
+    index("push_receipt_status_idx").on(table.status, table.createdAt),
+    uniqueIndex("push_receipt_ticket_idx").on(table.ticketId),
   ]
 );
 

@@ -2,8 +2,9 @@ import { createDb } from "@rallycaststv/db";
 import { user } from "@rallycaststv/db/schema/auth";
 import {
   challenge,
-  friendship,
+  creatorFollow,
   post,
+  profileLike,
   userProfile,
   venue,
   video,
@@ -15,6 +16,7 @@ import * as HttpStatusCodes from "stoker/http-status-codes";
 
 import { toPublicVideo } from "../lib/public-data";
 import type { AppEnv } from "../lib/types";
+import { optionalAuth, requireAuth } from "../middleware/auth";
 
 const searchPattern = (query: string | undefined) => `%${query ?? ""}%`;
 const challengerTable = alias(user, "challenger");
@@ -23,6 +25,21 @@ const partnerTable = alias(user, "partner");
 
 /** Seeded demo accounts never belong in people discovery. */
 const DEMO_EMAIL_PATTERN = "%@rallycasts.demo";
+
+const findPlayerIdByUsername = async (
+  db: ReturnType<typeof createDb>,
+  rawUsername: string
+) => {
+  const username = rawUsername.startsWith("@")
+    ? rawUsername.slice(1)
+    : rawUsername;
+  const [record] = await db
+    .select({ id: user.id })
+    .from(user)
+    .where(eq(user.username, username))
+    .limit(1);
+  return record?.id ?? null;
+};
 
 export const playersRouter = new Hono<AppEnv>()
   .get("/", async (c) => {
@@ -76,7 +93,7 @@ export const playersRouter = new Hono<AppEnv>()
 
     return c.json({ players }, HttpStatusCodes.OK);
   })
-  .get("/:username", async (c) => {
+  .get("/:username", optionalAuth, async (c) => {
     const db = createDb(c.env.DB);
     const rawUsername = c.req.param("username");
     const username = rawUsername.startsWith("@")
@@ -180,10 +197,43 @@ export const playersRouter = new Hono<AppEnv>()
       .orderBy(desc(challenge.createdAt))
       .limit(20);
 
-    const [friendStats] = await db
+    const [followerStats] = await db
       .select({ count: sql<number>`count(*)` })
-      .from(friendship)
-      .where(eq(friendship.userId, player.id));
+      .from(creatorFollow)
+      .where(eq(creatorFollow.creatorUserId, player.id));
+    const [likeStats] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(profileLike)
+      .where(eq(profileLike.profileUserId, player.id));
+    const viewerId = c.var.authSession?.user?.id;
+    let isLiked = false;
+    if (viewerId) {
+      const [likeRecord] = await db
+        .select({ userId: profileLike.userId })
+        .from(profileLike)
+        .where(
+          and(
+            eq(profileLike.userId, viewerId),
+            eq(profileLike.profileUserId, player.id)
+          )
+        )
+        .limit(1);
+      isLiked = Boolean(likeRecord);
+    }
+    let isFollowing = false;
+    if (viewerId) {
+      const [followRecord] = await db
+        .select({ followerUserId: creatorFollow.followerUserId })
+        .from(creatorFollow)
+        .where(
+          and(
+            eq(creatorFollow.followerUserId, viewerId),
+            eq(creatorFollow.creatorUserId, player.id)
+          )
+        )
+        .limit(1);
+      isFollowing = Boolean(followRecord);
+    }
     const matchCount = playerChallenges.filter(
       (record) => record.status === "completed" || record.result
     ).length;
@@ -220,13 +270,76 @@ export const playersRouter = new Hono<AppEnv>()
         player,
         posts: playerPosts,
         stats: {
-          followersCount: friendStats?.count ?? 0,
+          followersCount: followerStats?.count ?? 0,
+          isFollowing,
+          isLiked,
+          likesCount: likeStats?.count ?? 0,
           losses,
           matchCount,
           wins,
         },
         videos: playerVideos.map(toPublicVideo),
       },
+      HttpStatusCodes.OK
+    );
+  })
+  .post("/:username/like", requireAuth, async (c) => {
+    const db = createDb(c.env.DB);
+    const { user: authUser } = c.var.authSession;
+    const playerId = await findPlayerIdByUsername(db, c.req.param("username"));
+    if (!playerId) {
+      return c.json({ message: "Player not found" }, HttpStatusCodes.NOT_FOUND);
+    }
+    if (playerId === authUser.id) {
+      return c.json(
+        { message: "You cannot like your own profile" },
+        HttpStatusCodes.BAD_REQUEST
+      );
+    }
+
+    await db
+      .insert(profileLike)
+      .values({
+        createdAt: new Date(),
+        profileUserId: playerId,
+        userId: authUser.id,
+      })
+      .onConflictDoNothing();
+
+    const [stats] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(profileLike)
+      .where(eq(profileLike.profileUserId, playerId));
+
+    return c.json(
+      { liked: true, likesCount: stats?.count ?? 0 },
+      HttpStatusCodes.OK
+    );
+  })
+  .delete("/:username/like", requireAuth, async (c) => {
+    const db = createDb(c.env.DB);
+    const { user: authUser } = c.var.authSession;
+    const playerId = await findPlayerIdByUsername(db, c.req.param("username"));
+    if (!playerId) {
+      return c.json({ message: "Player not found" }, HttpStatusCodes.NOT_FOUND);
+    }
+
+    await db
+      .delete(profileLike)
+      .where(
+        and(
+          eq(profileLike.userId, authUser.id),
+          eq(profileLike.profileUserId, playerId)
+        )
+      );
+
+    const [stats] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(profileLike)
+      .where(eq(profileLike.profileUserId, playerId));
+
+    return c.json(
+      { liked: false, likesCount: stats?.count ?? 0 },
       HttpStatusCodes.OK
     );
   });

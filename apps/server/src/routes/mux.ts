@@ -6,6 +6,7 @@ import * as HttpStatusCodes from "stoker/http-status-codes";
 
 import { createId } from "../lib/ids";
 import { readJsonPayload } from "../lib/json";
+import { applyMuxLiveStreamUpdate } from "../lib/live-streams";
 import { replaceMuxAssetPlaybackPolicy } from "../lib/mux-client";
 import {
   indexSearchDocumentVector,
@@ -307,7 +308,9 @@ export const muxRouter = new Hono<AppEnv>()
   .get("/status", (c) =>
     c.json(
       {
-        message: "Mux direct uploads and signed webhooks are ready.",
+        liveStreams: "ready",
+        message:
+          "Mux direct uploads, live streams, and signed webhooks are ready.",
         videoUploads: "ready",
       },
       HttpStatusCodes.OK
@@ -395,6 +398,41 @@ export const muxRouter = new Hono<AppEnv>()
         );
       }
       webhookEventId = existingEvent.id;
+    }
+
+    const isLiveEvent =
+      eventType.startsWith("video.live_stream.") ||
+      eventType === "video.asset.live_stream_completed";
+    if (isLiveEvent) {
+      try {
+        await applyMuxLiveStreamUpdate(db, c.env, eventType, data);
+      } catch (error) {
+        await db
+          .update(webhookEvent)
+          .set({ status: "failed" })
+          .where(eq(webhookEvent.id, webhookEventId ?? ""));
+        console.error(
+          JSON.stringify({
+            event: "mux_live_webhook_processing_failed",
+            message: error instanceof Error ? error.message : "unknown error",
+            providerEventId,
+          })
+        );
+        return c.json(
+          { message: "Mux live webhook processing failed" },
+          HttpStatusCodes.SERVICE_UNAVAILABLE
+        );
+      }
+
+      await db
+        .update(webhookEvent)
+        .set({ processedAt: new Date(), status: "processed" })
+        .where(eq(webhookEvent.id, webhookEventId ?? ""));
+
+      return c.json(
+        { eventType, providerEventId, received: true },
+        HttpStatusCodes.ACCEPTED
+      );
     }
 
     let updatedVideo: Awaited<ReturnType<typeof applyMuxVideoUpdate>>;

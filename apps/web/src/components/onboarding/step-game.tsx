@@ -7,7 +7,7 @@ import { wizardFormOpts } from "./shared-form";
 
 const SKILL_OPTIONS = [
   {
-    badge: "DUPR ≤ 2.5",
+    badge: "Self-rated ≤ 2.5",
     badgeColor: "bg-emerald-500/15 border-emerald-500/30 text-emerald-400",
     description:
       "Learning kitchen rules, scoring fundamentals, and basic groundstroke control.",
@@ -16,7 +16,7 @@ const SKILL_OPTIONS = [
     value: "beginner" as const,
   },
   {
-    badge: "DUPR 3.0 - 3.5",
+    badge: "Self-rated 3.0 - 3.5",
     badgeColor: "bg-sky-500/15 border-sky-500/30 text-sky-400",
     description:
       "Consistent dinking, developing third-shot drop, and directional control.",
@@ -25,7 +25,7 @@ const SKILL_OPTIONS = [
     value: "intermediate" as const,
   },
   {
-    badge: "DUPR 4.0 - 4.5",
+    badge: "Self-rated 4.0 - 4.5",
     badgeColor: "bg-amber-500/15 border-amber-500/30 text-amber-400",
     description:
       "Fast hands at the NVZ, shot stacking, reset volleys, and strategic aggression.",
@@ -34,7 +34,7 @@ const SKILL_OPTIONS = [
     value: "advanced" as const,
   },
   {
-    badge: "DUPR 5.0+",
+    badge: "Self-rated 5.0+",
     badgeColor: "bg-purple-500/15 border-purple-500/30 text-purple-400",
     description:
       "Tournament competitor, master of firefights, deception, and high-level play.",

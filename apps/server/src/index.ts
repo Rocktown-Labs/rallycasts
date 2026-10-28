@@ -27,17 +27,20 @@ import { adsRouter } from "./routes/ads";
 import { castersRouter } from "./routes/casters";
 import { castingJobsRouter } from "./routes/casting-jobs";
 import { challengesRouter } from "./routes/challenges";
+import { creatorAnalyticsRouter } from "./routes/creator-analytics";
 import { e2eRouter } from "./routes/e2e";
 import { emailsRouter } from "./routes/emails";
 import { eventsRouter } from "./routes/events";
 import { feedRouter } from "./routes/feed";
 import { leaguesRouter } from "./routes/leagues";
+import { liveStreamsRouter } from "./routes/live-streams";
 import { muxRouter } from "./routes/mux";
 import { organizationsRouter } from "./routes/organizations";
 import { organizerAnalyticsRouter } from "./routes/organizer-analytics";
 import { placesRouter } from "./routes/places";
 import { playersRouter } from "./routes/players";
 import { profileRouter } from "./routes/profile";
+import { pushRouter } from "./routes/push";
 import { searchRouter } from "./routes/search";
 import { socialRouter } from "./routes/social";
 import { stripeRouter } from "./routes/stripe";
@@ -335,6 +338,9 @@ const routes = app
   .route("/api/v1/casters", castersRouter)
   .route("/api/v1/casting-jobs", castingJobsRouter)
   .route("/api/v1/challenges", challengesRouter)
+  .route("/api/v1/creator/analytics", creatorAnalyticsRouter)
+  .route("/api/v1/live-streams", liveStreamsRouter)
+  .route("/api/v1/push", pushRouter)
   .route("/api/v1/videos", videosRouter)
   .route("/api/v1/events", eventsRouter)
   .route("/api/v1/leagues", leaguesRouter)
