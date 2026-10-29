@@ -2,6 +2,7 @@ import MuxPlayer from "@mux/mux-player-react/lazy";
 import { env } from "@rallycaststv/env/web";
 import { Play, Video as VideoIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { ComponentRef } from "react";
 
 import { loadImaSdk } from "@/lib/ima-types";
 import type { ImaAdsManager } from "@/lib/ima-types";
@@ -21,6 +22,13 @@ export interface SponsoredPlayerAdContext {
 interface SponsoredPlayerProps {
   adContext?: SponsoredPlayerAdContext;
   poster?: string;
+  onPlaying?: () => void;
+  onTimeUpdate?: (
+    currentTime: number,
+    duration: number,
+    playing: boolean,
+    seeking: boolean
+  ) => void;
   playbackId: string;
   title: string;
   /**
@@ -44,6 +52,8 @@ type Phase = "ad" | "content" | "poster";
  */
 export function SponsoredPlayer({
   adContext,
+  onPlaying,
+  onTimeUpdate,
   poster,
   playbackId,
   title,
@@ -198,6 +208,20 @@ export function SponsoredPlayer({
             video_id: videoId,
             video_title: title,
             ...(viewerId ? { viewer_user_id: viewerId } : {}),
+          }}
+          onPlaying={onPlaying}
+          onTimeUpdate={(event) => {
+            const target = event.currentTarget as ComponentRef<
+              typeof MuxPlayer
+            >;
+            if (Number.isFinite(target.currentTime)) {
+              onTimeUpdate?.(
+                target.currentTime,
+                target.duration,
+                !target.paused,
+                target.media?.seeking ?? false
+              );
+            }
           }}
           poster={poster}
           playbackId={playbackId}

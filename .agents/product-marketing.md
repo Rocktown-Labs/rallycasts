@@ -28,10 +28,13 @@
 **Emotional tension:** The frustration of showing up to empty courts, struggling to find a fourth for doubles, or hitting an insane ATP/erne that nobody recorded.
 
 ## Key Differentiators
-- **Vibrant Social Core**: Real player profiles (DUPR/skill levels, home courts), direct messaging, friend connections, and match challenges.
+- **Vibrant Social Core**: Real player profiles (self-described skill levels, home courts), direct messaging, friend connections, follows, and match challenges.
 - **Court & Park Discovery**: Real-time venue activity, player presence, and geofenced open play tracking.
 - **Tournaments & Real-Time Brackets**: Modern mobile-first event registration, check-ins, live scoring, and brackets.
-- **Social Video & Highlights**: Instant clip generation, community feeds, and court-side casters capturing memories.
+- **Live & Recorded Video**: RTMPS live streams from Studio with public watch pages and automatic replay publishing, plus Mux-backed uploads, clips, and community feeds.
+- **Court-Call Notifications**: In-app realtime notifications plus Expo push and Resend email for match calls, tournament wins, challenges, and messages.
+- **First-Party Creator Analytics**: Real view counts, watch time, followers, and daily audience momentum from playback events — no seeded or display-only numbers.
+- **Skill Levels, Not Fake DUPR**: Ratings shown today are self-described onboarding levels. A verified DUPR integration is future work and requires partner API access.
 
 ## Brand Voice
 **Tone:** Welcoming, energetic, athletic, friendly, communal.

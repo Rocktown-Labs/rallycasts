@@ -332,7 +332,7 @@ describe("RallyCasts Pro subscriptions", () => {
         headers: { "Content-Type": "application/json", Cookie: player.cookie },
         method: "POST",
       },
-      env
+      { ...env, STRIPE_SECRET_KEY: "" }
     );
     expect(response.status).toBe(503);
   });

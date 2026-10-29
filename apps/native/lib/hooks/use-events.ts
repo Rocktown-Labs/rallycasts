@@ -1,8 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { apiClient } from "@/lib/api-client";
 import { readApiJson } from "@/lib/api";
-import { withDemoItems } from "@/lib/demo-mode";
+import { demoDataEnabled, withDemoItems } from "@/lib/demo-mode";
 import { demoEvents, type EventData } from "@/lib/demo-data";
 
 export interface EventsResponse {
@@ -20,8 +20,14 @@ export function useEvents(query = "") {
         if (data?.events?.length) {
           return { events: withDemoItems(data.events, demoEvents) };
         }
-      } catch {
-        // Fall back
+        if (demoDataEnabled) {
+          return { events: demoEvents };
+        }
+        return { events: [] };
+      } catch (error) {
+        if (!demoDataEnabled) {
+          throw error;
+        }
       }
 
       let filtered = [...demoEvents];
@@ -50,15 +56,40 @@ export function useEvent(id: string) {
         if (data?.event) {
           return data.event;
         }
-      } catch {
-        // Fall back
+      } catch (error) {
+        if (!demoDataEnabled) {
+          throw error;
+        }
       }
 
       const match = demoEvents.find((e) => e.id === id);
       if (match) {
         return match;
       }
-      return demoEvents[0]!;
+      throw new Error("Event not found");
+    },
+  });
+}
+
+export function useJoinEvent(id: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const response = await apiClient.api.v1.events[":id"].join.$post({
+        param: { id },
+      });
+      const body = (await response.json().catch(() => ({}))) as {
+        message?: string;
+      };
+      if (!response.ok) {
+        throw new Error(body.message ?? "Could not register for this event");
+      }
+      return body;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["event", id] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
     },
   });
 }

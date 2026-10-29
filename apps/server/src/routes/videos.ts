@@ -11,6 +11,7 @@ import {
   video,
   videoComment,
   videoLike,
+  videoView,
 } from "@rallycaststv/db/schema/domain";
 import { and, desc, eq, inArray, lt, ne, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
@@ -78,6 +79,11 @@ const pinCommentSchema = z.object({
 
 const uploadStateSchema = z.object({
   state: z.enum(["failed", "processing"]),
+});
+
+const watchProgressSchema = z.object({
+  completed: z.boolean().optional(),
+  watchedSeconds: z.number().int().min(0).max(86_400).optional(),
 });
 
 const CLIP_MIN_SECONDS = 15;
@@ -1235,6 +1241,7 @@ export const videosRouter = new Hono<AppEnv>()
       .select({
         comments: sql<number>`count(distinct ${videoComment.id})`,
         likes: sql<number>`count(distinct ${videoLike.userId})`,
+        views: video.viewCount,
       })
       .from(video)
       .leftJoin(videoLike, eq(videoLike.videoId, video.id))
@@ -1248,28 +1255,7 @@ export const videosRouter = new Hono<AppEnv>()
       )
       .limit(1);
 
-    const [doc] = await db
-      .select({ metadataJson: searchDocument.metadataJson })
-      .from(searchDocument)
-      .where(
-        and(
-          eq(searchDocument.entityType, "video"),
-          eq(searchDocument.entityId, id)
-        )
-      )
-      .limit(1);
-
-    let views = 1208;
-    if (doc?.metadataJson) {
-      try {
-        const meta = JSON.parse(doc.metadataJson);
-        if (typeof meta.views === "number") {
-          ({ views } = meta);
-        }
-      } catch {
-        // Fallback to default views
-      }
-    }
+    const views = counts?.views ?? 0;
 
     let hasLiked = false;
     try {
@@ -1304,61 +1290,87 @@ export const videosRouter = new Hono<AppEnv>()
     const id = c.req.param("id");
     await ensureShowcaseVideoInDb(db, id);
 
-    const [doc] = await db
-      .select()
-      .from(searchDocument)
-      .where(
-        and(
-          eq(searchDocument.entityType, "video"),
-          eq(searchDocument.entityId, id)
-        )
-      )
+    let payload: { completed?: boolean; watchedSeconds?: number } = {};
+    try {
+      payload = (await c.req.json()) as typeof payload;
+    } catch {
+      // Viewing without a JSON body is valid; it still counts as a view.
+    }
+
+    const [record] = await db
+      .select({ id: video.id, ownerUserId: video.ownerUserId })
+      .from(video)
+      .where(eq(video.id, id))
       .limit(1);
-
-    let currentViews = 1208;
-    let existingMeta: Record<string, unknown> = {};
-    if (doc?.metadataJson) {
-      try {
-        existingMeta = JSON.parse(doc.metadataJson);
-        if (typeof existingMeta.views === "number") {
-          currentViews = existingMeta.views;
-        }
-      } catch {
-        // Empty
-      }
+    if (!record) {
+      return c.json({ message: "Video not found" }, HttpStatusCodes.NOT_FOUND);
     }
 
-    const nextViews = currentViews + 1;
-    if (doc) {
-      await db
-        .update(searchDocument)
-        .set({
-          metadataJson: JSON.stringify({ ...existingMeta, views: nextViews }),
-          updatedAt: new Date(),
-        })
-        .where(eq(searchDocument.id, doc.id));
-    } else {
-      const [v] = await db
-        .select({ title: video.title })
-        .from(video)
-        .where(eq(video.id, id))
-        .limit(1);
-      const title = v?.title || "Video";
-      await db
-        .insert(searchDocument)
-        .values({
-          content: title,
-          entityId: id,
-          entityType: "video",
-          id: createId(),
-          metadataJson: JSON.stringify({ views: nextViews }),
-          title,
-        })
-        .onConflictDoNothing();
+    let viewerId: string | undefined;
+    try {
+      const authSession = await createAuth(c.env.DB).api.getSession({
+        headers: c.req.raw.headers,
+      });
+      viewerId = authSession?.user?.id;
+    } catch {
+      // Anonymous views are still real views.
     }
 
-    return c.json({ id, views: nextViews }, HttpStatusCodes.OK);
+    const viewId = createId();
+    await db.insert(videoView).values({
+      completed: payload.completed ?? false,
+      createdAt: new Date(),
+      id: viewId,
+      userId: viewerId,
+      videoId: id,
+      watchedSeconds:
+        typeof payload.watchedSeconds === "number"
+          ? Math.max(0, Math.round(payload.watchedSeconds))
+          : 0,
+    });
+
+    const [updated] = await db
+      .update(video)
+      .set({ viewCount: sql`${video.viewCount} + 1` })
+      .where(eq(video.id, id))
+      .returning({ views: video.viewCount });
+
+    return c.json(
+      { id, viewId, views: updated?.views ?? 0 },
+      HttpStatusCodes.OK
+    );
   })
+  .patch(
+    "/:id/views/:viewId",
+    zValidator("json", watchProgressSchema),
+    async (c) => {
+      const db = createDb(c.env.DB);
+      const id = c.req.param("id");
+      const viewId = c.req.param("viewId");
+      const payload = c.req.valid("json");
+
+      const [updated] = await db
+        .update(videoView)
+        .set({
+          ...(payload.completed === undefined
+            ? {}
+            : { completed: payload.completed }),
+          ...(typeof payload.watchedSeconds === "number"
+            ? {
+                watchedSeconds: Math.max(0, Math.round(payload.watchedSeconds)),
+              }
+            : {}),
+        })
+        .where(and(eq(videoView.id, viewId), eq(videoView.videoId, id)))
+        .returning({ id: videoView.id });
+
+      if (!updated) {
+        return c.json({ message: "View not found" }, HttpStatusCodes.NOT_FOUND);
+      }
+
+      return c.json({ updated: true }, HttpStatusCodes.OK);
+    }
+  )
   .post("/:id/likes", requireAuth, async (c) => {
     const db = createDb(c.env.DB);
     const { user: authUser } = c.var.authSession;
@@ -1387,16 +1399,20 @@ export const videosRouter = new Hono<AppEnv>()
       .onConflictDoNothing();
 
     if (record.ownerUserId !== authUser.id) {
-      await createNotification(db, {
-        actorUserId: authUser.id,
-        body: `${authUser.name} liked ${record.title}.`,
-        entityId: id,
-        entityType: "video",
-        href: `/videos/${id}`,
-        title: "Your video got a like",
-        type: "like",
-        userId: record.ownerUserId,
-      });
+      await createNotification(
+        db,
+        {
+          actorUserId: authUser.id,
+          body: `${authUser.name} liked ${record.title}.`,
+          entityId: id,
+          entityType: "video",
+          href: `/videos/${id}`,
+          title: "Your video got a like",
+          type: "like",
+          userId: record.ownerUserId,
+        },
+        c.env
+      );
     }
 
     return c.json({ liked: true }, HttpStatusCodes.OK);
@@ -1517,16 +1533,20 @@ export const videosRouter = new Hono<AppEnv>()
 
       // Send notification to user being replied to
       if (parentCommentUser && parentCommentUser.id !== authUser.id) {
-        await createNotification(db, {
-          actorUserId: authUser.id,
-          body: content,
-          entityId: commentId,
-          entityType: "comment",
-          href: `/videos/${id}`,
-          title: `${authUser.name} replied to your comment`,
-          type: "comment",
-          userId: parentCommentUser.id,
-        });
+        await createNotification(
+          db,
+          {
+            actorUserId: authUser.id,
+            body: content,
+            entityId: commentId,
+            entityType: "comment",
+            href: `/videos/${id}`,
+            title: `${authUser.name} replied to your comment`,
+            type: "comment",
+            userId: parentCommentUser.id,
+          },
+          c.env
+        );
       }
 
       // Also send notification to video owner if different
@@ -1534,16 +1554,20 @@ export const videosRouter = new Hono<AppEnv>()
         record.ownerUserId !== authUser.id &&
         (!parentCommentUser || parentCommentUser.id !== record.ownerUserId)
       ) {
-        await createNotification(db, {
-          actorUserId: authUser.id,
-          body: content,
-          entityId: commentId,
-          entityType: "comment",
-          href: `/videos/${id}`,
-          title: `${authUser.name} commented on your video`,
-          type: "comment",
-          userId: record.ownerUserId,
-        });
+        await createNotification(
+          db,
+          {
+            actorUserId: authUser.id,
+            body: content,
+            entityId: commentId,
+            entityType: "comment",
+            href: `/videos/${id}`,
+            title: `${authUser.name} commented on your video`,
+            type: "comment",
+            userId: record.ownerUserId,
+          },
+          c.env
+        );
       }
 
       return c.json(

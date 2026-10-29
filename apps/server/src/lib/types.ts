@@ -39,6 +39,7 @@ export interface AppEnv {
     EVENT_ACTIVITY_QUEUE?: Queue<EventActivityMessage>;
     EVENT_COORDINATOR: DurableObjectNamespace;
     E2E_SEED_TOKEN?: string;
+    EXPO_ACCESS_TOKEN?: string;
     FIRECRAWL_API_KEY?: string;
     GITHUB_CLIENT_ID?: string;
     GITHUB_CLIENT_SECRET?: string;

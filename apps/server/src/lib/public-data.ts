@@ -36,6 +36,7 @@ interface VideoInternalFields {
   thumbnailTimeSeconds: unknown;
   thumbnailUrl: unknown;
   title?: null | string;
+  viewCount?: unknown;
 }
 
 /** The fallback poster frame Mux serves when no custom thumbnail is set. */
@@ -71,6 +72,7 @@ export const toPublicVideo = <T extends VideoInternalFields>(record: T) => {
     r2Key: _r2Key,
     thumbnailTimeSeconds,
     thumbnailUrl,
+    viewCount,
     ...publicRecord
   } = record;
   const hasPublicPlayback =
@@ -79,6 +81,7 @@ export const toPublicVideo = <T extends VideoInternalFields>(record: T) => {
   return {
     ...publicRecord,
     slug: buildVideoSlug(record),
+    viewsCount: typeof viewCount === "number" ? viewCount : 0,
     ...(hasPublicPlayback
       ? {
           muxPlaybackId,

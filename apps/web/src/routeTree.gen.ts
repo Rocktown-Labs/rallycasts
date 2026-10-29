@@ -32,6 +32,8 @@ import { Route as EventsIdRouteImport } from './routes/events.$id'
 import { Route as EventsHostsRouteImport } from './routes/events.hosts'
 import { Route as EventsOrganizersRouteImport } from './routes/events.organizers'
 import { Route as HostsSlugRouteImport } from './routes/hosts.$slug'
+import { Route as LiveIndexRouteImport } from './routes/live.index'
+import { Route as LiveIdRouteImport } from './routes/live.$id'
 import { Route as OrganizersSlugRouteImport } from './routes/organizers.$slug'
 import { Route as PlacesIdRouteImport } from './routes/places.$id'
 import { Route as PlayersIndexRouteImport } from './routes/players.index'
@@ -221,6 +223,16 @@ const HostsSlugRoute = HostsSlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
   getParentRoute: () => HostsRoute,
+} as any)
+const LiveIndexRoute = LiveIndexRouteImport.update({
+  id: '/live/',
+  path: '/live/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LiveIdRoute = LiveIdRouteImport.update({
+  id: '/live/$id',
+  path: '/live/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const OrganizersSlugRoute = OrganizersSlugRouteImport.update({
   id: '/$slug',
@@ -631,6 +643,7 @@ export interface FileRoutesByFullPath {
   '/events/hosts': typeof EventsHostsRoute
   '/events/organizers': typeof EventsOrganizersRouteWithChildren
   '/hosts/$slug': typeof HostsSlugRoute
+  '/live/$id': typeof LiveIdRoute
   '/organizers/$slug': typeof OrganizersSlugRoute
   '/places/$id': typeof PlacesIdRoute
   '/players/$username': typeof PlayersUsernameRoute
@@ -639,6 +652,7 @@ export interface FileRoutesByFullPath {
   '/videos/$id': typeof VideosIdRoute
   '/casters/': typeof CastersIndexRoute
   '/events/': typeof EventsIndexRoute
+  '/live/': typeof LiveIndexRoute
   '/players/': typeof PlayersIndexRoute
   '/shop/': typeof ShopIndexRoute
   '/organizers/new': typeof AuthOrganizersNewRoute
@@ -724,6 +738,7 @@ export interface FileRoutesByTo {
   '/events/hosts': typeof EventsHostsRoute
   '/events/organizers': typeof EventsOrganizersRouteWithChildren
   '/hosts/$slug': typeof HostsSlugRoute
+  '/live/$id': typeof LiveIdRoute
   '/organizers/$slug': typeof OrganizersSlugRoute
   '/places/$id': typeof PlacesIdRoute
   '/players/$username': typeof PlayersUsernameRoute
@@ -732,6 +747,7 @@ export interface FileRoutesByTo {
   '/videos/$id': typeof VideosIdRoute
   '/casters': typeof CastersIndexRoute
   '/events': typeof EventsIndexRoute
+  '/live': typeof LiveIndexRoute
   '/players': typeof PlayersIndexRoute
   '/shop': typeof ShopIndexRoute
   '/organizers/new': typeof AuthOrganizersNewRoute
@@ -821,6 +837,7 @@ export interface FileRoutesById {
   '/events/hosts': typeof EventsHostsRoute
   '/events/organizers': typeof EventsOrganizersRouteWithChildren
   '/hosts/$slug': typeof HostsSlugRoute
+  '/live/$id': typeof LiveIdRoute
   '/organizers/$slug': typeof OrganizersSlugRoute
   '/places/$id': typeof PlacesIdRoute
   '/players/$username': typeof PlayersUsernameRoute
@@ -829,6 +846,7 @@ export interface FileRoutesById {
   '/videos/$id': typeof VideosIdRoute
   '/casters/': typeof CastersIndexRoute
   '/events/': typeof EventsIndexRoute
+  '/live/': typeof LiveIndexRoute
   '/players/': typeof PlayersIndexRoute
   '/shop/': typeof ShopIndexRoute
   '/_auth/organizers/new': typeof AuthOrganizersNewRoute
@@ -922,6 +940,7 @@ export interface FileRouteTypes {
     | '/events/hosts'
     | '/events/organizers'
     | '/hosts/$slug'
+    | '/live/$id'
     | '/organizers/$slug'
     | '/places/$id'
     | '/players/$username'
@@ -930,6 +949,7 @@ export interface FileRouteTypes {
     | '/videos/$id'
     | '/casters/'
     | '/events/'
+    | '/live/'
     | '/players/'
     | '/shop/'
     | '/organizers/new'
@@ -1015,6 +1035,7 @@ export interface FileRouteTypes {
     | '/events/hosts'
     | '/events/organizers'
     | '/hosts/$slug'
+    | '/live/$id'
     | '/organizers/$slug'
     | '/places/$id'
     | '/players/$username'
@@ -1023,6 +1044,7 @@ export interface FileRouteTypes {
     | '/videos/$id'
     | '/casters'
     | '/events'
+    | '/live'
     | '/players'
     | '/shop'
     | '/organizers/new'
@@ -1111,6 +1133,7 @@ export interface FileRouteTypes {
     | '/events/hosts'
     | '/events/organizers'
     | '/hosts/$slug'
+    | '/live/$id'
     | '/organizers/$slug'
     | '/places/$id'
     | '/players/$username'
@@ -1119,6 +1142,7 @@ export interface FileRouteTypes {
     | '/videos/$id'
     | '/casters/'
     | '/events/'
+    | '/live/'
     | '/players/'
     | '/shop/'
     | '/_auth/organizers/new'
@@ -1205,9 +1229,11 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   ShopRoute: typeof ShopRouteWithChildren
   TrendingRoute: typeof TrendingRoute
+  LiveIdRoute: typeof LiveIdRoute
   PlacesIdRoute: typeof PlacesIdRoute
   VenuesIdRoute: typeof VenuesIdRoute
   VideosIdRoute: typeof VideosIdRoute
+  LiveIndexRoute: typeof LiveIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1372,6 +1398,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/hosts/$slug'
       preLoaderRoute: typeof HostsSlugRouteImport
       parentRoute: typeof HostsRoute
+    }
+    '/live/': {
+      id: '/live/'
+      path: '/live'
+      fullPath: '/live/'
+      preLoaderRoute: typeof LiveIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/live/$id': {
+      id: '/live/$id'
+      path: '/live/$id'
+      fullPath: '/live/$id'
+      preLoaderRoute: typeof LiveIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/organizers/$slug': {
       id: '/organizers/$slug'
@@ -2232,9 +2272,11 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   ShopRoute: ShopRouteWithChildren,
   TrendingRoute: TrendingRoute,
+  LiveIdRoute: LiveIdRoute,
   PlacesIdRoute: PlacesIdRoute,
   VenuesIdRoute: VenuesIdRoute,
   VideosIdRoute: VideosIdRoute,
+  LiveIndexRoute: LiveIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

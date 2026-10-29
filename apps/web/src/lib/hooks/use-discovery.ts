@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { apiClient } from "@/lib/api-client";
 import {
@@ -203,3 +203,25 @@ export const useSearch = (query: string, type: SearchEntity) =>
     },
     queryKey: ["search", type, query],
   });
+
+export const useToggleProfileLike = (username: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (liked: boolean) =>
+      liked
+        ? readApiJson<{ liked: boolean; likesCount: number }>(
+            apiClient.api.v1.players[":username"].like.$post({
+              param: { username },
+            })
+          )
+        : readApiJson<{ liked: boolean; likesCount: number }>(
+            apiClient.api.v1.players[":username"].like.$delete({
+              param: { username },
+            })
+          ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["player", username] });
+    },
+  });
+};

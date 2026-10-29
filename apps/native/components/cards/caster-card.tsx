@@ -93,7 +93,7 @@ export function CasterCard({ caster, onBook }: CasterCardProps) {
           <View className="flex-row items-center gap-1">
             <Ionicons name="star" size={13} color="#bcdf21" />
             <Text className="text-xs font-semibold text-foreground">
-              {caster.rating ?? 4.9}
+              {caster.rating ? caster.rating.toFixed(1) : "New"}
             </Text>
             <Text className="text-xs text-muted">
               ({caster.matchesStreamed ?? 0} matches)

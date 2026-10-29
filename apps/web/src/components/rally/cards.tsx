@@ -10,9 +10,7 @@ import { cn } from "@rallycaststv/ui/lib/utils";
 import { Link } from "@tanstack/react-router";
 import {
   Calendar,
-  Camera,
   DollarSign,
-  Eye,
   Flame,
   MapPin,
   Play,
@@ -1152,30 +1150,3 @@ const getPaymentBadge = (
   }
   return null;
 };
-
-export const studioStats = [
-  {
-    icon: <Eye className="size-5" />,
-    label: "Total Views",
-    trend: "+12.5% from last month",
-    value: "2,840",
-  },
-  {
-    icon: <Users className="size-5" />,
-    label: "Followers",
-    trend: "+8.3% from last month",
-    value: "124",
-  },
-  {
-    icon: <DollarSign className="size-5" />,
-    label: "Earnings",
-    trend: "Start earning now",
-    value: "$0",
-  },
-  {
-    icon: <Camera className="size-5" />,
-    label: "Caster Requests",
-    trend: "2 open this week",
-    value: "6",
-  },
-];

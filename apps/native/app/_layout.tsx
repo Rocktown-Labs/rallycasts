@@ -17,6 +17,7 @@ import {
   AppThemeProvider,
   useAppTheme,
 } from "@/contexts/app-theme-context";
+import { usePushNotifications } from "@/lib/hooks/use-push-notifications";
 import { queryClient } from "@/lib/query-client";
 
 export const unstable_settings = {
@@ -109,6 +110,12 @@ function StackLayout() {
         }}
       />
       <Stack.Screen
+        name="live/[id]"
+        options={{
+          title: "RallyCasts Live",
+        }}
+      />
+      <Stack.Screen
         name="players/[username]"
         options={{
           title: "Player Profile",
@@ -168,6 +175,11 @@ function StackLayout() {
   );
 }
 
+function PushNotificationsBridge() {
+  usePushNotifications();
+  return null;
+}
+
 export default function Layout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -175,6 +187,7 @@ export default function Layout() {
         <QueryClientProvider client={queryClient}>
           <AppThemeProvider>
             <HeroUINativeProvider>
+              <PushNotificationsBridge />
               <NavigationTheme>
                 <StackLayout />
               </NavigationTheme>

@@ -9,6 +9,7 @@ import {
   Home,
   Megaphone,
   MessageSquare,
+  Radio,
   Settings,
   UploadCloud,
   Swords,
@@ -24,6 +25,7 @@ import {
 export const discoverNavItems = [
   { icon: Home, label: "Home", to: "/" },
   { icon: Flame, label: "Trending", to: "/trending" },
+  { icon: Radio, label: "Live", to: "/live" },
   { icon: Users, label: "Players", to: "/players" },
   { icon: Calendar, label: "Events", to: "/events" },
   { icon: ShoppingBag, label: "Shop", to: "/shop" },
@@ -60,7 +62,7 @@ export const accountNavItems = [
 
 export const mobileDiscoverItems = [
   { icon: Home, label: "Home", to: "/" },
-  { icon: Flame, label: "Trending", to: "/trending" },
+  { icon: Radio, label: "Live", to: "/live" },
   { icon: Users, label: "Players", to: "/players" },
   { icon: Calendar, label: "Events", to: "/events" },
   { icon: User, label: "My Account", to: "/u" },

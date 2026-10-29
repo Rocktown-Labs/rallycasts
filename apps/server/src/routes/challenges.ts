@@ -101,16 +101,20 @@ export const challengesRouter = new Hono<AppEnv>()
         tipCents: undefined,
       };
       await db.insert(challenge).values(record);
-      await createNotification(db, {
-        actorUserId: authUser.id,
-        body: `${authUser.name} proposed ${data.matchMode} at ${data.courtLabel ?? "a court"}.`,
-        entityId: record.id,
-        entityType: "challenge",
-        href: `/u/challenges/${record.id}`,
-        title: "New match challenge",
-        type: "challenge",
-        userId: challengedPlayer.id,
-      });
+      await createNotification(
+        db,
+        {
+          actorUserId: authUser.id,
+          body: `${authUser.name} proposed ${data.matchMode} at ${data.courtLabel ?? "a court"}.`,
+          entityId: record.id,
+          entityType: "challenge",
+          href: `/u/challenges/${record.id}`,
+          title: "New match challenge",
+          type: "challenge",
+          userId: challengedPlayer.id,
+        },
+        c.env
+      );
       return c.json({ challenge: record }, HttpStatusCodes.CREATED);
     }
   )
@@ -163,16 +167,20 @@ export const challengesRouter = new Hono<AppEnv>()
           ? record.challengedUserId
           : record.challengerUserId;
       if (notificationUserId) {
-        await createNotification(db, {
-          actorUserId: authUser.id,
-          body: `${authUser.name} ${response} the match challenge.`,
-          entityId: id,
-          entityType: "challenge",
-          href: `/u/challenges/${id}`,
-          title: `Challenge ${response}`,
-          type: "challenge",
-          userId: notificationUserId,
-        });
+        await createNotification(
+          db,
+          {
+            actorUserId: authUser.id,
+            body: `${authUser.name} ${response} the match challenge.`,
+            entityId: id,
+            entityType: "challenge",
+            href: `/u/challenges/${id}`,
+            title: `Challenge ${response}`,
+            type: "challenge",
+            userId: notificationUserId,
+          },
+          c.env
+        );
       }
       return c.json({ challenge: updated }, HttpStatusCodes.OK);
     }
@@ -219,16 +227,20 @@ export const challengesRouter = new Hono<AppEnv>()
           ? record.challengedUserId
           : record.challengerUserId;
       if (notificationUserId) {
-        await createNotification(db, {
-          actorUserId: authUser.id,
-          body: `${authUser.name} reported a ${result} result for your match challenge.`,
-          entityId: id,
-          entityType: "challenge",
-          href: `/u/challenges`,
-          title: "Challenge result posted",
-          type: "challenge",
-          userId: notificationUserId,
-        });
+        await createNotification(
+          db,
+          {
+            actorUserId: authUser.id,
+            body: `${authUser.name} reported a ${result} result for your match challenge.`,
+            entityId: id,
+            entityType: "challenge",
+            href: `/u/challenges`,
+            title: "Challenge result posted",
+            type: "challenge",
+            userId: notificationUserId,
+          },
+          c.env
+        );
       }
       return c.json({ challenge: updated }, HttpStatusCodes.OK);
     }

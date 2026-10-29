@@ -3,13 +3,14 @@ import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { readApiJson } from "@/lib/api";
 import { demoEvents, type EventData } from "@/lib/demo-data";
+import { demoDataEnabled } from "@/lib/demo-mode";
 
 export interface OrganizerData {
   analytics: {
     activeTournaments: number;
+    checkedIn: number;
     playerCount: number;
     totalRevenueCents: number;
-    viewsCount: number;
   };
   events: EventData[];
   organizations: Array<{
@@ -20,62 +21,80 @@ export interface OrganizerData {
   }>;
 }
 
+interface OrganizerAnalyticsResponse {
+  totals: {
+    activeEvents: number;
+    checkedInRegistrations: number;
+    registrations: number;
+    revenueCents: number;
+  };
+}
+
+const EMPTY_ORGANIZER_DATA: OrganizerData = {
+  analytics: {
+    activeTournaments: 0,
+    checkedIn: 0,
+    playerCount: 0,
+    totalRevenueCents: 0,
+  },
+  events: [],
+  organizations: [],
+};
+
 export function useOrganizerData() {
   return useQuery({
     queryKey: ["organizer", "overview"],
     queryFn: async (): Promise<OrganizerData> => {
       try {
-        const eventsRes = await readApiJson<{ events: EventData[] }>(
-          apiClient.api.v1.events.mine.$get()
-        );
-        const hostsRes = await readApiJson<{ hosts: Array<{ id: string; name: string; slug: string; description?: string }> }>(
-          apiClient.api.v1.hosts.me.$get()
-        );
+        const [eventsRes, hostsRes, analyticsRes] = await Promise.all([
+          readApiJson<{ events: EventData[] }>(
+            apiClient.api.v1.events.mine.$get()
+          ),
+          readApiJson<{
+            hosts: Array<{
+              description?: string;
+              id: string;
+              name: string;
+              slug: string;
+            }>;
+          }>(apiClient.api.v1.hosts.me.$get()),
+          readApiJson<OrganizerAnalyticsResponse>(
+            apiClient.api.v1.organizer.analytics.$get()
+          ),
+        ]);
 
         return {
           analytics: {
-            activeTournaments: eventsRes.events?.length ?? 2,
-            playerCount: 148,
-            totalRevenueCents: 425000,
-            viewsCount: 12400,
+            activeTournaments: analyticsRes.totals.activeEvents,
+            checkedIn: analyticsRes.totals.checkedInRegistrations,
+            playerCount: analyticsRes.totals.registrations,
+            totalRevenueCents: analyticsRes.totals.revenueCents,
           },
-          events: eventsRes.events?.length ? eventsRes.events : demoEvents,
-          organizations: hostsRes.hosts?.length
-            ? hostsRes.hosts
-            : [
-                {
-                  description: "Rocky Mountain Pickleball Circuit & regional tournaments",
-                  id: "org-1",
-                  name: "Rocky Mountain Pickleball",
-                  slug: "rocky-mountain-pb",
-                },
-              ],
+          events: eventsRes.events ?? [],
+          organizations: hostsRes.hosts ?? [],
         };
       } catch {
-        // Fall back to demo data
-        return {
-          analytics: {
-            activeTournaments: 3,
-            playerCount: 184,
-            totalRevenueCents: 560000,
-            viewsCount: 15800,
-          },
-          events: demoEvents,
-          organizations: [
-            {
-              description: "Premier Colorado competitive pickleball tournament series",
-              id: "org-1",
-              name: "Rocky Mountain Pickleball",
-              slug: "rocky-mountain-pb",
+        if (demoDataEnabled) {
+          return {
+            analytics: {
+              activeTournaments: 0,
+              checkedIn: 0,
+              playerCount: 0,
+              totalRevenueCents: 0,
             },
-            {
-              description: "Community league & junior clinic organizer",
-              id: "org-2",
-              name: "Denver Metro Pickleball Club",
-              slug: "denver-metro-pb",
-            },
-          ],
-        };
+            events: demoEvents,
+            organizations: [
+              {
+                description:
+                  "Premier Colorado competitive pickleball tournament series",
+                id: "org-1",
+                name: "Rocky Mountain Pickleball",
+                slug: "rocky-mountain-pb",
+              },
+            ],
+          };
+        }
+        return EMPTY_ORGANIZER_DATA;
       }
     },
   });

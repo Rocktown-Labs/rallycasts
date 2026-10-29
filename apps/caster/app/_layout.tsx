@@ -8,6 +8,7 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 
 import { AppThemeProvider } from "@/contexts/app-theme-context";
 import { CasterGigProvider } from "@/contexts/caster-gig-context";
+import { usePushNotifications } from "@/lib/hooks/use-push-notifications";
 
 export const unstable_settings = {
   initialRouteName: "(tabs)",
@@ -59,6 +60,11 @@ function StackLayout() {
   );
 }
 
+function PushNotificationsBridge() {
+  usePushNotifications();
+  return null;
+}
+
 export default function Layout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -66,6 +72,7 @@ export default function Layout() {
         <AppThemeProvider>
           <HeroUINativeProvider>
             <CasterGigProvider>
+              <PushNotificationsBridge />
               <StackLayout />
             </CasterGigProvider>
           </HeroUINativeProvider>

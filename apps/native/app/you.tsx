@@ -2,14 +2,16 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Alert, Platform, Pressable, ScrollView, Text, View } from "react-native";
+import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import * as WebBrowser from "expo-web-browser";
 
 import { EventCard, VideoCard } from "@/components/cards";
 import { ScreenHeader } from "@/components/header";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { authClient } from "@/lib/auth-client";
 import { demoEvents, demoVideos } from "@/lib/demo-data";
+import { demoDataEnabled } from "@/lib/demo-mode";
 import { useOrganizerData, useProfile } from "@/lib/hooks";
 
 type HubMode = "player" | "organizer";
@@ -27,14 +29,15 @@ export default function YouScreen() {
   const userEmail = session?.user?.email || "cameron@rallycasts.com";
   const userInitial = userName.charAt(0).toUpperCase();
 
-  const analytics = organizerData?.analytics || {
-    activeTournaments: 3,
-    playerCount: 184,
-    totalRevenueCents: 560000,
-    viewsCount: 15800,
+  const analytics = organizerData?.analytics ?? {
+    activeTournaments: 0,
+    checkedIn: 0,
+    playerCount: 0,
+    totalRevenueCents: 0,
   };
-  const hostedEvents = organizerData?.events || demoEvents;
-  const organizations = organizerData?.organizations || [];
+  const hostedEvents =
+    organizerData?.events ?? (demoDataEnabled ? demoEvents : []);
+  const organizations = organizerData?.organizations ?? [];
 
   const handleSwitchMode = (nextMode: HubMode) => {
     if (Platform.OS === "ios") {
@@ -57,11 +60,11 @@ export default function YouScreen() {
     router.push(path as never);
   };
 
-  const handleAction = (label: string) => {
+  const openOrganizerTool = (path: string) => {
     if (Platform.OS === "ios") {
       Haptics.selectionAsync();
     }
-    Alert.alert(label, `${label} workflow initiated.`);
+    void WebBrowser.openBrowserAsync(`https://rallycasts.com${path}`);
   };
 
   return (
@@ -348,10 +351,10 @@ export default function YouScreen() {
                   </View>
 
                   <Text className="mt-3 text-xl font-black text-white">
-                    Rocky Mountain Pickleball
+                    {organizations[0]?.name ?? "Your organization"}
                   </Text>
                   <Text className="mt-1 text-xs text-gray-200">
-                    Denver, CO • 184 registered club players
+                    {analytics.playerCount} registered players
                   </Text>
                 </View>
 
@@ -390,11 +393,13 @@ export default function YouScreen() {
                   </View>
 
                   <View className="flex-1 min-w-[140px] rounded-2xl border border-border/50 bg-surface p-3.5">
-                    <Text className="text-xs text-muted">Match Views</Text>
+                    <Text className="text-xs text-muted">Checked In</Text>
                     <Text className="mt-1 text-2xl font-black text-foreground">
-                      {(analytics.viewsCount / 1000).toFixed(1)}k
+                      {analytics.checkedIn}
                     </Text>
-                    <Text className="mt-0.5 text-[10px] text-muted">streamed</Text>
+                    <Text className="mt-0.5 text-[10px] text-muted">
+                      players on site
+                    </Text>
                   </View>
                 </View>
 
@@ -405,7 +410,7 @@ export default function YouScreen() {
 
                 <View className="mb-6 flex-row flex-wrap gap-2.5">
                   <Pressable
-                    onPress={() => handleAction("Create Tournament")}
+                    onPress={() => openOrganizerTool("/u/organizer/tournaments/new")}
                     className="flex-1 min-w-[140px] flex-row items-center gap-2.5 rounded-2xl border border-[#bcdf21]/40 bg-[#005c23]/15 p-3.5 active:opacity-80"
                   >
                     <Ionicons name="add-circle" size={20} color="#bcdf21" />
@@ -418,7 +423,7 @@ export default function YouScreen() {
                   </Pressable>
 
                   <Pressable
-                    onPress={() => handleAction("Manage Brackets")}
+                    onPress={() => openOrganizerTool("/u/organizer/tournaments")}
                     className="flex-1 min-w-[140px] flex-row items-center gap-2.5 rounded-2xl border border-border/60 bg-surface p-3.5 active:opacity-80"
                   >
                     <Ionicons name="git-network-outline" size={20} color="#005c23" />
@@ -446,7 +451,7 @@ export default function YouScreen() {
                   </Pressable>
 
                   <Pressable
-                    onPress={() => handleAction("Payouts & Finances")}
+                    onPress={() => openOrganizerTool("/u/organizer/payments")}
                     className="flex-1 min-w-[140px] flex-row items-center gap-2.5 rounded-2xl border border-border/60 bg-surface p-3.5 active:opacity-80"
                   >
                     <Ionicons name="card-outline" size={20} color="#059669" />
@@ -469,7 +474,7 @@ export default function YouScreen() {
                       Your published brackets and events
                     </Text>
                   </View>
-                  <Pressable onPress={() => handleAction("Create Tournament")}>
+                  <Pressable onPress={() => openOrganizerTool("/u/organizer/tournaments/new")}>
                     <Text className="text-xs font-bold text-[#005c23] dark:text-[#bcdf21]">
                       + New
                     </Text>
@@ -512,7 +517,7 @@ export default function YouScreen() {
                         ) : null}
                       </View>
                       <Pressable
-                        onPress={() => handleAction(`Manage ${org.name}`)}
+                        onPress={() => openOrganizerTool("/u/organizer/organizations")}
                         className="rounded-xl bg-[#005c23]/10 px-3 py-1.5 active:opacity-80"
                       >
                         <Text className="text-xs font-bold text-[#005c23] dark:text-[#bcdf21]">

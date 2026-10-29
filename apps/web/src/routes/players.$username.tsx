@@ -41,14 +41,19 @@ import type { VideoCardData } from "@/components/rally/cards";
 import { apiClient } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
 import { demoEnabled, demoPlayers } from "@/lib/demo-data";
-import { usePlayers } from "@/lib/hooks";
+import {
+  useFollowStatus,
+  usePlayers,
+  useToggleFollow,
+  useToggleProfileLike,
+} from "@/lib/hooks";
 import { readApiJson } from "@/lib/hooks/api";
 
-const duprRatings: Record<string, string> = {
-  advanced: "4.5",
-  beginner: "2.5",
-  intermediate: "3.5",
-  pro: "5.0+",
+const skillLabels: Record<string, string> = {
+  advanced: "Advanced",
+  beginner: "Beginner",
+  intermediate: "Intermediate",
+  pro: "Pro / Open",
 };
 
 interface Challenge {
@@ -107,13 +112,12 @@ interface PlayerHeaderProps {
   };
   location: string;
   isFollowing: boolean;
-  setIsFollowing: (val: boolean) => void;
+  onToggleFollow: () => void;
   friendStatus: "none" | "pending" | "friends";
   setFriendStatus: (status: "none" | "pending" | "friends") => void;
   likesCount: number;
-  setLikesCount: (count: number) => void;
   isLiked: boolean;
-  setIsLiked: (liked: boolean) => void;
+  handleLike: () => void;
   onOpenChallenge: () => void;
   onOpenDM: () => void;
   isOwnProfile: boolean;
@@ -125,10 +129,9 @@ interface PlayerHeaderActionsProps {
   friendStatus: "none" | "pending" | "friends";
   isFollowing: boolean;
   isLiked: boolean;
-  playerName: string;
   handleFriendAction: () => void;
   renderFriendButtonContent: () => React.ReactNode;
-  setIsFollowing: (val: boolean) => void;
+  onToggleFollow: () => void;
   handleLike: () => void;
   onOpenDM: () => void;
   onOpenChallenge: () => void;
@@ -140,10 +143,9 @@ function PlayerHeaderActions({
   friendStatus,
   isFollowing,
   isLiked,
-  playerName,
   handleFriendAction,
   renderFriendButtonContent,
-  setIsFollowing,
+  onToggleFollow,
   handleLike,
   onOpenDM,
   onOpenChallenge,
@@ -189,12 +191,7 @@ function PlayerHeaderActions({
                 });
                 return;
               }
-              setIsFollowing(!isFollowing);
-              toast.success(
-                isFollowing
-                  ? `Unfollowed ${playerName}.`
-                  : `Followed ${playerName}!`
-              );
+              onToggleFollow();
             }}
             variant={isFollowing ? "outline" : "default"}
             className="cursor-pointer rounded-lg px-4 text-xs font-semibold transition-all"
@@ -260,30 +257,17 @@ function PlayerHeader({
   player,
   location,
   isFollowing,
-  setIsFollowing,
+  onToggleFollow,
   friendStatus,
   setFriendStatus,
   likesCount,
-  setLikesCount,
   isLiked,
-  setIsLiked,
+  handleLike,
   onOpenChallenge,
   onOpenDM,
   isOwnProfile,
   currentUser,
 }: PlayerHeaderProps) {
-  const handleLike = () => {
-    if (isLiked) {
-      setLikesCount(likesCount - 1);
-      setIsLiked(false);
-      toast.info(`Unliked ${player.name || "Player"}'s profile.`);
-    } else {
-      setLikesCount(likesCount + 1);
-      setIsLiked(true);
-      toast.success(`Liked ${player.name || "Player"}'s profile!`);
-    }
-  };
-
   const handleFriendAction = () => {
     if (friendStatus === "none") {
       setFriendStatus("pending");
@@ -350,9 +334,10 @@ function PlayerHeader({
             </span>
           )}
           <span className="inline-flex items-center gap-1.5">
-            <Star className="text-brand-yellow size-3.5 fill-current" /> DUPR{" "}
+            <Star className="text-brand-yellow size-3.5 fill-current" />{" "}
+            Self-rated{" "}
             {player.skillLevel
-              ? duprRatings[player.skillLevel] || "open play"
+              ? skillLabels[player.skillLevel] || player.skillLevel
               : "open play"}
           </span>
           <span className="inline-flex items-center gap-1.5">
@@ -374,10 +359,9 @@ function PlayerHeader({
           friendStatus={friendStatus}
           isFollowing={isFollowing}
           isLiked={isLiked}
-          playerName={player.name || player.username || "Player"}
           handleFriendAction={handleFriendAction}
           renderFriendButtonContent={renderFriendButtonContent}
-          setIsFollowing={setIsFollowing}
+          onToggleFollow={onToggleFollow}
           handleLike={handleLike}
           onOpenDM={onOpenDM}
           onOpenChallenge={onOpenChallenge}
@@ -933,22 +917,13 @@ function useDMChat() {
 }
 
 function useProfileActions() {
-  const [isFollowing, setIsFollowing] = useState(false);
   const [friendStatus, setFriendStatus] = useState<
     "none" | "pending" | "friends"
   >("none");
-  const [isLiked, setIsLiked] = useState(false);
-  const [likesCount, setLikesCount] = useState(18);
 
   return {
     friendStatus,
-    isFollowing,
-    isLiked,
-    likesCount,
     setFriendStatus,
-    setIsFollowing,
-    setIsLiked,
-    setLikesCount,
   };
 }
 
@@ -1101,6 +1076,9 @@ interface RawPlayer {
 
 interface RawStats {
   followersCount?: number;
+  isFollowing?: boolean;
+  isLiked?: boolean;
+  likesCount?: number;
   losses?: number;
   matchCount?: number;
   wins?: number;
@@ -1263,16 +1241,7 @@ function PlayerProfilePage() {
     "all" | "videos" | "clips" | "photos" | "challenges"
   >("all");
 
-  const {
-    friendStatus,
-    isFollowing,
-    isLiked,
-    likesCount,
-    setFriendStatus,
-    setIsFollowing,
-    setIsLiked,
-    setLikesCount,
-  } = useProfileActions();
+  const { friendStatus, setFriendStatus } = useProfileActions();
 
   const {
     setShowChallengeModal,
@@ -1341,6 +1310,27 @@ function PlayerProfilePage() {
       currentUser.username.toLowerCase() === username.toLowerCase()) ||
     (data?.player?.id && currentUser?.id === data.player.id);
 
+  const playerId = data?.player?.id;
+  const followStatusQuery = useFollowStatus(playerId);
+  const toggleFollowMutation = useToggleFollow(playerId);
+  const profileLikeMutation = useToggleProfileLike(username);
+  const isFollowing = followStatusQuery.data?.following ?? false;
+  const handleToggleFollow = () => {
+    if (!playerId) {
+      return;
+    }
+    toggleFollowMutation.mutate(!isFollowing, {
+      onError: () => toast.error("Could not update this follow. Try again."),
+      onSuccess: () => {
+        toast.success(
+          isFollowing
+            ? `Unfollowed ${data?.player?.name || "player"}.`
+            : `Followed ${data?.player?.name || "player"}!`
+        );
+      },
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="mx-auto max-w-4xl animate-pulse space-y-6 px-4 py-8">
@@ -1388,6 +1378,23 @@ function PlayerProfilePage() {
     stats,
   } = data;
   const profileStats = (stats ?? {}) as RawStats;
+  const handleLike = () => {
+    if (isOwnProfile) {
+      toast.info("You cannot like your own profile.");
+      return;
+    }
+    const nextLiked = !(profileStats.isLiked ?? false);
+    profileLikeMutation.mutate(nextLiked, {
+      onError: () => toast.error("Could not update this like. Try again."),
+      onSuccess: () => {
+        toast.success(
+          nextLiked
+            ? `Liked ${player.name || "player"}'s profile.`
+            : `Removed your like from ${player.name || "player"}'s profile.`
+        );
+      },
+    });
+  };
   const { location, allFeedItems } = transformProfileData(
     player,
     videos,
@@ -1476,13 +1483,12 @@ function PlayerProfilePage() {
         player={player}
         location={location}
         isFollowing={isFollowing}
-        setIsFollowing={setIsFollowing}
+        onToggleFollow={handleToggleFollow}
         friendStatus={friendStatus}
         setFriendStatus={setFriendStatus}
-        likesCount={likesCount}
-        setLikesCount={setLikesCount}
-        isLiked={isLiked}
-        setIsLiked={setIsLiked}
+        likesCount={profileStats.likesCount ?? 0}
+        isLiked={profileStats.isLiked ?? false}
+        handleLike={handleLike}
         onOpenChallenge={() => {
           if (!currentUser) {
             toast.error("Please log in to challenge this player.");

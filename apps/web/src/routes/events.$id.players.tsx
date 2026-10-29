@@ -61,8 +61,8 @@ function EventPlayersTab() {
           )
         </h2>
         <p className="text-muted-foreground mt-1 text-xs">
-          Review the player seeds, DUPR ratings, and team profiles for this
-          event.
+          Review the player seeds, self-rated skill levels, and team profiles
+          for this event.
         </p>
       </div>
 

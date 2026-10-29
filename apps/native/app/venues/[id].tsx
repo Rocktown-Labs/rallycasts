@@ -1,32 +1,68 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
+import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams } from "expo-router";
-import React, { useState } from "react";
-import { Alert, Platform, Pressable, ScrollView, Text, View } from "react-native";
+import React from "react";
+import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import * as WebBrowser from "expo-web-browser";
 
-import { VideoCard } from "@/components/cards";
-import { demoVenues, demoVideos } from "@/lib/demo-data";
+import { apiClient } from "@/lib/api-client";
+import { readApiJson } from "@/lib/api";
+import type { VenueData } from "@/lib/demo-data";
 
 export default function VenueDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [isCheckedIn, setIsCheckedIn] = useState(false);
 
-  const venue = demoVenues.find((v) => v.id === id) || demoVenues[0]!;
-  const heatScore = venue.heatScore ?? 85;
-  const heatWidthPercent = `${Math.min(Math.max(heatScore, 10), 100)}%`;
+  const { data: venue, isLoading, error } = useQuery({
+    queryKey: ["venue", id],
+    enabled: Boolean(id),
+    queryFn: async ({ signal }): Promise<VenueData> => {
+      const data = await readApiJson<{ venue: VenueData }>(
+        apiClient.api.v1.venues[":id"].$get({ param: { id: id ?? "" } }, { init: { signal } })
+      );
+      if (!data?.venue) {
+        throw new Error("Venue not found");
+      }
+      return data.venue;
+    },
+  });
+
+  if (isLoading) {
+    return <SafeAreaView className="bg-background flex-1 items-center justify-center"><Text className="text-muted">Loading venue…</Text></SafeAreaView>;
+  }
+
+  if (!venue || error) {
+    return (
+      <SafeAreaView
+        edges={["bottom"]}
+        className="bg-background flex-1 items-center justify-center px-6"
+      >
+        <Ionicons name="location-outline" size={42} color="#8892a0" />
+        <Text className="text-foreground mt-3 text-lg font-bold">
+          Venue not found
+        </Text>
+        <Text className="text-muted mt-1 text-center text-sm">
+          This venue is unavailable. Check your connection and try again.
+        </Text>
+      </SafeAreaView>
+    );
+  }
+
+  let statusLabel = "Unknown";
+  if (venue.openNow != null) {
+    statusLabel = venue.openNow ? "Open" : "Closed";
+  }
+  const heatScore = venue.heatScore ?? 0;
+  const heatWidthPercent = `${Math.min(Math.max(heatScore, 0), 100)}%`;
 
   const handleCheckIn = () => {
     if (Platform.OS === "ios") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
-    setIsCheckedIn((prev) => !prev);
-    Alert.alert(
-      isCheckedIn ? "Checked Out" : "Checked In!",
-      isCheckedIn
-        ? `You checked out of ${venue.name}.`
-        : `You are now checked in at ${venue.name}! Other players nearby can see active court heat.`
+    void WebBrowser.openBrowserAsync(
+      `https://rallycasts.com/venues/${encodeURIComponent(id || venue.id)}`
     );
   };
 
@@ -76,11 +112,11 @@ export default function VenueDetailScreen() {
               <View className="flex-row items-center gap-1.5">
                 <Ionicons name="flame" size={18} color="#bcdf21" />
                 <Text className="text-sm font-bold text-foreground">
-                  Court Heat Score: {heatScore}%
+                  Court Heat Score: {venue.heatScore == null ? "Unavailable" : `${heatScore}%`}
                 </Text>
               </View>
               <Text className="text-xs font-semibold text-[#005c23] dark:text-[#bcdf21]">
-                {venue.activePlayers ?? 12} Playing Now
+                {venue.activePlayers == null ? "Activity unavailable" : `${venue.activePlayers} Playing Now`}
               </Text>
             </View>
 
@@ -92,7 +128,7 @@ export default function VenueDetailScreen() {
             </View>
 
             <Text className="mt-2 text-[11px] text-muted">
-              Peak heat is typically afternoons between 4:00 PM and 7:30 PM.
+              Activity reflects reported court data when available.
             </Text>
           </View>
 
@@ -101,7 +137,7 @@ export default function VenueDetailScreen() {
             <View className="flex-1 rounded-2xl border border-border/50 bg-surface p-3.5">
               <Text className="text-xs text-muted">Courts</Text>
               <Text className="mt-1 text-xl font-bold text-foreground">
-                {venue.courtCount ?? 6}
+                {venue.courtCount ?? "Unknown"}
               </Text>
               <Text className="mt-0.5 text-[10px] text-muted">dedicated</Text>
             </View>
@@ -109,15 +145,15 @@ export default function VenueDetailScreen() {
             <View className="flex-1 rounded-2xl border border-border/50 bg-surface p-3.5">
               <Text className="text-xs text-muted">Status</Text>
               <Text className="mt-1 text-xl font-bold text-foreground">
-                {venue.openNow ? "Open" : "Closed"}
+                {statusLabel}
               </Text>
-              <Text className="mt-0.5 text-[10px] text-muted">lights till 10pm</Text>
+              <Text className="mt-0.5 text-[10px] text-muted">current hours</Text>
             </View>
 
             <View className="flex-1 rounded-2xl border border-border/50 bg-surface p-3.5">
               <Text className="text-xs text-muted">Rating</Text>
               <Text className="mt-1 text-xl font-bold text-[#005c23] dark:text-[#bcdf21]">
-                {venue.rating ?? 4.8}★
+                {venue.rating == null ? "Unrated" : `${venue.rating}★`}
               </Text>
               <Text className="mt-0.5 text-[10px] text-muted">reviews</Text>
             </View>
@@ -126,36 +162,15 @@ export default function VenueDetailScreen() {
           {/* Check In Action */}
           <Pressable
             onPress={handleCheckIn}
-            className={`w-full flex-row items-center justify-center gap-2 rounded-2xl py-3.5 active:opacity-90 ${
-              isCheckedIn
-                ? "bg-surface-secondary border border-emerald-500/30"
-                : "bg-[#005c23]"
-            }`}
+            className="w-full flex-row items-center justify-center gap-2 rounded-2xl bg-[#005c23] py-3.5 active:opacity-90"
           >
-            <Ionicons
-              name={isCheckedIn ? "checkmark-circle" : "location"}
-              size={18}
-              color={isCheckedIn ? "#10b981" : "#ffffff"}
-            />
-            <Text
-              className={`text-sm font-bold ${
-                isCheckedIn ? "text-emerald-500" : "text-white"
-              }`}
-            >
-              {isCheckedIn ? "You're Checked In Here" : "Check In (I'm Playing Here)"}
+            <Ionicons name="location" size={18} color="#ffffff" />
+            <Text className="text-sm font-bold text-white">
+              Open Venue & Check In
             </Text>
           </Pressable>
 
-          {/* Recent Matches Recorded Here */}
-          <View className="mt-6">
-            <Text className="mb-3 text-base font-bold text-foreground">
-              Recent Matches Recorded Here
-            </Text>
 
-            {demoVideos.slice(0, 2).map((video) => (
-              <VideoCard key={video.id} video={video} />
-            ))}
-          </View>
         </View>
       </ScrollView>
     </SafeAreaView>

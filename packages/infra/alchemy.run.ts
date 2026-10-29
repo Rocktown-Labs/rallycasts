@@ -90,6 +90,7 @@ export interface ServerEnv {
   E2E_SEED_TOKEN: string;
   EVENT_ACTIVITY_QUEUE: Queue;
   EVENT_COORDINATOR: DurableObjectNamespace;
+  EXPO_ACCESS_TOKEN: string;
   GEOFENCE_EVENTS: Queue;
   GITHUB_CLIENT_ID: string;
   GITHUB_CLIENT_SECRET: string;
@@ -224,6 +225,7 @@ export default Alchemy.Stack(
         DB: db,
         ...(isProd ? {} : secretBinding("E2E_SEED_TOKEN")),
         EVENT_ACTIVITY_QUEUE: eventActivityQueue,
+        ...secretBinding("EXPO_ACCESS_TOKEN"),
         GEOFENCE_EVENTS: geofenceQueue,
         ...plainBinding("GITHUB_CLIENT_ID"),
         ...secretBinding("GITHUB_CLIENT_SECRET"),
@@ -317,6 +319,12 @@ export default Alchemy.Stack(
             className: "EventCoordinator",
             scriptName: physicalName("rallycasts-server", isProd, stage),
           }),
+          ...secretBinding("EXPO_ACCESS_TOKEN"),
+          ...secretBinding("RESEND_API_KEY"),
+          USER_NOTIFICATIONS: Cloudflare.DurableObject("user-notifications", {
+            className: "UserNotifications",
+            scriptName: physicalName("rallycasts-server", isProd, stage),
+          }),
         },
         main: "../../apps/server/src/queues/event-activity.ts",
         name: physicalName("rallycasts-event-activity", isProd, stage),
@@ -331,6 +339,7 @@ export default Alchemy.Stack(
       crons: ["0 * * * *"],
       env: {
         DB: db,
+        ...secretBinding("EXPO_ACCESS_TOKEN"),
       },
       main: "../../apps/server/src/cron/maintenance.ts",
       name: physicalName("rallycasts-maintenance", isProd, stage),

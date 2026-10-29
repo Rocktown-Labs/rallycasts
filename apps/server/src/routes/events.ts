@@ -277,6 +277,7 @@ const runBackgroundTask = async (promise: Promise<unknown>) => {
 
 const refundCancelledEventPayments = async (
   db: ReturnType<typeof createDb>,
+  notificationEnv: AppEnv["Bindings"],
   eventId: string,
   eventName: string,
   stripeSecretKey: string
@@ -358,15 +359,19 @@ const refundCancelledEventPayments = async (
       })
       .where(eq(eventRegistration.id, registration.id));
     // oxlint-disable-next-line eslint/no-await-in-loop -- Stripe refund flow: per-payment transactional updates, sequential to respect API limits
-    await createNotification(db, {
-      body: `${eventName} was cancelled, so your registration was refunded in full.`,
-      entityId: eventId,
-      entityType: "event",
-      href: `/events/${eventId}`,
-      title: "Tournament cancelled and refunded",
-      type: "event",
-      userId: registration.userId,
-    });
+    await createNotification(
+      db,
+      {
+        body: `${eventName} was cancelled, so your registration was refunded in full.`,
+        entityId: eventId,
+        entityType: "event",
+        href: `/events/${eventId}`,
+        title: "Tournament cancelled and refunded",
+        type: "event",
+        userId: registration.userId,
+      },
+      notificationEnv
+    );
   }
   if (refundErrors.length > 0) {
     throw new Error(
@@ -1703,6 +1708,7 @@ export const eventsRouter = new Hono<AppEnv>()
           try {
             await refundCancelledEventPayments(
               db,
+              c.env,
               id,
               manageableEvent.name,
               c.env.STRIPE_SECRET_KEY

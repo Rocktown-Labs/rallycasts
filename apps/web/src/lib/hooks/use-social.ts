@@ -301,3 +301,49 @@ export const useShareEntity = () => {
     },
   });
 };
+
+export interface FollowStatus {
+  followerCount: number;
+  following: boolean;
+  followingCount: number;
+}
+
+export const useFollowStatus = (userId?: string | null) =>
+  useQuery({
+    enabled: Boolean(userId),
+    queryFn: () =>
+      readApiJson<FollowStatus>(
+        apiClient.api.v1.social.follows[":userId"].$get({
+          param: { userId: userId ?? "" },
+        })
+      ),
+    queryKey: ["follows", userId],
+  });
+
+export const useToggleFollow = (userId?: string | null) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (following: boolean) => {
+      if (!userId) {
+        throw new Error("A creator is required to follow");
+      }
+      return following
+        ? readApiJson<{ following: boolean }>(
+            apiClient.api.v1.social.follows[":userId"].$post({
+              param: { userId },
+            })
+          )
+        : readApiJson<{ following: boolean }>(
+            apiClient.api.v1.social.follows[":userId"].$delete({
+              param: { userId },
+            })
+          );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["follows", userId] });
+      queryClient.invalidateQueries({ queryKey: ["player"] });
+      queryClient.invalidateQueries({ queryKey: ["creator-analytics"] });
+    },
+  });
+};

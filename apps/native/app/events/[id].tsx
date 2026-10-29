@@ -5,23 +5,40 @@ import { useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
 import { Alert, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import * as WebBrowser from "expo-web-browser";
 
-import { useEvent } from "@/lib/hooks";
+import { useEvent, useJoinEvent } from "@/lib/hooks";
 
 export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: event } = useEvent(id || "");
+  const joinEvent = useJoinEvent(id || "");
   const [isRegistered, setIsRegistered] = useState(false);
 
   const handleRegister = () => {
     if (Platform.OS === "ios") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
-    setIsRegistered(true);
-    Alert.alert(
-      "Registration Confirmed!",
-      `You are registered for ${event?.name || "Tournament"}! Check your email for tournament seed and check-in time.`
-    );
+    joinEvent.mutate(undefined, {
+      onError: (error) => {
+        const message =
+          error instanceof Error ? error.message : "Try again in a moment.";
+        if (message.toLowerCase().includes("paid events")) {
+          void WebBrowser.openBrowserAsync(
+            `https://rallycasts.com/events/${id}`
+          );
+          return;
+        }
+        Alert.alert("Registration not completed", message);
+      },
+      onSuccess: () => {
+        setIsRegistered(true);
+        Alert.alert(
+          "Registration Confirmed!",
+          `You are registered for ${event?.name || "Tournament"}. Your bracket spot is saved.`
+        );
+      },
+    });
   };
 
   if (!event) {

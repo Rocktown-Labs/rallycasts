@@ -15,7 +15,9 @@ export interface SendTournamentNotificationOptions {
   db: ReturnType<typeof createDb>;
   env: {
     DB: D1Database;
+    EXPO_ACCESS_TOKEN?: string;
     RESEND_API_KEY?: string;
+    USER_NOTIFICATIONS?: DurableObjectNamespace;
   };
   eventId: string;
   matchId?: string;
@@ -83,15 +85,19 @@ const handleTournamentWonNotification = async (
     return { error: "Winner user not found", sent: false };
   }
 
-  await createNotification(db, {
-    body: `🏆 Congratulations! You won 1st place in ${eventRecord.name}! Outstanding tournament performance!`,
-    entityId: eventRecord.id,
-    entityType: "event",
-    href: `/events/${eventRecord.id}/bracket`,
-    title: "🏆 Tournament Champion!",
-    type: "event",
-    userId: winnerUser.id,
-  });
+  await createNotification(
+    db,
+    {
+      body: `🏆 Congratulations! You won 1st place in ${eventRecord.name}! Outstanding tournament performance!`,
+      entityId: eventRecord.id,
+      entityType: "event",
+      href: `/events/${eventRecord.id}/bracket`,
+      title: "🏆 Tournament Champion!",
+      type: "event",
+      userId: winnerUser.id,
+    },
+    env
+  );
 
   const winnerName =
     winnerUser.name ||
@@ -185,7 +191,12 @@ const sendMatchCallEmail = async (
 
 const notifyPlayerForMatch = async (
   db: ReturnType<typeof createDb>,
-  env: { DB: D1Database; RESEND_API_KEY?: string },
+  env: {
+    DB: D1Database;
+    EXPO_ACCESS_TOKEN?: string;
+    RESEND_API_KEY?: string;
+    USER_NOTIFICATIONS?: DurableObjectNamespace;
+  },
   eventRecord: typeof event.$inferSelect,
   matchRecord: typeof eventMatch.$inferSelect,
   playerId: string
@@ -224,15 +235,19 @@ const notifyPlayerForMatch = async (
     playerUser?.username ||
     "Player";
 
-  await createNotification(db, {
-    body: `Next match at ${courtLabel} vs ${opponentName} in ${eventRecord.name}. Head to your court!`,
-    entityId: eventRecord.id,
-    entityType: "event",
-    href: `/events/${eventRecord.id}/matches`,
-    title: `Match Ready - ${courtLabel}`,
-    type: "event",
-    userId: playerId,
-  });
+  await createNotification(
+    db,
+    {
+      body: `Next match at ${courtLabel} vs ${opponentName} in ${eventRecord.name}. Head to your court!`,
+      entityId: eventRecord.id,
+      entityType: "event",
+      href: `/events/${eventRecord.id}/matches`,
+      title: `Match Ready - ${courtLabel}`,
+      type: "event",
+      userId: playerId,
+    },
+    env
+  );
 
   if (
     env.RESEND_API_KEY &&

@@ -111,7 +111,7 @@ function ProfileMeta({
       {skillLevel ? (
         <span className="inline-flex items-center gap-1">
           <Star className="text-primary size-4" />
-          {skillLevel} rating range
+          {skillLevel} skill level
         </span>
       ) : null}
     </div>

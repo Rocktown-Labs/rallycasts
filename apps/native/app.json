@@ -24,6 +24,7 @@
     "plugins": [
       "expo-font",
       "expo-image",
+      "expo-notifications",
       "expo-router",
       "expo-secure-store",
       "expo-status-bar",
