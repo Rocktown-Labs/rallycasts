@@ -194,7 +194,14 @@ const createReplayVideo = async (
     visibility: isPublic ? ("public" as const) : ("private" as const),
   };
 
-  let replayVideoId = record.recordingVideoId;
+  // A reusable Mux stream produces a new asset for each broadcast. Deduplicate
+  // webhook retries by asset, not by the stream's most recent replay pointer.
+  const [existingReplay] = await db
+    .select({ id: video.id })
+    .from(video)
+    .where(eq(video.muxAssetId, muxAssetId))
+    .limit(1);
+  let replayVideoId = existingReplay?.id;
   if (replayVideoId) {
     await db.update(video).set(values).where(eq(video.id, replayVideoId));
   } else {

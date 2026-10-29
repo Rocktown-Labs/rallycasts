@@ -348,6 +348,20 @@ export const liveStreamsRouter = new Hono<AppEnv>()
       }
 
       const data = c.req.valid("json");
+      // Mux playback policies are fixed when this stream is created. Never
+      // pretend that hiding a database row revokes an existing public URL.
+      if (data.visibility && data.visibility !== record.visibility) {
+        return c.json(
+          { message: "Create a new stream to change visibility safely" },
+          HttpStatusCodes.CONFLICT
+        );
+      }
+      if (data.latencyMode && data.latencyMode !== record.latencyMode) {
+        return c.json(
+          { message: "Create a new stream to change latency mode" },
+          HttpStatusCodes.CONFLICT
+        );
+      }
       if (
         data.eventId &&
         !(await canManageEvent(db, data.eventId, authUser.id))

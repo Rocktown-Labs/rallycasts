@@ -41,11 +41,20 @@ export default function VideoDetailScreen() {
   const viewsCount = social?.views ?? video?.viewsCount ?? 0;
 
   useEffect(() => {
-    if (video && playbackUrl && !viewRecordedRef.current) {
-      viewRecordedRef.current = true;
-      recordView.mutate();
-    }
-  }, [playbackUrl, recordView, video]);
+    viewRecordedRef.current = false;
+  }, [id]);
+
+  useEffect(() => {
+    const subscription = player.addListener("playingChange", ({ isPlaying }) => {
+      if (isPlaying && playbackUrl && !viewRecordedRef.current) {
+        viewRecordedRef.current = true;
+        recordView.mutate(undefined, {
+          onError: () => { viewRecordedRef.current = false; },
+        });
+      }
+    });
+    return () => subscription.remove();
+  }, [player, playbackUrl, recordView]);
 
   const handleLike = () => {
     if (Platform.OS === "ios") {

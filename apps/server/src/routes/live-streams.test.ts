@@ -110,6 +110,23 @@ describe("live streams API", () => {
       liveStream: { streamKey?: string };
     };
     expect(publicBody.liveStream.streamKey).toBeUndefined();
+
+    const unsafeUpdate = await app.request(
+      `/api/v1/live-streams/${body.liveStream.id}`,
+      {
+        body: JSON.stringify({ visibility: "private" }),
+        headers: { "Content-Type": "application/json", Cookie: owner.cookie },
+        method: "PATCH",
+      },
+      env
+    );
+    expect(unsafeUpdate.status).toBe(409);
+    const unchanged = await env.DB.prepare(
+      "select visibility from live_stream where id = ?"
+    )
+      .bind(body.liveStream.id)
+      .first<{ visibility: string }>();
+    expect(unchanged?.visibility).toBe("public");
   });
 
   it("hides private streams from the public directory and detail page", async () => {
@@ -256,5 +273,36 @@ describe("live streams API", () => {
     expect(replayVideo?.title).toBe("Friday night doubles replay");
     expect(replayVideo?.duration_seconds).toBe(123);
     expect(replayVideo?.mux_playback_id).toBe("replay-playback");
+
+    // A second broadcast on the same ingest key must not replace the first.
+    const { applyMuxLiveStreamUpdate } = await import("../lib/live-streams");
+    const { createDb } = await import("@rallycaststv/db");
+    const db = createDb(env.DB);
+    const secondAsset = {
+      duration: 45,
+      id: "asset-live-replay-second",
+      live_stream_id: "mux-live-replay",
+      playback_ids: [{ id: "second-playback", policy: "public" }],
+    };
+    const secondReplay = await applyMuxLiveStreamUpdate(
+      db,
+      env,
+      "video.asset.live_stream_completed",
+      secondAsset
+    );
+    const retriedReplay = await applyMuxLiveStreamUpdate(
+      db,
+      env,
+      "video.asset.live_stream_completed",
+      secondAsset
+    );
+    expect(secondReplay?.id).not.toBe(replay?.recording_video_id);
+    expect(retriedReplay?.id).toBe(secondReplay?.id);
+    const original = await env.DB.prepare(
+      "select mux_playback_id from video where id = ?"
+    )
+      .bind(replay?.recording_video_id)
+      .first<{ mux_playback_id: string }>();
+    expect(original?.mux_playback_id).toBe("replay-playback");
   });
 });

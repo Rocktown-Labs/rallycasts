@@ -40,6 +40,7 @@ import {
   useVideoComments,
   useVideoSocial,
 } from "@/lib/hooks";
+import { createPlaybackTracker } from "@/lib/playback-tracking";
 
 interface CommentUser {
   id: string;
@@ -944,9 +945,13 @@ function VideoSharePanel({
   );
 }
 
-// oxlint-disable-next-line complexity
 function VideoDetailPage() {
   const { id } = useParams({ from: "/videos/$id" });
+  return <VideoDetailContent id={id} key={id} />;
+}
+
+// oxlint-disable-next-line complexity
+function VideoDetailContent({ id }: { id: string }) {
   const navigate = useNavigate();
   const isDemoVideo = id.startsWith("demo-video-");
   const { data: session } = authClient.useSession();
@@ -972,17 +977,22 @@ function VideoDetailPage() {
   const viewIdRef = useRef<string | null>(null);
   const watchedSecondsRef = useRef(0);
   const durationRef = useRef(0);
+  const playbackTrackerRef = useRef(createPlaybackTracker());
 
-  useEffect(() => {
-    if (!viewRecordedRef.current && id && !isDemoVideo) {
-      viewRecordedRef.current = true;
-      recordViewMutation.mutate(undefined, {
-        onSuccess: (result) => {
-          viewIdRef.current = result.viewId;
-        },
-      });
+  const recordPlayback = () => {
+    if (viewRecordedRef.current || !id || isDemoVideo) {
+      return;
     }
-  }, [id, isDemoVideo, recordViewMutation]);
+    viewRecordedRef.current = true;
+    recordViewMutation.mutate(undefined, {
+      onError: () => {
+        viewRecordedRef.current = false;
+      },
+      onSuccess: (result) => {
+        viewIdRef.current = result.viewId;
+      },
+    });
+  };
 
   useEffect(
     () => () => {
@@ -1236,10 +1246,13 @@ function VideoDetailPage() {
                   state: venue?.state ?? null,
                   venueId: video.venueId ?? null,
                 }}
-                onTimeUpdate={(currentTime, duration) => {
-                  watchedSecondsRef.current = Math.max(
-                    watchedSecondsRef.current,
-                    currentTime
+                onPlaying={recordPlayback}
+                onTimeUpdate={(currentTime, duration, playing, seeking) => {
+                  watchedSecondsRef.current = playbackTrackerRef.current.sample(
+                    currentTime,
+                    performance.now(),
+                    playing,
+                    seeking
                   );
                   durationRef.current = duration;
                 }}

@@ -22,8 +22,9 @@ function LivePlayerArea({
           This live stream is private
         </p>
         <p className="text-muted-foreground max-w-md text-sm">
-          Playback is signed and the public watch page is hidden. Switch the
-          stream to public in Studio when you are ready for an audience.
+          This stream uses signed playback and is hidden from public pages.
+          Create a separate public stream in Studio when you are ready for an
+          audience.
         </p>
       </div>
     );
