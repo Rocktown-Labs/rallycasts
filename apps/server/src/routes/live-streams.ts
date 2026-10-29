@@ -38,7 +38,13 @@ const createLiveStreamSchema = z.object({
   visibility: z.enum(["public", "private"]).default("public"),
 });
 
-const updateLiveStreamSchema = createLiveStreamSchema.partial();
+const updateLiveStreamSchema = createLiveStreamSchema
+  .omit({ latencyMode: true, visibility: true })
+  .partial()
+  .extend({
+    latencyMode: z.enum(["low", "reduced", "standard"]).optional(),
+    visibility: z.enum(["public", "private"]).optional(),
+  });
 
 const getMuxCredentials = (c: {
   env: AppEnv["Bindings"];

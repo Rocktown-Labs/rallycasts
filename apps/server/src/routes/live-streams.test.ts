@@ -147,6 +147,7 @@ describe("live streams API", () => {
       "/api/v1/live-streams",
       {
         body: JSON.stringify({
+          latencyMode: "standard",
           title: "Private practice",
           visibility: "private",
         }),
@@ -180,6 +181,34 @@ describe("live streams API", () => {
       env
     );
     expect(viewerDetail.status).toBe(404);
+
+    const editResponse = await app.request(
+      `/api/v1/live-streams/${created.liveStream.id}`,
+      {
+        body: JSON.stringify({ title: "Updated private practice" }),
+        headers: { "Content-Type": "application/json", Cookie: owner.cookie },
+        method: "PATCH",
+      },
+      env
+    );
+    expect(editResponse.status).toBe(200);
+    const edited = (await editResponse.json()) as {
+      liveStream: { title: string; visibility: string; latencyMode: string };
+    };
+    expect(edited.liveStream.title).toBe("Updated private practice");
+    expect(edited.liveStream.visibility).toBe("private");
+    expect(edited.liveStream.latencyMode).toBe("standard");
+
+    const latencyChange = await app.request(
+      `/api/v1/live-streams/${created.liveStream.id}`,
+      {
+        body: JSON.stringify({ latencyMode: "low" }),
+        headers: { "Content-Type": "application/json", Cookie: owner.cookie },
+        method: "PATCH",
+      },
+      env
+    );
+    expect(latencyChange.status).toBe(409);
   });
 
   it("updates live status and publishes the recording as a replay video", async () => {

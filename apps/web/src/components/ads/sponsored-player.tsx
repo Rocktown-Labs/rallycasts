@@ -2,6 +2,7 @@ import MuxPlayer from "@mux/mux-player-react/lazy";
 import { env } from "@rallycaststv/env/web";
 import { Play, Video as VideoIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { ComponentRef } from "react";
 
 import { loadImaSdk } from "@/lib/ima-types";
 import type { ImaAdsManager } from "@/lib/ima-types";
@@ -210,13 +211,15 @@ export function SponsoredPlayer({
           }}
           onPlaying={onPlaying}
           onTimeUpdate={(event) => {
-            const target = event.currentTarget as HTMLVideoElement;
+            const target = event.currentTarget as ComponentRef<
+              typeof MuxPlayer
+            >;
             if (Number.isFinite(target.currentTime)) {
               onTimeUpdate?.(
                 target.currentTime,
                 target.duration,
                 !target.paused,
-                target.seeking
+                target.media?.seeking ?? false
               );
             }
           }}
