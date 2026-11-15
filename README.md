@@ -1,154 +1,154 @@
-# rallycaststv
+# RallyCasts
 
-This project was created with [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack), a modern TypeScript stack that combines React, TanStack Start, Hono, and more.
+<div align="center">
+  <h3>Pickleball, told from the courtside</h3>
+  <p>Discover players, follow local courts, watch creators, compete in events, and build a pickleball community around every match.</p>
+</div>
 
-## Features
+[RallyCasts](https://rallycasts.com)
 
-- **Player discovery** - Profiles, nearby players, friendships, messaging, and notifications
-- **Location-aware Trending** - Nearby parks from RallyCasts venue data and Google Places, ranked by distance
-- **Video discovery** - Cursor-paginated RallyCasts, player tags, venue metadata, comments, and related videos
-- **Creator Studio** - Direct Mux uploads, RTMPS live streams with automatic replay publishing, processing status, publishing controls, and short clips
-- **Live directory** - Public live watch pages and a courtside directory, with owner-only ingest credentials in Studio
-- **Push notifications** - Expo push tokens stored per device and sent for court calls, tournament wins, challenges, messages, and other in-app notifications
-- **Creator analytics** - Real view counts, watch time, followers, and daily audience momentum from first-party playback events
-- **Organizations** - Independent organizer profiles, role-based teams, organization-authored posts/videos, and verified RallyCasts identity
-- **Tournaments** - Free or paid registration, seeded single-elimination or round-robin brackets, court assignments, match scoring, notifications, and refunds
-- **Match challenges** - Player-to-player challenges with park, court, schedule, optional caster, split-pay preference, and caster tip
-- **Stripe Connect** - Accounts v2 hosted organizer onboarding and Checkout destination charges with a configurable platform fee
-- **Guided onboarding** - Multi-step player, role, game, and home-court setup
-- **TypeScript** - For type safety and improved developer experience
-- **TanStack Start** - SSR framework with TanStack Router
-- **React Native** - Build mobile apps using React
-- **Expo** - Tools for React Native development
-- **TailwindCSS** - Utility-first CSS for rapid UI development
-- **Shared UI package** - shadcn/ui primitives live in `packages/ui`
-- **Hono** - Lightweight, performant server framework
-- **workers** - Runtime environment
-- **Drizzle** - TypeScript-first ORM
-- **Cloudflare D1** - Database engine
-- **Authentication** - Better-Auth
-- **Oxlint** - Oxlint + Oxfmt (linting & formatting)
-- **Turborepo** - Optimized monorepo build system
+---
 
-## Getting Started
+## 1. Product Overview
 
-First, install the dependencies:
+**RallyCasts** is a pickleball community and live media platform. It connects players and organizers with video creators and local courts through player discovery, social features, tournaments, match challenges, and live or recorded coverage.
+
+The application includes a web experience, a player mobile app, a dedicated caster mobile app, and a Cloudflare API. Tournament registration and creator payments use Stripe Connect; live video and replay publishing use Mux.
+
+## 2. System Architecture & Technology
+
+```text
+Web (TanStack Start)      Player app (Expo)      Caster app (Expo)
+        └────────────────────┬──────────────────────┘
+                             │
+                       Hono API
+                             │
+      ┌──────────────┬───────┼───────────────┬──────────────┐
+      ▼              ▼       ▼               ▼              ▼
+ Cloudflare D1   Durable Objects  Queues/Cron   Mux       Stripe Connect
+      │              │
+ Drizzle ORM    Live/session state
+```
+
+| Layer | Technologies |
+| --- | --- |
+| Web | React, TanStack Start, TanStack Router, Tailwind CSS |
+| Mobile | Expo / React Native: player app and caster app |
+| API | Hono on Cloudflare Workers |
+| Database | Cloudflare D1 with Drizzle ORM |
+| Realtime and jobs | Durable Objects, queues, and scheduled work |
+| Video | Mux uploads, RTMPS live streams, webhooks, and replay publishing |
+| Payments | Stripe Connect hosted onboarding and destination charges |
+| Location | RallyCasts venue data, Google Places, and Radar |
+| Workspace | Bun, Turborepo, shared UI package |
+
+## 3. Product Capabilities
+
+### Players and local discovery
+
+- Build a player profile and discover nearby players.
+- Connect with friends, message players, and receive in-app or push notifications.
+- Browse nearby parks and courts using venue information and location-aware ranking.
+- Find videos by player, venue, tags, and related content.
+
+### Video, creators, and live coverage
+
+- Upload video directly to Mux from Creator Studio.
+- Start RTMPS live streams and publish the completed recording as a replay.
+- Browse public live watch pages and a courtside live directory.
+- Manage stream publishing and processing status from the Studio.
+- Publish short clips and review first-party view, watch-time, follower, and daily audience analytics.
+- Keep ingest credentials owner-only in Creator Studio.
+
+### Events and competition
+
+- Create free or paid tournaments with single-elimination or round-robin brackets.
+- Seed participants, assign courts, score matches, and notify participants of updates.
+- Use player-to-player match challenges with a park, court, schedule, optional caster, split-payment preference, and caster tip.
+- Register for paid events through Stripe Checkout; registration confirmation is driven by a verified Stripe webhook.
+- Support organizer teams, organization profiles, and organization-authored posts and videos.
+
+### Onboarding and notifications
+
+Guided onboarding collects player details, roles, game preferences, and a home court. The mobile apps can register Expo push tokens for notifications such as court calls, tournament results, challenges, and messages. Push registration is optional; other notification paths continue when push credentials are not configured.
+
+## 4. Monorepo Structure
+
+```text
+rallycasts/
+├── apps/
+│   ├── web/                 # Public site, player community, events, and Creator Studio
+│   ├── native/              # Player mobile app
+│   ├── caster/              # Caster and streaming mobile app
+│   └── server/              # Hono API, routes, jobs, and Durable Objects
+├── packages/
+│   ├── auth/                # Better Auth configuration
+│   ├── db/                  # Drizzle schema and D1 migrations
+│   ├── infra/               # Alchemy Cloudflare resources
+│   ├── ui/                  # Shared shadcn/ui primitives and styles
+│   └── config/              # Shared workspace configuration
+└── scripts/                 # Development and end-to-end test support
+```
+
+## 5. Local Development
+
+### Prerequisites
+
+- Bun 1.3.10
+- Xcode for local iOS builds or Android Studio for local Android builds
+
+Install the workspace and start the web/API development environment:
 
 ```bash
 bun install
-```
-
-## Database Setup
-
-This project uses Cloudflare D1 (SQLite) with Drizzle ORM.
-
-Runtime database access uses the Cloudflare `DB` binding from `packages/infra/alchemy.run.ts`. If a local `DATABASE_URL` is present, it is only for database tooling.
-
-Alchemy provisions the D1 database and applies migrations during `dev` and `deploy`.
-
-1. Generate migration files:
-
-```bash
-bun run db:generate
-```
-
-Then, run the development server:
-
-```bash
 bun run dev
 ```
 
-Open [http://localhost:3001](http://localhost:3001) in your browser to see the web application. The API is running at [http://localhost:3000](http://localhost:3000).
+The web app runs at `http://localhost:3001` and the API at `http://localhost:3000`. Alchemy provisions the local D1 database and applies migrations during development and deployment.
 
-### Mobile development
-
-`apps/native` and `apps/caster` use Expo SDK 57 with a development build, so they are not tied to the Expo Go version installed on your device. Build the client once per native dependency change:
+Build the native development clients when native dependencies change, then start Metro:
 
 ```bash
-bunx turbo -F native ios        # local build, requires Xcode
-bunx turbo -F native android    # local build, requires Android Studio
-bunx turbo -F native dev        # Metro; the dev client connects automatically
+bunx turbo -F native ios
+bunx turbo -F native android
+bunx turbo -F native dev
 ```
 
-Swap `native` for `caster` for the streaming app. Physical devices without a local toolchain can use `bunx eas-cli build --profile development --platform ios` (or `android`) instead. Expo Go must match the project SDK (57); start it with `--go`.
+Use `caster` in place of `native` for the streaming app. Physical devices without a local toolchain can use EAS development builds. Expo Go must match the project's SDK.
 
-## UI Customization
+## 6. Commands
 
-React web apps in this stack share shadcn/ui primitives through `packages/ui`.
+| Command | Purpose |
+| --- | --- |
+| `bun run dev` | Start web and API development |
+| `bun run dev:web` / `bun run dev:server` | Start one web or API workspace |
+| `bun run dev:native` / `bun run dev:caster` | Start one native app |
+| `bun run build` | Build the configured workspaces |
+| `bun run check-types` | Run workspace TypeScript checks |
+| `bun run test` | Run configured tests |
+| `bun run e2e` | Run Playwright end-to-end tests |
+| `bun run db:generate` | Generate Drizzle migrations |
+| `bun run deploy` | Deploy the default Alchemy stage |
+| `bun run deploy:prod` | Deploy the production stage |
+| `bun run destroy` | Remove the selected Alchemy stage |
 
-- Change design tokens and global styles in `packages/ui/src/styles/globals.css`
-- Update shared primitives in `packages/ui/src/components/*`
-- Adjust shadcn aliases or style config in `packages/ui/components.json` and `apps/web/components.json`
+## 7. Deployment Notes
 
-### Add more shared components
+Production infrastructure is defined in `packages/infra/alchemy.run.ts`. Deployments provision the web app, Hono API, D1 migrations, queues, Durable Objects, and configured Google Places, Radar, Mux, and R2 bindings.
 
-Run this from the project root to add more primitives to the shared UI package:
+Paid tournaments and Connect payments require Stripe credentials. Live video requires Mux credentials and a configured Mux webhook. Push registration requires an Expo project ID in each mobile app; server-side push security may also require an Expo access token. Keep all credentials in deployment secrets and local environment files, never in source control.
+
+See the [Cloudflare / Alchemy deployment guide](https://www.better-t-stack.dev/docs/guides/cloudflare-alchemy) for the shared deployment workflow.
+
+## 8. Quality Checks
 
 ```bash
-npx shadcn@latest add accordion dialog popover sheet table -c packages/ui
+bun run check
+bun run check-types
+bun run test
+bun run build
 ```
 
-Import shared components like this:
-
-```tsx
-import { Button } from "@rallycaststv/ui/components/button";
-```
-
-### Add app-specific blocks
-
-If you want to add app-specific blocks instead of shared primitives, run the shadcn CLI from `apps/web`.
-
-## Deployment (Cloudflare via Alchemy)
-
-- Target: web + server
-- Dev: bun run dev
-- Deploy: bun run deploy
-- Production deploy: bun run deploy:prod
-- Destroy: bun run destroy
-
-Production deployments provision the web app, Hono API, D1 migrations, queues, Durable Objects, and configured Google Places, Radar, Mux, and R2 bindings through `packages/infra/alchemy.run.ts`.
-
-The production `CLOUDFLARE_API_TOKEN` GitHub secret must permit the documented R2 bucket/custom-domain operations and zone lookup for `rallycasts.com`. The deployment verifies that `media.rallycasts.com` is active and has an authoritative DNS record, reports public resolver propagation, and reattaches the documented R2 custom domain if the authoritative record is missing. It also performs a unique put/fetch/content comparison through the custom domain and deletes the smoke-test object. Do not replace it with a manual `r2.dev` CNAME.
-
-Paid tournaments require `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`. Connect onboarding and payment confirmation remain unavailable when those bindings are absent; registrations are confirmed only by a verified webhook.
-
-Live streaming uses the existing Mux Video credentials (`MUX_TOKEN_ID`, `MUX_TOKEN_SECRET`, `MUX_WEBHOOK_SECRET`). Studio creates an RTMPS live stream, stores the ingest key owner-only, and the Mux webhook publishes the completed recording as a normal replay video. Point the Mux webhook at `https://api.rallycasts.com/api/v1/mux/webhook` and enable the live stream and asset events.
-
-Push notifications use Expo Push. Set `EXPO_ACCESS_TOKEN` on the server if push security is enabled in EAS, and set `EXPO_PUBLIC_EAS_PROJECT_ID` in `apps/native/.env` and `apps/caster/.env` so the mobile apps can obtain an Expo push token. Without a project ID the apps skip push registration and every other notification path keeps working.
-
-For more details, see the guide on [Deploying to Cloudflare with Alchemy](https://www.better-t-stack.dev/docs/guides/cloudflare-alchemy).
-
-## Testing, Git Hooks, and Formatting
-
-- Format code: `bun x ultracite fix`
-- Check formatting and lint: `bun run check`
-- Run all package tests: `bun run test`
-- Check TypeScript types: `bun run check-types`
-- Run the production build: `bun run build`
-
-## Project Structure
-
-```
-rallycaststv/
-├── apps/
-│   ├── web/         # Frontend application (React + TanStack Start)
-│   ├── native/      # Mobile application (React Native, Expo)
-│   └── server/      # Backend API (Hono)
-├── packages/
-│   ├── ui/          # Shared shadcn/ui components and styles
-│   ├── auth/        # Authentication configuration & logic
-│   └── db/          # Database schema & queries
-```
-
-## Available Scripts
-
-- `bun run dev`: Start all applications in development mode
-- `bun run build`: Build all applications
-- `bun run test`: Run all configured test suites
-- `bun run dev:web`: Start only the web application
-- `bun run dev:server`: Start only the server
-- `bun run check-types`: Check TypeScript types across all apps
-- `bun run dev:native`: Start the React Native/Expo development server
-- `bun run db:generate`: Generate database client/types
-- `bun run check`: Run Oxlint and Oxfmt
-- `bun run deploy:prod`: Deploy the production Cloudflare stack
+<div align="center">
+  <sub>Built for players, organizers, and creators who bring pickleball to life.</sub>
+</div>
