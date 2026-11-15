@@ -84,10 +84,14 @@ rallycasts/
 ├── packages/
 │   ├── auth/                # Better Auth configuration
 │   ├── db/                  # Drizzle schema and D1 migrations
-│   ├── infra/               # Alchemy Cloudflare resources
+│   ├── email/               # React Email templates and sending
+│   ├── env/                  # Shared environment schemas
+│   ├── infra/                # Alchemy Cloudflare resources
 │   ├── ui/                  # Shared shadcn/ui primitives and styles
 │   └── config/              # Shared workspace configuration
-└── scripts/                 # Development and end-to-end test support
+├── docs/                    # Project and operational documentation
+├── e2e/                     # Playwright end-to-end specifications
+└── scripts/                  # Development and end-to-end test support
 ```
 
 ## 5. Local Development
@@ -106,15 +110,15 @@ bun run dev
 
 The web app runs at `http://localhost:3001` and the API at `http://localhost:3000`. Alchemy provisions the local D1 database and applies migrations during development and deployment.
 
-Build the native development clients when native dependencies change, then start Metro:
+Build a native development client when native dependencies change, then start Metro. The iOS and Android scripts are app-local and run from each app workspace:
 
 ```bash
-bunx turbo -F native ios
-bunx turbo -F native android
-bunx turbo -F native dev
+cd apps/native && bun run ios       # requires Xcode
+cd apps/native && bun run android   # requires Android Studio
+bunx turbo -F native dev            # start Metro
 ```
 
-Use `caster` in place of `native` for the streaming app. Physical devices without a local toolchain can use EAS development builds. Expo Go must match the project's SDK.
+Use `cd apps/caster` for the streaming app. Physical devices without a local toolchain can use EAS development builds. Expo Go must match the project's SDK.
 
 ## 6. Commands
 
@@ -134,9 +138,13 @@ Use `caster` in place of `native` for the streaming app. Physical devices withou
 
 ## 7. Deployment Notes
 
-Production infrastructure is defined in `packages/infra/alchemy.run.ts`. Deployments provision the web app, Hono API, D1 migrations, queues, Durable Objects, and configured Google Places, Radar, Mux, and R2 bindings.
+Production infrastructure is defined in `packages/infra/alchemy.run.ts`. Deployments provision the web app, Hono API, D1 migrations, Durable Objects, and configured Google Places, Radar, Mux, and R2 bindings.
 
-Paid tournaments and Connect payments require Stripe credentials. Live video requires Mux credentials and a configured Mux webhook. Push registration requires an Expo project ID in each mobile app; server-side push security may also require an Expo access token. Keep all credentials in deployment secrets and local environment files, never in source control.
+Paid tournaments require `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`. Live streaming uses `MUX_TOKEN_ID`, `MUX_TOKEN_SECRET`, and `MUX_WEBHOOK_SECRET`. Point the Mux webhook at `https://api.rallycasts.com/api/v1/mux/webhook` and enable live stream and asset events so completed recordings can publish as replay videos.
+
+Set `EXPO_PUBLIC_EAS_PROJECT_ID` in `apps/native/.env` and `apps/caster/.env` for push-token registration. The server may use `EXPO_ACCESS_TOKEN` when push security is enabled in EAS. Without a project ID, mobile push registration is skipped while other notification paths continue to work.
+
+The GitHub Actions `CLOUDFLARE_API_TOKEN` must be scoped to the account and the `rallycasts.com` zone, with the permissions needed for Workers, D1, R2 bucket and custom-domain management, and zone lookup. The deploy workflow checks the `media.rallycasts.com` R2 custom domain and its authoritative DNS record. Do not replace it with a manual `r2.dev` CNAME. Keep provider credentials in deployment secrets and local environment files, never in source control.
 
 See the [Cloudflare / Alchemy deployment guide](https://www.better-t-stack.dev/docs/guides/cloudflare-alchemy) for the shared deployment workflow.
 
